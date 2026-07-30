@@ -19,7 +19,7 @@ export const mutationSchema = z.discriminatedUnion('kind', [
     kind: z.literal('updateTodo'),
     listId,
     uid,
-    etag: z.string(),
+    etag: z.string().min(1),
     changes: todoChangesSchema,
   }),
   z.object({
@@ -27,7 +27,7 @@ export const mutationSchema = z.discriminatedUnion('kind', [
     kind: z.literal('deleteTodo'),
     listId,
     uid,
-    etag: z.string(),
+    etag: z.string().min(1),
   }),
   z.object({
     ...base,
