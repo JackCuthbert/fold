@@ -1,0 +1,26 @@
+{
+  "name": "caldav-todo-client",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "e2e"
+  ],
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint --type-aware --no-error-on-unmatched-pattern",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.4",
+    "@tsconfig/strictest": "^2.0.8",
+    "oxfmt": "^0.61.0",
+    "oxlint": "^1.76.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "typescript": "^7",
+    "vitest": "^4.1.10"
+  }
+}
