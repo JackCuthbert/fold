@@ -5,8 +5,15 @@ Specifications live in [docs/specs](docs/specs/overview.md). Read
 
 ## Workflow
 
-- Always lint (`oxlint`) and format (`oxfmt`) before committing.
-- Linting is **type-aware** via `oxlint --type-aware`, which is powered by
+- Always lint and format before committing: `bun run lint` and
+  `bun run fmt`.
+- **Always invoke tooling through the root `bun run` scripts** — `lint`,
+  `fmt`, `fmt:check`, `typecheck`, `test`, `test:integration`, `test:e2e`.
+  Never call `oxlint`, `oxfmt`, `tsc`, or `vitest` binaries directly and
+  never improvise flags: the scripts are the single source of truth for how
+  these tools run. If a script doesn't do what a spec requires, fix the
+  script.
+- Linting is **type-aware** (`bun run lint`), powered by
   [tsgolint](https://github.com/oxc-project/tsgolint) (installed as the
   `oxlint-tsgolint` dev dependency). Fix findings, don't suppress them.
 - Formatting: 80-character line length, no semicolons, dangling commas
