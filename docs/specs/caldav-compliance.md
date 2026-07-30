@@ -14,6 +14,13 @@ correctly, and never destroying data we don't understand.
 - Todos fetched with a calendar-query REPORT filtered to `VTODO`.
 - Concurrency via ETags: `If-None-Match: *` on create, `If-Match` on
   update/delete ([sync-and-offline](./sync-and-offline.md)).
+  *(added 2026-07-30: a calendar object with no ETag in a REPORT/GET
+  response is a hard error, not a silent last-write-wins fallback — our
+  entire conflict story depends on ETags, and RFC 4791 servers are
+  expected to provide them. The gateway raises a 500 (mapped to 502 for
+  the client) rather than defaulting to an empty etag, which would make
+  every subsequent update/delete's `If-Match` pre-check fail
+  unconditionally.)*
 - Collection `ctag` used to short-circuit refetches when nothing changed.
 - MKCALENDAR with extended-MKCOL fallback for list creation, since server
   support varies.

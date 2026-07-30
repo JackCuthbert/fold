@@ -26,7 +26,24 @@ const listIdFromHref = (href: string): string =>
 const escapeXml = (text: string): string =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
-/** Wrap upstream failures in our typed errors. */
+/**
+ * Wrap upstream failures in our typed errors.
+ *
+ * Deliberately not attempting a general "extract any 3-digit number from
+ * the message and treat it as an HTTP status" fallback here. Most of
+ * tsdav's thrown Errors (missing account fields, "cannot find
+ * principalUrl", "Invalid auth method", etc. — see tsdav's client/
+ * account/collection modules) are plain programming/config errors with
+ * no status code in them at all; a bare digit-group regex would risk
+ * matching an unrelated number (a port, a path segment) and misreporting
+ * a config problem as a specific upstream HTTP status. The one case that
+ * reliably embeds a real status — 401 from principal discovery — is
+ * matched explicitly below. Anything else genuinely unrecognised falls
+ * through to CaldavUnreachableError (502, "keep queueing"): that undersells
+ * a real 403/500 from the CalDAV server, but is safer than a confident
+ * wrong guess, since 502 is at least retryable and doesn't route the user
+ * to a login screen or a permanent-conflict UI incorrectly.
+ */
 async function translate<T>(operation: () => Promise<T>): Promise<T> {
   try {
     return await operation()
@@ -71,6 +88,36 @@ const supportsVtodo = (calendar: RawCalendar): boolean =>
 
 const dataAsString = (data: unknown): string =>
   typeof data === 'string' ? data : ''
+
+// Exported for unit testing: this is the one piece of REPORT/GET → Todo
+// mapping logic that doesn't require a live server to exercise (the rest
+// of the gateway is covered by the Radicale integration suite — see
+// docs/specs/testing.md).
+export function toTodo(listId: string, object: RawObject): Todo | null {
+  const data = readTodo(dataAsString(object.data))
+  if (!data) {
+    // `readTodo` returns null rather than logging — the codec has no
+    // logger. Satisfying the "skip malformed, log a warning" rule in
+    // docs/specs/caldav-compliance.md is the gateway's job, here.
+    console.warn(`skipping malformed calendar object: ${object.url}`)
+    return null
+  }
+  if (!object.etag) {
+    // Our conflict story is entirely ETag-based (docs/specs/
+    // caldav-compliance.md). A server that omits ETags on calendar
+    // objects can't safely be used for concurrent editing: defaulting
+    // to '' here would make every update/delete's pre-check
+    // (`raw.etag !== etag`) a permanent, unconditional 412 rather than
+    // a real conflict signal. Fail loudly instead of degrading to a
+    // silently broken app.
+    throw new CaldavError(
+      500,
+      `CalDAV server did not return an ETag for ${object.url} — ` +
+        'ETags are required for safe concurrent editing',
+    )
+  }
+  return { ...data, listId, href: object.url, etag: object.etag }
+}
 
 export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
   const client = new DAVClient({
@@ -123,18 +170,6 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
       filters: VTODO_FILTER,
     })
     return { calendar, objects }
-  }
-
-  const toTodo = (listId: string, object: RawObject): Todo | null => {
-    const data = readTodo(dataAsString(object.data))
-    if (!data) {
-      // `readTodo` returns null rather than logging — the codec has no
-      // logger. Satisfying the "skip malformed, log a warning" rule in
-      // docs/specs/caldav-compliance.md is the gateway's job, here.
-      console.warn(`skipping malformed calendar object: ${object.url}`)
-      return null
-    }
-    return { ...data, listId, href: object.url, etag: object.etag ?? '' }
   }
 
   const findRawByUid = async (
