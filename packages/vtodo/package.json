@@ -1,0 +1,19 @@
+{
+  "name": "@caldav-todo/vtodo",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@caldav-todo/schemas": "workspace:*",
+    "ical.js": "^2.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.0",
+    "vitest": "^3.0.0"
+  }
+}
