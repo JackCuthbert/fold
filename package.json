@@ -12,7 +12,8 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "bun run --filter @caldav-todo/server test:integration"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

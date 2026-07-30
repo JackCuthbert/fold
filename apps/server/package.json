@@ -7,7 +7,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "bun --bun vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@caldav-todo/schemas": "workspace:*",
