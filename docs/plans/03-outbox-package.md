@@ -161,6 +161,18 @@ export interface OutboxOptions<M> {
   parse: (raw: unknown) => M | null
   coalesce?: (queue: readonly M[], incoming: M) => M[]
   onChange?: (size: number) => void
+  /**
+   * Persistence failed (e.g. IndexedDB quota/eviction). The in-memory queue
+   * has already been updated, so the consumer should warn that changes may
+   * not survive a reload.
+   */
+  onPersistError?: (error: unknown) => void
+  /**
+   * Entries `parse` rejected while loading. Corrupt data is dropped rather
+   * than crashing, but it must not vanish silently — the next persist
+   * overwrites the raw bytes.
+   */
+  onDropOnLoad?: (raw: readonly unknown[]) => void
 }
 
 export class Outbox<M> {
@@ -202,11 +214,25 @@ export class Outbox<M> {
   }
 
   async #persist(): Promise<void> {
-    await this.#options.storage.save(this.#queue)
+    try {
+      await this.#options.storage.save(this.#queue)
+    } catch (error) {
+      this.#options.onPersistError?.(error)
+      return
+    }
     this.#options.onChange?.(this.#queue.length)
   }
 }
 ```
+
+**Do NOT add write serialization here.** It looks like concurrent
+`enqueue()`/`ack()` could persist a stale snapshot, but they cannot:
+`#persist()` reads `this.#queue` when `save()` is *called*, and both queue
+mutations are synchronous, so every in-flight `save()` receives the same
+final array — completion order is irrelevant. This was reviewed, tested
+with an out-of-order-completion storage adapter, and confirmed a
+non-issue. A promise chain or sequence numbers would be complexity for a
+bug that does not exist.
 
 - [ ] **Step 5: Run test to verify it passes**
 
@@ -426,6 +452,9 @@ export class SyncLoop<M> {
   }
 
   start(): void {
+    // Reset backoff: a fresh session (e.g. app foregrounded) shouldn't
+    // inherit a stale multi-second delay from before it stopped.
+    this.#attempts = 0
     this.#running = true
     void this.#drain()
   }
@@ -476,6 +505,9 @@ export class SyncLoop<M> {
   }
 
   #scheduleRetry(): void {
+    // stop() may have run while `process` was in flight — never arm a timer
+    // the already-completed stop() cannot clear.
+    if (!this.#running) return
     const { baseDelayMs, maxDelayMs, random = Math.random } = this.#options
     const exponential = Math.min(baseDelayMs * 2 ** this.#attempts, maxDelayMs)
     const delay = exponential * (0.5 + random() * 0.5)
