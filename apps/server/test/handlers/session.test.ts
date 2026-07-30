@@ -3,7 +3,7 @@ import { CaldavError } from '../../src/caldav/errors'
 import { createRouter } from '../../src/api/router'
 import { routes } from '../../src/api/routes'
 import { testApp, TEST_SECRET } from '../helpers/test-app'
-import { readSession } from '../../src/session/cookie'
+import { readSession, sessionCookie } from '../../src/session/cookie'
 
 const CREDS = {
   serverUrl: 'http://localhost:5232',
@@ -62,5 +62,30 @@ describe('DELETE /api/session', () => {
     )
     expect(res.status).toBe(204)
     expect(res.headers.get('set-cookie')).toContain('Max-Age=0')
+  })
+})
+
+describe('GET /api/session', () => {
+  it('returns the session for a valid cookie', async () => {
+    const handle = createRouter(routes, testApp())
+    const cookie = (await sessionCookie(CREDS, TEST_SECRET, false)).split(
+      ';',
+    )[0]
+    const res = await handle(
+      new Request('http://x/api/session', {
+        headers: { cookie: cookie ?? '' },
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      serverUrl: CREDS.serverUrl,
+      username: CREDS.username,
+    })
+  })
+
+  it('401s without a cookie', async () => {
+    const handle = createRouter(routes, testApp())
+    const res = await handle(new Request('http://x/api/session'))
+    expect(res.status).toBe(401)
   })
 })
