@@ -1322,6 +1322,7 @@ describe('sync engine', () => {
       storage: memoryStorage(),
       onUnauthorized: vi.fn(),
       onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
     })
     engine.start()
     await engine.enqueue(mutation)
@@ -1340,6 +1341,7 @@ describe('sync engine', () => {
       storage: memoryStorage(),
       onUnauthorized: vi.fn(),
       onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
     })
     const seen: number[] = []
     engine.subscribe((status) => seen.push(status.pending))
@@ -1395,12 +1397,21 @@ export interface SyncEngineOptions {
   storage: OutboxStorage
   onUnauthorized: () => void
   onDropped: (mutation: Mutation, error: FatalError) => void
+  /** Storage failed or corrupt entries were discarded — tell the user. */
+  onStorageProblem: (message: string) => void
 }
 
 export type SyncEngine = Awaited<ReturnType<typeof createSyncEngine>>
 
 export async function createSyncEngine(options: SyncEngineOptions) {
-  const { api, queryClient, storage, onUnauthorized, onDropped } = options
+  const {
+    api,
+    queryClient,
+    storage,
+    onUnauthorized,
+    onDropped,
+    onStorageProblem,
+  } = options
   const listeners = new Set<(status: SyncStatus) => void>()
   let status: SyncStatus = { pending: 0 }
 
@@ -1417,6 +1428,21 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     },
     coalesce: coalesceMutations,
     onChange: notify,
+    onPersistError: (error) => {
+      console.error('outbox persist failed', error)
+      onStorageProblem(
+        "Couldn't save your changes locally — they may be lost if you " +
+          'reload.',
+      )
+    },
+    onDropOnLoad: (raw) => {
+      console.error('discarded unreadable queued changes', raw)
+      onStorageProblem(
+        `Discarded ${raw.length} unreadable queued change${
+          raw.length === 1 ? '' : 's'
+        }.`,
+      )
+    },
   })
   notify(outbox.size())
 
@@ -1569,6 +1595,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         typeof indexedDB === 'undefined' ? memoryStorage() : idbStorage(),
       onUnauthorized: () =>
         queryClient.setQueryData(['session'], null),
+      onStorageProblem: (message: string) => toast(message),
       onDropped: (mutation: Mutation, _error: FatalError) => {
         const what =
           mutation.kind === 'updateTodo' || mutation.kind === 'createTodo'
@@ -2620,6 +2647,7 @@ it('reports blocked=server when the CalDAV server is down', async () => {
     storage: memoryStorage(),
     onUnauthorized: vi.fn(),
     onDropped: vi.fn(),
+    onStorageProblem: vi.fn(),
   })
   engine.start()
   await engine.enqueue(mutation)
