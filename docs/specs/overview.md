@@ -76,8 +76,10 @@ supplies an IndexedDB implementation).
   `@tsconfig/node24` (server/packages); client config extends strictest with
   DOM libs and bundler resolution.
 - **Lint/format:** oxlint + oxfmt. CI-enforced; also run before every commit.
-  *(changed 2026-07-30: linting must be type-aware; formatting is 80-char
-  lines, no semicolons, dangling commas always.)*
+  *(changed 2026-07-30: linting must be type-aware — `oxlint --type-aware`,
+  powered by [tsgolint](https://github.com/oxc-project/tsgolint) via the
+  `oxlint-tsgolint` package; formatting is 80-char lines, no semicolons,
+  dangling commas always.)*
 - **Validation:** zod at every trust boundary (API in/out, outbox reads, env
   vars, CalDAV-derived data). Types inferred via `z.infer`.
 - **Forms:** react-hook-form + `@hookform/resolvers/zod`, reusing

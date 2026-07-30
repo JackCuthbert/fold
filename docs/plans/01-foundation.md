@@ -6,7 +6,7 @@
 
 **Architecture:** Root holds shared tooling config; every package/app extends `tsconfig.base.json` and is linted/formatted from the root. `packages/schemas` is the shared trust boundary — zod v4 schemas, types via `z.infer`, consumed by everything else. Spec: [overview](../specs/overview.md).
 
-**Tech Stack:** Bun workspaces, TypeScript 7, oxlint (type-aware), oxfmt, vitest, zod v4.
+**Tech Stack:** Bun workspaces, TypeScript 7, oxlint + [tsgolint](https://github.com/oxc-project/tsgolint) (type-aware linting, via the `oxlint-tsgolint` package), oxfmt, vitest, zod v4.
 
 **Formatting rules (apply to ALL code in ALL plans):** 80-char lines, no semicolons, trailing commas always. The code blocks in these plans follow this style — keep it.
 
@@ -99,15 +99,22 @@ server. See [docs/specs/overview.md](docs/specs/overview.md).
 
 - [ ] **Step 2: Install root dev dependencies**
 
+Type-aware linting requires `oxlint-tsgolint` alongside `oxlint` —
+`--type-aware` shells out to the tsgolint binary
+(https://github.com/oxc-project/tsgolint) and errors without it.
+
 Run:
 
 ```bash
-bun add -d typescript@^7 oxlint oxfmt vitest @tsconfig/strictest @tsconfig/node24
+bun add -d typescript@^7 oxlint oxlint-tsgolint oxfmt vitest @tsconfig/strictest @tsconfig/node24
 ```
 
 Expected: lockfile written, no errors. If `oxfmt` rejects an option name in
 `.oxfmtrc.json`, check `oxfmt --help` and map to the equivalent option —
 the three rules (80 cols, no semis, dangling commas) are non-negotiable.
+Likewise, if `--type-aware` is unavailable in the installed oxlint version,
+check `oxlint --help` for the current flag name rather than dropping
+type-aware linting.
 
 - [ ] **Step 3: Write root vitest config**
 
@@ -126,9 +133,9 @@ export default defineConfig({
 - [ ] **Step 4: Verify tooling runs clean**
 
 Run: `bun run lint && bun run fmt:check`
-Expected: both exit 0 (no source files yet). If `--type-aware` errors
-because no tsconfig is found at root, that's fine once packages exist;
-re-verify in Task 2 Step 4.
+Expected: both exit 0 (no source files yet). tsgolint resolves each file's
+`tsconfig.json` from the nearest package, so the root having no `include`
+is fine — re-verify in Task 2 Step 4 once real source exists.
 
 - [ ] **Step 5: Commit**
 

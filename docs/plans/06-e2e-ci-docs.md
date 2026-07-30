@@ -595,7 +595,7 @@ Open the Vite URL and sign in with your CalDAV server URL + credentials.
 
 | Command | What |
 |---|---|
-| `bun run lint` / `bun run fmt` | oxlint (type-aware) / oxfmt |
+| `bun run lint` / `bun run fmt` | oxlint (type-aware, via tsgolint) / oxfmt |
 | `bun run typecheck` | TS 7, strictest |
 | `bun run test` | unit tests (vitest) |
 | `bun run test:integration` | gateway vs real Radicale (needs `radicale` on PATH) |
