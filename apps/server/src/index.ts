@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { createRouter } from './api/router'
 import { routes } from './api/routes'
 import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
+import { resolveStaticPath } from './static/resolve-path'
 
 const config = loadConfig(process.env)
 const handleApi = createRouter(routes, {
@@ -11,11 +12,14 @@ const handleApi = createRouter(routes, {
   makeGateway: makeTsdavGateway,
 })
 
-const clientDist = join(import.meta.dirname, '../../client/dist')
+const clientDist = resolve(import.meta.dirname, '../../client/dist')
 
 async function serveStatic(pathname: string): Promise<Response> {
-  const candidate = join(clientDist, pathname === '/' ? 'index.html' : pathname)
-  if (existsSync(candidate)) {
+  const candidate = resolveStaticPath(
+    clientDist,
+    pathname === '/' ? '/index.html' : pathname,
+  )
+  if (candidate !== null && existsSync(candidate)) {
     return new Response(Bun.file(candidate))
   }
   // SPA fallback: unknown paths get index.html
