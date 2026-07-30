@@ -30,6 +30,7 @@ export class SyncLoop<M> {
 
   start(): void {
     this.#running = true
+    this.#attempts = 0
     void this.#drain()
   }
 
@@ -97,6 +98,10 @@ export class SyncLoop<M> {
   }
 
   #scheduleRetry(): void {
+    // stop() may have run while `process()` was in flight — it clears any
+    // *existing* timer, but can't clear one that's armed after the fact.
+    // Guard here so a stopped loop never leaves a dangling timeout.
+    if (!this.#running) return
     const { baseDelayMs, maxDelayMs, random = Math.random } = this.#options
     const exponential = Math.min(baseDelayMs * 2 ** this.#attempts, maxDelayMs)
     const delay = exponential * (0.5 + random() * 0.5)

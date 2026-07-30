@@ -6,6 +6,19 @@ export interface OutboxOptions<M> {
   parse: (raw: unknown) => M | null
   coalesce?: (queue: readonly M[], incoming: M) => M[]
   onChange?: (size: number) => void
+  /**
+   * Called with the raw entries `parse` rejected on `open()`, if any.
+   * Loading always keeps going with the entries that did parse — this is
+   * purely so a schema-migration bug that silently eats queued work is
+   * observable instead of leaving zero trace.
+   */
+  onDropOnLoad?: (raw: readonly unknown[]) => void
+  /**
+   * Called when `storage.save()` rejects. The in-memory queue has already
+   * been updated, so memory and disk have diverged — the caller decides
+   * whether to retry the write or surface it to the user.
+   */
+  onPersistError?: (error: unknown) => void
 }
 
 export class Outbox<M> {
@@ -20,9 +33,18 @@ export class Outbox<M> {
     const outbox = new Outbox(options)
     const raw = await options.storage.load()
     const entries = Array.isArray(raw) ? raw : []
-    outbox.#queue = entries
-      .map((entry) => options.parse(entry))
-      .filter((entry): entry is M => entry !== null)
+    const dropped: unknown[] = []
+    outbox.#queue = entries.flatMap((entry) => {
+      const parsed = options.parse(entry)
+      if (parsed === null) {
+        dropped.push(entry)
+        return []
+      }
+      return [parsed]
+    })
+    if (dropped.length > 0) {
+      options.onDropOnLoad?.(dropped)
+    }
     return outbox
   }
 
@@ -47,7 +69,12 @@ export class Outbox<M> {
   }
 
   async #persist(): Promise<void> {
-    await this.#options.storage.save(this.#queue)
+    try {
+      await this.#options.storage.save(this.#queue)
+    } catch (error) {
+      this.#options.onPersistError?.(error)
+      return
+    }
     this.#options.onChange?.(this.#queue.length)
   }
 }

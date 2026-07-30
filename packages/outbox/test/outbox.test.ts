@@ -52,6 +52,53 @@ describe('Outbox', () => {
     expect(outbox.size()).toBe(1)
   })
 
+  it('reports dropped entries via onDropOnLoad', async () => {
+    const storage = memoryStorage()
+    const corrupt = { corrupt: true }
+    await storage.save([{ id: '1', text: 'ok' }, corrupt, 42])
+    const onDropOnLoad = vi.fn()
+    await Outbox.open({ storage, parse, onDropOnLoad })
+    expect(onDropOnLoad).toHaveBeenCalledWith([corrupt, 42])
+  })
+
+  it('does not call onDropOnLoad when nothing is dropped', async () => {
+    const storage = memoryStorage()
+    await storage.save([{ id: '1', text: 'ok' }])
+    const onDropOnLoad = vi.fn()
+    await Outbox.open({ storage, parse, onDropOnLoad })
+    expect(onDropOnLoad).not.toHaveBeenCalled()
+  })
+
+  it('reports storage.save() rejections via onPersistError', async () => {
+    const storage = memoryStorage()
+    const failure = new Error('disk full')
+    const save = vi.fn().mockRejectedValue(failure)
+    const onPersistError = vi.fn()
+    const outbox = await Outbox.open({
+      storage: { load: () => storage.load(), save },
+      parse,
+      onPersistError,
+    })
+    await outbox.enqueue({ id: '1', text: 'a' })
+    expect(onPersistError).toHaveBeenCalledWith(failure)
+    // The in-memory queue still reflects the mutation even though the
+    // write failed — the caller decides whether to retry or surface it.
+    expect(outbox.size()).toBe(1)
+  })
+
+  it('does not throw from enqueue/ack when persistence fails', async () => {
+    const save = vi.fn().mockRejectedValue(new Error('disk full'))
+    const outbox = await Outbox.open({
+      storage: { load: () => Promise.resolve([]), save },
+      parse,
+      onPersistError: () => {},
+    })
+    await expect(
+      outbox.enqueue({ id: '1', text: 'a' }),
+    ).resolves.toBeUndefined()
+    await expect(outbox.ack()).resolves.toBeUndefined()
+  })
+
   it('applies the coalesce hook on enqueue', async () => {
     const outbox = await Outbox.open({
       storage: memoryStorage(),
