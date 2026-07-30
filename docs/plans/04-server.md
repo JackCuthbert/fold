@@ -1468,6 +1468,9 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
   ): Todo | null => {
     const data = readTodo(object.data)
     if (!data) {
+      // `readTodo` returns null rather than logging — the codec has no
+      // logger. Satisfying the "skip malformed, log a warning" rule in
+      // docs/specs/caldav-compliance.md is the gateway's job, here.
       console.warn(`skipping malformed calendar object: ${object.url}`)
       return null
     }
