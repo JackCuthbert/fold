@@ -6,6 +6,9 @@ Specifications live in [docs/specs](docs/specs/overview.md). Read
 ## Workflow
 
 - Always lint (`oxlint`) and format (`oxfmt`) before committing.
+- Linting is **type-aware** (oxlint's type-aware mode); fix, don't suppress.
+- Formatting: 80-character line length, no semicolons, dangling commas
+  always. Enforced by oxfmt config — never hand-format against it.
 - Don't duplicate tests across layers (unit / integration / e2e).
 - Test behavior over shape — never test that a defined shape is what it is.
 
