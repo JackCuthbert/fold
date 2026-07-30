@@ -1,0 +1,95 @@
+# CalDAV Todo Client — Overview
+
+A simple but feature-complete todo client for CalDAV servers (developed
+against Radicale, compliant with any server that correctly implements the
+CalDAV spec). A stateless Bun server acts as a backend-for-frontend (BFF),
+exposing a clean JSON API and speaking CalDAV out the back. A React SPA
+provides an offline-resilient, mobile-and-desktop UI with a minimalist serif
+aesthetic.
+
+## Goals
+
+- Sync to the CalDAV server on every user action.
+- Fully usable during network/server loss: all reads and writes work offline,
+  queued writes replay when connectivity returns.
+- Multiple list (CalDAV collection) support, including create/rename/delete.
+- CalDAV spec compliance: works against any correctly-implemented server, and
+  never destroys data it does not understand.
+- Micro-interactions for delight; optional completion sounds (stretch).
+- Mobile + desktop responsive views.
+
+## Non-goals (future enhancements)
+
+- **Sub-tasks** (RELATED-TO hierarchies) — explicitly deferred.
+- Recurring todos (RRULE) — out of scope; existing RRULE properties are
+  preserved untouched on edit (see [caldav-compliance](./caldav-compliance.md)).
+- Service worker / background sync while the tab is closed.
+- Multi-account simultaneous sessions.
+
+## Architecture
+
+```
+┌────────────────┐   JSON over HTTP    ┌────────────────┐   CalDAV (WebDAV)   ┌──────────┐
+│  React client  │ ◄─────────────────► │  Bun BFF       │ ◄─────────────────► │ Radicale │
+│  TanStack Query│                     │  tsdav +       │                     │ (or any  │
+│  + IDB outbox  │                     │  ical.js       │                     │  server) │
+└────────────────┘                     └────────────────┘                     └──────────┘
+```
+
+- **Bun server (stateless BFF):** serves the built client and a JSON API
+  under `/api` ([api](./api.md)). Uses `tsdav` for DAV operations and
+  `ical.js` for iCalendar parse/serialize. No database, no server-side
+  session store ([authentication](./authentication.md)).
+- **React client:** renders exclusively from a local cache; all writes go
+  through a durable outbox ([sync-and-offline](./sync-and-offline.md)). The
+  network is an enhancement, never a dependency.
+
+## Workspace layout
+
+Bun workspaces monorepo:
+
+```
+apps/
+  server/        Bun BFF — API handlers, CalDAV gateway
+  client/        React SPA
+packages/
+  schemas/       Zod schemas + inferred types (the shared trust boundary)
+  vtodo/         VTODO codec: parse / mutate-preserve / serialize (wraps ical.js)
+  outbox/        Generic durable FIFO mutation queue (storage-injectable)
+e2e/             Playwright happy-path tests
+docs/
+  specs/         Feature specifications (this directory)
+  architecture/  Architecture decision docs, one per decision
+  user/          User guide documentation
+```
+
+**Package rule:** code that is generic and reusable lives in `packages/` in a
+publishable shape — own `package.json` with `exports`, own tests, no imports
+from `apps/`. `vtodo` and `outbox` must have zero React/Bun-specific
+dependencies (`outbox` accepts an injected storage adapter; the client
+supplies an IndexedDB implementation).
+
+## Tooling
+
+- **Runtime/PM:** Bun (server, workspaces); tests run with vitest.
+- **TypeScript:** v7+ (native). `tsconfig` extends `@tsconfig/strictest` +
+  `@tsconfig/node24` (server/packages); client config extends strictest with
+  DOM libs and bundler resolution.
+- **Lint/format:** oxlint + oxfmt. CI-enforced; also run before every commit.
+- **Validation:** zod at every trust boundary (API in/out, outbox reads, env
+  vars, CalDAV-derived data). Types inferred via `z.infer`.
+- **Forms:** react-hook-form + `@hookform/resolvers/zod`, reusing
+  `packages/schemas`.
+
+## Feature specifications
+
+| Spec | Covers |
+|---|---|
+| [authentication](./authentication.md) | Login, sealed-cookie sessions, logout, 401 handling |
+| [lists](./lists.md) | List discovery, create/rename/delete |
+| [todos](./todos.md) | Todo data model, fields, completed handling |
+| [sync-and-offline](./sync-and-offline.md) | Outbox, sync loop, conflicts, offline UX |
+| [api](./api.md) | JSON API surface, handler convention, error mapping |
+| [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |
+| [ui](./ui.md) | Views, visual design, micro-interactions, sound |
+| [testing](./testing.md) | Test layers, tools, and rules |
