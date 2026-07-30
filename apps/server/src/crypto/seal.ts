@@ -11,8 +11,8 @@ async function deriveKey(secret: string): Promise<CryptoKey> {
 
 const toBase64Url = (bytes: Uint8Array): string =>
   Buffer.from(bytes).toString('base64url')
-const fromBase64Url = (text: string): Uint8Array =>
-  new Uint8Array(Buffer.from(text, 'base64url'))
+const fromBase64Url = (text: string): Uint8Array<ArrayBuffer> =>
+  Uint8Array.from(Buffer.from(text, 'base64url'))
 
 export async function seal(plaintext: string, secret: string): Promise<string> {
   const key = await deriveKey(secret)
