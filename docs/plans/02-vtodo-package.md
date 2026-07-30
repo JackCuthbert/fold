@@ -276,16 +276,65 @@ export function icalTimeFromDate(date: Date): ICAL.Time {
   return ICAL.Time.fromJSDate(date, true)
 }
 
-export function dueToIcalTime(due: TodoDue): ICAL.Time {
-  if (due.kind === 'date') return ICAL.Time.fromDateString(due.value)
-  return ICAL.Time.fromJSDate(new Date(due.value), true)
+const pad = (value: number, width = 2): string =>
+  String(value).padStart(width, '0')
+
+/** Wall-clock components, with no zone interpretation whatsoever. */
+const wallClock = (time: ICAL.Time): string =>
+  `${pad(time.year, 4)}-${pad(time.month)}-${pad(time.day)}` +
+  `T${pad(time.hour)}:${pad(time.minute)}:${pad(time.second)}`
+
+/**
+ * Read a DUE property, preserving which of the four RFC 5545 forms it used.
+ * Takes the property (not just the value) because TZID lives in a parameter.
+ * See docs/specs/todos.md#due-dates-and-timezones.
+ */
+export function dueFromProperty(property: ICAL.Property): TodoDue | null {
+  const time = property.getFirstValue()
+  if (!(time instanceof ICAL.Time)) return null
+  if (time.isDate) return { kind: 'date', value: wallClock(time).slice(0, 10) }
+
+  const tzid = property.getParameter('tzid')
+  if (typeof tzid === 'string' && tzid !== '') {
+    return { kind: 'zoned', tzid, value: wallClock(time) }
+  }
+  // ical.js reports a genuine `Z` suffix as the UTC zone; anything else
+  // (including a TZID it could not resolve) parses as floating.
+  if (time.zone === ICAL.Timezone.utcTimezone) {
+    return { kind: 'utc', value: `${wallClock(time)}.000Z` }
+  }
+  return { kind: 'floating', value: wallClock(time) }
 }
 
-export function icalTimeToDue(time: ICAL.Time): TodoDue {
-  if (time.isDate) return { kind: 'date', value: time.toString() }
-  return { kind: 'date-time', value: time.toJSDate().toISOString() }
+/** Write a DUE back in exactly the form it was read in. */
+export function setDueOnComponent(
+  vtodo: ICAL.Component,
+  due: TodoDue,
+): void {
+  vtodo.removeProperty('due')
+  const property = new ICAL.Property('due', vtodo)
+
+  if (due.kind === 'date') {
+    property.setValue(ICAL.Time.fromDateString(due.value))
+    property.setParameter('value', 'DATE')
+    vtodo.addProperty(property)
+    return
+  }
+
+  const time = ICAL.Time.fromString(
+    due.kind === 'utc' ? `${due.value.slice(0, 19)}Z` : due.value,
+  )
+  if (due.kind === 'zoned') property.setParameter('tzid', due.tzid)
+  property.setValue(time)
+  vtodo.addProperty(property)
 }
 ```
+
+**Note on `zoned` values:** we deliberately do NOT register a timezone or
+resolve the `TZID` to an instant — the `TZID` parameter and wall-clock
+components are carried through verbatim, so a zone we don't understand still
+round-trips. Any `VTIMEZONE` component in the resource is preserved by the
+same mutate-preserve mechanism as every other unmanaged component.
 
 `packages/vtodo/src/read.ts`:
 
@@ -293,7 +342,7 @@ export function icalTimeToDue(time: ICAL.Time): TodoDue {
 import type { TodoDue, TodoPriority } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { priorityFromNumber } from './priority'
-import { icalTimeToDue } from './time'
+import { dueFromProperty } from './time'
 
 export interface VtodoData {
   uid: string
@@ -319,9 +368,8 @@ export function readTodo(ics: string): VtodoData | null {
 
   const summary = vtodo.getFirstPropertyValue('summary')
   const description = vtodo.getFirstPropertyValue('description')
-  const dueValue = vtodo.getFirstProperty('due')?.getFirstValue()
-  const due =
-    dueValue instanceof ICAL.Time ? icalTimeToDue(dueValue) : undefined
+  const dueProperty = vtodo.getFirstProperty('due')
+  const due = dueProperty ? (dueFromProperty(dueProperty) ?? undefined) : undefined
   const priority = priorityFromNumber(
     vtodo.getFirstPropertyValue('priority'),
   )
@@ -417,7 +465,7 @@ Expected: FAIL — cannot resolve `../src/create`.
 import type { NewTodo } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { priorityToNumber } from './priority'
-import { dueToIcalTime, icalTimeFromDate } from './time'
+import { icalTimeFromDate, setDueOnComponent } from './time'
 
 const PRODID = '-//caldav-todo-client//EN'
 
@@ -432,7 +480,7 @@ export function createTodoIcs(input: NewTodo, now: Date): string {
   vtodo.updatePropertyWithValue('summary', input.summary)
   vtodo.updatePropertyWithValue('status', 'NEEDS-ACTION')
   if (input.due) {
-    vtodo.updatePropertyWithValue('due', dueToIcalTime(input.due))
+    setDueOnComponent(vtodo, input.due)
   }
   if (input.description !== undefined) {
     vtodo.updatePropertyWithValue('description', input.description)
@@ -527,16 +575,19 @@ describe('applyChanges', () => {
     expect(todo?.priority).toBeUndefined()
   })
 
-  it('sets a date-time due', () => {
-    const out = applyChanges(
-      fixture('simple.ics'),
-      { due: { kind: 'date-time', value: '2026-08-01T09:30:00.000Z' } },
-      NOW,
-    )
-    expect(readTodo(out)?.due).toEqual({
-      kind: 'date-time',
-      value: '2026-08-01T09:30:00.000Z',
-    })
+  it.each([
+    [{ kind: 'utc', value: '2026-08-01T09:30:00.000Z' }],
+    [{ kind: 'floating', value: '2026-08-01T09:30:00' }],
+    [
+      {
+        kind: 'zoned',
+        tzid: 'Australia/Brisbane',
+        value: '2026-08-01T09:30:00',
+      },
+    ],
+  ])('round-trips a %o due unchanged', (due) => {
+    const out = applyChanges(fixture('simple.ics'), { due }, NOW)
+    expect(readTodo(out)?.due).toEqual(due)
   })
 
   it('throws VtodoError when there is no VTODO', () => {
@@ -561,7 +612,7 @@ import type { TodoChanges } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { VtodoError } from './error'
 import { priorityToNumber } from './priority'
-import { dueToIcalTime, icalTimeFromDate } from './time'
+import { icalTimeFromDate, setDueOnComponent } from './time'
 
 // Mutate ONLY managed properties; everything else is preserved verbatim.
 // See docs/specs/caldav-compliance.md (round-trip preservation).
@@ -588,7 +639,7 @@ export function applyChanges(
   }
   if (changes.due !== undefined) {
     if (changes.due === null) vtodo.removeProperty('due')
-    else vtodo.updatePropertyWithValue('due', dueToIcalTime(changes.due))
+    else setDueOnComponent(vtodo, changes.due)
   }
   if (changes.priority !== undefined) {
     if (changes.priority === null) vtodo.removeProperty('priority')
@@ -731,6 +782,32 @@ describe('round-trip preservation', () => {
     expect(out).toContain('CATEGORIES:home,garden')
     expect(out).toContain('X-WR-CALNAME:Chores')
   })
+
+  it.each([
+    ['DUE:20260810T090000', 'floating'],
+    ['DUE;TZID=Australia/Brisbane:20260810T090000', 'zoned'],
+    ['DUE;TZID=Nowhere/Unknown:20260810T090000', 'unresolvable zone'],
+  ])(
+    'preserves a foreign %s (%s) when editing another field',
+    (dueLine) => {
+      const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Another Client//EN',
+        'BEGIN:VTODO',
+        'UID:tz-1',
+        'DTSTAMP:20260701T120000Z',
+        'SUMMARY:Original',
+        dueLine,
+        'END:VTODO',
+        'END:VCALENDAR',
+      ].join('\r\n')
+      const out = applyChanges(ics, { summary: 'Edited' }, NOW)
+      // The DUE line must survive byte-equivalent — no zone conversion,
+      // no Z suffix appearing, no host-offset shift.
+      expect(out).toContain(dueLine)
+    },
+  )
 
   it('only touches the first VTODO in a multi-todo resource', () => {
     const out = applyChanges(fixture('multi.ics'), { summary: 'Edited' }, NOW)

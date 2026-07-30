@@ -39,5 +39,10 @@ Updates never regenerate a VTODO from our model. The flow, implemented in
   never crashes the list and is never written back.
 - Properties and components we don't manage are opaque: preserved on write,
   ignored on read.
-- Timezone-aware `DUE` values (date and date-time forms) are handled per
-  RFC 5545; floating and UTC forms round-trip unchanged.
+- `DUE` values round-trip in the form the server sent — all-day, UTC,
+  floating, or `TZID`-zoned. We never reinterpret one form as another, and
+  never resolve a zone using the host machine's local offset. An
+  unresolvable `TZID` (no `VTIMEZONE` in the resource) is still preserved
+  verbatim. See [todos — due dates and timezones](./todos.md#due-dates-and-timezones).
+  *(clarified 2026-07-30: the previous wording was underspecified and
+  permitted a host-dependent conversion bug.)*

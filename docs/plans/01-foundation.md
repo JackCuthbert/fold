@@ -207,11 +207,24 @@ export type TodoList = z.infer<typeof todoListSchema>
 ```ts
 import { z } from 'zod'
 
+// Four RFC 5545 DUE forms, preserved as sent — see
+// docs/specs/todos.md#due-dates-and-timezones. Never convert between forms.
+const LOCAL_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/
+
 export const todoDueSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('date'), value: z.iso.date() }),
   z.object({
-    kind: z.literal('date-time'),
-    value: z.iso.datetime({ offset: true }),
+    kind: z.literal('utc'),
+    value: z.iso.datetime({ offset: false }),
+  }),
+  z.object({
+    kind: z.literal('floating'),
+    value: z.string().regex(LOCAL_DATE_TIME),
+  }),
+  z.object({
+    kind: z.literal('zoned'),
+    tzid: z.string().min(1),
+    value: z.string().regex(LOCAL_DATE_TIME),
   }),
 ])
 export type TodoDue = z.infer<typeof todoDueSchema>

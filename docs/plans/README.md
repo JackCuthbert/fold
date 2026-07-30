@@ -21,7 +21,10 @@ Names used across all plans. If you believe one must change, update every plan f
 
 **`@caldav-todo/schemas`** (zod v4; all types via `z.infer`):
 `todoSchema → Todo`, `todoListSchema → TodoList`, `todoDueSchema → TodoDue`
-(`{kind:'date'|'date-time', value:string}`), `todoPrioritySchema → TodoPriority`
+(4-way union: `{kind:'date'|'utc'|'floating', value}` and
+`{kind:'zoned', tzid, value}` — see
+[specs/todos](../specs/todos.md#due-dates-and-timezones)),
+`todoPrioritySchema → TodoPriority`
 (`'high'|'medium'|'low'`), `todoChangesSchema → TodoChanges`,
 `newTodoSchema → NewTodo`, `mutationSchema → Mutation` (discriminated union on
 `kind`: `createTodo | updateTodo | deleteTodo | createList | renameList | deleteList`),
@@ -31,6 +34,10 @@ Names used across all plans. If you believe one must change, update every plan f
 **`@caldav-todo/vtodo`:**
 `readTodo(ics): VtodoData | null`, `createTodoIcs(input: NewTodo & {uid}, now: Date): string`,
 `applyChanges(ics: string, changes: TodoChanges, now: Date): string`, `VtodoError`.
+Internal time helpers: `dueFromProperty(property)`, `setDueOnComponent(vtodo, due)`.
+
+**Client sorting:** `dueInstant(todo)` / `isOverdue(todo, now)` /
+`sortActiveTodos(todos, now)` in `apps/client/src/todos/sort.ts`.
 
 **`@caldav-todo/outbox`:**
 `Outbox`, `SyncLoop`, `OutboxStorage`, `memoryStorage()`, `RetryableError`, `FatalError`.

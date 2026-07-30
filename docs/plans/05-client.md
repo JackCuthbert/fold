@@ -714,7 +714,7 @@ git add -A && git commit -m "feat(client): mutation coalescing"
 ```ts
 import type { Todo } from '@caldav-todo/schemas'
 import { describe, expect, it } from 'vitest'
-import { isOverdue, sortActiveTodos } from '../src/todos/sort'
+import { dueInstant, isOverdue, sortActiveTodos } from '../src/todos/sort'
 
 const NOW = new Date('2026-07-30T12:00:00Z')
 const todo = (uid: string, extra: Partial<Todo> = {}): Todo => ({
@@ -752,6 +752,31 @@ describe('sortActiveTodos', () => {
     expect(
       isOverdue(todo('t', { due: { kind: 'date', value: '2026-07-29' } }), NOW),
     ).toBe(true)
+  })
+
+  it('orders the four due forms by their resolved instant', () => {
+    // All four resolve near the same moment; ordering must be stable and
+    // must not throw on an unknown zone.
+    const items = [
+      todo('utc', { due: { kind: 'utc', value: '2026-08-02T00:00:00.000Z' } }),
+      todo('floating', { due: { kind: 'floating', value: '2026-08-01T12:00:00' } }),
+      todo('zoned', {
+        due: {
+          kind: 'zoned',
+          tzid: 'Australia/Brisbane',
+          value: '2026-08-01T12:00:00',
+        },
+      }),
+      todo('unknown-zone', {
+        due: { kind: 'zoned', tzid: 'Nowhere/Unknown', value: '2026-08-01T12:00:00' },
+      }),
+    ]
+    const sorted = sortActiveTodos(items, NOW)
+    expect(sorted).toHaveLength(4)
+    // Each resolved instant must be finite — no NaN leaking into the sort.
+    for (const item of sorted) {
+      expect(Number.isNaN(dueInstant(item))).toBe(false)
+    }
   })
 })
 ```
@@ -858,24 +883,77 @@ import type { Todo } from '@caldav-todo/schemas'
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 } as const
 
-const dueTime = (todo: Todo): number => {
-  if (!todo.due) return Number.POSITIVE_INFINITY
-  if (todo.due.kind === 'date') {
-    // A date-only due covers the whole day.
-    return new Date(`${todo.due.value}T23:59:59.999Z`).getTime()
+// Resolve each DUE form to a comparison instant in the VIEWER's timezone —
+// docs/specs/todos.md#ordering-and-overdue-comparison. Display only; this
+// is never written back to the server.
+const zonedOffsetMs = (local: string, tzid: string): number => {
+  try {
+    const asUtc = new Date(`${local}Z`)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tzid,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+    const parts = Object.fromEntries(
+      formatter.formatToParts(asUtc).map((part) => [part.type, part.value]),
+    )
+    const shown = Date.parse(
+      `${parts['year']}-${parts['month']}-${parts['day']}` +
+        `T${parts['hour'] === '24' ? '00' : parts['hour']}:` +
+        `${parts['minute']}:${parts['second']}Z`,
+    )
+    return asUtc.getTime() - shown
+  } catch {
+    // Unknown zone: treat as floating.
+    return 0
   }
-  return new Date(todo.due.value).getTime()
+}
+
+export const dueInstant = (todo: Todo): number => {
+  const due = todo.due
+  if (!due) return Number.POSITIVE_INFINITY
+  switch (due.kind) {
+    case 'date': {
+      // An all-day todo isn't overdue until the local day is over.
+      const [year, month, day] = due.value.split('-').map(Number)
+      return new Date(
+        year ?? 0,
+        (month ?? 1) - 1,
+        day ?? 1,
+        23,
+        59,
+        59,
+        999,
+      ).getTime()
+    }
+    case 'utc':
+      return new Date(due.value).getTime()
+    case 'floating':
+      // "9am wherever you are" — parse without a zone suffix so the
+      // runtime applies local time.
+      return new Date(due.value).getTime()
+    case 'zoned':
+      return (
+        new Date(`${due.value}Z`).getTime() +
+        zonedOffsetMs(due.value, due.tzid)
+      )
+  }
 }
 
 export const isOverdue = (todo: Todo, now: Date): boolean =>
-  dueTime(todo) < now.getTime()
+  dueInstant(todo) < now.getTime()
 
 // Sort order per docs/specs/todos.md: overdue, due date, priority, stable.
 export function sortActiveTodos(todos: readonly Todo[], now: Date): Todo[] {
   return [...todos].sort((a, b) => {
     const overdue = Number(isOverdue(b, now)) - Number(isOverdue(a, now))
     if (overdue !== 0) return overdue
-    const due = dueTime(a) - dueTime(b)
+    const due = dueInstant(a) - dueInstant(b)
     if (due !== 0) return due
     const priority =
       PRIORITY_RANK[a.priority ?? 'low'] - PRIORITY_RANK[b.priority ?? 'low']
@@ -2195,15 +2273,14 @@ export function QuickAdd(props: { onAdd: (summary: string) => void }) {
 
 ```tsx
 import type { Todo } from '@caldav-todo/schemas'
-import { isOverdue } from './sort'
+import { dueInstant, isOverdue } from './sort'
 import { Checkbox } from './checkbox'
 
 const formatDue = (todo: Todo): string | null => {
   if (!todo.due) return null
-  const date = new Date(
-    todo.due.kind === 'date' ? `${todo.due.value}T00:00:00` : todo.due.value,
-  )
-  return date.toLocaleDateString(undefined, {
+  // dueInstant resolves all four forms consistently — see
+  // docs/specs/todos.md#ordering-and-overdue-comparison.
+  return new Date(dueInstant(todo)).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
   })
@@ -2259,6 +2336,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { dueInstant } from './sort'
 
 const detailSchema = z.object({
   summary: z.string().min(1),
@@ -2268,8 +2346,20 @@ const detailSchema = z.object({
 })
 type DetailForm = z.infer<typeof detailSchema>
 
-// Detail edit — docs/specs/todos.md. Date-time DUEs from other clients are
-// shown as their date part; editing keeps kind 'date' (documented tradeoff).
+/** Local yyyy-mm-dd for <input type="date"> (not UTC — toISOString shifts). */
+const toDateInputValue = (date: Date): string =>
+  [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+
+// Detail edit — docs/specs/todos.md.
+// The date input shows the local date of whatever form the DUE has. If the
+// user doesn't touch it, we send NO due change at all, so a foreign client's
+// floating/zoned/UTC value survives untouched
+// (docs/specs/caldav-compliance.md). Only an actual edit rewrites it, and
+// then as an all-day 'date' — which is what the date input expresses.
 export function TodoDetail(props: {
   todo: Todo
   onSave: (changes: TodoChanges) => void
@@ -2277,11 +2367,16 @@ export function TodoDetail(props: {
   onClose: () => void
 }) {
   const { todo } = props
+  // Local date of the existing due, in the input's yyyy-mm-dd format.
+  const initialDue = todo.due
+    ? toDateInputValue(new Date(dueInstant(todo)))
+    : ''
+
   const { register, handleSubmit } = useForm<DetailForm>({
     resolver: zodResolver(detailSchema),
     defaultValues: {
       summary: todo.summary,
-      due: todo.due ? todo.due.value.slice(0, 10) : '',
+      due: initialDue,
       description: todo.description ?? '',
       priority: todo.priority ?? '',
     },
@@ -2292,10 +2387,15 @@ export function TodoDetail(props: {
       ...(values.summary !== todo.summary
         ? { summary: values.summary }
         : {}),
-      due:
-        values.due === ''
-          ? null
-          : { kind: 'date', value: values.due },
+      // Untouched date input → omit `due` entirely → preserve as stored.
+      ...(values.due === initialDue
+        ? {}
+        : {
+            due:
+              values.due === ''
+                ? null
+                : { kind: 'date' as const, value: values.due },
+          }),
       description: values.description === '' ? null : values.description,
       priority: values.priority === '' ? null : values.priority,
     }

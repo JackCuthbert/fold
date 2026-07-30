@@ -16,7 +16,7 @@ Zod schemas are the single source of truth; TypeScript types are inferred
 | `etag` | string | HTTP ETag ([sync-and-offline](./sync-and-offline.md)) |
 | `summary` | string | `SUMMARY` |
 | `completed` | boolean | derived from `STATUS:COMPLETED`; setting it writes `STATUS`, `PERCENT-COMPLETE:100`, and a `COMPLETED` timestamp |
-| `due?` | date or date-time | `DUE` (timezone-aware) |
+| `due?` | date, or date-time in one of three timezone forms | `DUE` (see [Due dates and timezones](#due-dates-and-timezones)) |
 | `description?` | string | `DESCRIPTION` |
 | `priority?` | `high` \| `medium` \| `low` | `PRIORITY`: writes 1/5/9; reads 1–4 → high, 5 → medium, 6–9 → low; absent/0 → none |
 
@@ -25,6 +25,54 @@ verbatim on edit ([caldav-compliance](./caldav-compliance.md)).
 
 Sub-tasks (`RELATED-TO`) are a documented future enhancement
 ([overview — non-goals](./overview.md#non-goals-future-enhancements)).
+
+## Due dates and timezones
+
+*(added 2026-07-30: the original "date or date-time (timezone-aware)" was
+underspecified and led to silent corruption of non-UTC values — see
+[round-trip-preservation](../architecture/round-trip-preservation.md).)*
+
+RFC 5545 permits four `DUE` forms, and a compliant client must not silently
+convert between them. `TodoDue` is a discriminated union preserving the form
+the server sent:
+
+| Form | iCalendar | `TodoDue` |
+|---|---|---|
+| All-day | `DUE;VALUE=DATE:20260810` | `{kind:'date', value:'2026-08-10'}` |
+| UTC | `DUE:20260810T090000Z` | `{kind:'utc', value:'2026-08-10T09:00:00.000Z'}` |
+| Floating (no zone — means "9am wherever you are") | `DUE:20260810T090000` | `{kind:'floating', value:'2026-08-10T09:00:00'}` |
+| Zoned | `DUE;TZID=Australia/Brisbane:20260810T090000` | `{kind:'zoned', tzid:'Australia/Brisbane', value:'2026-08-10T09:00:00'}` |
+
+Rules:
+
+- **Never reinterpret one form as another.** A floating or zoned value must
+  never be converted using the host machine's local offset — that makes the
+  result depend on where the server happens to run.
+- `readTodo` reports the form as stored; `applyChanges` writes back the same
+  form it was given. Editing an unrelated field must leave a foreign client's
+  floating or zoned `DUE` byte-equivalent.
+- Zoned values keep their `TZID` verbatim. We do not resolve the zone to an
+  instant, and we do not require the resource's `VTIMEZONE` to be present or
+  parseable — an unresolvable `TZID` is still round-tripped intact.
+- Our own UI writes `date` (all-day) or `utc` when the user picks a time;
+  `floating` and `zoned` exist to preserve what other clients wrote.
+
+### Ordering and overdue comparison
+
+Sorting and the overdue flag need a single instant per todo. Resolve each
+form to a comparison instant **in the viewer's local timezone**, since that
+is what "overdue" means to the person reading the list:
+
+- `date` — end of that local day (an all-day todo isn't overdue until the
+  day is over).
+- `utc` — the instant as given.
+- `floating` — the wall-clock time interpreted in the viewer's local zone
+  (this is precisely what "floating" means).
+- `zoned` — the wall-clock time interpreted in its `TZID` via `Intl`; if the
+  zone is unknown to the runtime, fall back to treating it as floating.
+
+This resolution is for display ordering only — it must never be written back
+to the server ([caldav-compliance](./caldav-compliance.md)).
 
 ## Behavior
 
