@@ -315,8 +315,9 @@ export function setDueOnComponent(
   const property = new ICAL.Property('due', vtodo)
 
   if (due.kind === 'date') {
+    // setValue with a date-typed Time already emits VALUE=DATE; setting the
+    // parameter explicitly would duplicate it (DUE;VALUE=DATE;VALUE=DATE:…).
     property.setValue(ICAL.Time.fromDateString(due.value))
-    property.setParameter('value', 'DATE')
     vtodo.addProperty(property)
     return
   }
@@ -448,6 +449,22 @@ describe('createTodoIcs', () => {
     const b = createTodoIcs({ uid: 'x', summary: 'a' }, NOW)
     expect(a).toBe(b)
     expect(a).toContain('DTSTAMP:20260730T100000Z')
+  })
+
+  // Reading our own output back is not enough — it would accept malformed
+  // parameters that other clients reject. Assert the wire format directly.
+  it.each([
+    [{ kind: 'date', value: '2026-08-10' }, 'DUE;VALUE=DATE:20260810'],
+    [{ kind: 'utc', value: '2026-08-10T09:00:00.000Z' }, 'DUE:20260810T090000Z'],
+    [{ kind: 'floating', value: '2026-08-10T09:00:00' }, 'DUE:20260810T090000'],
+    [
+      { kind: 'zoned', tzid: 'Australia/Brisbane', value: '2026-08-10T09:00:00' },
+      'DUE;TZID=Australia/Brisbane:20260810T090000',
+    ],
+  ] as const)('writes %o as a well-formed %s', (due, expected) => {
+    const ics = createTodoIcs({ uid: 'w', summary: 's', due }, NOW)
+    const line = ics.split('\r\n').find((l) => l.startsWith('DUE'))
+    expect(line).toBe(expected)
   })
 })
 ```
