@@ -8,6 +8,16 @@
 
 **Tech Stack:** @playwright/test, GitHub Actions, Radicale (via uv).
 
+**Two traps confirmed in plan 04 — don't rediscover them:**
+
+1. Radicale must be installed and on `PATH` before the integration/e2e
+   suites run (`uv tool install radicale==3.7.7`; no Homebrew formula).
+2. `apps/server`'s `test:integration` script runs `bun --bun vitest run`.
+   Vitest's binary has a `#!/usr/bin/env node` shebang, so a plain
+   invocation executes under Node — where `Bun.spawn` (used to start
+   Radicale) doesn't exist. **Always go through `bun run <script>`;** never
+   shell out to `vitest` directly in CI.
+
 ---
 
 ### Task 1: e2e workspace + happy path
@@ -305,7 +315,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install radicale
+      # Pin the version CI was verified against. Homebrew has no formula;
+      # pipx also works locally. The binary must be on PATH before the
+      # integration/e2e suites spawn it.
+      - run: uv tool install radicale==3.7.7
+      - run: radicale --version
       - run: bun install --frozen-lockfile
       - run: bun run test:integration
 
@@ -315,7 +329,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install radicale
+      # Pin the version CI was verified against. Homebrew has no formula;
+      # pipx also works locally. The binary must be on PATH before the
+      # integration/e2e suites spawn it.
+      - run: uv tool install radicale==3.7.7
+      - run: radicale --version
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e

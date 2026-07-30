@@ -48,6 +48,12 @@ Internal time helpers: `dueFromProperty(property)`, `setDueOnComponent(vtodo, du
 `deleteTodo`), `CaldavError` (has `.status`), `Route` interface,
 `seal`/`unseal`.
 
+**Server API facts confirmed against live Radicale (plan 04):**
+`Todo.href` is an **absolute** URL (tsdav resolves it), not a path. Error
+bodies are `{error, message}` — except **412**, which is `{todo}` with no
+wrapper, so branch on status code before parsing. `GET .../todos` with
+`If-None-Match: <ctag>` returns **304 with an empty body**.
+
 **Client API wrapper:** `api.login/logout/getSession/getLists/createList/renameList/deleteList/getTodos/createTodo/updateTodo/deleteTodo` — `getTodos(listId, knownCtag?)` returns `null` on 304; `ApiError` (has `.status`, `.body`).
 
 ## Conventions
