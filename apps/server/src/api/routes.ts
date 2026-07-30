@@ -5,6 +5,10 @@ import { removeList } from './lists/remove'
 import { renameList } from './lists/rename'
 import { createSession } from './session/create'
 import { destroySession } from './session/destroy'
+import { createTodo } from './todos/create'
+import { listTodos } from './todos/list'
+import { removeTodo } from './todos/remove'
+import { updateTodo } from './todos/update'
 
 export const routes: Route[] = [
   createSession,
@@ -13,4 +17,8 @@ export const routes: Route[] = [
   createList,
   renameList,
   removeList,
+  listTodos,
+  createTodo,
+  updateTodo,
+  removeTodo,
 ]
