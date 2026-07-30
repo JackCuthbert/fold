@@ -1,4 +1,5 @@
 import type { Credentials } from '@caldav-todo/schemas'
+import type { ZodType } from 'zod'
 import type { GatewayFactory } from '../caldav/gateway'
 import type { Config } from '../config'
 import { HttpError } from '../http/errors'
@@ -58,3 +59,23 @@ export const json = (
   status = 200,
   headers?: Record<string, string>,
 ) => Response.json(body, { status, ...(headers ? { headers } : {}) })
+
+/**
+ * Validate data the gateway returned before it goes out over the wire —
+ * zod at every trust boundary applies to API output as much as input
+ * (CLAUDE.md). A failure here means our own gateway produced a value its
+ * own schema forbids: that is a server bug, not a bad client request, so
+ * it is surfaced as 500 rather than reusing the 400 `invalid_request`
+ * path reserved for request-body validation.
+ */
+export function parseResponse<T>(schema: ZodType<T>, data: unknown): T {
+  const result = schema.safeParse(data)
+  if (!result.success) {
+    throw new HttpError(
+      500,
+      'internal',
+      `response failed schema validation: ${result.error.message}`,
+    )
+  }
+  return result.data
+}

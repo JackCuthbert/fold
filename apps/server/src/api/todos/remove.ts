@@ -1,6 +1,9 @@
-import { deleteTodoRequestSchema } from '@caldav-todo/schemas'
+import {
+  conflictResponseSchema,
+  deleteTodoRequestSchema,
+} from '@caldav-todo/schemas'
 import { CaldavError } from '../../caldav/errors'
-import { json, requireCredentials, type Route } from '../route'
+import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // DELETE /api/lists/:listId/todos/:uid — docs/specs/api.md
 export const removeTodo: Route = {
@@ -18,7 +21,7 @@ export const removeTodo: Route = {
     } catch (error) {
       if (error instanceof CaldavError && error.status === 412) {
         const fresh = await gateway.fetchTodo(listId, uid)
-        return json({ todo: fresh }, 412)
+        return json(parseResponse(conflictResponseSchema, { todo: fresh }), 412)
       }
       throw error
     }

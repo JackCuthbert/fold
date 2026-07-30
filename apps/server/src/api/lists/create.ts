@@ -1,5 +1,5 @@
-import { createListRequestSchema } from '@caldav-todo/schemas'
-import { json, requireCredentials, type Route } from '../route'
+import { createListRequestSchema, todoListSchema } from '@caldav-todo/schemas'
+import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // POST /api/lists — docs/specs/lists.md
 export const createList: Route = {
@@ -11,6 +11,6 @@ export const createList: Route = {
     const list = await ctx.app
       .makeGateway(credentials)
       .createList(body.id, body.displayName)
-    return json(list, 201)
+    return json(parseResponse(todoListSchema, list), 201)
   },
 }

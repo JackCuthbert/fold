@@ -1,4 +1,5 @@
-import { json, requireCredentials, type Route } from '../route'
+import { todosResponseSchema } from '@caldav-todo/schemas'
+import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // GET /api/lists/:listId/todos — docs/specs/api.md
 // If-None-Match carries the client's last ctag; 304 skips the REPORT.
@@ -14,6 +15,6 @@ export const listTodos: Route = {
       ? await gateway.fetchTodos(listId, knownCtag)
       : await gateway.fetchTodos(listId)
     if (response === null) return new Response(null, { status: 304 })
-    return json(response)
+    return json(parseResponse(todosResponseSchema, response))
   },
 }

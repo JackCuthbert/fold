@@ -1,4 +1,5 @@
-import { json, requireCredentials, type Route } from '../route'
+import { listsResponseSchema } from '@caldav-todo/schemas'
+import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // GET /api/lists — docs/specs/lists.md
 export const listLists: Route = {
@@ -7,6 +8,6 @@ export const listLists: Route = {
   handle: async (ctx) => {
     const credentials = await requireCredentials(ctx)
     const lists = await ctx.app.makeGateway(credentials).fetchLists()
-    return json(lists)
+    return json(parseResponse(listsResponseSchema, lists))
   },
 }

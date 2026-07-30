@@ -1,6 +1,10 @@
-import { updateTodoRequestSchema } from '@caldav-todo/schemas'
+import {
+  conflictResponseSchema,
+  todoSchema,
+  updateTodoRequestSchema,
+} from '@caldav-todo/schemas'
 import { CaldavError } from '../../caldav/errors'
-import { json, requireCredentials, type Route } from '../route'
+import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // PUT /api/lists/:listId/todos/:uid — docs/specs/api.md
 // On upstream 412 the response carries the fresh copy so the client can
@@ -21,11 +25,11 @@ export const updateTodo: Route = {
         body.etag,
         body.changes,
       )
-      return json(todo)
+      return json(parseResponse(todoSchema, todo))
     } catch (error) {
       if (error instanceof CaldavError && error.status === 412) {
         const fresh = await gateway.fetchTodo(listId, uid)
-        return json({ todo: fresh }, 412)
+        return json(parseResponse(conflictResponseSchema, { todo: fresh }), 412)
       }
       throw error
     }
