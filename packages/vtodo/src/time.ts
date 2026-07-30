@@ -41,8 +41,9 @@ export function setDueOnComponent(vtodo: ICAL.Component, due: TodoDue): void {
   const property = new ICAL.Property('due', vtodo)
 
   if (due.kind === 'date') {
+    // setValue with a date-typed Time already emits VALUE=DATE; setting the
+    // parameter explicitly would duplicate it (DUE;VALUE=DATE;VALUE=DATE:…).
     property.setValue(ICAL.Time.fromDateString(due.value))
-    property.setParameter('value', 'DATE')
     vtodo.addProperty(property)
     return
   }
