@@ -1,10 +1,11 @@
 export class ApiError extends Error {
   override name = 'ApiError'
-  constructor(
-    readonly status: number,
-    readonly body: unknown,
-  ) {
+  status: number
+  body: unknown
+  constructor(status: number, body: unknown) {
     super(`API responded ${status}`)
+    this.status = status
+    this.body = body
   }
 }
 
