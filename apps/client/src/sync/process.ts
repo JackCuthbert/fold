@@ -8,6 +8,16 @@ const freshEtag = (error: ApiError): string | null => {
   return parsed.success ? parsed.data.todo.etag : null
 }
 
+export type BlockReason = 'offline' | 'server'
+
+export class TaggedRetryableError extends RetryableError {
+  reason: BlockReason
+  constructor(reason: BlockReason, message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.reason = reason
+  }
+}
+
 // Drain-side mutation processing with LWW conflict rebase —
 // docs/specs/sync-and-offline.md (conflict handling).
 export function makeProcessMutation(
@@ -54,11 +64,11 @@ export function makeProcessMutation(
       await dispatch(mutation)
     } catch (error) {
       if (error instanceof NetworkError) {
-        throw new RetryableError('offline', { cause: error })
+        throw new TaggedRetryableError('offline', 'offline', { cause: error })
       }
       if (!(error instanceof ApiError)) throw error
       if (error.status === 502) {
-        throw new RetryableError('caldav server unreachable', {
+        throw new TaggedRetryableError('server', 'caldav unreachable', {
           cause: error,
         })
       }

@@ -13,7 +13,11 @@ import {
   type ReactNode,
 } from 'react'
 import { createApi, type Api } from './api/client'
-import { createSyncEngine, type SyncEngine } from './sync/engine'
+import {
+  createSyncEngine,
+  type SyncEngine,
+  type SyncStatus,
+} from './sync/engine'
 import { idbStorage } from './sync/idb-storage'
 import { useToast } from './toast'
 
@@ -46,12 +50,13 @@ export function useSyncEngine(): SyncEngine {
   return engine
 }
 
-export function usePendingCount(): number {
+export function useSyncStatus(): SyncStatus {
   const engine = useSyncEngine()
-  return useSyncExternalStore(
-    engine.subscribe,
-    () => engine.getStatus().pending,
-  )
+  return useSyncExternalStore(engine.subscribe, engine.getStatus)
+}
+
+export function usePendingCount(): number {
+  return useSyncStatus().pending
 }
 
 const subscribeOnline = (onChange: () => void) => {

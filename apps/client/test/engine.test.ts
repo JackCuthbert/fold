@@ -3,7 +3,7 @@ import type { Mutation } from '@caldav-todo/schemas'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import type { Api } from '../src/api/client'
-import { NetworkError } from '../src/api/errors'
+import { ApiError, NetworkError } from '../src/api/errors'
 import { createSyncEngine } from '../src/sync/engine'
 
 const mutation: Mutation = {
@@ -66,6 +66,24 @@ describe('sync engine', () => {
     await engine.enqueue(mutation)
     await vi.waitFor(() => expect(createTodo).toHaveBeenCalled())
     expect(seen.at(-1)).toBe(1)
+    engine.stop()
+  })
+
+  it('reports blocked=server when the CalDAV server is down', async () => {
+    const createTodo = vi
+      .fn()
+      .mockRejectedValue(new ApiError(502, { error: 'caldav_unreachable' }))
+    const engine = await createSyncEngine({
+      api: fakeApi({ createTodo }),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(mutation)
+    await vi.waitFor(() => expect(engine.getStatus().blocked).toBe('server'))
     engine.stop()
   })
 })

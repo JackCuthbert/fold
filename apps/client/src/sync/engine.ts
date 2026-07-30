@@ -8,10 +8,15 @@ import { mutationSchema, type Mutation } from '@caldav-todo/schemas'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
-import { makeProcessMutation } from './process'
+import {
+  makeProcessMutation,
+  TaggedRetryableError,
+  type BlockReason,
+} from './process'
 
 export interface SyncStatus {
   pending: number
+  blocked: BlockReason | null
 }
 
 export interface SyncEngineOptions {
@@ -36,11 +41,19 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     onStorageProblem,
   } = options
   const listeners = new Set<(status: SyncStatus) => void>()
-  let status: SyncStatus = { pending: 0 }
+  let status: SyncStatus = { pending: 0, blocked: null }
 
-  const notify = (pending: number): void => {
-    status = { pending }
+  const emit = (): void => {
     for (const listener of listeners) listener(status)
+  }
+  const notify = (pending: number): void => {
+    status = { ...status, pending }
+    emit()
+  }
+  const setBlocked = (blocked: BlockReason | null): void => {
+    if (status.blocked === blocked) return
+    status = { ...status, blocked }
+    emit()
   }
 
   const outbox = await Outbox.open<Mutation>({
@@ -86,8 +99,14 @@ export async function createSyncEngine(options: SyncEngineOptions) {
   const loop = new SyncLoop<Mutation>({
     outbox,
     process: async (mutation) => {
-      await process(mutation)
-      invalidateFor(mutation)
+      try {
+        await process(mutation)
+        setBlocked(null)
+        invalidateFor(mutation)
+      } catch (error) {
+        if (error instanceof TaggedRetryableError) setBlocked(error.reason)
+        throw error
+      }
     },
     onDrop: (mutation, error) => {
       // Server truth wins: refetch what we failed to change.
