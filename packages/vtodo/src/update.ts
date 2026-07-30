@@ -2,7 +2,7 @@ import type { TodoChanges } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { VtodoError } from './error'
 import { priorityToNumber } from './priority'
-import { dueToIcalTime, icalTimeFromDate } from './time'
+import { icalTimeFromDate, setDueOnComponent } from './time'
 
 // Mutate ONLY managed properties; everything else is preserved verbatim.
 // See docs/specs/caldav-compliance.md (round-trip preservation).
@@ -29,7 +29,7 @@ export function applyChanges(
   }
   if (changes.due !== undefined) {
     if (changes.due === null) vtodo.removeProperty('due')
-    else vtodo.updatePropertyWithValue('due', dueToIcalTime(changes.due))
+    else setDueOnComponent(vtodo, changes.due)
   }
   if (changes.priority !== undefined) {
     if (changes.priority === null) vtodo.removeProperty('priority')

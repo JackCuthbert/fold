@@ -24,6 +24,29 @@ describe('round-trip preservation', () => {
     expect(out).toContain('X-WR-CALNAME:Chores')
   })
 
+  it.each([
+    ['DUE:20260810T090000', 'floating'],
+    ['DUE;TZID=Australia/Brisbane:20260810T090000', 'zoned'],
+    ['DUE;TZID=Nowhere/Unknown:20260810T090000', 'unresolvable zone'],
+  ])('preserves a foreign %s (%s) when editing another field', (dueLine) => {
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Another Client//EN',
+      'BEGIN:VTODO',
+      'UID:tz-1',
+      'DTSTAMP:20260701T120000Z',
+      'SUMMARY:Original',
+      dueLine,
+      'END:VTODO',
+      'END:VCALENDAR',
+    ].join('\r\n')
+    const out = applyChanges(ics, { summary: 'Edited' }, NOW)
+    // The DUE line must survive byte-equivalent — no zone conversion,
+    // no Z suffix appearing, no host-offset shift.
+    expect(out).toContain(dueLine)
+  })
+
   it('only touches the first VTODO in a multi-todo resource', () => {
     const out = applyChanges(fixture('multi.ics'), { summary: 'Edited' }, NOW)
     const root = new ICAL.Component(ICAL.parse(out))

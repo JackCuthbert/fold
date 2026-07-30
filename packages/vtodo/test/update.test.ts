@@ -1,3 +1,4 @@
+import type { TodoDue } from '@caldav-todo/schemas'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -52,16 +53,19 @@ describe('applyChanges', () => {
     expect(todo?.priority).toBeUndefined()
   })
 
-  it('sets a date-time due', () => {
-    const out = applyChanges(
-      fixture('simple.ics'),
-      { due: { kind: 'date-time', value: '2026-08-01T09:30:00.000Z' } },
-      NOW,
-    )
-    expect(readTodo(out)?.due).toEqual({
-      kind: 'date-time',
-      value: '2026-08-01T09:30:00.000Z',
-    })
+  it.each<[TodoDue]>([
+    [{ kind: 'utc', value: '2026-08-01T09:30:00.000Z' }],
+    [{ kind: 'floating', value: '2026-08-01T09:30:00' }],
+    [
+      {
+        kind: 'zoned',
+        tzid: 'Australia/Brisbane',
+        value: '2026-08-01T09:30:00',
+      },
+    ],
+  ])('round-trips a %o due unchanged', (due) => {
+    const out = applyChanges(fixture('simple.ics'), { due }, NOW)
+    expect(readTodo(out)?.due).toEqual(due)
   })
 
   it('throws VtodoError when there is no VTODO', () => {

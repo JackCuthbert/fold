@@ -1,7 +1,7 @@
 import type { TodoDue, TodoPriority } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { priorityFromNumber } from './priority'
-import { icalTimeToDue } from './time'
+import { dueFromProperty } from './time'
 
 export interface VtodoData {
   uid: string
@@ -27,9 +27,10 @@ export function readTodo(ics: string): VtodoData | null {
 
   const summary = vtodo.getFirstPropertyValue('summary')
   const description = vtodo.getFirstPropertyValue('description')
-  const dueValue = vtodo.getFirstProperty('due')?.getFirstValue()
-  const due =
-    dueValue instanceof ICAL.Time ? icalTimeToDue(dueValue) : undefined
+  const dueProperty = vtodo.getFirstProperty('due')
+  const due = dueProperty
+    ? (dueFromProperty(dueProperty) ?? undefined)
+    : undefined
   const priority = priorityFromNumber(vtodo.getFirstPropertyValue('priority'))
 
   return {

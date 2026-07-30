@@ -1,7 +1,7 @@
 import type { NewTodo } from '@caldav-todo/schemas'
 import ICAL from 'ical.js'
 import { priorityToNumber } from './priority'
-import { dueToIcalTime, icalTimeFromDate } from './time'
+import { icalTimeFromDate, setDueOnComponent } from './time'
 
 const PRODID = '-//caldav-todo-client//EN'
 
@@ -16,7 +16,7 @@ export function createTodoIcs(input: NewTodo, now: Date): string {
   vtodo.updatePropertyWithValue('summary', input.summary)
   vtodo.updatePropertyWithValue('status', 'NEEDS-ACTION')
   if (input.due) {
-    vtodo.updatePropertyWithValue('due', dueToIcalTime(input.due))
+    setDueOnComponent(vtodo, input.due)
   }
   if (input.description !== undefined) {
     vtodo.updatePropertyWithValue('description', input.description)
