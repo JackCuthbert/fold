@@ -1,0 +1,51 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run fmt:check
+      - run: bun run typecheck
+      - run: bun run test
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: astral-sh/setup-uv@v5
+      # Pin the version CI was verified against. Homebrew has no formula;
+      # pipx also works locally. The binary must be on PATH before the
+      # integration/e2e suites spawn it.
+      - run: uv tool install radicale==3.7.7
+      - run: radicale --version
+      - run: bun install --frozen-lockfile
+      - run: bun run test:integration
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: astral-sh/setup-uv@v5
+      # Pin the version CI was verified against. Homebrew has no formula;
+      # pipx also works locally. The binary must be on PATH before the
+      # integration/e2e suites spawn it.
+      - run: uv tool install radicale==3.7.7
+      - run: radicale --version
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
