@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
+import {
+  addTodo,
+  createList,
+  login,
+  uniqueName,
+  waitForPersistedCompleted,
+  waitForSync,
+} from './helpers'
 
 test('offline actions queue and replay on reconnect', async ({
   page,
@@ -27,6 +34,14 @@ test('offline actions queue and replay on reconnect', async ({
   await context.setOffline(false)
   await expect(page.getByText(/Offline/)).toBeHidden({ timeout: 15_000 })
   await waitForSync(page)
+
+  // waitForSync only proves the completion reached the *server* — the
+  // browser's own query-cache persister write-behinds to IndexedDB on a
+  // separate throttle (see waitForPersistedCompleted). Reloading inside
+  // that window would restore the pre-completion snapshot and — correctly
+  // for offline-first caching, per docs/specs/sync-and-offline.md — not
+  // refetch for up to staleTime (30s), well past this test's patience.
+  await waitForPersistedCompleted(page, 'Synced before outage', true)
 
   // Reload proves the changes reached the server, not just the cache.
   await page.reload()
