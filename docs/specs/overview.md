@@ -97,3 +97,4 @@ supplies an IndexedDB implementation).
 | [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |
 | [ui](./ui.md) | Views, visual design, micro-interactions, sound |
 | [testing](./testing.md) | Test layers, tools, and rules |
+| [backlog](./backlog.md) | Agreed for a later session — not built yet |
