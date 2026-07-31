@@ -15,7 +15,7 @@ import styles from './status-pill.module.css'
  */
 function messageFor(
   online: boolean,
-  blocked: 'offline' | 'server' | null,
+  blocked: 'offline' | 'server' | 'auth' | null,
   pending: number,
 ): string | null {
   if (!online) {
@@ -23,6 +23,10 @@ function messageFor(
   }
   if (blocked === 'server') {
     return `Server unreachable${pending > 0 ? ` · ${pending} queued` : ''}`
+  }
+  if (blocked === 'auth') {
+    // Queued work can't progress while signed out — don't claim it's syncing.
+    return `Sign in to save ${pending} change${pending === 1 ? '' : 's'}`
   }
   if (pending > 0) {
     return `Syncing ${pending} change${pending === 1 ? '' : 's'}`

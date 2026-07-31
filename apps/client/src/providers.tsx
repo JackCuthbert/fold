@@ -66,6 +66,16 @@ export const queryClient = new QueryClient({
   },
 })
 
+// Identity lives in the sealed cookie, never in our cache. Persisting
+// ['session'] made a reload render the signed-in UI from a stale record
+// while the cookie was already gone — empty lists, then a 401 on the first
+// write (docs/specs/authentication.md — the session is never served from
+// cache). Todos and lists still persist so the app works offline.
+const dehydrateOptions = {
+  shouldDehydrateQuery: (query: { queryKey: readonly unknown[] }): boolean =>
+    query.queryKey[0] !== 'session',
+}
+
 const persister = createAsyncStoragePersister({
   storage: {
     getItem: async (key) => (await get<string>(key)) ?? null,
@@ -188,7 +198,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister }}
+      persistOptions={{ persister, dehydrateOptions }}
     >
       <EngineContext value={engine}>{children}</EngineContext>
     </PersistQueryClientProvider>

@@ -22,6 +22,24 @@ architecture.
 - The client never sees the password again after submission; the session
   endpoint returns only `{serverUrl, username}` for display.
 
+## The session is never served from cache
+
+*(added 2026-07-31: the persisted query cache included `['session']`, so a
+reload rendered the signed-in UI from a stale record while the cookie was
+already gone — lists came back empty and the first write logged the user
+out.)*
+
+Authentication state lives **only** in the sealed cookie. Therefore:
+
+- `['session']` is **excluded from cache persistence**. Every load asks the
+  server who you are; the answer is never restored from IndexedDB.
+- The session query is not treated as permanently fresh — it revalidates
+  rather than trusting an indefinitely-cached result.
+- Until that check resolves the app shows neither the signed-in UI nor the
+  login form, so a signed-out user never sees a populated shell.
+- Todos and lists remain cached and render offline as before; only *identity*
+  requires the server.
+
 ## Logout & expiry
 
 - `DELETE /api/session` clears the cookie.

@@ -6,13 +6,21 @@ import { StatusPill } from './status-pill'
 import { ToastProvider } from './toast'
 
 function Gate() {
+  // Always ask the server who we are — never assume from cache, and never
+  // treat the answer as permanently fresh. `['session']` is excluded from
+  // persistence (see providers.tsx), so this is a real request on every
+  // load (docs/specs/authentication.md).
   const session = useQuery({
     queryKey: ['session'],
     queryFn: api.getSession,
-    staleTime: Number.POSITIVE_INFINITY,
+    staleTime: 0,
+    gcTime: 0,
     retry: false,
+    networkMode: 'always',
   })
-  if (session.isLoading) return null
+  // Show neither shell until identity is settled, so a signed-out user
+  // never sees a populated app.
+  if (session.isPending) return null
   return session.data ? <MainScreen /> : <LoginScreen />
 }
 

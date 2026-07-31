@@ -12,7 +12,7 @@ const freshEtag = (error: ApiError): string | null => {
   return parsed.success ? parsed.data.todo.etag : null
 }
 
-export type BlockReason = 'offline' | 'server'
+export type BlockReason = 'offline' | 'server' | 'auth'
 
 // Shared with the query layer (docs/specs/sync-and-offline.md — "Status
 // must reflect reality"): ordinary reads (getSession/getTodos/getLists)
@@ -113,8 +113,13 @@ export function makeProcessMutation(
         })
       }
       if (error.status === 401) {
+        // Keep the mutation queued so it replays after re-login
+        // (docs/specs/authentication.md), but say so plainly — "Syncing"
+        // would imply progress that cannot happen while signed out.
         onUnauthorized()
-        throw new RetryableError('unauthorized', { cause: error })
+        throw new TaggedRetryableError('auth', 'unauthorized', {
+          cause: error,
+        })
       }
       if (error.status === 412 && mutation.kind === 'createTodo') {
         // The outbox retried an unacked create whose first attempt had

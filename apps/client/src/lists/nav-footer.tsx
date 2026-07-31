@@ -12,11 +12,11 @@ import styles from './nav-footer.module.css'
 // the common case.
 function statusFor(
   online: boolean,
-  blocked: 'offline' | 'server' | null,
+  blocked: 'offline' | 'server' | 'auth' | null,
   pending: number,
 ): StatusKind {
   if (!online) return 'offline'
-  if (blocked === 'server') return 'server'
+  if (blocked === 'server' || blocked === 'auth') return 'server'
   if (pending > 0) return 'syncing'
   return 'synced'
 }
