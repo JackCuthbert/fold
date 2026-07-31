@@ -67,15 +67,13 @@ textarea {
   width: 100%;
 }
 
+/* docs/specs/ui.md — no press-transform anywhere: motion belongs to
+   elements that are moving (entering, leaving, expanding), not to
+   acknowledging a press. Scaling on `:active` distracts without informing. */
 button {
   cursor: pointer;
   background: none;
   border: none;
-  transition: transform var(--duration-fast) var(--ease);
-}
-
-button:active {
-  transform: scale(0.97);
 }
 
 /* docs/specs/ui.md — focus changes the border, never adds an outline/ring:

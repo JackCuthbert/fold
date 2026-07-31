@@ -166,9 +166,12 @@ over an undimmed background, so they didn't read as modal.)*
   implementation widened the border on focus, causing a 1px layout shift.)*
 - **Corner radii are small.** Restrained rounding suits the typography;
   large radii read as soft and generic.
-- **No press-transform on list rows.** Scaling or shifting a row on
-  `:active` adds nothing and makes the list feel unsteady. (Deliberate
-  micro-interactions like the checkbox draw stay.)
+- **No press-transform anywhere.** *(broadened 2026-07-31: this applied
+  only to list rows; it applies to every element.)* Nothing scales or
+  shifts on `:active`. **Motion belongs to elements that are moving** —
+  entering, leaving, expanding, sliding in — not to acknowledging a press,
+  where it distracts without informing. Deliberate micro-interactions like
+  the checkbox stroke draw stay.
 - **Scrollbar gutters sit at the container edge.** Padding belongs inside
   the scrolling content, so the scrollbar tracks the true edge of the pane
   rather than floating inset from it.
