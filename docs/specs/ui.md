@@ -152,6 +152,22 @@ an off-scale value.
 - 12px is permitted only for genuinely secondary metadata; nothing
   interactive or essential goes below 14px.
 
+## Scrolling
+
+*(added 2026-07-31: a long list scrolled the whole page, taking the list
+title and its controls out of view.)*
+
+**Only the list scrolls — never the whole page.** The title and any
+controls beside it stay put, so you always know which list you're looking
+at and can act on it without scrolling back up.
+
+- The content column is a fixed-height flex layout: a **sticky header**
+  (list title, nav trigger on mobile, any list-level controls) and a
+  scrolling body beneath it.
+- The same applies inside the nav: its list of lists scrolls while the
+  footer (Settings, status) stays anchored.
+- Scrollbar gutters still sit at the true container edge (see below).
+
 ## Overlays
 
 *(added 2026-07-31: the delete-list confirm and the mobile sheet appeared
@@ -166,14 +182,27 @@ over an undimmed background, so they didn't read as modal.)*
 
 ## Controls & touch targets
 
-- **Touch-first.** Every interactive element has a **minimum 44×44px hit
-  area**, even where the visible control is smaller. Hover is an
-  enhancement, never the only way to reveal a control (see
-  `@media (hover: none)`).
+- **Touch-first, pointer-aware.** *(refined 2026-07-31: a uniform 44px
+  made desktop controls look thick and unrefined.)* The hit area adapts to
+  the input device:
+  - **Coarse pointers (touch): 44×44px minimum**, non-negotiable — this is
+    a usability floor, not a style choice.
+  - **Fine pointers (mouse): may be smaller** (~32–36px), since a cursor
+    is precise. Desktop should read as tight and elegant.
+
+  Express this with one pointer-aware token (`@media (pointer: coarse)`),
+  never by hard-coding two sizes per component.
+- **Controls are always visible, never hover-revealed.** *(added
+  2026-07-31.)* Hover may refine an appearance, but a control that only
+  exists on hover is undiscoverable on touch and invisible to anyone
+  scanning the page. Applies to per-row menus in particular.
 - **Checkboxes are small** — a ~20px visual circle inside a 44px target.
   Icons sit optically with adjacent text rather than towering over it.
 - Icons come from a **single [react-icons](https://github.com/react-icons/react-icons)
   set**, sized in step with the text they accompany. No emoji.
+- **In a button with both an icon and a label, the two sit at opposite
+  ends** — icon at the leading edge, text at the trailing edge, the gap
+  between them absorbing the remaining width. *(added 2026-07-31.)*
 
 *(added 2026-07-31, from design review:)*
 

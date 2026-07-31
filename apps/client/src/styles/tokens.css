@@ -13,8 +13,10 @@
   --space-8: 32px;
   --space-12: 48px;
 
-  /* Touch target minimum (docs/specs/ui.md — controls & touch targets). */
-  --hit-area: 44px;
+  /* Hit area, pointer-aware (docs/specs/ui.md — controls & touch targets).
+     A mouse is precise, so desktop can be tighter and more elegant; touch
+     is raised to the 44px floor in the pointer: coarse block below. */
+  --hit-area: 34px;
   /* Visual checkbox size, smaller than its hit area. */
   --checkbox-size: 20px;
 
@@ -75,6 +77,14 @@
   /* One width, always. Focus is shown by colour alone — widening a border
      reflows the element (docs/specs/ui.md — controls & touch targets). */
   --border-width: 1px;
+}
+
+/* Touch: the 44px minimum is a usability floor, not a style choice
+   (docs/specs/ui.md — controls & touch targets). */
+@media (pointer: coarse) {
+  :root {
+    --hit-area: 44px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
