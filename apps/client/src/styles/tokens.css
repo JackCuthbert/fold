@@ -55,9 +55,12 @@
   --line: #e5e1d8;
   --scrim: rgb(0 0 0 / 0.3);
 
-  --status-syncing: var(--accent);
-  --status-offline: #b8860b;
-  --status-synced: var(--faint);
+  /* Semantic status colours (docs/specs/ui.md — status display): green
+     succeeded, amber in progress, red broken. Muted enough to sit in a
+     restrained palette rather than reading as traffic lights. */
+  --status-synced: #4f7a52;
+  --status-syncing: #b8860b;
+  --status-offline: var(--danger);
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 120ms;
@@ -87,7 +90,11 @@
        content behind a modal fully legible. Dark mode needs a much
        heavier veil to read as modal at all (docs/specs/ui.md — overlays). */
     --scrim: rgb(0 0 0 / 0.78);
-    --status-offline: #d9a441;
+    /* Lifted for contrast against the dark page — same semantics as light
+       mode (green/amber/red), just legible here. */
+    --status-synced: #7fa87f;
+    --status-syncing: #d9a441;
+    --status-offline: #e0705f;
   }
 }
 

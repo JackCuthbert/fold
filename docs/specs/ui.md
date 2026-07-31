@@ -56,6 +56,25 @@ supersede earlier wording.)*
 - **Login** ([authentication](./authentication.md)): server URL, username,
   password via react-hook-form.
 
+## The nav
+
+*(added 2026-07-31: list rows were truncated to ~119px of a 207px row by
+two inline icon buttons, and Settings sat 20px right of every list item.)*
+
+Every row in the nav is **the same shape and shares one left edge** — list
+items, the create action, and Settings alike. Specifically:
+
+- **List rows are full width.** The name takes the row; it is never
+  squeezed by inline controls.
+- **Per-list actions live in a kebab menu** (`⋮`) at the row's right edge,
+  holding Rename and Delete. Base UI's `Menu` supplies the keyboard and
+  focus behaviour.
+- **Creating a list opens a modal**, like every other create/edit surface —
+  not an inline form that changes the nav's shape while open.
+- **The footer matches the rows.** Settings and the status line align to
+  the same left edge and use the same row height as the list items above
+  them.
+
 ## Component library
 
 *(added 2026-07-31: partial adoption left hand-rolled elements with
@@ -210,17 +229,22 @@ announce "Server unreachable" for a second and vanish. A momentary blip is
 not worth a sentence of text — the sync layer is already handling it by
 queueing and retrying.)*
 
-**Server reachability lives on the dot, not in text.** The dot in the nav
-footer carries connection health by colour:
+**Server reachability lives in the nav footer** as a dot plus a short
+label. *(revised 2026-07-31: the dot alone was ambiguous; now that the
+underlying flapping is fixed, a word of text is affordable and clearer.)*
 
-| State | Dot |
-|---|---|
-| Healthy | muted, static |
-| Server unreachable / erroring | **red, gently pulsing** |
+| State | Dot | Label |
+|---|---|---|
+| Healthy | **green**, static | `Synced` |
+| Working — syncing or queued | **amber**, static | `Syncing…` |
+| Disconnected — offline or unreachable | **red**, gently pulsing | `Offline` / `Disconnected` |
 
-The pulse is subtle and stops under `prefers-reduced-motion` (colour alone
-then carries it). The dot always exposes its state to assistive tech via an
-accessible label, so nothing is conveyed by colour alone.
+- Colour is semantic: green = success, amber = in progress, red = broken.
+- Only the disconnected state pulses; healthy and in-progress are static so
+  the footer stays quiet. The pulse stops under `prefers-reduced-motion`.
+- The label is real text, so state never depends on colour alone; it also
+  carries an accessible label for assistive tech.
+- The status line aligns with the nav's rows, matching Settings above it.
 
 **Text is reserved for states the user must act on or wait through:**
 
