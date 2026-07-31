@@ -67,7 +67,12 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     for (const listener of listeners) listener(status)
   }
   const notify = (pending: number): void => {
-    status = { ...status, pending }
+    // An empty outbox can't be blocked on anything — there's nothing left
+    // to retry, so a stale `blocked` from an earlier failure must not
+    // keep claiming the server is unreachable (docs/specs/sync-and-offline.md
+    // — status reflects current conditions, not latched history).
+    const blocked = pending === 0 ? null : status.blocked
+    status = { ...status, pending, blocked }
     emit()
   }
   const setBlocked = (blocked: BlockReason | null): void => {

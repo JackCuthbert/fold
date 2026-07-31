@@ -289,4 +289,76 @@ describe('sync engine', () => {
     await vi.waitFor(() => expect(engine.getStatus().blocked).toBe('server'))
     engine.stop()
   })
+
+  it('clears blocked once a subsequent mutation succeeds', async () => {
+    // Regression: `blocked` used to only ever be set from the failure
+    // branch and cleared from the success branch of the *same* processing
+    // callback. A transient failure followed by a successful retry of that
+    // very mutation must clear it.
+    const createTodo = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(502, { error: 'caldav_unreachable' }))
+      .mockResolvedValueOnce({})
+    const engine = await createSyncEngine({
+      api: fakeApi({ createTodo }),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+      // Deterministic, near-instant retry timing for the test.
+    })
+    engine.start()
+    await engine.enqueue(mutation)
+    await vi.waitFor(() => expect(engine.getStatus().blocked).toBe('server'))
+    engine.kick()
+    await vi.waitFor(() => expect(engine.getStatus().blocked).toBeNull())
+    engine.stop()
+  })
+
+  it('clears blocked once the outbox empties, even without a success', async () => {
+    // Regression (the owner's "false Server unreachable at login" report):
+    // a mutation can fail transiently (latching `blocked`), then on retry
+    // fail *fatally* and get dropped — never hitting the success branch
+    // that used to be the only place `blocked` was cleared. With nothing
+    // left queued, the status must not go on claiming the server is
+    // unreachable.
+    const createTodo = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(502, { error: 'caldav_unreachable' }))
+      .mockRejectedValueOnce(new ApiError(400, { error: 'bad_request' }))
+    const engine = await createSyncEngine({
+      api: fakeApi({ createTodo }),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(mutation)
+    await vi.waitFor(() => expect(engine.getStatus().blocked).toBe('server'))
+    engine.kick()
+    await vi.waitFor(() => expect(engine.getStatus().pending).toBe(0))
+    expect(engine.getStatus().blocked).toBeNull()
+    engine.stop()
+  })
+
+  it('never reports blocked when nothing is queued', async () => {
+    // A status derived from current conditions can't claim the server is
+    // unreachable when there is nothing queued and nothing failing — the
+    // exact scenario the owner hit at login (outbox empty, everything
+    // actually working).
+    const engine = await createSyncEngine({
+      api: fakeApi({}),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    expect(engine.getStatus()).toEqual({ pending: 0, blocked: null })
+    engine.stop()
+  })
 })
