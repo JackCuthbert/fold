@@ -69,6 +69,12 @@ items, the create action, and Settings alike. Specifically:
 - **Per-list actions live in a kebab menu** (`⋮`) at the row's right edge,
   holding Rename and Delete. Base UI's `Menu` supplies the keyboard and
   focus behaviour.
+- **The row is a segmented button.** *(added 2026-07-31.)* The name and the
+  kebab read as **one control split into two segments** — a shared outer
+  shape with a hairline divider between them — not an icon floating over a
+  row. The kebab is always visible.
+- **Settings needs breathing room** above the divider that separates it
+  from the status line; it must not sit flush against it.
 - **Creating a list opens a modal**, like every other create/edit surface —
   not an inline form that changes the nav's shape while open.
 - **The footer matches the rows.** Settings and the status line align to
@@ -211,9 +217,13 @@ over an undimmed background, so they didn't read as modal.)*
   Icons sit optically with adjacent text rather than towering over it.
 - Icons come from a **single [react-icons](https://github.com/react-icons/react-icons)
   set**, sized in step with the text they accompany. No emoji.
-- **In a button with both an icon and a label, the two sit at opposite
-  ends** — icon at the leading edge, text at the trailing edge, the gap
-  between them absorbing the remaining width. *(added 2026-07-31.)*
+- **Icon and label are left-aligned together** — icon first, then the
+  label, separated by a single gap from the spacing scale. The pair sits at
+  the leading edge; remaining width is empty space on the right.
+  *(reverted 2026-07-31: pushing the label to the trailing edge left a
+  distracting void mid-button and made rows read as unrelated fragments.)*
+- **Buttons of the same kind look the same.** A full-width nav action —
+  Settings, New list — shares one treatment; none is a special case.
   *(clarified 2026-07-31: applies to full-width action-style rows where the
   gap has room to read clearly — the nav footer's Settings row is the
   reference case. Small, non-full-width controls keep a tight icon-text
@@ -321,6 +331,17 @@ are the interface.
 - **Keyboard-first.** Logical tab order, visible focus rings, no keyboard
   traps. Drawer and sheet manage focus: move into the surface on open,
   restore to the trigger on close.
+- **Every interactive element has a clearly visible focus state — including
+  destructive ones.** *(added 2026-07-31: Delete buttons and menu items had
+  no distinct keyboard-focus appearance, which is worst precisely where a
+  mistaken Enter is least recoverable.)* Destructive controls must be at
+  least as legible when focused as any other, not less.
+- **Focus never lands somewhere misleading after an action.**
+  *(added 2026-07-31: submitting the add-todo form moved focus onto the
+  first row in the list, which then appeared selected and active.)* After
+  completing an action, focus returns to a sensible resting place — the
+  control that started it, or the surface that remains — never onto an
+  unrelated item that reads as selected.
 - Accessible primitives come from **Base UI** (unstyled, no runtime styling),
   so a11y behaviour is correct without dictating visual design.
 - Status changes are announced politely; destructive actions are confirmed.
