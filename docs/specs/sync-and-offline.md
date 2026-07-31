@@ -8,6 +8,17 @@ durable outbox. The network is an enhancement, never a dependency.
 - TanStack Query, persisted to IndexedDB via `persistQueryClient`.
 - Cached lists and todos render instantly on load, offline included.
 - Refetch on: window focus, reconnect, after outbox drain, and on interval.
+- Persistence to IndexedDB is write-behind, throttled
+  (`createAsyncStoragePersister`'s default 1s), not synchronous with the
+  in-memory cache update. *(added 2026-07-31: a reload landing inside that
+  window restores the previous snapshot; combined with `staleTime: 30_000`
+  on todos/lists, the restored data isn't refetched for up to 30s. This is
+  accepted, deliberate offline-first behavior — the alternative is
+  blocking every mutation on a disk write — but it means anything (a test,
+  a future feature) that reloads immediately after a mutation must not
+  assume the persisted copy is already caught up; see
+  `e2e/tests/helpers.ts`'s `waitForPersistedCompleted` for how the e2e
+  suite accounts for it.)*
 
 ## The client is authoritative while work is queued
 
@@ -52,6 +63,27 @@ storage adapter (the client supplies IndexedDB). Every user action:
 - Exponential backoff with jitter on failure (cap ~30s).
 - **Coalescing:** two updates to the same todo merge; a create followed by
   updates merges into the create; create + delete cancels out.
+- **Acking by identity, not position.** `Outbox.ack()` takes the exact
+  mutation instance that was processed and removes it from the queue by
+  reference, wherever it currently sits — never "whatever is at the front
+  now". *(added 2026-07-31: an index-based `ack()` — `slice(1)` — silently
+  dropped the wrong mutation when a UI action enqueued a new mutation for
+  the same todo while the current head was still in flight. Concretely:
+  complete a todo, then immediately delete it before the completion has
+  synced — coalescing correctly drops the queued `updateTodo` and keeps
+  only the `deleteTodo`, but that rewrite happens on `#queue` while
+  `process()` for the *original* update is still awaiting the network.
+  Once that update resolves, index-based `ack()` removed whatever was now
+  at position 0 — the delete — instead of the update that actually ran,
+  discarding the user's delete with no error, toast, or trace. Reproduced
+  deterministically in `packages/outbox/test/sync-loop.test.ts` and fixed
+  by having `SyncLoop` pass the processed mutation to `ack(mutation)`,
+  which removes it by reference; if coalescing already moved past it —
+  either dropped (as above) or replaced with a merged object at the same
+  position, which is what happens for two consecutive edits to the same
+  todo — `ack()` is a safe no-op and whatever coalescing left behind stays
+  queued untouched. Both shapes are covered in
+  `packages/outbox/test/sync-loop.test.ts`.)*
 
 ## Conflict handling (last-write-wins)
 

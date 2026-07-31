@@ -273,4 +273,138 @@ describe('SyncLoop', () => {
     expect(outbox.size()).toBe(0)
     loop.stop()
   })
+
+  // Regression: a mutation enqueued (and coalesced) while the current
+  // head is still being processed must not be silently dropped once that
+  // head's process() resolves and the loop acks it. This mirrors the real
+  // app's coalesce rule — a delete for a todo supersedes its not-yet-synced
+  // update — but the bug was general to `SyncLoop`/`Outbox`, not specific
+  // to that rule: any coalesce that changes what occupies the front of the
+  // queue while the old front is in flight could lose whatever coalescing
+  // left there, because ack() used to remove "whatever is at index 0 now"
+  // rather than the exact mutation that was actually processed.
+  it('does not drop a mutation coalesced in while the head is being processed', async () => {
+    interface TaggedMsg extends Msg {
+      op: 'update' | 'delete'
+    }
+    const isTaggedMsg = (raw: unknown): raw is TaggedMsg =>
+      isMsg(raw) && 'op' in raw && (raw.op === 'update' || raw.op === 'delete')
+    const outbox = await Outbox.open<TaggedMsg>({
+      storage: memoryStorage(),
+      parse: (raw) => (isTaggedMsg(raw) ? raw : null),
+      // Same shape as the app's real rule (coalesce.ts): an incoming
+      // delete for an id already queued as an update supersedes it.
+      coalesce: (queue, incoming) => {
+        if (incoming.op !== 'delete') return [...queue, incoming]
+        return [...queue.filter((m) => m.id !== incoming.id), incoming]
+      },
+    })
+    await outbox.enqueue({ id: 'a', op: 'update' })
+
+    let releaseUpdate: (() => void) | undefined
+    const updateGate = new Promise<void>((resolve) => {
+      releaseUpdate = resolve
+    })
+    const seen: TaggedMsg[] = []
+    const loop = new SyncLoop<TaggedMsg>({
+      outbox,
+      process: async (m) => {
+        seen.push(m)
+        if (m.op === 'update') await updateGate
+      },
+    })
+    loop.start()
+    await flush()
+    expect(seen).toEqual([{ id: 'a', op: 'update' }])
+
+    // While the update is still in flight, a delete for the same id is
+    // enqueued (the user completed a todo, then immediately deleted it
+    // before the completion synced) — coalescing drops the queued update
+    // and keeps only the delete.
+    await outbox.enqueue({ id: 'a', op: 'delete' })
+    expect(outbox.entries()).toEqual([{ id: 'a', op: 'delete' }])
+
+    // The in-flight update now resolves; the loop acks it and moves on.
+    releaseUpdate?.()
+    await flush()
+
+    // The delete must still be there to be processed next — not silently
+    // discarded because it happened to occupy index 0 when ack() ran.
+    expect(seen).toEqual([
+      { id: 'a', op: 'update' },
+      { id: 'a', op: 'delete' },
+    ])
+    expect(outbox.size()).toBe(0)
+    loop.stop()
+  })
+
+  // Coalescing has two shapes that both rewrite `#queue` while a head is
+  // in flight: the case above *removes* the in-flight mutation (superseded
+  // by a delete), and this one *replaces* it with a new merged object in
+  // place (the app's real coalesceMutations does this for two consecutive
+  // updates to the same todo — apps/client/src/sync/coalesce.ts). Both
+  // must leave `ack(head)` a safe no-op: `head` (the original, pre-merge
+  // object) is no longer in the queue by reference either way, so
+  // identity-based ack() can't tell "removed" apart from "replaced" — and
+  // doesn't need to, since in both cases the right outcome is the same:
+  // don't touch whatever coalescing left behind.
+  it('does not drop a mutation merged in place while the head is being processed', async () => {
+    interface FieldMsg extends Msg {
+      value: string
+    }
+    const isFieldMsg = (raw: unknown): raw is FieldMsg =>
+      isMsg(raw) && 'value' in raw && typeof raw.value === 'string'
+    const outbox = await Outbox.open<FieldMsg>({
+      storage: memoryStorage(),
+      parse: (raw) => (isFieldMsg(raw) ? raw : null),
+      // Same shape as coalesceMutations' updateTodo+updateTodo merge: a
+      // second update to an id already queued merges into a *new* object
+      // at the same position; an id not yet queued is simply appended
+      // (the first enqueue in this test, with nothing yet to merge into).
+      coalesce: (queue, incoming) => {
+        const hasMatch = queue.some((m) => m.id === incoming.id)
+        if (!hasMatch) return [...queue, incoming]
+        return queue.map((m) =>
+          m.id === incoming.id ? { ...m, value: incoming.value } : m,
+        )
+      },
+    })
+    await outbox.enqueue({ id: 'a', value: 'first' })
+
+    let releaseFirst: (() => void) | undefined
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const seen: FieldMsg[] = []
+    const loop = new SyncLoop<FieldMsg>({
+      outbox,
+      process: async (m) => {
+        seen.push(m)
+        if (m.value === 'first') await firstGate
+      },
+    })
+    loop.start()
+    await flush()
+    expect(seen).toEqual([{ id: 'a', value: 'first' }])
+
+    // While the first update is in flight, a second edit to the same todo
+    // arrives and merges into a *new* object occupying the same position
+    // — the in-flight `head` reference is no longer in the queue, but
+    // nothing was dropped: it was superseded by a newer version of itself.
+    await outbox.enqueue({ id: 'a', value: 'second' })
+    expect(outbox.entries()).toEqual([{ id: 'a', value: 'second' }])
+
+    releaseFirst?.()
+    await flush()
+
+    // The merged mutation must still be processed — ack() for the
+    // original `head` must not remove it just because it now occupies
+    // index 0.
+    expect(seen).toEqual([
+      { id: 'a', value: 'first' },
+      { id: 'a', value: 'second' },
+    ])
+    expect(outbox.size()).toBe(0)
+    loop.stop()
+  })
 })
