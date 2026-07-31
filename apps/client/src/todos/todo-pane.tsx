@@ -2,7 +2,7 @@ import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ConfirmDialog } from '../confirm'
-import { api, queryClient } from '../providers'
+import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { QuickAdd } from './quick-add'
 import { sortActiveTodos } from './sort'
@@ -11,20 +11,28 @@ import { TodoItem } from './todo-item'
 import { useTodoActions } from './use-todo-actions'
 
 export function TodoPane(props: { listId: string }) {
+  const engine = useSyncEngine()
   const todos = useQuery({
     queryKey: ['todos', props.listId],
-    // Pass the cached ctag; a 304 keeps the cached copy —
-    // docs/specs/caldav-compliance.md (ctag short-circuit).
+    // Pass the ctag from the last *raw server response* — never the
+    // reconciled cache the UI reads, which already has queued mutations
+    // baked in. Reconciling on top of an already-reconciled value would
+    // double-apply every still-queued mutation (e.g. a createTodo
+    // placeholder appended again) on each subsequent 304/refetch —
+    // docs/specs/sync-and-offline.md.
     queryFn: async () => {
-      const previous = queryClient.getQueryData<TodosResponse>([
-        'todos',
-        props.listId,
-      ])
+      const rawKey = ['todos', props.listId, 'raw'] as const
+      const rawPrevious = queryClient.getQueryData<TodosResponse>(rawKey)
       const fresh = await api.getTodos(
         props.listId,
-        previous?.ctag ? previous.ctag : undefined,
+        rawPrevious?.ctag ? rawPrevious.ctag : undefined,
       )
-      return fresh ?? previous ?? { ctag: '', todos: [] }
+      const result = fresh ?? rawPrevious ?? { ctag: '', todos: [] }
+      queryClient.setQueryData(rawKey, result)
+      // A refetch must never override a pending local change — re-apply
+      // whatever is still queued for this list on top of server data
+      // before it reaches the UI.
+      return engine.reconcileTodos(props.listId, result)
     },
   })
   const actions = useTodoActions(props.listId)

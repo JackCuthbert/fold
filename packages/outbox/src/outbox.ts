@@ -56,6 +56,11 @@ export class Outbox<M> {
     return this.#queue[0]
   }
 
+  /** Read-only snapshot of every queued entry, FIFO order. */
+  entries(): readonly M[] {
+    return this.#queue
+  }
+
   async enqueue(mutation: M): Promise<void> {
     this.#queue = this.#options.coalesce
       ? this.#options.coalesce(this.#queue, mutation)

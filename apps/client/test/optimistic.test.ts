@@ -47,6 +47,22 @@ describe('applyMutationToTodos', () => {
     expect(next.todos[0]?.due).toBeUndefined()
   })
 
+  it('createTodo is a no-op if the uid is already present (reconciliation)', () => {
+    // A queued createTodo can be re-applied during reconciliation after
+    // the mutation already landed on the server but before the outbox
+    // acked it (docs/specs/sync-and-offline.md) — the fresh server data
+    // would already contain this uid, so re-applying must not duplicate.
+    const mutation: Mutation = {
+      id: '00000000-0000-4000-8000-000000000099',
+      kind: 'createTodo',
+      listId: 'l1',
+      todo: { uid: 'a', summary: 'A' },
+    }
+    const next = applyMutationToTodos(CACHE, mutation)
+    expect(next.todos).toHaveLength(1)
+    expect(next).toEqual(CACHE)
+  })
+
   it('removes the todo for deleteTodo', () => {
     const mutation: Mutation = {
       id: '00000000-0000-4000-8000-000000000003',
@@ -85,5 +101,15 @@ describe('applyMutationToLists', () => {
       listId: 'l1',
     })
     expect(removed).toHaveLength(0)
+  })
+
+  it('createList is a no-op if the id is already present (reconciliation)', () => {
+    const next = applyMutationToLists(lists, {
+      id: '00000000-0000-4000-8000-000000000007',
+      kind: 'createList',
+      listId: 'l1',
+      displayName: 'Duplicate',
+    })
+    expect(next).toEqual(lists)
   })
 })

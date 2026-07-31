@@ -4,10 +4,16 @@ import {
   type FatalError,
   type OutboxStorage,
 } from '@caldav-todo/outbox'
-import { mutationSchema, type Mutation } from '@caldav-todo/schemas'
+import {
+  mutationSchema,
+  type Mutation,
+  type TodoList,
+  type TodosResponse,
+} from '@caldav-todo/schemas'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
+import { applyMutationToLists, applyMutationToTodos } from './optimistic'
 import {
   makeProcessMutation,
   TaggedRetryableError,
@@ -30,6 +36,16 @@ export interface SyncEngineOptions {
 }
 
 export type SyncEngine = Awaited<ReturnType<typeof createSyncEngine>>
+
+type ListMutation = Extract<
+  Mutation,
+  { kind: 'createList' | 'renameList' | 'deleteList' }
+>
+
+const isListMutation = (mutation: Mutation): mutation is ListMutation =>
+  mutation.kind === 'createList' ||
+  mutation.kind === 'renameList' ||
+  mutation.kind === 'deleteList'
 
 export async function createSyncEngine(options: SyncEngineOptions) {
   const {
@@ -82,18 +98,27 @@ export async function createSyncEngine(options: SyncEngineOptions) {
   })
   notify(outbox.size())
 
-  const invalidateFor = (mutation: Mutation): void => {
+  // The client is authoritative while work is queued —
+  // docs/specs/sync-and-offline.md. A successful mutation must never
+  // invalidate on its own: that races the server's response against our
+  // own optimistic update and makes the UI churn. Instead we invalidate
+  // once the outbox has fully drained (every queued write has landed), or
+  // when a mutation is dropped outright, since the cache is then known to
+  // be wrong.
+  const invalidateAllFor = (mutation: Mutation): void => {
     void queryClient.invalidateQueries({
       queryKey: ['todos', mutation.listId],
     })
-    if (
-      mutation.kind === 'createList' ||
-      mutation.kind === 'renameList' ||
-      mutation.kind === 'deleteList'
-    ) {
+    if (isListMutation(mutation)) {
       void queryClient.invalidateQueries({ queryKey: ['lists'] })
     }
   }
+
+  // Touched list ids (plus a lists-collection flag) accumulate while the
+  // queue drains and are invalidated in one shot once it's empty, so a
+  // long run of queued mutations doesn't refetch after each one.
+  let touchedListIds = new Set<string>()
+  let touchedLists = false
 
   const process = makeProcessMutation(api, onUnauthorized)
   const loop = new SyncLoop<Mutation>({
@@ -102,7 +127,21 @@ export async function createSyncEngine(options: SyncEngineOptions) {
       try {
         await process(mutation)
         setBlocked(null)
-        invalidateFor(mutation)
+        touchedListIds.add(mutation.listId)
+        if (isListMutation(mutation)) touchedLists = true
+        if (outbox.size() === 1) {
+          // The head mutation we just processed is about to be ack()'d by
+          // the sync loop, which will bring the queue to empty. Refetch
+          // now that there is nothing left queued to race against.
+          for (const listId of touchedListIds) {
+            void queryClient.invalidateQueries({ queryKey: ['todos', listId] })
+          }
+          if (touchedLists) {
+            void queryClient.invalidateQueries({ queryKey: ['lists'] })
+          }
+          touchedListIds = new Set()
+          touchedLists = false
+        }
       } catch (error) {
         if (error instanceof TaggedRetryableError) setBlocked(error.reason)
         throw error
@@ -110,7 +149,7 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     },
     onDrop: (mutation, error) => {
       // Server truth wins: refetch what we failed to change.
-      invalidateFor(mutation)
+      invalidateAllFor(mutation)
       onDropped(mutation, error)
     },
   })
@@ -128,5 +167,24 @@ export async function createSyncEngine(options: SyncEngineOptions) {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
+    /**
+     * Re-apply every still-queued mutation for `listId` on top of
+     * server-fetched todos, so a refetch never overrides a pending local
+     * change. Call this on the result of every todos fetch before it
+     * reaches the UI.
+     */
+    reconcileTodos: (listId: string, fresh: TodosResponse): TodosResponse =>
+      outbox
+        .entries()
+        .filter((mutation) => mutation.listId === listId)
+        .reduce(applyMutationToTodos, fresh),
+    /**
+     * Same as `reconcileTodos`, for the lists collection.
+     */
+    reconcileLists: (fresh: TodoList[]): TodoList[] =>
+      outbox
+        .entries()
+        .filter(isListMutation)
+        .reduce(applyMutationToLists, fresh),
   }
 }

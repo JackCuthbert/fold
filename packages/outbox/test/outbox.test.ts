@@ -111,6 +111,19 @@ describe('Outbox', () => {
     expect(outbox.peek()?.text).toBe('b')
   })
 
+  it('exposes a read-only snapshot of queued entries via entries()', async () => {
+    const outbox = await Outbox.open({ storage: memoryStorage(), parse })
+    expect(outbox.entries()).toEqual([])
+    await outbox.enqueue({ id: '1', text: 'a' })
+    await outbox.enqueue({ id: '2', text: 'b' })
+    expect(outbox.entries()).toEqual([
+      { id: '1', text: 'a' },
+      { id: '2', text: 'b' },
+    ])
+    await outbox.ack()
+    expect(outbox.entries()).toEqual([{ id: '2', text: 'b' }])
+  })
+
   it('notifies onChange with the queue size', async () => {
     const onChange = vi.fn()
     const outbox = await Outbox.open({

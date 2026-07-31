@@ -9,7 +9,16 @@ import { ListNameForm } from './list-form'
 const slug = (): string => crypto.randomUUID()
 
 export function useLists() {
-  return useQuery({ queryKey: ['lists'], queryFn: api.getLists })
+  const engine = useSyncEngine()
+  return useQuery({
+    queryKey: ['lists'],
+    queryFn: async () => {
+      const fresh = await api.getLists()
+      // A refetch must never override a pending local change — see
+      // docs/specs/sync-and-offline.md.
+      return engine.reconcileLists(fresh)
+    },
+  })
 }
 
 // docs/specs/lists.md — discover/create/rename/delete.

@@ -12,6 +12,14 @@ export function applyMutationToTodos(
 ): TodosResponse {
   switch (mutation.kind) {
     case 'createTodo': {
+      // Idempotent: a queued createTodo can be re-applied during
+      // reconciliation (docs/specs/sync-and-offline.md) after the mutation
+      // has *already* landed on the server but before the outbox has
+      // acked it — the server response would then already contain this
+      // uid, and blindly appending again would duplicate the todo.
+      if (cache.todos.some((todo) => todo.uid === mutation.todo.uid)) {
+        return cache
+      }
       const placeholder: Todo = {
         ...mutation.todo,
         listId: mutation.listId,
@@ -64,7 +72,12 @@ export function applyMutationToLists(
   mutation: Mutation,
 ): TodoList[] {
   switch (mutation.kind) {
-    case 'createList':
+    case 'createList': {
+      // Idempotent for the same reason as applyMutationToTodos'
+      // createTodo case — see the comment there.
+      if (lists.some((list) => list.id === mutation.listId)) {
+        return [...lists]
+      }
       return [
         ...lists,
         {
@@ -74,6 +87,7 @@ export function applyMutationToLists(
           ctag: '',
         },
       ]
+    }
     case 'renameList':
       return lists.map((list) =>
         list.id === mutation.listId
