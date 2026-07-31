@@ -25,8 +25,13 @@
    `box-sizing: border-box` (global.css) keeps the button's left edge at
    the footer's own left edge regardless of its border, so it still lines
    up with .link and .status above. */
+/* docs/specs/ui.md — controls & touch targets: an icon+label button lays
+   out space-between (icon leading, label trailing, gap absorbing the rest)
+   rather than a tight icon-text pairing. This button spans the full nav
+   width, so the gap reads clearly. Icon precedes the label in the markup,
+   so the default row order already puts it at the leading edge. */
 .settings {
   composes: action default from '../styles/button.module.css';
-  justify-content: flex-start;
+  justify-content: space-between;
   width: 100%;
 }

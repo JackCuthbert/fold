@@ -196,6 +196,17 @@ over an undimmed background, so they didn't read as modal.)*
   2026-07-31.)* Hover may refine an appearance, but a control that only
   exists on hover is undiscoverable on touch and invisible to anyone
   scanning the page. Applies to per-row menus in particular.
+  *(clarified 2026-07-31: the per-list kebab considered a segmented
+  "name | menu" button — two visually joined chunks with a divider — as an
+  alternative to an always-visible chromeless trigger. Rejected: the
+  divider is chrome the rest of the row deliberately doesn't have (list
+  rows and the kebab both stay chromeless per "Icon-only and nav-item
+  controls stay chromeless" below), and it fights the minimal serif
+  aesthetic for no discoverability gain over a trigger that's simply
+  always rendered at a quiet, non-zero opacity. The kebab stays a plain
+  icon-only button, visible (not hover-gated) at rest, darkening on
+  hover/focus — same shape as before, just without the opacity: 0 hover
+  gate.)*
 - **Checkboxes are small** — a ~20px visual circle inside a 44px target.
   Icons sit optically with adjacent text rather than towering over it.
 - Icons come from a **single [react-icons](https://github.com/react-icons/react-icons)
@@ -203,6 +214,14 @@ over an undimmed background, so they didn't read as modal.)*
 - **In a button with both an icon and a label, the two sit at opposite
   ends** — icon at the leading edge, text at the trailing edge, the gap
   between them absorbing the remaining width. *(added 2026-07-31.)*
+  *(clarified 2026-07-31: applies to full-width action-style rows where the
+  gap has room to read clearly — the nav footer's Settings row is the
+  reference case. Small, non-full-width controls keep a tight icon-text
+  pairing instead, since space-between has no width to distribute and
+  would just look like an arbitrary gap: the sound Toggle in Settings, the
+  kebab's Rename/Delete menu items, and disclosure triggers (the "Advanced"
+  accordion, "Completed (N)") where the chevron is a state indicator glued
+  to its label, not a leading icon.)*
 
 *(added 2026-07-31, from design review:)*
 

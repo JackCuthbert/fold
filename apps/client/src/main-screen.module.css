@@ -1,13 +1,17 @@
 /* docs/specs/ui.md — layout: collapsible left nav, centred main content.
    No top bar — content starts at the top of the page on desktop, and the
-   mobile nav trigger sits beside the list title rather than floating. */
+   mobile nav trigger sits beside the list title rather than floating.
+   docs/specs/ui.md — scrolling: only the list scrolls, never the whole
+   page. `.layout`/`.body` are a fixed-height (not min-height) flex chain
+   down to the scrolling panes themselves, so the page's own box never
+   grows past the viewport and never scrolls. */
 .layout {
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .body {
   display: flex;
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .nav {
@@ -15,24 +19,34 @@
 }
 
 /* Shared by the desktop pinned sidebar (.nav) and the mobile drawer
-   (.navOpen): a scrolling column whose own padding lives on its *children*,
-   not on the scrolling element itself — so the scrollbar (drawn at the
-   overflow container's border-box edge) tracks the pane's true edge
-   instead of floating inset from it (docs/specs/ui.md — scrollbar gutters
-   sit at the container edge). */
-.nav > *,
-.navOpen > * {
-  padding-inline: var(--space-4);
+   (.navOpen): a fixed-height flex column. `.navScroll` (the list of lists)
+   is the only child that overflows; `NavFooter` is a sibling below it, so
+   it stays anchored at the bottom instead of scrolling out of view behind
+   a long list (docs/specs/ui.md — scrolling: the nav's list of lists
+   scrolls while the footer stays anchored). */
+.nav,
+.navOpen {
+  display: flex;
+  flex-direction: column;
 }
 
-.nav > *:first-child,
-.navOpen > *:first-child {
-  padding-top: var(--space-4);
+/* The scrolling child owns its own padding, not the clipping container —
+   so the scrollbar (drawn at the overflow container's border-box edge)
+   tracks the pane's true edge instead of floating inset from it
+   (docs/specs/ui.md — scrollbar gutters sit at the container edge). */
+.navScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4) 0;
 }
 
+/* NavFooter (list-nav's sibling) shares the same horizontal inset as
+   .navScroll above it, so Settings/status align to the list rows' left
+   edge (docs/specs/ui.md — the nav: the footer matches the rows). */
 .nav > *:last-child,
 .navOpen > *:last-child {
-  padding-bottom: var(--space-4);
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 /* docs/specs/ui.md — overlays: the drawer animates in/out and dims the
@@ -40,15 +54,12 @@
    prefers-reduced-motion (global.css turns off all transitions/animations
    there). */
 .navOpen {
-  display: flex;
-  flex-direction: column;
   position: fixed;
   inset: 0 auto 0 0;
   width: min(80vw, 20rem);
   background: var(--paper);
   border-right: 1px solid var(--line);
   z-index: 30;
-  overflow-y: auto;
   transition: transform var(--duration-base) var(--ease);
 }
 
@@ -77,16 +88,6 @@
   opacity: 0;
 }
 
-/* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,
-   forming the top row of the content column, rather than a floating
-   button in a corner. */
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-
 .menuTrigger {
   display: flex;
   align-items: center;
@@ -112,11 +113,18 @@
   flex: none;
 }
 
+/* A fixed-height flex column: `.header` is a non-shrinking sticky child,
+   `.mainScroll` beneath it takes the rest of the height and is the only
+   part of the content column that scrolls (docs/specs/ui.md — scrolling:
+   the content column is a fixed-height flex layout with a sticky header
+   and a scrolling body). */
 .main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--space-4);
+  min-height: 0;
   width: 100%;
 }
 
@@ -127,6 +135,37 @@
   font-weight: var(--weight-medium);
 }
 
+/* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,
+   forming the top row of the content column, rather than a floating
+   button in a corner.
+   docs/specs/ui.md — scrolling: sticky so the list title and its controls
+   stay in view while `.mainScroll` scrolls beneath — the header itself
+   never scrolls out of frame. `background` matches the page so scrolled
+   content doesn't show through underneath it. Bottom padding stands in for
+   the old margin-bottom, keeping the same gap above the scrolling body. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  background: var(--paper);
+  padding: var(--space-4) var(--space-4) var(--space-4);
+}
+
+/* The scrolling child owns its own padding (top matches `.header`'s side
+   inset; bottom repeats it below the last row) so the scrollbar tracks
+   `.main`'s true edge rather than floating inset from it (docs/specs/ui.md
+   — scrollbar gutters sit at the container edge). */
+.mainScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
 .empty {
   color: var(--muted);
   font-size: var(--text-sm);
@@ -135,24 +174,20 @@
 @media (min-width: 768px) {
   .nav,
   .navOpen {
-    display: flex;
-    flex-direction: column;
     position: static;
     width: 15rem;
     border-right: 1px solid var(--line);
     inset: auto;
     transform: none;
-    overflow-y: auto;
   }
 
-  .nav > *:first-child,
-  .navOpen > *:first-child {
-    padding-top: var(--space-6);
+  .navScroll {
+    padding: var(--space-6) var(--space-4) 0;
   }
 
-  .nav > *:last-child,
-  .navOpen > *:last-child {
-    padding-bottom: var(--space-6);
+  .nav > :global(*:last-child),
+  .navOpen > :global(*:last-child) {
+    padding: 0 var(--space-4) var(--space-6);
   }
 
   /* The trigger only exists to open the mobile drawer — the desktop nav
@@ -163,7 +198,11 @@
     display: none;
   }
 
-  .main {
-    padding: var(--space-6) var(--space-4);
+  .header {
+    padding: var(--space-6) var(--space-4) 0;
+  }
+
+  .mainScroll {
+    padding: var(--space-4) var(--space-4) var(--space-6);
   }
 }

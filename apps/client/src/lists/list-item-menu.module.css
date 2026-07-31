@@ -6,6 +6,18 @@
  * beside it still gets nearly the full row (docs/specs/ui.md — touch
  * targets: every interactive element has a minimum 44x44px hit area, even
  * where the visible control is smaller).
+ *
+ * Always visible on every pointer type — never hover-revealed (docs/specs/
+ * ui.md — controls are always visible, never hover-revealed; applies to
+ * per-row menus in particular). A simpler always-visible chromeless kebab
+ * was chosen over a segmented (name | menu) button: the row is already a
+ * clean pairing of a full-width chromeless link and a small icon-only
+ * trigger, and a segmented design would add a visible divider/border
+ * between the two "segments" — new chrome that fights this minimal serif
+ * aesthetic and the spec's own rule that list rows and the kebab stay
+ * chromeless. Muted-by-default (not full ink) keeps it quiet at rest while
+ * still discoverable without hovering; hover/focus darken it to signal
+ * interactivity.
  */
 .trigger {
   color: var(--muted);
@@ -18,31 +30,22 @@
   border-radius: var(--radius-sm);
   font-size: var(--text-md);
   line-height: 1;
-  opacity: 0;
+  opacity: 0.6;
 }
 
-.trigger:hover {
+.trigger:hover,
+.trigger[data-popup-open] {
   color: var(--ink);
   background: var(--line);
+  opacity: 1;
 }
 
 /* No custom focus style here — this chromeless control has no border to
    repurpose (docs/specs/ui.md — focus changes border colour only), so it
    falls back to global.css's outline rule, same as the drawer's own
    chromeless menuTrigger. */
-li:hover .trigger,
-li:focus-within .trigger,
-.trigger[data-popup-open] {
+.trigger:focus-visible {
   opacity: 1;
-}
-
-/* Touch devices have no hover, so hover-to-reveal would make the menu
-   undiscoverable — show it permanently there, matching the rule the old
-   per-list action icons followed (docs/specs/ui.md). */
-@media (hover: none) {
-  .trigger {
-    opacity: 0.6;
-  }
 }
 
 .positioner {

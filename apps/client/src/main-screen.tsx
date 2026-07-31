@@ -56,15 +56,21 @@ export function MainScreen() {
     localStorage.setItem(SELECTED_LIST_KEY, listId)
   }
 
+  // docs/specs/ui.md — scrolling: inside the nav, the list of lists scrolls
+  // while the footer (Settings, status) stays anchored. `.navScroll` is the
+  // only child that overflows; `NavFooter` sits outside it so it never
+  // scrolls out of view behind a long list.
   const navContent: ReactNode = (
     <>
-      <ListNav
-        selected={active}
-        onSelect={(listId) => {
-          selectList(listId)
-          setDrawerOpen(false)
-        }}
-      />
+      <div className={styles['navScroll']}>
+        <ListNav
+          selected={active}
+          onSelect={(listId) => {
+            selectList(listId)
+            setDrawerOpen(false)
+          }}
+        />
+      </div>
       <NavFooter />
     </>
   )
@@ -102,7 +108,10 @@ export function MainScreen() {
               list title, forming the top row of the content column,
               rather than a floating button in a corner. The title stays
               centred above the list on every viewport; on desktop the nav
-              is permanently pinned, so there's no trigger to render. */}
+              is permanently pinned, so there's no trigger to render.
+              docs/specs/ui.md — scrolling: this header is sticky so the
+              list title and its controls stay in view; only .mainScroll
+              beneath it scrolls. */}
           <div className={styles['header']}>
             {!isDesktop && drawer}
             <h1 className={styles['title']}>
@@ -110,11 +119,13 @@ export function MainScreen() {
             </h1>
             <span className={styles['headerSpacer']} aria-hidden="true" />
           </div>
-          {active ? (
-            <TodoPane listId={active} />
-          ) : (
-            <p className={styles['empty']}>Create a list to get started.</p>
-          )}
+          <div className={styles['mainScroll']}>
+            {active ? (
+              <TodoPane listId={active} />
+            ) : (
+              <p className={styles['empty']}>Create a list to get started.</p>
+            )}
+          </div>
         </main>
       </div>
     </div>
