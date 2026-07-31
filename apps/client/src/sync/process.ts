@@ -76,6 +76,15 @@ export function makeProcessMutation(
         onUnauthorized()
         throw new RetryableError('unauthorized', { cause: error })
       }
+      if (error.status === 412 && mutation.kind === 'createTodo') {
+        // The outbox retried an unacked create whose first attempt had
+        // actually already landed (e.g. the ack was lost when the
+        // connection dropped mid-request). The server reports this as a
+        // conflict with the now-existing todo attached — since there's
+        // nothing left to change, that response IS the create's result,
+        // not a failure (docs/specs/sync-and-offline.md — outbox retries).
+        if (freshEtag(error)) return
+      }
       if (
         error.status === 412 &&
         (mutation.kind === 'updateTodo' || mutation.kind === 'deleteTodo')

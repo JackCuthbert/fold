@@ -3,15 +3,30 @@ import { Header } from './header'
 import { ListNav, useLists } from './lists/list-nav'
 import { TodoPane } from './todos/todo-pane'
 
+const SELECTED_LIST_KEY = 'caldav-todo:selected-list'
+
 export function MainScreen() {
   const lists = useLists()
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(() =>
+    localStorage.getItem(SELECTED_LIST_KEY),
+  )
   const [drawerOpen, setDrawerOpen] = useState(false)
   const drawerRef = useRef<HTMLElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
 
-  const active = selected ?? lists.data?.[0]?.id ?? null
+  // The persisted list may no longer exist (deleted elsewhere); fall back
+  // to the first available list rather than showing nothing.
+  const selectedExists =
+    selected !== null &&
+    (lists.data?.some((list) => list.id === selected) ?? true)
+  const active =
+    (selectedExists ? selected : null) ?? lists.data?.[0]?.id ?? null
   const activeList = lists.data?.find((list) => list.id === active)
+
+  const selectList = (listId: string): void => {
+    setSelected(listId)
+    localStorage.setItem(SELECTED_LIST_KEY, listId)
+  }
 
   const closeDrawer = (): void => {
     setDrawerOpen(false)
@@ -62,7 +77,7 @@ export function MainScreen() {
           <ListNav
             selected={active}
             onSelect={(listId) => {
-              setSelected(listId)
+              selectList(listId)
               setDrawerOpen(false)
             }}
           />
