@@ -1,18 +1,27 @@
+/* docs/specs/ui.md — the nav: this form now only ever renders inside
+   ListFormModal (create and rename), so it stacks like every other modal
+   form rather than wrapping inline fields + buttons on one line. */
 .form {
   display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .field {
-  flex: 1;
-  min-width: 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .field :global(input) {
   width: 100%;
   box-sizing: border-box;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared

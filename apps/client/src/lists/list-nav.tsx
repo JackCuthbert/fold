@@ -1,11 +1,11 @@
 import type { TodoList } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { LuPencil, LuX } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { applyMutationToLists } from '../sync/optimistic'
-import { ListNameForm } from './list-form'
+import { ListFormModal } from './list-form-modal'
+import { ListItemMenu } from './list-item-menu'
 import styles from './list-nav.module.css'
 
 const slug = (): string => crypto.randomUUID()
@@ -59,68 +59,60 @@ export function ListNav(props: {
             >
               {list.displayName}
             </button>
-            <button
-              type="button"
-              className={styles['action']}
-              aria-label={`Rename ${list.displayName}`}
-              onClick={() => setRenaming(list)}
-            >
-              <LuPencil aria-hidden="true" size={14} />
-            </button>
-            <button
-              type="button"
-              className={styles['action']}
-              aria-label={`Delete ${list.displayName}`}
-              onClick={() => setDeleting(list)}
-            >
-              <LuX aria-hidden="true" size={14} />
-            </button>
+            <ListItemMenu
+              displayName={list.displayName}
+              onRename={() => setRenaming(list)}
+              onDelete={() => setDeleting(list)}
+            />
           </li>
         ))}
       </ul>
 
-      {creating ? (
-        <ListNameForm
-          submitLabel="Create"
-          onCancel={() => setCreating(false)}
-          onSubmit={(displayName) => {
-            const listId = slug()
-            mutate({
-              id: crypto.randomUUID(),
-              kind: 'createList',
-              listId,
-              displayName,
-            })
-            setCreating(false)
-            props.onSelect(listId)
-          }}
-        />
-      ) : (
-        <button
-          type="button"
-          className={styles['add']}
-          onClick={() => setCreating(true)}
-        >
-          + New list
-        </button>
-      )}
+      <button
+        type="button"
+        className={styles['add']}
+        onClick={() => setCreating(true)}
+      >
+        + New list
+      </button>
 
-      {renaming && (
-        <ListNameForm
-          initial={renaming.displayName}
-          submitLabel="Rename"
-          onCancel={() => setRenaming(null)}
-          onSubmit={(displayName) => {
-            mutate({
-              id: crypto.randomUUID(),
-              kind: 'renameList',
-              listId: renaming.id,
-              displayName,
-            })
-            setRenaming(null)
-          }}
-        />
-      )}
+      <ListFormModal
+        open={creating}
+        title="New list"
+        submitLabel="Create"
+        onOpenChange={setCreating}
+        onSubmit={(displayName) => {
+          const listId = slug()
+          mutate({
+            id: crypto.randomUUID(),
+            kind: 'createList',
+            listId,
+            displayName,
+          })
+          setCreating(false)
+          props.onSelect(listId)
+        }}
+      />
+
+      <ListFormModal
+        open={renaming !== null}
+        title="Rename list"
+        {...(renaming ? { initial: renaming.displayName } : {})}
+        submitLabel="Rename"
+        onOpenChange={(open) => {
+          if (!open) setRenaming(null)
+        }}
+        onSubmit={(displayName) => {
+          if (!renaming) return
+          mutate({
+            id: crypto.randomUUID(),
+            kind: 'renameList',
+            listId: renaming.id,
+            displayName,
+          })
+          setRenaming(null)
+        }}
+      />
 
       <ConfirmDialog
         open={deleting !== null}

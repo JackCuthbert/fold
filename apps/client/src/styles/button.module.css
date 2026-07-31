@@ -10,7 +10,7 @@
  * up as a missing `composes:` rather than a silent copy-paste drift.
  *
  * Icon-only and nav-item controls (the ☰ trigger, the mute toggle, list
- * rows, the per-list rename/delete icons, the completed-section disclosure
+ * rows, the per-list kebab menu trigger, the completed-section disclosure
  * trigger) deliberately do NOT use these — they stay chromeless, styled
  * locally in their own module.
  *

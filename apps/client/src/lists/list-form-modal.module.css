@@ -1,0 +1,50 @@
+/*
+ * docs/specs/ui.md — the nav: creating a list opens a modal, like every
+ * other create/edit surface, rather than an inline form that reshapes the
+ * nav while open. Rename (from the per-list kebab menu) reuses the same
+ * modal shell. Same dimmed/animated overlay treatment as every other modal
+ * (docs/specs/ui.md — overlays), matching settings-modal.module.css.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 40;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-6);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+  outline: none;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-6);
+}

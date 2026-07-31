@@ -20,6 +20,25 @@ export async function createList(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Create', exact: true }).click()
 }
 
+// docs/specs/ui.md — the nav: per-list Rename/Delete live in a kebab menu
+// at the row's right edge rather than inline icon buttons, so a list's
+// full name gets nearly the whole row.
+export async function openListMenu(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: `Actions for ${name}` }).click()
+}
+
+export async function renameList(
+  page: Page,
+  from: string,
+  to: string,
+): Promise<void> {
+  await openListMenu(page, from)
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  const input = page.getByPlaceholder('List name')
+  await input.fill(to)
+  await page.getByRole('button', { name: 'Rename', exact: true }).click()
+}
+
 // docs/specs/ui.md — adding a todo opens a modal (added 2026-07-31): the
 // "Add a todo" button is now the modal's trigger, not the field itself.
 // The modal's title field keeps the same accessible name so Enter still
@@ -45,12 +64,15 @@ export async function addTodo(page: Page, summary: string): Promise<void> {
  *
  * A plain `toBeHidden()` on the pill would pass trivially if the sync
  * happened to finish (or hadn't started) the instant we check, so this
- * polls the header status pills until none of "Syncing" / "Offline" appear
- * on two separate samples in a row — a mutation that gets coalesced in
- * right after the first all-clear sample will still show up on the
- * second. *(changed 2026-07-31: "Server unreachable" no longer appears as
- * pill text — docs/specs/ui.md moved server reachability onto the status
- * dot. A blip now only recolors the dot, so it isn't part of this wait.)*
+ * polls until none of "Syncing N change…" / "Offline" appear anywhere on
+ * two separate samples in a row — a mutation that gets coalesced in right
+ * after the first all-clear sample will still show up on the second.
+ * *(changed 2026-07-31: "Server unreachable" no longer appears as pill
+ * text — docs/specs/ui.md moved server reachability onto the nav footer's
+ * status dot + label instead. The "Syncing \d+ change" branch only matches
+ * the pill's fuller text, never the footer's plain "Syncing…" label; the
+ * bare "Offline" branch intentionally also catches the footer's own
+ * "Offline" label, via `.count()`, which tolerates matching both.)*
  */
 export async function waitForSync(page: Page): Promise<void> {
   const isIdle = async (): Promise<boolean> =>

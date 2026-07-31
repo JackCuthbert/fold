@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
-import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
+import {
+  addTodo,
+  createList,
+  login,
+  openListMenu,
+  renameList,
+  uniqueName,
+  waitForSync,
+} from './helpers'
 
 test('login → create list → add → complete → clear completed', async ({
   page,
@@ -34,4 +42,40 @@ test('login → create list → add → complete → clear completed', async ({
   await waitForSync(page)
   await page.reload()
   await expect(page.getByText('Buy bread')).toBeVisible()
+})
+
+// docs/specs/ui.md — the nav: per-list Rename/Delete live in a kebab menu,
+// keyboard navigable via Base UI's Menu, rather than inline icon buttons.
+test('rename and delete a list via its kebab menu', async ({ page }) => {
+  await login(page)
+
+  const original = uniqueName('kebab')
+  await createList(page, original)
+  await expect(page.getByRole('heading', { name: original })).toBeVisible()
+  await waitForSync(page)
+
+  // Keyboard: open the trigger, arrow down to Rename, activate with Enter.
+  const trigger = page.getByRole('button', { name: `Actions for ${original}` })
+  await trigger.focus()
+  await trigger.press('Enter')
+  await expect(page.getByRole('menuitem', { name: 'Rename' })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeHidden()
+
+  const renamed = uniqueName('renamed')
+  await renameList(page, original, renamed)
+  await expect(page.getByRole('heading', { name: renamed })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: renamed, exact: true }),
+  ).toBeVisible()
+  await waitForSync(page)
+
+  await openListMenu(page, renamed)
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await page.getByRole('button', { name: 'Delete list' }).click()
+  await expect(
+    page.getByRole('button', { name: renamed, exact: true }),
+  ).toBeHidden()
 })

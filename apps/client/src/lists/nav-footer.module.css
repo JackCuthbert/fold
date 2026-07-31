@@ -1,23 +1,32 @@
-/* docs/specs/ui.md — configuration lives at the bottom of the left nav:
-   a single Settings entry (opens the settings modal) plus the status dot. */
+/* docs/specs/ui.md — the nav: the footer matches the rows above it —
+   Settings and the status line share the list items' left edge and row
+   height, stacked as their own rows rather than squeezed into one line. */
 .footer {
   margin-top: auto;
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  flex-direction: column;
 }
 
+/* Matches .link's row box in list-nav.module.css (same padding, same
+   min-height) so Settings shares one left edge and row height with every
+   list item above it. */
 .status {
-  flex: none;
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-2);
+  min-height: var(--hit-area);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Settings
    opens a modal (an action), not a nav row, so it gets the shared button
-   treatment rather than staying chromeless like the list rows above it. */
+   treatment rather than staying chromeless like the list rows above it.
+   `box-sizing: border-box` (global.css) keeps the button's left edge at
+   the footer's own left edge regardless of its border, so it still lines
+   up with .link and .status above. */
 .settings {
   composes: action default from '../styles/button.module.css';
-  flex: 1;
   justify-content: flex-start;
+  width: 100%;
 }

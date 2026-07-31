@@ -22,10 +22,15 @@ test('offline actions queue and replay on reconnect', async ({
     .getByRole('checkbox', { name: 'Mark "Synced before outage" done' })
     .click()
   await expect(page.getByText('Written while offline')).toBeVisible()
-  await expect(page.getByText(/Offline · \d+ queued/)).toBeVisible()
+  // Exact match: the nav footer's status label is also literal text
+  // "Offline" now (docs/specs/ui.md — status display), so a loose /Offline/
+  // substring would match both it and this pill and violate Playwright's
+  // strict mode. The pill alone carries the full "· N queued" detail.
+  const pill = page.getByText(/^Offline · \d+ queued$/)
+  await expect(pill).toBeVisible()
 
   await context.setOffline(false)
-  await expect(page.getByText(/Offline/)).toBeHidden({ timeout: 15_000 })
+  await expect(pill).toBeHidden({ timeout: 15_000 })
   await waitForSync(page)
 
   // Reload proves the changes reached the server, not just the cache.

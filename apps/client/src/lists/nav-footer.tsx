@@ -5,10 +5,11 @@ import { StatusDot, type StatusKind } from '../status-dot'
 import styles from './nav-footer.module.css'
 import { SettingsModal } from './settings-modal'
 
-// docs/specs/ui.md — status display: the dot carries server reachability
-// (healthy vs unreachable/erroring); a degraded state the user must act on
-// or wait through (offline, queued work) is shown by the separate fixed
-// StatusPill, not here — the footer stays silent in the common case.
+// docs/specs/ui.md — status display: the dot plus its short label carry
+// server reachability (Synced / Syncing… / Offline / Disconnected); a
+// degraded state the user must act on or wait through (offline, queued
+// work) still gets its full untruncated message from the separate fixed
+// StatusPill, not here.
 function statusFor(
   online: boolean,
   blocked: 'offline' | 'server' | 'auth' | null,
@@ -32,9 +33,6 @@ export function NavFooter() {
 
   return (
     <div className={styles['footer']}>
-      <div className={styles['status']}>
-        <StatusDot kind={kind} />
-      </div>
       <button
         type="button"
         className={styles['settings']}
@@ -43,6 +41,9 @@ export function NavFooter() {
         <LuSettings aria-hidden="true" size={16} />
         Settings
       </button>
+      <div className={styles['status']}>
+        <StatusDot kind={kind} />
+      </div>
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )

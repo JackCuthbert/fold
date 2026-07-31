@@ -1,0 +1,80 @@
+/*
+ * docs/specs/ui.md — the nav: the kebab trigger is an icon-only nav-item
+ * control (like the old per-list rename/delete icons it replaces), so it
+ * stays chromeless rather than composing styles/button.module.css. It
+ * keeps a >=44px hit area but a small visual footprint so the list name
+ * beside it still gets nearly the full row (docs/specs/ui.md — touch
+ * targets: every interactive element has a minimum 44x44px hit area, even
+ * where the visible control is smaller).
+ */
+.trigger {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  line-height: 1;
+  opacity: 0;
+}
+
+.trigger:hover {
+  color: var(--ink);
+  background: var(--line);
+}
+
+/* No custom focus style here — this chromeless control has no border to
+   repurpose (docs/specs/ui.md — focus changes border colour only), so it
+   falls back to global.css's outline rule, same as the drawer's own
+   chromeless menuTrigger. */
+li:hover .trigger,
+li:focus-within .trigger,
+.trigger[data-popup-open] {
+  opacity: 1;
+}
+
+/* Touch devices have no hover, so hover-to-reveal would make the menu
+   undiscoverable — show it permanently there, matching the rule the old
+   per-list action icons followed (docs/specs/ui.md). */
+@media (hover: none) {
+  .trigger {
+    opacity: 0.6;
+  }
+}
+
+.positioner {
+  z-index: 42;
+}
+
+.popup {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-1);
+  min-width: 9rem;
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.item[data-highlighted] {
+  background: var(--line);
+}
+
+.destructive {
+  color: var(--danger);
+}

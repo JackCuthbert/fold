@@ -10,8 +10,13 @@
   align-items: center;
 }
 
+/* docs/specs/ui.md — the nav: list rows are full width — the name takes
+   the row and is never squeezed by inline controls. Only the kebab menu
+   trigger (list-item-menu.module.css) sits at the row's right edge, kept
+   visually small so this still gets nearly the full row. */
 .link {
   flex: 1;
+  min-width: 0;
   text-align: left;
   padding: var(--space-2) var(--space-2);
   border-radius: var(--radius-sm);
@@ -19,6 +24,9 @@
   min-height: var(--hit-area);
   display: flex;
   align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .linkActive {
@@ -26,44 +34,13 @@
   font-weight: var(--weight-medium);
 }
 
-.action {
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--hit-area);
-  height: var(--hit-area);
-  flex: none;
-  opacity: 0;
-}
-
-.item:hover .action,
-.item:focus-within .action {
-  opacity: 1;
-}
-
-/* Touch devices have no hover, so hover-to-reveal would make these
-   controls undiscoverable — show them permanently there. */
-@media (hover: none) {
-  .action {
-    opacity: 0.6;
-  }
-}
-
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. "+ New
-   list" is an action (it opens the create-list form), not a nav row, so it
-   gets the shared button treatment like Save/Cancel/Add elsewhere — unlike
-   .link (list rows) and .action (the per-list rename/delete icons) above,
-   which stay chromeless nav-item controls. */
+   list" is an action (it opens the create-list modal), not a nav row, so
+   it gets the shared button treatment like Save/Cancel/Add elsewhere —
+   unlike .link (list rows) and the kebab trigger (list-item-menu.module.css)
+   above, which stay chromeless nav-item controls. */
 .add {
   composes: action default from '../styles/button.module.css';
   margin-top: var(--space-3);
   width: 100%;
-}
-
-.form {
-  display: flex;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-  flex-wrap: wrap;
 }
