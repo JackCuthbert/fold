@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { Dialog } from '@base-ui-components/react/dialog'
+import { useState, type ReactNode } from 'react'
 import { LuMenu } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import styles from './main-screen.module.css'
+import { cx } from './styles/cx'
 import { TodoPane } from './todos/todo-pane'
+import { useMediaQuery } from './use-media-query'
 
 const SELECTED_LIST_KEY = 'caldav-todo:selected-list'
+// Matches the `min-width: 768px` breakpoint in main-screen.module.css where
+// the nav switches from an overlay drawer to a permanently pinned sidebar.
+const DESKTOP_QUERY = '(min-width: 768px)'
 
 export function MainScreen() {
   const lists = useLists()
@@ -13,8 +19,16 @@ export function MainScreen() {
     localStorage.getItem(SELECTED_LIST_KEY),
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const drawerRef = useRef<HTMLElement>(null)
-  const menuRef = useRef<HTMLButtonElement>(null)
+  // On desktop the nav is a permanently pinned sidebar, not a dialog — it's
+  // plain markup, CSS-driven exactly as before. On mobile it's a true
+  // overlay: Base UI's Dialog takes over the focus trap, scroll lock,
+  // Escape-to-close and focus restoration that were previously hand-rolled
+  // here (docs/specs/ui.md — prefer Base UI over hand-rolling focus
+  // management). The trigger is a Dialog.Trigger (rather than a plain
+  // button with manual state) so Base UI's floating tree knows about it —
+  // without that wiring, its focus guards can't redirect a Tab that
+  // reaches the trigger back into the trap.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
   // The persisted list may no longer exist (deleted elsewhere); fall back
   // to the first available list rather than showing nothing.
@@ -30,74 +44,56 @@ export function MainScreen() {
     localStorage.setItem(SELECTED_LIST_KEY, listId)
   }
 
-  const closeDrawer = (): void => {
-    setDrawerOpen(false)
-    // Return focus to the control that opened it.
-    menuRef.current?.focus()
-  }
-
-  // Escape closes the drawer, matching the native <dialog> behaviour used
-  // by ConfirmDialog.
-  useEffect(() => {
-    if (!drawerOpen) return undefined
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') closeDrawer()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [drawerOpen])
-
-  // Move focus into the drawer when it opens so keyboard and screen-reader
-  // users land inside it rather than behind it.
-  useEffect(() => {
-    if (drawerOpen) drawerRef.current?.focus()
-  }, [drawerOpen])
+  const navContent: ReactNode = (
+    <>
+      <ListNav
+        selected={active}
+        onSelect={(listId) => {
+          selectList(listId)
+          setDrawerOpen(false)
+        }}
+      />
+      <NavFooter />
+    </>
+  )
 
   return (
-    <div className={styles['layout']}>
-      <button
-        ref={menuRef}
-        type="button"
-        className={styles['menuTrigger']}
-        aria-label="Lists"
-        onClick={() => setDrawerOpen((open) => !open)}
-      >
-        <LuMenu aria-hidden="true" size={20} />
-      </button>
-      <div className={styles['body']}>
-        {drawerOpen && (
-          <button
-            type="button"
-            className={styles['scrim']}
-            aria-label="Close lists"
-            onClick={closeDrawer}
-          />
-        )}
-        <aside
-          ref={drawerRef}
-          tabIndex={-1}
-          className={drawerOpen ? styles['navOpen'] : styles['nav']}
+    <Dialog.Root open={!isDesktop && drawerOpen} onOpenChange={setDrawerOpen}>
+      <div className={styles['layout']}>
+        <Dialog.Trigger
+          className={cx(styles['menuTrigger'])}
+          aria-label="Lists"
         >
-          <ListNav
-            selected={active}
-            onSelect={(listId) => {
-              selectList(listId)
-              setDrawerOpen(false)
-            }}
-          />
-          <NavFooter />
-        </aside>
-        <main className={styles['main']}>
-          <h1 className={styles['title']}>
-            {activeList?.displayName ?? 'Todos'}
-          </h1>
-          {active ? (
-            <TodoPane listId={active} />
+          <LuMenu aria-hidden="true" size={20} />
+        </Dialog.Trigger>
+        <div className={styles['body']}>
+          {isDesktop ? (
+            <aside className={styles['nav']}>{navContent}</aside>
           ) : (
-            <p className={styles['empty']}>Create a list to get started.</p>
+            <Dialog.Portal>
+              {drawerOpen && (
+                <Dialog.Backdrop className={cx(styles['scrim'])} />
+              )}
+              <Dialog.Popup
+                render={<aside />}
+                className={cx(styles['navOpen'])}
+              >
+                {navContent}
+              </Dialog.Popup>
+            </Dialog.Portal>
           )}
-        </main>
+          <main className={styles['main']}>
+            <h1 className={styles['title']}>
+              {activeList?.displayName ?? 'Todos'}
+            </h1>
+            {active ? (
+              <TodoPane listId={active} />
+            ) : (
+              <p className={styles['empty']}>Create a list to get started.</p>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </Dialog.Root>
   )
 }
