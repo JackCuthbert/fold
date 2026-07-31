@@ -1,14 +1,13 @@
-/* docs/specs/ui.md — layout: collapsible left nav, centred main content. */
+/* docs/specs/ui.md — layout: collapsible left nav, centred main content.
+   No top bar — content starts at the top of the page on desktop, and the
+   mobile nav trigger is a single floating control, not a bar. */
 .layout {
-  display: flex;
-  flex-direction: column;
   min-height: 100dvh;
 }
 
 .body {
   display: flex;
-  flex: 1;
-  min-height: 0;
+  min-height: 100dvh;
 }
 
 .nav {
@@ -16,15 +15,14 @@
 }
 
 .navOpen {
-  display: block;
+  display: flex;
+  flex-direction: column;
   position: fixed;
   inset: 0 auto 0 0;
   width: min(80vw, 20rem);
   background: var(--paper);
   border-right: 1px solid var(--line);
   padding: var(--space-4);
-  /* Above the sticky header (z-index 20, header.module.css) so the
-     drawer overlays it fully rather than being clipped underneath. */
   z-index: 30;
   overflow-y: auto;
 }
@@ -43,12 +41,37 @@
   padding: 0;
 }
 
+/* The only persistent mobile chrome — a single floating control, never a
+   bar (docs/specs/ui.md). Hidden on desktop, where the nav is pinned open. */
+.menuTrigger {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-4);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
 .main {
   flex: 1;
   max-width: var(--measure);
   margin: 0 auto;
   padding: var(--space-4);
   width: 100%;
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  margin-bottom: var(--space-4);
 }
 
 .empty {
@@ -59,11 +82,20 @@
 @media (min-width: 768px) {
   .nav,
   .navOpen {
-    display: block;
+    display: flex;
+    flex-direction: column;
     position: static;
     width: 15rem;
     border-right: 1px solid var(--line);
     padding: var(--space-6) var(--space-4);
     inset: auto;
+  }
+
+  .menuTrigger {
+    display: none;
+  }
+
+  .main {
+    padding: var(--space-6) var(--space-4);
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Header } from './header'
+import { LuMenu } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'
+import { NavFooter } from './lists/nav-footer'
 import styles from './main-screen.module.css'
 import { TodoPane } from './todos/todo-pane'
 
@@ -54,11 +55,15 @@ export function MainScreen() {
 
   return (
     <div className={styles['layout']}>
-      <Header
+      <button
         ref={menuRef}
-        title={activeList?.displayName ?? 'Todos'}
-        onMenu={() => setDrawerOpen((open) => !open)}
-      />
+        type="button"
+        className={styles['menuTrigger']}
+        aria-label="Lists"
+        onClick={() => setDrawerOpen((open) => !open)}
+      >
+        <LuMenu aria-hidden="true" size={20} />
+      </button>
       <div className={styles['body']}>
         {drawerOpen && (
           <button
@@ -80,8 +85,12 @@ export function MainScreen() {
               setDrawerOpen(false)
             }}
           />
+          <NavFooter />
         </aside>
         <main className={styles['main']}>
+          <h1 className={styles['title']}>
+            {activeList?.displayName ?? 'Todos'}
+          </h1>
           {active ? (
             <TodoPane listId={active} />
           ) : (

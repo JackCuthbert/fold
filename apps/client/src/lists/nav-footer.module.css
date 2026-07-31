@@ -1,0 +1,32 @@
+/* docs/specs/ui.md — configuration lives at the bottom of the left nav. */
+.footer {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.status {
+  flex: 1;
+  min-width: 0;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  color: var(--muted);
+  flex: none;
+}
+
+.signOut {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-1);
+  min-height: var(--hit-area);
+  flex: none;
+}
