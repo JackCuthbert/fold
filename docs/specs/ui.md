@@ -9,10 +9,22 @@ and centre.)*
 
 ## Layout
 
-- **Left nav, collapsible, hidden by default.** It holds lists and
-  configuration ([lists](./lists.md)) — not primary content. On desktop
+*(revised 2026-07-31 after design review — items below marked with the date
+supersede earlier wording.)*
+
+- **Left nav, collapsible, hidden by default.** It holds lists ([lists](./lists.md))
+  and a link to Settings — not primary content. On desktop
   (≥768px) it may stay pinned open; on mobile it overlays with a scrim.
   Dismissible by Escape, scrim tap, or selecting a list.
+- **The list title is centred above the list** and visually distinct from
+  the rows beneath it — it is the heading for the content, so it should
+  read as one. *(added 2026-07-31.)*
+- **Mobile: the nav trigger sits beside the list title**, not as a floating
+  button in a corner. Title and trigger form the top row of the content
+  column. *(added 2026-07-31: the floating button read as stray chrome.)*
+- **Clear separation between quick-add and the list.** The add affordance
+  and the todo rows must not crowd each other; use the spacing scale to
+  give the list its own block. *(added 2026-07-31.)*
 - **No top bar at all.** *(clarified 2026-07-31: a slim header still
   existed; it is now removed entirely.)* The list title is the first
   heading of the content column, not a separate bar. Configuration —
@@ -28,6 +40,19 @@ and centre.)*
   (confirm required).
 - **Detail view:** tapping a todo opens a **bottom sheet on mobile** and a
   **side panel on desktop** — never an inline expansion that shifts the list.
+- **Adding a todo opens a modal.** *(added 2026-07-31: an inline field made
+  adding feel incidental and gave no room for detail.)* Clicking "Add a
+  todo" opens a dimmed modal containing a form that is fully keyboard
+  navigable:
+  - A single **title** field is the focus and the fast path — type, press
+    Enter, done.
+  - An **Advanced** accordion, collapsed by default, holds **due date,
+    priority and notes**, so a todo can be fully specified at creation
+    without opening it afterwards.
+- **Settings** *(added 2026-07-31)*: sound and sign out live in their own
+  modal, opened from a "Settings" entry in the nav footer — they are not
+  loose controls in the nav. The footer keeps only that entry and the
+  status dot.
 - **Login** ([authentication](./authentication.md)): server URL, username,
   password via react-hook-form.
 
@@ -81,7 +106,10 @@ an off-scale value.
   description is an additional line within the row, never a nudge that
   misaligns its neighbours.
 - Descriptions appear inline in the list when present, truncated to a single
-  line.
+  line. **The gap between a title and its description is tight** — they are
+  one unit — and the row's top and bottom padding are equal, so a row with
+  a description stays visually balanced rather than top-heavy.
+  *(added 2026-07-31.)*
 - Row heights are multiples of the base unit so lists form an even column.
 
 ## Typography
@@ -105,6 +133,18 @@ an off-scale value.
 - 12px is permitted only for genuinely secondary metadata; nothing
   interactive or essential goes below 14px.
 
+## Overlays
+
+*(added 2026-07-31: the delete-list confirm and the mobile sheet appeared
+over an undimmed background, so they didn't read as modal.)*
+
+- **Every overlay dims the background** — nav drawer, bottom sheet, side
+  panel, confirm dialogs, the add-todo modal, settings. Without exception:
+  a modal surface over undimmed content reads as a rendering glitch.
+- **Overlays animate in and out.** Sheets and drawers slide from their
+  edge; modals fade with a slight rise. The scrim fades with them. All of
+  it is disabled under `prefers-reduced-motion`.
+
 ## Controls & touch targets
 
 - **Touch-first.** Every interactive element has a **minimum 44×44px hit
@@ -116,32 +156,59 @@ an off-scale value.
 - Icons come from a **single [react-icons](https://github.com/react-icons/react-icons)
   set**, sized in step with the text they accompany. No emoji.
 
+*(added 2026-07-31, from design review:)*
+
+- **Focus is shown by changing the border, not by adding an outline or
+  ring.** An outline draws outside the element's box and gets clipped by
+  sheet and sidebar edges. Focus must remain clearly visible — this
+  changes how, not whether.
+- **Corner radii are small.** Restrained rounding suits the typography;
+  large radii read as soft and generic.
+- **No press-transform on list rows.** Scaling or shifting a row on
+  `:active` adds nothing and makes the list feel unsteady. (Deliberate
+  micro-interactions like the checkbox draw stay.)
+- **Scrollbar gutters sit at the container edge.** Padding belongs inside
+  the scrolling content, so the scrollbar tracks the true edge of the pane
+  rather than floating inset from it.
+
 ## Status display
 
 *(revised 2026-07-31: squeezing the status into the nav footer truncated it
 to "Server unre…", making the one state the user most needs to understand
 unreadable.)*
 
-Status has two distinct presentations:
+*(revised again 2026-07-31: a transient upstream failure made the pill
+announce "Server unreachable" for a second and vanish. A momentary blip is
+not worth a sentence of text — the sync layer is already handling it by
+queueing and retrying.)*
 
-**Healthy — a quiet dot.** When everything is synced, a small muted dot in
-the nav footer. No text, no chrome.
+**Server reachability lives on the dot, not in text.** The dot in the nav
+footer carries connection health by colour:
 
-**Degraded — a persistent pill.** When offline, the server is unreachable,
-or work is queued, a **fixed pill at the bottom of the viewport**, centred,
-above the content. It:
+| State | Dot |
+|---|---|
+| Healthy | muted, static |
+| Server unreachable / erroring | **red, gently pulsing** |
 
-- shows the **full message, never truncated** — it sits in the viewport, not
-  in a narrow column, so it has room
-- **persists** while the condition lasts (it is a state indicator, not a
-  transient toast) and disappears by itself once resolved
-- states the condition and the queued count, e.g.
-  `Server unreachable · 3 queued`
-- is announced to assistive tech, and never traps focus or blocks
-  interaction — the app stays usable while degraded
+The pulse is subtle and stops under `prefers-reduced-motion` (colour alone
+then carries it). The dot always exposes its state to assistive tech via an
+accessible label, so nothing is conveyed by colour alone.
 
-Transient toasts (a dropped mutation, a storage failure) remain separate and
-still auto-dismiss; the status pill is not a toast.
+**Text is reserved for states the user must act on or wait through:**
+
+- **Offline** — `Offline · N queued`
+- **Queued work that cannot proceed** — e.g. `Sign in to save N changes`
+- **Syncing** — `Syncing N changes`
+
+These appear in a **fixed pill at the bottom of the viewport**, centred,
+above the content, showing the full untruncated message. The pill persists
+while the condition lasts and disappears by itself once resolved; it never
+traps focus or blocks interaction.
+
+A brief upstream failure while work is queued therefore turns the dot red
+and leaves the pill saying `Syncing N changes` — which remains true, since
+the outbox retries regardless. Transient toasts (a dropped mutation, a
+storage failure) stay separate and still auto-dismiss.
 
 ## Palette
 
