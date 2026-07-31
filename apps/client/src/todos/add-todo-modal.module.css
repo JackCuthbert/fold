@@ -176,8 +176,13 @@
   z-index: 42;
 }
 
+/* Match the trigger's width exactly: Base UI exposes the anchor's size
+   on the positioner as --anchor-width (docs/specs/ui.md — inputs fit
+   their container). box-sizing keeps the border inside that width. */
 .selectPopup {
   background: var(--surface);
+  width: var(--anchor-width);
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);

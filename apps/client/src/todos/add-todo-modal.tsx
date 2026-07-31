@@ -159,9 +159,13 @@ export function AddTodoModal(props: {
                             </Select.Icon>
                           </Select.Trigger>
                           <Select.Portal>
+                            {/* Opens below the input rather than covering
+                                it — see todo-detail.tsx for the reasoning. */}
                             <Select.Positioner
                               className={styles['selectPositioner']}
+                              side="bottom"
                               sideOffset={4}
+                              alignItemWithTrigger={false}
                             >
                               <Select.Popup className={styles['selectPopup']}>
                                 {PRIORITY_OPTIONS.map((option) => (

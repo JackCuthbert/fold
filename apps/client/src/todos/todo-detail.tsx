@@ -166,9 +166,16 @@ export function TodoDetail(props: {
                       </Select.Icon>
                     </Select.Trigger>
                     <Select.Portal>
+                      {/* alignItemWithTrigger={false} turns off Base UI's
+                          default overlap (which aligns the selected item
+                          over the trigger text) so the list opens below
+                          the input instead of covering it. Width matching
+                          is CSS — see .selectPopup's --anchor-width. */}
                       <Select.Positioner
                         className={styles['selectPositioner']}
+                        side="bottom"
                         sideOffset={4}
+                        alignItemWithTrigger={false}
                       >
                         <Select.Popup className={styles['selectPopup']}>
                           {PRIORITY_OPTIONS.map((option) => (
