@@ -72,11 +72,25 @@ button:active {
 .layout__nav--open {
   display: block;
   position: fixed;
-  inset: 3.5rem 20% 0 0;
+  inset: 3.5rem auto 0 0;
+  width: min(80vw, 20rem);
   background: var(--paper);
   border-right: 1px solid var(--line);
   padding: 1rem;
   z-index: 10;
+  overflow-y: auto;
+}
+.layout__nav--open:focus {
+  outline: none;
+}
+/* Tap-anywhere-else to dismiss the drawer. */
+.layout__scrim {
+  position: fixed;
+  inset: 3.5rem 0 0 0;
+  background: rgb(0 0 0 / 0.25);
+  z-index: 9;
+  border: none;
+  padding: 0;
 }
 .layout__main {
   flex: 1;
@@ -163,6 +177,13 @@ button:active {
 .list-nav li:hover .list-nav__action,
 .list-nav li:focus-within .list-nav__action {
   opacity: 1;
+}
+/* Touch devices have no hover, so hover-to-reveal would make these
+   controls undiscoverable — show them permanently there. */
+@media (hover: none) {
+  .list-nav__action {
+    opacity: 0.6;
+  }
 }
 .list-nav__add {
   margin-top: 0.75rem;

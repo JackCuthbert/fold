@@ -2,7 +2,12 @@ import { useIsFetching } from '@tanstack/react-query'
 import { api, queryClient, useOnline, useSyncStatus } from './providers'
 import { useSound } from './sound/use-sound'
 
-export function Header(props: { title: string; onMenu: () => void }) {
+export function Header(props: {
+  title: string
+  onMenu: () => void
+  /** So the drawer can restore focus here when it closes. */
+  ref?: React.Ref<HTMLButtonElement>
+}) {
   const online = useOnline()
   const { pending, blocked } = useSyncStatus()
   const fetching = useIsFetching()
@@ -11,6 +16,7 @@ export function Header(props: { title: string; onMenu: () => void }) {
   return (
     <header className="header">
       <button
+        ref={props.ref}
         type="button"
         className="header__menu"
         aria-label="Lists"
