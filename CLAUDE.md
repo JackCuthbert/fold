@@ -42,6 +42,18 @@ Specifications live in [docs/specs](docs/specs/overview.md). Read
   server/packages).
 - Forms use react-hook-form with `@hookform/resolvers/zod`, reusing
   `packages/schemas`.
+- **Styles are co-located with their component** as CSS Modules
+  (`component.module.css` beside `component.tsx`). Compile-time only —
+  **no CSS-in-JS**, which costs runtime performance. Shared design tokens
+  (spacing scale, type scale, colours) live in one global stylesheet as
+  custom properties; components consume those tokens rather than hard-coded
+  values.
+- **Icons come from `react-icons`, all from a single set.** Pick one
+  collection (e.g. `react-icons/lu`) and use it everywhere — never mix sets,
+  never use emoji as icons.
+- Accessible primitives (dialog, popover, checkbox, menu) come from **Base
+  UI**, which ships no runtime styling. Prefer it over hand-rolling focus
+  management.
 - API handlers are individual files — one route per file under
   `apps/server/src/api/<resource>/<action>.ts`, composed by a small router.
   No giant files.

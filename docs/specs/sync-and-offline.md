@@ -9,6 +9,30 @@ durable outbox. The network is an enhancement, never a dependency.
 - Cached lists and todos render instantly on load, offline included.
 - Refetch on: window focus, reconnect, after outbox drain, and on interval.
 
+## The client is authoritative while work is queued
+
+*(added 2026-07-31: refetching after every mutation made the server's
+response race the optimistic update — items reordered mid-interaction and a
+just-completed todo could visibly revert.)*
+
+**The UI must never churn as a consequence of syncing.** Rules:
+
+- **No refetch while the outbox is non-empty.** A successful mutation does
+  not invalidate anything on its own. Refetch only once the queue has fully
+  drained, plus the ordinary triggers (focus, reconnect, interval).
+- **A refetch never overrides a pending local change.** When server data
+  arrives, re-apply every queued mutation on top of it before it reaches the
+  UI, so the user keeps seeing their own edits.
+- **Genuinely new server data appears immediately.** Changes made elsewhere
+  (another client, another device) render as soon as they arrive — this rule
+  suppresses *echoes of our own writes*, not real remote updates.
+- **Sort order is stable during interaction.** Re-sorting is allowed on load,
+  on list switch, and on a real remote change — never as the direct result of
+  the user ticking a checkbox. A todo that becomes complete moves to the
+  completed section; it must not drag unrelated items around with it.
+- A dropped (fatal) mutation still refetches, since the cache is then known
+  to be wrong.
+
 ## Writes (the outbox)
 
 `packages/outbox` — a generic durable FIFO mutation queue with an injectable
