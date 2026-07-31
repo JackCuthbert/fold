@@ -7,3 +7,6 @@ playwright-report/
 
 # local manual-testing CalDAV data (see compose.yml)
 radicale-data/
+
+# throwaway e2e Radicale storage (see e2e/playwright.config.ts)
+.radicale-data/
