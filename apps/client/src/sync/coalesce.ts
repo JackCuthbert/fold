@@ -21,7 +21,15 @@ export function coalesceMutations(
       return queue.map((m, i) => (i === index ? merged : m))
     }
     if (target?.kind === 'createTodo') {
-      const { completed: _completed, ...fields } = incoming.changes
+      // NewTodo (the create payload) has no `completed` field — a VTODO
+      // is always created NEEDS-ACTION (docs/specs — vtodo create). So
+      // `completed` can't be folded into the create itself; queue it as
+      // a separate updateTodo that follows the create in FIFO order
+      // instead of silently dropping it. Its etag is unknown until the
+      // create lands, but the sync engine refreshes a stale/empty etag
+      // from the cache immediately before dispatch, once the create
+      // ahead of it has synced and patched in the real one.
+      const { completed, ...fields } = incoming.changes
       const merged: Mutation = {
         ...target,
         todo: {
@@ -34,7 +42,26 @@ export function coalesceMutations(
           ...(fields.priority != null ? { priority: fields.priority } : {}),
         },
       }
-      return queue.map((m, i) => (i === index ? merged : m))
+      const withCreate = queue.map((m, i) => (i === index ? merged : m))
+      if (completed === undefined) return withCreate
+      return [
+        ...withCreate,
+        {
+          id: incoming.id,
+          kind: 'updateTodo',
+          listId: incoming.listId,
+          uid: incoming.uid,
+          // Placeholder — the real etag isn't known until the create
+          // ahead of it in the queue lands. `mutationSchema` requires a
+          // non-empty etag (so this mutation survives a reload), and the
+          // sync engine refreshes it from the cache immediately before
+          // dispatch; if it's somehow still stale by then, the server's
+          // 412 conflict-rebase path (docs/specs/sync-and-offline.md)
+          // recovers using the fresh etag it returns.
+          etag: 'pending-create',
+          changes: { completed },
+        },
+      ]
     }
     return [...queue, incoming]
   }

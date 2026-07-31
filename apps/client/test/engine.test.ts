@@ -202,6 +202,42 @@ describe('sync engine', () => {
     expect(reconciled.todos).toHaveLength(1)
   })
 
+  it('patches the cache with the real etag as soon as createTodo succeeds', async () => {
+    // Regression: previously the optimistic placeholder's empty etag
+    // lingered until the next refetch. If the user queued a dependent
+    // mutation (e.g. completing the todo) against it in that window, it
+    // carried an invalid etag and the server rejected it outright.
+    const serverTodo = {
+      uid: 'a',
+      listId: 'l1',
+      href: '/real/a',
+      etag: 'real-etag',
+      summary: 'A',
+      completed: false,
+    }
+    const createTodo = vi.fn().mockResolvedValue(serverTodo)
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(['todos', 'l1'], {
+      ctag: '',
+      todos: [{ ...serverTodo, href: '', etag: '' }],
+    })
+    const engine = await createSyncEngine({
+      api: fakeApi({ createTodo }),
+      queryClient,
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(mutation)
+    await vi.waitFor(() => {
+      const cache = queryClient.getQueryData<TodosResponse>(['todos', 'l1'])
+      expect(cache?.todos[0]?.etag).toBe('real-etag')
+    })
+    engine.stop()
+  })
+
   it('reconcileTodos ignores queued mutations for a different list', async () => {
     const engine = await createSyncEngine({
       api: fakeApi({}),

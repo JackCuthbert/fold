@@ -13,7 +13,11 @@ import {
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
-import { applyMutationToLists, applyMutationToTodos } from './optimistic'
+import {
+  applyMutationToLists,
+  applyMutationToTodos,
+  patchTodo,
+} from './optimistic'
 import {
   makeProcessMutation,
   TaggedRetryableError,
@@ -120,13 +124,53 @@ export async function createSyncEngine(options: SyncEngineOptions) {
   let touchedListIds = new Set<string>()
   let touchedLists = false
 
+  // The etag on an updateTodo/deleteTodo mutation is captured at the
+  // moment it's queued. If it was queued against a createTodo placeholder
+  // that hadn't synced yet, that etag is '' — invalid, and rejected
+  // outright by the server. By the time this mutation reaches the front
+  // of the FIFO, the create ahead of it may have already synced and
+  // patched the cache with the real etag (see below), so look up the
+  // current one right before dispatch rather than trusting what was
+  // captured at enqueue time.
+  const withFreshEtag = (mutation: Mutation): Mutation => {
+    if (mutation.kind !== 'updateTodo' && mutation.kind !== 'deleteTodo') {
+      return mutation
+    }
+    const cache = queryClient.getQueryData<TodosResponse>([
+      'todos',
+      mutation.listId,
+    ])
+    const current = cache?.todos.find((todo) => todo.uid === mutation.uid)
+    if (!current?.etag || current.etag === mutation.etag) return mutation
+    return { ...mutation, etag: current.etag }
+  }
+
   const process = makeProcessMutation(api, onUnauthorized)
   const loop = new SyncLoop<Mutation>({
     outbox,
-    process: async (mutation) => {
+    process: async (queued) => {
+      const mutation = withFreshEtag(queued)
       try {
-        await process(mutation)
+        const serverTodo = await process(mutation)
         setBlocked(null)
+        if (serverTodo) {
+          // createTodo/updateTodo succeeded: patch the cache with the
+          // server's authoritative copy (real href/etag) right away,
+          // rather than waiting for the drain-completion refetch below.
+          // Without this, the optimistic placeholder's empty etag lingers
+          // until that refetch runs, and a mutation queued against it in
+          // the meantime (e.g. completing a todo the instant after
+          // creating it) would carry a stale/invalid etag and get
+          // rejected by the server as an unrecoverable error.
+          const rawKey = ['todos', mutation.listId, 'raw'] as const
+          queryClient.setQueryData<TodosResponse>(rawKey, (cache) =>
+            cache ? patchTodo(cache, serverTodo) : cache,
+          )
+          queryClient.setQueryData<TodosResponse>(
+            ['todos', mutation.listId],
+            (cache) => (cache ? patchTodo(cache, serverTodo) : cache),
+          )
+        }
         touchedListIds.add(mutation.listId)
         if (isListMutation(mutation)) touchedLists = true
         if (outbox.size() === 1) {

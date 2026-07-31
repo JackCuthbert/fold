@@ -1,8 +1,9 @@
-import type { Mutation, TodosResponse } from '@caldav-todo/schemas'
+import type { Mutation, Todo, TodosResponse } from '@caldav-todo/schemas'
 import { describe, expect, it } from 'vitest'
 import {
   applyMutationToLists,
   applyMutationToTodos,
+  patchTodo,
 } from '../src/sync/optimistic'
 
 const CACHE: TodosResponse = {
@@ -111,5 +112,69 @@ describe('applyMutationToLists', () => {
       displayName: 'Duplicate',
     })
     expect(next).toEqual(lists)
+  })
+})
+
+describe('patchTodo', () => {
+  it('replaces the matching todo in place with the server copy', () => {
+    const serverTodo: Todo = {
+      uid: 'a',
+      listId: 'l1',
+      href: '/real/a',
+      etag: 'real-etag',
+      summary: 'A',
+      completed: false,
+    }
+    const next = patchTodo(CACHE, serverTodo)
+    expect(next.todos).toHaveLength(1)
+    expect(next.todos[0]).toEqual(serverTodo)
+  })
+
+  it('preserves the position of other todos', () => {
+    const two: TodosResponse = {
+      ctag: 'c1',
+      todos: [
+        {
+          uid: 'a',
+          listId: 'l1',
+          href: '/a',
+          etag: 'e1',
+          summary: 'A',
+          completed: false,
+        },
+        {
+          uid: 'b',
+          listId: 'l1',
+          href: '/b',
+          etag: 'e2',
+          summary: 'B',
+          completed: false,
+        },
+      ],
+    }
+    const serverTodo: Todo = {
+      uid: 'b',
+      listId: 'l1',
+      href: '/real/b',
+      etag: 'real-etag',
+      summary: 'B',
+      completed: false,
+    }
+    const next = patchTodo(two, serverTodo)
+    expect(next.todos.map((t) => t.uid)).toEqual(['a', 'b'])
+    expect(next.todos[1]).toEqual(serverTodo)
+  })
+
+  it('appends the todo if no existing entry matches its uid', () => {
+    const serverTodo: Todo = {
+      uid: 'z',
+      listId: 'l1',
+      href: '/z',
+      etag: 'e9',
+      summary: 'Z',
+      completed: false,
+    }
+    const next = patchTodo(CACHE, serverTodo)
+    expect(next.todos.map((t) => t.uid)).toEqual(['a', 'z'])
   })
 })

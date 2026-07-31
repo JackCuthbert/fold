@@ -67,11 +67,72 @@ describe('coalesceMutations', () => {
     })
   })
 
+  it('keeps completed as a trailing update instead of dropping it', () => {
+    // Regression: a NewTodo (create payload) has no `completed` field —
+    // a VTODO is always created NEEDS-ACTION — so `completed` can't be
+    // folded into the create. It must survive as a follow-up mutation,
+    // not silently vanish (docs/specs/sync-and-offline.md).
+    const queue = run([createTodo('a')], updateTodo('a', { completed: true }))
+    expect(queue).toHaveLength(2)
+    expect(queue[0]).toMatchObject({ kind: 'createTodo', todo: { uid: 'a' } })
+    expect(queue[1]).toMatchObject({
+      kind: 'updateTodo',
+      uid: 'a',
+      changes: { completed: true },
+    })
+  })
+
+  it('folds non-completed fields into the create and splits off completed', () => {
+    const queue = run(
+      [createTodo('a')],
+      updateTodo('a', { summary: 'z', completed: true }),
+    )
+    expect(queue).toHaveLength(2)
+    expect(queue[0]).toMatchObject({
+      kind: 'createTodo',
+      todo: { uid: 'a', summary: 'z' },
+    })
+    expect(queue[1]).toMatchObject({
+      kind: 'updateTodo',
+      uid: 'a',
+      changes: { completed: true },
+    })
+  })
+
+  it('a later rename still folds into the create after completed splits off', () => {
+    const afterComplete = run(
+      [createTodo('a')],
+      updateTodo('a', { completed: true }),
+    )
+    const queue = coalesceMutations(
+      afterComplete,
+      updateTodo('a', { summary: 'renamed' }),
+    )
+    expect(queue).toHaveLength(2)
+    expect(queue[0]).toMatchObject({
+      kind: 'createTodo',
+      todo: { uid: 'a', summary: 'renamed' },
+    })
+    expect(queue[1]).toMatchObject({
+      kind: 'updateTodo',
+      changes: { completed: true },
+    })
+  })
+
   it('cancels a pending create when the todo is deleted', () => {
     const queue = run(
       [createTodo('a'), updateTodo('a', { summary: 'x' })],
       deleteTodo('a'),
     )
+    expect(queue).toHaveLength(0)
+  })
+
+  it('cancels a pending create and its split-off completed update on delete', () => {
+    const afterComplete = run(
+      [createTodo('a')],
+      updateTodo('a', { completed: true }),
+    )
+    const queue = coalesceMutations(afterComplete, deleteTodo('a'))
     expect(queue).toHaveLength(0)
   })
 

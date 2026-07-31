@@ -38,6 +38,13 @@ const fakeApi = (overrides: Partial<Api>): Api => ({
   ...overrides,
 })
 
+const create: Mutation = {
+  id: '00000000-0000-4000-8000-000000000002',
+  kind: 'createTodo',
+  listId: 'l1',
+  todo: { uid: 'a', summary: 'A' },
+}
+
 describe('processMutation', () => {
   it('dispatches updateTodo to the api', async () => {
     const updateTodo = vi.fn().mockResolvedValue(FRESH)
@@ -46,6 +53,18 @@ describe('processMutation', () => {
     expect(updateTodo).toHaveBeenCalledWith('l1', 'a', 'e1', {
       completed: true,
     })
+  })
+
+  it('returns the server Todo so the caller can patch the cache with the real etag', async () => {
+    const createTodo = vi.fn().mockResolvedValue(FRESH)
+    const process = makeProcessMutation(fakeApi({ createTodo }), vi.fn())
+    await expect(process(create)).resolves.toEqual(FRESH)
+  })
+
+  it('returns the server Todo for a successful updateTodo too', async () => {
+    const updateTodo = vi.fn().mockResolvedValue(FRESH)
+    const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
+    await expect(process(update)).resolves.toEqual(FRESH)
   })
 
   it('rebases once on 412 using the fresh etag from the response', async () => {
@@ -58,6 +77,14 @@ describe('processMutation', () => {
     expect(updateTodo).toHaveBeenNthCalledWith(2, 'l1', 'a', 'e2', {
       completed: true,
     })
+  })
+
+  it('returns the existing Todo when a retried createTodo 412s (already landed)', async () => {
+    const createTodo = vi
+      .fn()
+      .mockRejectedValue(new ApiError(412, { todo: FRESH }))
+    const process = makeProcessMutation(fakeApi({ createTodo }), vi.fn())
+    await expect(process(create)).resolves.toEqual(FRESH)
   })
 
   it('gives up with FatalError when the rebase also conflicts', async () => {

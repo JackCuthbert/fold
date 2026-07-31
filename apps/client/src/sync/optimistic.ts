@@ -67,6 +67,25 @@ export function applyMutationToTodos(
   }
 }
 
+/**
+ * Replace a todo in the cache with the server's authoritative copy (real
+ * href/etag), in place by uid. Used right after a createTodo/updateTodo
+ * succeeds — docs/specs/sync-and-offline.md — so the optimistic
+ * placeholder's empty etag never lingers in the UI-facing cache waiting
+ * for a refetch that (by design) may not happen for a while. A dependent
+ * mutation queued in that window (e.g. completing a todo the instant
+ * after creating it) would otherwise carry a stale/empty etag and get
+ * rejected by the server.
+ */
+export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
+  const index = cache.todos.findIndex((existing) => existing.uid === todo.uid)
+  if (index === -1) return { ...cache, todos: [...cache.todos, todo] }
+  return {
+    ...cache,
+    todos: cache.todos.map((existing, i) => (i === index ? todo : existing)),
+  }
+}
+
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,

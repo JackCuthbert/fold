@@ -1,5 +1,9 @@
 import { FatalError, RetryableError } from '@caldav-todo/outbox'
-import { conflictResponseSchema, type Mutation } from '@caldav-todo/schemas'
+import {
+  conflictResponseSchema,
+  type Mutation,
+  type Todo,
+} from '@caldav-todo/schemas'
 import type { Api } from '../api/client'
 import { ApiError, NetworkError } from '../api/errors'
 
@@ -20,48 +24,55 @@ export class TaggedRetryableError extends RetryableError {
 
 // Drain-side mutation processing with LWW conflict rebase —
 // docs/specs/sync-and-offline.md (conflict handling).
+//
+// createTodo/updateTodo return the server's authoritative Todo (real href
+// and etag) so the caller can patch the cache immediately — without this,
+// the optimistic placeholder keeps an empty etag until the next refetch,
+// and a mutation the user queues against it in that window (e.g.
+// completing a todo the instant after creating it) is sent with an
+// invalid etag and gets dropped as a fatal 400/412.
 export function makeProcessMutation(
   api: Api,
   onUnauthorized: () => void,
-): (mutation: Mutation) => Promise<void> {
+): (mutation: Mutation) => Promise<Todo | undefined> {
   const dispatch = async (
     mutation: Mutation,
     etagOverride?: string,
-  ): Promise<void> => {
+  ): Promise<Todo | undefined> => {
     switch (mutation.kind) {
       case 'createTodo':
-        await api.createTodo(mutation.listId, mutation.todo)
-        return
+        return api.createTodo(mutation.listId, mutation.todo)
       case 'updateTodo':
-        await api.updateTodo(
+        return api.updateTodo(
           mutation.listId,
           mutation.uid,
           etagOverride ?? mutation.etag,
           mutation.changes,
         )
-        return
       case 'deleteTodo':
         await api.deleteTodo(
           mutation.listId,
           mutation.uid,
           etagOverride ?? mutation.etag,
         )
-        return
+        return undefined
       case 'createList':
         await api.createList(mutation.listId, mutation.displayName)
-        return
+        return undefined
       case 'renameList':
         await api.renameList(mutation.listId, mutation.displayName)
-        return
+        return undefined
       case 'deleteList':
         await api.deleteList(mutation.listId)
-        return
+        return undefined
+      default:
+        return mutation satisfies never
     }
   }
 
   return async (mutation) => {
     try {
-      await dispatch(mutation)
+      return await dispatch(mutation)
     } catch (error) {
       if (error instanceof NetworkError) {
         throw new TaggedRetryableError('offline', 'offline', { cause: error })
@@ -83,7 +94,8 @@ export function makeProcessMutation(
         // conflict with the now-existing todo attached — since there's
         // nothing left to change, that response IS the create's result,
         // not a failure (docs/specs/sync-and-offline.md — outbox retries).
-        if (freshEtag(error)) return
+        const conflict = conflictResponseSchema.safeParse(error.body)
+        if (conflict.success) return conflict.data.todo
       }
       if (
         error.status === 412 &&
@@ -92,8 +104,7 @@ export function makeProcessMutation(
         const etag = freshEtag(error)
         if (etag) {
           try {
-            await dispatch(mutation, etag)
-            return
+            return await dispatch(mutation, etag)
           } catch (retryError) {
             throw new FatalError('conflict after rebase', {
               cause: retryError,
