@@ -31,12 +31,40 @@ and centre.)*
 - **Login** ([authentication](./authentication.md)): server URL, username,
   password via react-hook-form.
 
+## Component library
+
+*(added 2026-07-31: partial adoption left hand-rolled elements with
+inconsistent behaviour and styling.)*
+
+**Every interactive element comes from [Base UI](https://base-ui.com)** —
+the `@base-ui/react` package. Not a subset: inputs, selects, dialogs,
+drawers, checkboxes, fields, and forms all use its primitives, so focus
+handling, keyboard behaviour and ARIA are consistent everywhere and are not
+re-implemented per component.
+
+- Base UI ships no styles; all appearance comes from our CSS Modules and
+  design tokens.
+- The app root sets `isolation: isolate` so portalled popups stack
+  correctly, and `body { position: relative }` for iOS Safari.
+- Hand-rolling an element that Base UI provides is a defect, not a
+  shortcut.
+
 ## Spacing & rhythm
 
 Pixel-perfect alignment matters. All spacing comes from a **4px base scale**
 — `4, 8, 12, 16, 24, 32, 48` — exposed as CSS custom properties. Nothing uses
 an off-scale value.
 
+- **One left edge.** *(added 2026-07-31: todo rows escaped the content
+  column's padding, starting 488px left of the heading and quick-add.)*
+  Every element in a column — heading, quick-add, todo rows, section
+  headers, empty states — shares an identical left edge. Rows must not
+  bleed past their container's padding, and no element may introduce its
+  own horizontal inset that breaks the column.
+- **Inputs fit their container.** Fields, selects and textareas size to the
+  available width (`width: 100%`, `box-sizing: border-box`, `min-width: 0`
+  inside flex parents). Nothing overflows its panel or gets clipped by a
+  scrollbar.
 - **Vertical rhythm:** every row in a list occupies a consistent height
   regardless of its content. A todo with a description and one without must
   have **identical vertical alignment** for their titles and checkboxes; the
@@ -80,18 +108,30 @@ an off-scale value.
 
 ## Status display
 
-Sync status is **peripheral, not prominent** — a quiet indicator in a corner,
-not a banner. A small **status dot** conveys state by colour:
+*(revised 2026-07-31: squeezing the status into the nav footer truncated it
+to "Server unre…", making the one state the user most needs to understand
+unreadable.)*
 
-| State | Dot | Detail |
-|---|---|---|
-| Synced | none / muted | no queued work |
-| Syncing | accent | pending count on hover/focus or via `aria-label` |
-| Offline | amber | queued count available to assistive tech |
-| Server unreachable | amber | distinct label, same visual weight |
+Status has two distinct presentations:
 
-It must remain announced to screen readers ([accessibility](#accessibility))
-even though it is visually subtle.
+**Healthy — a quiet dot.** When everything is synced, a small muted dot in
+the nav footer. No text, no chrome.
+
+**Degraded — a persistent pill.** When offline, the server is unreachable,
+or work is queued, a **fixed pill at the bottom of the viewport**, centred,
+above the content. It:
+
+- shows the **full message, never truncated** — it sits in the viewport, not
+  in a narrow column, so it has room
+- **persists** while the condition lasts (it is a state indicator, not a
+  transient toast) and disappears by itself once resolved
+- states the condition and the queued count, e.g.
+  `Server unreachable · 3 queued`
+- is announced to assistive tech, and never traps focus or blocks
+  interaction — the app stays usable while degraded
+
+Transient toasts (a dropped mutation, a storage failure) remain separate and
+still auto-dismiss; the status pill is not a toast.
 
 ## Palette
 

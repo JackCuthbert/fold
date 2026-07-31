@@ -66,6 +66,19 @@ storage adapter (the client supplies IndexedDB). Every user action:
   case. The toast for a non-conflict drop is a plain "Couldn't save
   '<summary>'", so the message never claims a conflict that didn't happen.)*
 
+## Status must reflect reality
+
+*(added 2026-07-31: a stale `blocked` flag reported "Server unreachable"
+while signed in against a healthy server.)*
+
+The displayed status is **derived from current conditions**, never latched
+history:
+
+- It clears on the next successful request, not only when the queue empties.
+- It is never shown when nothing is queued and nothing is failing.
+- A signed-in session against a reachable server must show the healthy
+  state, regardless of any earlier transient failure.
+
 ## Offline detection & UX
 
 - `navigator.onLine` + fetch failures.
