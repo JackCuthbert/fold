@@ -82,7 +82,10 @@
     --faint: #5f584a;
     --accent: #c9a87c;
     --line: #2c2921;
-    --scrim: rgb(0 0 0 / 0.5);
+    /* Black on a near-black page barely dims — a 0.5 scrim left the
+       content behind a modal fully legible. Dark mode needs a much
+       heavier veil to read as modal at all (docs/specs/ui.md — overlays). */
+    --scrim: rgb(0 0 0 / 0.78);
     --status-offline: #d9a441;
   }
 }
