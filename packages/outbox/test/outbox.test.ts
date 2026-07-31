@@ -27,10 +27,12 @@ describe('Outbox', () => {
     const outbox = await Outbox.open({ storage: memoryStorage(), parse })
     await outbox.enqueue({ id: '1', text: 'a' })
     await outbox.enqueue({ id: '2', text: 'b' })
-    expect(outbox.peek()?.id).toBe('1')
-    await outbox.ack()
-    expect(outbox.peek()?.id).toBe('2')
-    await outbox.ack()
+    const first = outbox.peek()
+    expect(first?.id).toBe('1')
+    if (first) await outbox.ack(first)
+    const second = outbox.peek()
+    expect(second?.id).toBe('2')
+    if (second) await outbox.ack(second)
     expect(outbox.size()).toBe(0)
   })
 
@@ -93,10 +95,9 @@ describe('Outbox', () => {
       parse,
       onPersistError: () => {},
     })
-    await expect(
-      outbox.enqueue({ id: '1', text: 'a' }),
-    ).resolves.toBeUndefined()
-    await expect(outbox.ack()).resolves.toBeUndefined()
+    const mutation = { id: '1', text: 'a' }
+    await expect(outbox.enqueue(mutation)).resolves.toBeUndefined()
+    await expect(outbox.ack(mutation)).resolves.toBeUndefined()
   })
 
   it('applies the coalesce hook on enqueue', async () => {
@@ -114,13 +115,14 @@ describe('Outbox', () => {
   it('exposes a read-only snapshot of queued entries via entries()', async () => {
     const outbox = await Outbox.open({ storage: memoryStorage(), parse })
     expect(outbox.entries()).toEqual([])
-    await outbox.enqueue({ id: '1', text: 'a' })
+    const firstMutation = { id: '1', text: 'a' }
+    await outbox.enqueue(firstMutation)
     await outbox.enqueue({ id: '2', text: 'b' })
     expect(outbox.entries()).toEqual([
       { id: '1', text: 'a' },
       { id: '2', text: 'b' },
     ])
-    await outbox.ack()
+    await outbox.ack(firstMutation)
     expect(outbox.entries()).toEqual([{ id: '2', text: 'b' }])
   })
 
@@ -131,9 +133,41 @@ describe('Outbox', () => {
       parse,
       onChange,
     })
-    await outbox.enqueue({ id: '1', text: 'a' })
+    const mutation = { id: '1', text: 'a' }
+    await outbox.enqueue(mutation)
     expect(onChange).toHaveBeenLastCalledWith(1)
-    await outbox.ack()
+    await outbox.ack(mutation)
     expect(onChange).toHaveBeenLastCalledWith(0)
   })
+
+  it(
+    'removes a mutation by reference even if enqueue() coalesced ' +
+      'other entries around it while it was in flight',
+    async () => {
+      const outbox = await Outbox.open({
+        storage: memoryStorage(),
+        parse,
+        coalesce,
+      })
+      const first = { id: '1', text: 'a' }
+      const second = { id: '2', text: 'b' }
+      await outbox.enqueue(first)
+      await outbox.enqueue(second)
+      // Simulate a concurrent enqueue() coalescing the head (id '1') while
+      // it's still being processed elsewhere — this `coalesce` replaces any
+      // entry sharing the incoming mutation's id, same as the app's real
+      // rule for a delete superseding a not-yet-synced update.
+      await outbox.enqueue({ id: '1', text: 'c' })
+      // ack() is called with the *original* `first` reference — the one
+      // that was actually processed — even though it's no longer the
+      // object in the queue. It must be a safe no-op, not remove whatever
+      // now happens to be at index 0 (this fixture's `coalesce` re-appends
+      // a merged entry at the end, so id '1' is now last, not first).
+      await outbox.ack(first)
+      expect(outbox.entries()).toEqual([
+        { id: '2', text: 'b' },
+        { id: '1', text: 'c' },
+      ])
+    },
+  )
 })

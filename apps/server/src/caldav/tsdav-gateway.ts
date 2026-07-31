@@ -26,6 +26,99 @@ const listIdFromHref = (href: string): string =>
 const escapeXml = (text: string): string =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
+// Bun's fetch drops an idle/reused connection out from under an in-flight
+// request under concurrent load and throws this plain Error — verified by
+// instrumenting translate() and firing concurrent bursts at a healthy
+// local Radicale: every single failure was this exact message, never a
+// real Radicale error. It is not confined to login(): a first pass fixing
+// only login()'s fetch chain still left it escaping from a bare
+// `client.fetchCalendars()` call, proving the connection reset is a
+// property of any fetch tsdav makes under concurrent load, not something
+// specific to the login handshake. Each API request builds a fresh
+// DAVClient (login() isn't cached across requests — docs/specs/
+// authentication.md requires the gateway to stay stateless per request,
+// so caching the client is not an option), so ordinary concurrent usage
+// opens far more simultaneous sockets against Radicale's simple HTTP
+// server than "one request per user action" would suggest, and it
+// occasionally drops one mid-request.
+//
+// Fixed once, universally, via tsdav's `fetch` override (threaded through
+// every internal call — login, fetchCalendars, fetchCalendarObjects,
+// createCalendarObject, etc.): retry only idempotent/safe HTTP methods
+// (GET/HEAD/OPTIONS/PROPFIND/REPORT). A connection reset means the
+// request was never actually answered, so for these methods nothing was
+// double-applied server-side and a retry is always safe. Mutating methods
+// (PUT/DELETE/PROPPATCH/MKCALENDAR/POST) are deliberately left unretried
+// here: createTodo's PUT carries `If-None-Match: *`, update/delete carry
+// an etag precondition, so if a reset ever did happen post-write, a blind
+// retry could turn into a spurious 412 instead of the write actually
+// failing — that non-idempotent risk isn't worth taking. Those still
+// surface as CaldavUnreachableError (502) on a reset, which the client
+// already retries safely through the outbox.
+const TRANSIENT_SOCKET_ERROR = /socket connection was closed unexpectedly/i
+const IDEMPOTENT_METHODS = new Set([
+  'GET',
+  'HEAD',
+  'OPTIONS',
+  'PROPFIND',
+  'REPORT',
+])
+const FETCH_RETRY_ATTEMPTS = 3
+const FETCH_RETRY_DELAY_MS = 50
+
+const isTransientSocketError = (error: unknown): boolean =>
+  error instanceof Error && TRANSIENT_SOCKET_ERROR.test(error.message)
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * The retry policy itself, factored out from the global `fetch` it wraps
+ * in production so it can be exercised against a fake in a unit test
+ * without monkey-patching `globalThis.fetch` — see tsdav-gateway.test.ts.
+ * Retries a transient connection reset on idempotent/safe methods with a
+ * short bounded backoff, and leaves everything else — different errors,
+ * and mutating methods regardless of error — to fail through as-is. A
+ * server that is genuinely unreachable fails every attempt the same way
+ * and still ends up surfacing as CaldavUnreachableError once attempts are
+ * exhausted; this only masks the spurious, connection-level case.
+ */
+export function makeFetchWithRetry(
+  baseFetch: (
+    input: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1],
+  ) => Promise<Response>,
+): (
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+) => Promise<Response> {
+  return function fetchWithRetry(input, init) {
+    const method = (init?.method ?? 'GET').toUpperCase()
+    if (!IDEMPOTENT_METHODS.has(method)) return baseFetch(input, init)
+
+    const attempt = async (n: number): Promise<Response> => {
+      try {
+        return await baseFetch(input, init)
+      } catch (error) {
+        if (!isTransientSocketError(error) || n >= FETCH_RETRY_ATTEMPTS) {
+          throw error
+        }
+        await delay(FETCH_RETRY_DELAY_MS * n)
+        return attempt(n + 1)
+      }
+    }
+    return attempt(1)
+  }
+}
+
+// `Object.assign` (rather than a cast) attaches `preconnect` from the
+// global `fetch` so this satisfies Bun's `typeof fetch` (a function plus
+// that one static) structurally, without claiming to implement it —
+// DAVClient never calls `preconnect` itself.
+const fetchWithRetry: typeof fetch = Object.assign(makeFetchWithRetry(fetch), {
+  preconnect: fetch.preconnect,
+})
+
 /**
  * Wrap upstream failures in our typed errors.
  *
@@ -128,6 +221,7 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
     },
     authMethod: 'Basic',
     defaultAccountType: 'caldav',
+    fetch: fetchWithRetry,
   })
   let loggedIn = false
   const ensureLogin = async (): Promise<void> => {

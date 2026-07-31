@@ -68,8 +68,50 @@ export class Outbox<M> {
     await this.#persist()
   }
 
-  async ack(): Promise<void> {
-    this.#queue = this.#queue.slice(1)
+  /**
+   * Remove the mutation that was just successfully processed — pass back
+   * exactly the object `peek()` returned before processing it.
+   *
+   * Takes the mutation itself, not just "the current head": `process()`
+   * for the head is awaited by the caller, and `enqueue()` can run
+   * concurrently while that await is in flight (a UI action queues a new
+   * mutation while the previous one is still processing). `coalesce` can
+   * rewrite the in-flight mutation's spot in `#queue` in two different
+   * shapes — both handled the same way here:
+   *   - **Drop**: an incoming mutation supersedes it outright (e.g. a
+   *     delete arriving for a todo whose update hasn't synced yet
+   *     reasonably discards that update, since deleting supersedes it).
+   *   - **Replace**: an incoming mutation merges into a *new* object at
+   *     the same position (e.g. two consecutive edits to the same todo
+   *     coalesce into one update). The original object reference is gone
+   *     from the queue either way, even though nothing was "dropped" in
+   *     the replace case — it was superseded by a newer version of
+   *     itself.
+   * An index-based `slice(1)` would remove whatever coalescing left at
+   * the front instead of the mutation this call actually finished,
+   * silently discarding the caller's newer mutation (dropped case) or
+   * the merged replacement (replace case) instead of the one that was
+   * really acked. Removing by reference identity instead means: if the
+   * processed mutation is still in the queue, drop that one wherever it
+   * is; if coalescing already moved past it — dropped or replaced — ack()
+   * is a no-op, and whatever coalescing left behind (nothing, or the
+   * merged replacement) stays queued untouched. This class doesn't need
+   * to distinguish the two cases to be correct; it only needs to never
+   * touch anything but the exact instance it was told was done.
+   */
+  async ack(mutation: M): Promise<void> {
+    const index = this.#queue.indexOf(mutation)
+    if (index === -1) {
+      // Already coalesced away (dropped or replaced) by a concurrent
+      // enqueue() — nothing to remove, and nothing was lost: whatever
+      // coalescing left behind is still queued and will be processed in
+      // its turn.
+      return
+    }
+    this.#queue = [
+      ...this.#queue.slice(0, index),
+      ...this.#queue.slice(index + 1),
+    ]
     await this.#persist()
   }
 

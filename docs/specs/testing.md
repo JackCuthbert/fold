@@ -36,6 +36,15 @@ Happy paths only:
 2. Offline: `context.setOffline(true)` → make changes → reconnect → verify
    queue replay ([sync-and-offline](./sync-and-offline.md)).
 3. Mobile viewport variant of path 1 ([ui](./ui.md)).
+4. Stale session: sign in, `context.clearCookies()` (the session cookie is
+   httpOnly — page JS can't touch it, so this is the only way to simulate
+   "cookie gone" from a test), reload, assert the login form renders — not
+   a populated shell from cache
+   ([authentication](./authentication.md#the-session-is-never-served-from-cache)).
+   *(added 2026-07-31: every other spec signs in fresh within a single page
+   load, so none of them could have caught the stale-persisted-`['session']`
+   bug fixed in `84244ff` — this case exists specifically to close that
+   gap.)*
 
 ## Rules
 

@@ -1,4 +1,18 @@
 {
   "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // page.evaluate() callbacks run in the browser, not Node — they need
+    // DOM lib types (indexedDB, etc.) alongside @tsconfig/node24's own
+    // lib set (es2024 + some ESNext partials), not instead of it.
+    "lib": [
+      "es2024",
+      "ESNext.Array",
+      "ESNext.Collection",
+      "ESNext.Error",
+      "ESNext.Iterator",
+      "ESNext.Promise",
+      "DOM"
+    ]
+  },
   "include": ["tests", "playwright.config.ts"]
 }

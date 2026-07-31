@@ -69,11 +69,11 @@ export class SyncLoop<M> {
         this.#kicked = false
         try {
           await this.#options.process(head)
-          await this.#options.outbox.ack()
+          await this.#options.outbox.ack(head)
           this.#attempts = 0
         } catch (error) {
           if (error instanceof FatalError) {
-            await this.#options.outbox.ack()
+            await this.#options.outbox.ack(head)
             this.#options.onDrop?.(head, error)
             this.#attempts = 0
             continue
