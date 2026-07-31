@@ -52,7 +52,12 @@ supersede earlier wording.)*
 - **Settings** *(added 2026-07-31)*: sound and sign out live in their own
   modal, opened from a "Settings" entry in the nav footer — they are not
   loose controls in the nav. The footer keeps only that entry and the
-  status dot.
+  status dot. The modal also shows the **CalDAV server URL, read-only** —
+  useful to confirm which server you're on; changing it means signing out.
+  Controls inside need breathing room from any divider beneath them.
+- **"Add a todo" has a desktop hover state** — a full-width fill, no
+  border, distinct from the todo rows beneath it so it reads as an action
+  rather than another item. *(added 2026-07-31.)*
 - **Login** ([authentication](./authentication.md)): server URL, username,
   password via react-hook-form.
 
@@ -79,7 +84,18 @@ items, the create action, and Settings alike. Specifically:
   not an inline form that changes the nav's shape while open.
 - **The footer matches the rows.** Settings and the status line align to
   the same left edge and use the same row height as the list items above
-  them.
+  them. The gap between the footer's divider and the status line is tight
+  — they belong together.
+- **The nav has a title** above its list of lists, so the panel is
+  labelled rather than starting abruptly. *(added 2026-07-31.)*
+- **The nav is collapsible on desktop too**, not only on mobile, and opens
+  to the same comfortable width at both sizes — the desktop panel was
+  noticeably narrower than the mobile drawer for no reason.
+  *(added 2026-07-31.)*
+- **A newly created list appears in its final position immediately.**
+  *(added 2026-07-31: new lists landed at the bottom, then jumped when the
+  server's alphabetical order arrived.)* Sort the optimistic entry the same
+  way the server will, so nothing moves once the response lands.
 
 ## Component library
 
@@ -131,10 +147,11 @@ an off-scale value.
   description is an additional line within the row, never a nudge that
   misaligns its neighbours.
 - Descriptions appear inline in the list when present, truncated to a single
-  line. **The gap between a title and its description is tight** — they are
-  one unit — and the row's top and bottom padding are equal, so a row with
-  a description stays visually balanced rather than top-heavy.
-  *(added 2026-07-31.)*
+  line. **There is no gap between a title and its description** — the
+  description sits directly beneath, as though it were a wrapped line of
+  the same block. *(tightened 2026-07-31: even a small gap made rows read
+  as two separate things.)* The row's top and bottom padding are equal, so
+  a row with a description stays balanced rather than top-heavy.
 - Row heights are multiples of the base unit so lists form an even column.
 
 ## Typography
@@ -170,6 +187,13 @@ at and can act on it without scrolling back up.
 - The content column is a fixed-height flex layout: a **sticky header**
   (list title, nav trigger on mobile, any list-level controls) and a
   scrolling body beneath it.
+- **"Add a todo" sits outside the scroll container**, alongside the title —
+  always reachable, never scrolled away. *(added 2026-07-31.)*
+- **The scrollbar sits at the pane's edge, not mid-view.** *(added
+  2026-07-31: with many items the scrollbar appeared inset in the middle of
+  the viewport.)* The scrolling element must span the full pane width, with
+  the reading measure constrained by padding *inside* it — not by narrowing
+  the scroller itself.
 - The same applies inside the nav: its list of lists scrolls while the
   footer (Settings, status) stays anchored.
 - Scrollbar gutters still sit at the true container edge (see below).
@@ -182,6 +206,12 @@ over an undimmed background, so they didn't read as modal.)*
 - **Every overlay dims the background** — nav drawer, bottom sheet, side
   panel, confirm dialogs, the add-todo modal, settings. Without exception:
   a modal surface over undimmed content reads as a rendering glitch.
+- **A divider separates a title from its content** in modals and side
+  panels, so the heading reads as a header — especially once the body
+  scrolls beneath it. *(added 2026-07-31.)* This is for the *title*
+  boundary only: don't scatter dividers between fields (the add-todo modal
+  had one between the summary field and the Advanced accordion, which just
+  fragmented the form).
 - **Overlays animate in and out.** Sheets and drawers slide from their
   edge; modals fade with a slight rise. The scrim fades with them. All of
   it is disabled under `prefers-reduced-motion`.
@@ -353,6 +383,20 @@ All gated behind `prefers-reduced-motion`:
 - Strikethrough sweep, then a gentle settle into the completed section.
 - Item enter/exit transitions on add/delete.
 - Subtle press feedback on buttons; smooth collapse of the completed section.
+
+## Sound
+
+*(revised 2026-07-31: the completion sound stopped playing. Two causes —
+a cached `AudioContext` created outside a user gesture stays suspended
+forever, and the play path was gated on `prefers-reduced-motion`.)*
+
+- **Resume the `AudioContext` before playing.** Browsers create it
+  suspended until a user gesture; a cached suspended context is silent for
+  the rest of the session. Resume on each play, or create it lazily inside
+  the gesture that triggers the sound.
+- **Reduced motion must not silence audio.** It is a vestibular
+  preference about movement, not sound. The mute toggle is how a user
+  turns sound off.
 
 ## Sound (stretch)
 

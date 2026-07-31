@@ -82,6 +82,12 @@ to the server ([caldav-compliance](./caldav-compliance.md)).
   priority (high → low), then creation order.
 - **Overdue:** items with `due` in the past are visually flagged
   ([ui](./ui.md)).
+- **Priority is colour-coded** on the row, all three levels — not just
+  high. *(added 2026-07-31.)* High reads as urgent (red), medium as
+  cautionary (amber), low as calm (green or blue). Reuse the semantic
+  status colours rather than inventing a second palette, keep them muted
+  enough for the restrained aesthetic, and keep the label as text so
+  meaning never depends on colour alone.
 - **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
   for summary, due date, notes, and priority.
 - **Completed handling:** completed items move to a collapsible "Completed"
