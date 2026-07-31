@@ -30,7 +30,11 @@ export function ConfirmDialog(props: {
           </Dialog.Title>
           <div className={styles['body']}>{props.children}</div>
           <div className={styles['actions']}>
-            <button type="button" onClick={props.onCancel}>
+            <button
+              type="button"
+              className={styles['cancel']}
+              onClick={props.onCancel}
+            >
               Cancel
             </button>
             <button

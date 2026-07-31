@@ -56,12 +56,14 @@
   margin-top: var(--space-4);
 }
 
-.actions button {
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.cancel {
+  composes: action default from './styles/button.module.css';
 }
 
 .danger {
-  color: var(--danger);
+  composes: action destructive from './styles/button.module.css';
 }

@@ -173,6 +173,29 @@ over an undimmed background, so they didn't read as modal.)*
   the scrolling content, so the scrollbar tracks the true edge of the pane
   rather than floating inset from it.
 
+*(added 2026-07-31, from design review: buttons had no surface, no border —
+just bare text on the page background, easy to mistake for inert labels.)*
+
+- **Action buttons have real chrome** — a surface background, a hairline
+  border, and the same small radius as everything else. Bare-text buttons
+  read as inactive labels, not controls. Three roles, used consistently
+  everywhere a button appears (todo detail, add-todo modal, confirm dialog,
+  settings, list create/rename, login):
+  - **Primary** — the affirmative action (Save, Add, Create, Sign in): solid
+    accent surface.
+  - **Default** — secondary actions (Close, Cancel): the same neutral
+    surface/border as primary, quieter ink.
+  - **Destructive** — Delete and the confirm dialog's destructive action:
+    danger-coloured border and ink, filling solid on hover.
+  - The mechanism is one shared CSS Module
+    (`styles/button.module.css`) that every button-bearing module
+    `composes:` from, so the three roles can't silently drift apart between
+    components.
+- **Icon-only and nav-item controls stay chromeless** — the drawer trigger,
+  the mute toggle, list rows, the per-list rename/delete icons, and the
+  completed-section disclosure trigger are not "actions" in the sense above
+  and keep their existing quiet styling.
+
 ## Status display
 
 *(revised 2026-07-31: squeezing the status into the nav footer truncated it

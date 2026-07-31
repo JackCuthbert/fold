@@ -83,22 +83,18 @@
   border-color: var(--accent);
 }
 
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
 .signOut {
+  composes: action destructive from '../styles/button.module.css';
   width: 100%;
-  text-align: left;
-  color: var(--danger);
-  font-size: var(--text-sm);
-  min-height: var(--hit-area);
-  padding: var(--space-2) 0;
   margin-top: var(--space-2);
 }
 
 .close {
+  composes: action default from '../styles/button.module.css';
   width: 100%;
-  color: var(--muted);
-  font-size: var(--text-sm);
-  min-height: var(--hit-area);
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--line);
-  padding-top: var(--space-3);
+  margin-top: var(--space-2);
 }

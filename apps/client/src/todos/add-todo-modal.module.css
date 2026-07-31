@@ -24,16 +24,21 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 41;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--paper);
   color: var(--ink);
-  padding: var(--space-6);
   max-width: 26rem;
   width: calc(100% - var(--space-8));
   max-height: 85dvh;
-  overflow-y: auto;
   outline: none;
+  /* No padding here — .form is the scrolling element (see below), so the
+     scrollbar tracks .popup's true edge instead of floating inset with
+     content sliding under it (docs/specs/ui.md — scrollbar gutters sit at
+     the container edge; same fix as the detail panel). */
+  padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -45,16 +50,27 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
+/* Padding lives on the popup's children, not the popup — see .popup. */
 .title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   margin-bottom: var(--space-4);
+  padding: var(--space-6) var(--space-6) 0;
 }
 
 .form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow-y: auto;
+  /* .title sits above at a fixed height; .form takes the remaining space
+     within .popup's max-height and is the only child that scrolls — see
+     the equivalent comment in todo-detail.module.css. */
+  flex: 1 1 auto;
+  min-height: 0;
+  /* The scroller owns the padding so its scrollbar sits at the popup's
+     true edge. */
+  padding: var(--space-1) var(--space-6) var(--space-6);
   min-width: 0;
 }
 
@@ -191,13 +207,14 @@
   margin-top: var(--space-2);
 }
 
-.actions button {
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.add {
+  composes: action primary from '../styles/button.module.css';
 }
 
-.add {
-  color: var(--accent);
-  font-weight: var(--weight-medium);
+.cancel {
+  composes: action default from '../styles/button.module.css';
 }

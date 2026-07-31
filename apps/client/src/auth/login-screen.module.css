@@ -41,27 +41,19 @@
   font-size: var(--text-sm);
 }
 
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
 .submit {
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  color: var(--accent);
-  font-weight: var(--weight-medium);
-  min-height: var(--hit-area);
+  composes: action primary from '../styles/button.module.css';
+  width: 100%;
   margin-top: var(--space-2);
-}
-
-.submit:focus-visible {
-  outline: none;
 }
 
 /* Dev-only convenience for the local compose stack — secondary to Sign in
    so it never competes with the real action (see login-screen.tsx). */
 .demo {
-  color: var(--muted);
-  font-size: var(--text-sm);
-  min-height: var(--hit-area);
-}
-.demo:hover {
-  color: var(--ink);
+  composes: action default from '../styles/button.module.css';
+  width: 100%;
 }

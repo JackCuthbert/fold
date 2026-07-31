@@ -43,8 +43,14 @@ export function ListNameForm(props: {
           </Field.Root>
         )}
       />
-      <button type="submit">{props.submitLabel}</button>
-      <button type="button" onClick={props.onCancel}>
+      <button type="submit" className={styles['submit']}>
+        {props.submitLabel}
+      </button>
+      <button
+        type="button"
+        className={styles['cancel']}
+        onClick={props.onCancel}
+      >
         Cancel
       </button>
     </Form>

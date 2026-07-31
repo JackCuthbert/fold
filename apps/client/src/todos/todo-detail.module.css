@@ -31,8 +31,10 @@
   max-height: 85dvh;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border-top: 1px solid var(--line);
-  padding: var(--space-4);
-  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  /* No padding here — the scrolling .form owns it, so the scrollbar tracks
+     the true panel edge instead of floating inset with content sliding
+     under it (docs/specs/ui.md — scrollbar gutters at the container edge). */
+  padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -61,10 +63,12 @@
   }
 }
 
+/* Padding lives on the panel's children, not the panel — see .popup. */
 .title {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   margin-bottom: var(--space-4);
+  padding: var(--space-4) var(--space-4) 0;
 }
 
 .form {
@@ -72,6 +76,17 @@
   flex-direction: column;
   gap: var(--space-4);
   overflow-y: auto;
+  /* .title sits above at a fixed height; .form takes the rest of .popup's
+     max-height and is the only child that scrolls. Without flex: 1 the
+     column would grow to fit its content instead of being bounded, so
+     overflow-y: auto would never actually engage. min-height: 0 overrides
+     the flex item default of min-height: auto, which would otherwise stop
+     the column shrinking below its content's natural height. */
+  flex: 1 1 auto;
+  min-height: 0;
+  /* The scroller owns the horizontal padding, so its scrollbar sits at the
+     panel's true edge rather than inset with content sliding beneath it. */
+  padding: var(--space-1) var(--space-4);
   /* docs/specs/ui.md — inputs fit their container: without min-width: 0 a
      flex column's children default to min-width: auto, which can push a
      100%-wide input wider than the scrollable column and collide with the
@@ -163,25 +178,32 @@
   background: var(--line);
 }
 
+/* .actions is a child of .form (the scroller), which already contributes
+   the shared space-4 horizontal inset — no horizontal padding here, or the
+   action row would sit 32px from the edge while every field above it sits
+   at 16px (docs/specs/ui.md — one left edge). Only bottom padding is added,
+   for the safe-area inset below the last field's own gap. */
 .actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin-top: var(--space-2);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
 }
 
-.actions button {
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-}
-
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
 .save {
-  color: var(--accent);
-  font-weight: var(--weight-medium);
+  composes: action primary from '../styles/button.module.css';
+}
+
+.close {
+  composes: action default from '../styles/button.module.css';
 }
 
 .delete {
-  color: var(--danger);
+  composes: action destructive from '../styles/button.module.css';
   margin-left: auto;
 }

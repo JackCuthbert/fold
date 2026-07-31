@@ -207,7 +207,11 @@ export function TodoDetail(props: {
               <button type="submit" className={styles['save']}>
                 Save
               </button>
-              <button type="button" onClick={props.onClose}>
+              <button
+                type="button"
+                className={styles['close']}
+                onClick={props.onClose}
+              >
                 Close
               </button>
               <button

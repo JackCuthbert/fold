@@ -50,12 +50,15 @@
   }
 }
 
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. "+ New
+   list" is an action (it opens the create-list form), not a nav row, so it
+   gets the shared button treatment like Save/Cancel/Add elsewhere — unlike
+   .link (list rows) and .action (the per-list rename/delete icons) above,
+   which stay chromeless nav-item controls. */
 .add {
+  composes: action default from '../styles/button.module.css';
   margin-top: var(--space-3);
-  color: var(--muted);
-  font-size: var(--text-sm);
-  min-height: var(--hit-area);
-  padding: var(--space-2);
+  width: 100%;
 }
 
 .form {

@@ -208,7 +208,11 @@ export function AddTodoModal(props: {
               <button type="submit" className={styles['add']}>
                 Add
               </button>
-              <button type="button" onClick={() => props.onOpenChange(false)}>
+              <button
+                type="button"
+                className={styles['cancel']}
+                onClick={() => props.onOpenChange(false)}
+              >
                 Cancel
               </button>
             </div>

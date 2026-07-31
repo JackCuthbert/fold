@@ -1,0 +1,117 @@
+/*
+ * Shared action-button chrome — docs/specs/ui.md "buttons have a real
+ * surface, not ghost text" (defect reported 2026-07-31).
+ *
+ * This is the one place button chrome is defined. Every *action* button in
+ * the app (Save, Close, Delete, Cancel, Add, Create, Sign in, "+ New list",
+ * Settings, Clear completed, Sign out, confirm dialog actions) composes one
+ * of these three classes rather than re-declaring background/border/radius
+ * locally — that keeps every surface consistent and makes divergence show
+ * up as a missing `composes:` rather than a silent copy-paste drift.
+ *
+ * Icon-only and nav-item controls (the ☰ trigger, the mute toggle, list
+ * rows, the per-list rename/delete icons, the completed-section disclosure
+ * trigger) deliberately do NOT use these — they stay chromeless, styled
+ * locally in their own module.
+ *
+ * Usage (in a consuming .module.css):
+ *
+ *   .save {
+ *     composes: action primary from '../styles/button.module.css';
+ *   }
+ *
+ * `.action` supplies the shared shape (border, radius, padding, hit area,
+ * focus/disabled handling); exactly one of `.primary` / `.default` /
+ * `.destructive` supplies the surface/ink/border colour for that role.
+ */
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  /* Only colours transition — no transform, no width/border change, so
+     focus and hover never reflow or clip inside a sheet/panel (docs/specs/
+     ui.md — focus changes border colour only; no press-transform). */
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+.action:hover {
+  background: var(--line);
+}
+
+.action:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.action:disabled {
+  color: var(--muted);
+  cursor: default;
+  background: var(--surface);
+}
+
+.action:disabled:hover {
+  background: var(--surface);
+}
+
+/* Primary — the affirmative action (Save, Add, Create, Sign in). */
+.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.primary:hover {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+.primary:focus-visible {
+  border-color: var(--ink);
+}
+
+.primary:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  color: var(--muted);
+  filter: none;
+}
+
+/* Default — secondary actions (Close, Cancel). Quieter ink than primary so
+   it reads as secondary; surface/border stay the same as .action's base so
+   it never competes with the primary action beside it. */
+.default {
+  color: var(--muted);
+}
+
+.default:hover {
+  color: var(--ink);
+}
+
+/* Destructive — Delete, and the confirm dialog's destructive action. */
+.destructive {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.destructive:hover {
+  background: var(--danger);
+  color: var(--surface);
+}
+
+.destructive:focus-visible {
+  border-color: var(--danger);
+}
