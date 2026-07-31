@@ -1,22 +1,20 @@
 /*
- * docs/specs/ui.md — the nav: the kebab trigger is an icon-only nav-item
- * control (like the old per-list rename/delete icons it replaces), so it
- * stays chromeless rather than composing styles/button.module.css. It
- * keeps a >=44px hit area but a small visual footprint so the list name
- * beside it still gets nearly the full row (docs/specs/ui.md — touch
- * targets: every interactive element has a minimum 44x44px hit area, even
- * where the visible control is smaller).
+ * docs/specs/ui.md — the nav: the row is a segmented button — the name
+ * and the kebab read as one control split into two segments by a hairline
+ * divider, sharing list-nav.module.css's `.item` outer border/radius
+ * rather than the kebab floating, chromeless, over a plain row. *(changed
+ * 2026-07-31: an earlier pass rejected segmenting as chrome the row
+ * shouldn't have; the owner has since asked for it explicitly. The
+ * divider is kept to a single hairline border-left in `--line` — the same
+ * quiet colour every other divider in the app uses — so it reads as
+ * restrained rather than decorative.)*
  *
  * Always visible on every pointer type — never hover-revealed (docs/specs/
  * ui.md — controls are always visible, never hover-revealed; applies to
- * per-row menus in particular). A simpler always-visible chromeless kebab
- * was chosen over a segmented (name | menu) button: the row is already a
- * clean pairing of a full-width chromeless link and a small icon-only
- * trigger, and a segmented design would add a visible divider/border
- * between the two "segments" — new chrome that fights this minimal serif
- * aesthetic and the spec's own rule that list rows and the kebab stay
- * chromeless. Muted-by-default (not full ink) keeps it quiet at rest while
- * still discoverable without hovering; hover/focus darken it to signal
+ * per-row menus in particular). Kept visually small (a fixed hit-area
+ * width, not flex: 1) so the name segment still gets nearly the full row.
+ * Muted-by-default (not full ink) keeps it quiet at rest while still
+ * discoverable without hovering; hover/focus darken it to signal
  * interactivity.
  */
 .trigger {
@@ -25,9 +23,8 @@
   align-items: center;
   justify-content: center;
   width: var(--hit-area);
-  height: var(--hit-area);
   flex: none;
-  border-radius: var(--radius-sm);
+  border-left: var(--border-width) solid var(--line);
   font-size: var(--text-md);
   line-height: 1;
   opacity: 0.6;
@@ -40,12 +37,16 @@
   opacity: 1;
 }
 
-/* No custom focus style here — this chromeless control has no border to
-   repurpose (docs/specs/ui.md — focus changes border colour only), so it
-   falls back to global.css's outline rule, same as the drawer's own
-   chromeless menuTrigger. */
+/* docs/specs/ui.md — focus changes the border colour only, never an
+   outline: global.css's fallback :focus-visible outline would get clipped
+   by list-nav.module.css's `.item`, whose `overflow: hidden` clips both
+   segments to the row's rounded corners. An inset box-shadow reads as a
+   border without adding layout width, same treatment as `.link` beside
+   it. */
 .trigger:focus-visible {
   opacity: 1;
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
 }
 
 .positioner {
@@ -78,6 +79,19 @@
   background: var(--line);
 }
 
+/* docs/specs/ui.md — accessibility: destructive controls need a focus
+   state at least as legible as any other. Base UI's Menu.Item has no
+   native :focus-visible of its own — the popup keeps DOM focus and marks
+   the active item with data-highlighted on both hover and arrow-key
+   navigation, so that's the correct hook here, same as Rename above. But
+   sharing Rename's plain `--line` tint would make Delete's "focused" state
+   indistinguishable from any other item's, which is exactly the gap the
+   spec calls out. A danger-tinted background keeps the same mechanism
+   while making it unmistakably a destructive selection. */
 .destructive {
   color: var(--danger);
+}
+
+.destructive[data-highlighted] {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
 }

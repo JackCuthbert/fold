@@ -11,12 +11,17 @@
 
 /* Matches .link's row box in list-nav.module.css (same padding, same
    min-height) so Settings shares one left edge and row height with every
-   list item above it. */
+   list item above it.
+   docs/specs/ui.md — the nav: Settings needs breathing room above the
+   divider that separates it from the status line — a hairline border plus
+   the spacing scale's own gap, not the two sitting flush. */
 .status {
   display: flex;
   align-items: center;
   padding: var(--space-2) var(--space-2);
   min-height: var(--hit-area);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--line);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Settings
@@ -24,14 +29,12 @@
    treatment rather than staying chromeless like the list rows above it.
    `box-sizing: border-box` (global.css) keeps the button's left edge at
    the footer's own left edge regardless of its border, so it still lines
-   up with .link and .status above. */
-/* docs/specs/ui.md — controls & touch targets: an icon+label button lays
-   out space-between (icon leading, label trailing, gap absorbing the rest)
-   rather than a tight icon-text pairing. This button spans the full nav
-   width, so the gap reads clearly. Icon precedes the label in the markup,
-   so the default row order already puts it at the leading edge. */
+   up with .link and .status above.
+   docs/specs/ui.md — controls & touch targets: full-width nav actions
+   (Settings, "+ New list") share one treatment via the shared `navAction`
+   class (styles/button.module.css) rather than each declaring its own
+   width/justify-content — that's what let this row and list-nav's "+ New
+   list" diverge before. */
 .settings {
-  composes: action default from '../styles/button.module.css';
-  justify-content: space-between;
-  width: 100%;
+  composes: action default navAction from '../styles/button.module.css';
 }

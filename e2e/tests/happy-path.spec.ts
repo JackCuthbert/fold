@@ -19,6 +19,17 @@ test('login → create list → add → complete → clear completed', async ({
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 
   await addTodo(page, 'Buy milk')
+  await expect(page.getByText('Buy milk')).toBeVisible()
+  // docs/specs/ui.md — accessibility: focus must not land somewhere
+  // misleading after an action. Submitting the add-todo form with Enter
+  // used to leave focus on the first row's checkbox once it re-rendered,
+  // which then read as focused/selected — regression coverage for that.
+  // It should rest on the "Add a todo" trigger that opened the dialog.
+  await expect(page.getByRole('button', { name: 'Add a todo' })).toBeFocused()
+  await expect(
+    page.getByRole('checkbox', { name: 'Mark "Buy milk" done' }),
+  ).not.toBeFocused()
+
   await addTodo(page, 'Buy bread')
   await expect(page.getByText('Buy milk')).toBeVisible()
   await expect(page.getByText('Buy bread')).toBeVisible()

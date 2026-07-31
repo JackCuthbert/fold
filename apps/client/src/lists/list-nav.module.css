@@ -5,9 +5,20 @@
   gap: var(--space-1);
 }
 
+/* docs/specs/ui.md — the nav: the row is a segmented button — the name
+   and the kebab read as one control split into two segments, a shared
+   outer shape with a hairline divider between them, not an icon floating
+   over a row. `.item` supplies that shared shape (border, radius,
+   background); `.link` and the kebab trigger (list-item-menu.module.css)
+   sit inside it with square abutting inner corners and no border/radius
+   of their own, so only the outer corners round. `overflow: hidden` clips
+   both segments' backgrounds to the outer radius. */
 .item {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
 /* docs/specs/ui.md — the nav: list rows are full width — the name takes
@@ -19,7 +30,6 @@
   min-width: 0;
   text-align: left;
   padding: var(--space-2) var(--space-2);
-  border-radius: var(--radius-sm);
   font-size: var(--text-base);
   min-height: var(--hit-area);
   display: flex;
@@ -34,13 +44,27 @@
   font-weight: var(--weight-medium);
 }
 
+/* docs/specs/ui.md — focus changes the border colour only, never an
+   outline: global.css's fallback :focus-visible outline would get clipped
+   by `.item`'s new `overflow: hidden` (added for the segmented row's
+   rounded corners), same as it would in a sheet or sidebar. An inset
+   box-shadow reads as a border without affecting layout or box size. */
+.link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. "+ New
    list" is an action (it opens the create-list modal), not a nav row, so
    it gets the shared button treatment like Save/Cancel/Add elsewhere —
    unlike .link (list rows) and the kebab trigger (list-item-menu.module.css)
-   above, which stay chromeless nav-item controls. */
+   above, which stay chromeless nav-item controls.
+   docs/specs/ui.md — controls & touch targets: "+ New list" and the nav
+   footer's Settings button are both full-width nav actions and must look
+   the same, so both compose the shared `navAction` class (styles/
+   button.module.css) rather than declaring width/justify-content here —
+   the two had quietly diverged before. */
 .add {
-  composes: action default from '../styles/button.module.css';
+  composes: action default navAction from '../styles/button.module.css';
   margin-top: var(--space-3);
-  width: 100%;
 }

@@ -1,7 +1,7 @@
 import { Collapsible } from '@base-ui/react/collapsible'
 import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { LuChevronRight, LuPlus } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
@@ -45,6 +45,11 @@ export function TodoPane(props: { listId: string }) {
   const [showCompleted, setShowCompleted] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  // docs/specs/ui.md — accessibility: focus must not land somewhere
+  // misleading after an action. Passed to AddTodoModal as an explicit
+  // `finalFocus` target — see add-todo-modal.tsx for why Base UI can't
+  // infer this trigger on its own.
+  const addTriggerRef = useRef<HTMLButtonElement>(null)
 
   const now = new Date()
   const all = todos.data?.todos ?? []
@@ -63,6 +68,7 @@ export function TodoPane(props: { listId: string }) {
   return (
     <div className={styles['pane']}>
       <button
+        ref={addTriggerRef}
         type="button"
         className={styles['addTrigger']}
         onClick={() => setAddOpen(true)}
@@ -74,6 +80,7 @@ export function TodoPane(props: { listId: string }) {
         open={addOpen}
         onOpenChange={setAddOpen}
         onAdd={(todo) => actions.add(todo)}
+        triggerRef={addTriggerRef}
       />
       <ul className={styles['list']}>
         {active.map((todo) => (

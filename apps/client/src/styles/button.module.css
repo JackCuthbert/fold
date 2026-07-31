@@ -23,6 +23,9 @@
  * `.action` supplies the shared shape (border, radius, padding, hit area,
  * focus/disabled handling); exactly one of `.primary` / `.default` /
  * `.destructive` supplies the surface/ink/border colour for that role.
+ * Full-width nav actions (Settings, "+ New list") additionally compose
+ * `.navAction` for the shared width/alignment treatment — see its comment
+ * below.
  */
 
 .action {
@@ -101,6 +104,22 @@
   color: var(--ink);
 }
 
+/* docs/specs/ui.md — controls & touch targets: icon and label are
+   left-aligned together — icon first, then the label, one gap from the
+   spacing scale, the pair sitting at the leading edge with the remaining
+   width left empty. *(reverted 2026-07-31: space-between pushed the label
+   to the trailing edge, leaving a void mid-button.)*
+   Full-width nav actions — Settings, "+ New list" — are buttons of the
+   same kind and must look the same (docs/specs/ui.md — controls & touch
+   targets), so this is the one place that shape lives: a consuming module
+   composes `navAction` (plus one of `.primary`/`.default`/`.destructive`)
+   instead of redeclaring width/justify-content locally, which is what let
+   them drift apart before. */
+.navAction {
+  justify-content: flex-start;
+  width: 100%;
+}
+
 /* Destructive — Delete, and the confirm dialog's destructive action. */
 .destructive {
   border-color: var(--danger);
@@ -112,6 +131,16 @@
   color: var(--surface);
 }
 
+/* docs/specs/ui.md — accessibility: destructive controls need a focus
+   state at least as legible as any other. The resting border is already
+   `--danger`, so repeating it on focus (the previous behaviour) was a
+   no-op — indistinguishable from unfocused. `--ink` gives the same
+   high-contrast swap `.primary:focus-visible` uses against its own
+   resting colour; a faint danger-tinted background makes it legible at a
+   glance too, without changing border width (docs/specs/ui.md — focus
+   changes border colour only) or adding an outline that would clip inside
+   a sheet or menu popup. */
 .destructive:focus-visible {
-  border-color: var(--danger);
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
 }

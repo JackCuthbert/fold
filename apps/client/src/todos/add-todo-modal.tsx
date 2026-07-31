@@ -6,6 +6,7 @@ import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
 import { todoPrioritySchema, type NewTodo } from '@caldav-todo/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { z } from 'zod'
@@ -46,6 +47,15 @@ export function AddTodoModal(props: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAdd: (todo: NewTodo) => void
+  // docs/specs/ui.md — accessibility: focus must not land somewhere
+  // misleading after an action. This dialog is opened from a plain
+  // <button> (todo-pane.tsx), not a Base UI `Dialog.Trigger`, so Base UI
+  // has no registered reference element to restore focus to on close and
+  // falls back to an untrustworthy heuristic — which, once submitting
+  // re-renders the todo list, can resolve to the first row instead of the
+  // button that opened the modal. Passing the trigger explicitly via
+  // `finalFocus` removes the guesswork.
+  triggerRef: RefObject<HTMLButtonElement | null>
 }) {
   const { control, handleSubmit, reset } = useForm<AddTodoForm>({
     resolver: zodResolver(addTodoSchema),
@@ -76,7 +86,10 @@ export function AddTodoModal(props: {
     >
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
-        <Dialog.Popup className={cx(styles['popup'])}>
+        <Dialog.Popup
+          className={cx(styles['popup'])}
+          finalFocus={props.triggerRef}
+        >
           <Dialog.Title className={cx(styles['title'])}>
             Add a todo
           </Dialog.Title>

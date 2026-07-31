@@ -202,17 +202,12 @@ over an undimmed background, so they didn't read as modal.)*
   2026-07-31.)* Hover may refine an appearance, but a control that only
   exists on hover is undiscoverable on touch and invisible to anyone
   scanning the page. Applies to per-row menus in particular.
-  *(clarified 2026-07-31: the per-list kebab considered a segmented
-  "name | menu" button — two visually joined chunks with a divider — as an
-  alternative to an always-visible chromeless trigger. Rejected: the
-  divider is chrome the rest of the row deliberately doesn't have (list
-  rows and the kebab both stay chromeless per "Icon-only and nav-item
-  controls stay chromeless" below), and it fights the minimal serif
-  aesthetic for no discoverability gain over a trigger that's simply
-  always rendered at a quiet, non-zero opacity. The kebab stays a plain
-  icon-only button, visible (not hover-gated) at rest, darkening on
-  hover/focus — same shape as before, just without the opacity: 0 hover
-  gate.)*
+  *(superseded 2026-07-31: an earlier pass considered and rejected a
+  segmented "name | menu" button here, on the grounds that the divider was
+  chrome the rest of the row didn't have. The owner has since asked for
+  segmenting explicitly — see "The nav" above, where the row is now a
+  true segmented button. The kebab itself is unchanged by that: still
+  visible (not hover-gated) at rest, darkening on hover/focus.)*
 - **Checkboxes are small** — a ~20px visual circle inside a 44px target.
   Icons sit optically with adjacent text rather than towering over it.
 - Icons come from a **single [react-icons](https://github.com/react-icons/react-icons)
@@ -274,7 +269,11 @@ just bare text on the page background, easy to mistake for inert labels.)*
 - **Icon-only and nav-item controls stay chromeless** — the drawer trigger,
   the mute toggle, list rows, the per-list rename/delete icons, and the
   completed-section disclosure trigger are not "actions" in the sense above
-  and keep their existing quiet styling.
+  and keep their existing quiet styling. *(clarified 2026-07-31: the list
+  row's segmented outer shape — see "The nav" above — is a hairline border
+  around the row as a whole, not button chrome on the name or kebab
+  individually; neither segment gains a surface, radius, or hover fill of
+  its own beyond what it already had.)*
 
 ## Status display
 
