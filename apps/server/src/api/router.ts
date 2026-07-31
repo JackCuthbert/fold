@@ -18,6 +18,19 @@ function toResponse(error: unknown): Response {
     if (error.status === 412) {
       return json({ error: 'conflict', message: error.message }, 412)
     }
+    // A 4xx from CalDAV is about the request, not the server's health —
+    // preserve it. Flattening a 404 (deleted list) to 502 told the client
+    // "unreachable, keep retrying" and looped forever
+    // (docs/specs/api.md — error mapping).
+    if (error.status === 404) {
+      return json({ error: 'not_found', message: error.message }, 404)
+    }
+    if (error.status >= 400 && error.status < 500) {
+      return json(
+        { error: 'caldav_error', message: error.message },
+        error.status,
+      )
+    }
     return json({ error: 'caldav_error', message: error.message }, 502)
   }
   if (error instanceof CaldavUnreachableError) {

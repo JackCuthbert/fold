@@ -38,8 +38,17 @@ composes them. No monolithic route files.
 |---|---|---|
 | CalDAV 401 | 401 | route to login |
 | CalDAV 412 | 412 + fresh todo in body | rebase + retry |
+| CalDAV 404 (no such list/todo) | 404 | drop the mutation; the target is gone, retrying cannot help |
 | CalDAV server unreachable | 502 | "server unreachable" pill, keep queueing |
 | Invalid request body | 400 + structured error | toast + error logging |
+
+*(added 2026-07-31: the router previously flattened **every** non-401/412
+`CaldavError` to 502, so a 404 for a deleted list was reported as "server
+unreachable". Combined with 5xx-is-retryable, that produced an endless
+retry loop against a list that no longer exists and a permanently
+"unreachable" UI while the server was answering normally. A `CaldavError`
+must preserve its own status for 4xx; only genuinely unreachable upstreams
+map to 502.)*
 
 *(changed 2026-07-31: the client treats **any 5xx** — not only the
 documented 502 — as transient and keeps queueing. A 500/503/504 can

@@ -35,6 +35,21 @@ const routes: Route[] = [
     path: '/api/unreachable',
     handle: () => Promise.reject(new CaldavUnreachableError('down')),
   },
+  {
+    method: 'GET',
+    path: '/api/caldav-404',
+    handle: () => Promise.reject(new CaldavError(404, 'no such list: abc')),
+  },
+  {
+    method: 'GET',
+    path: '/api/caldav-403',
+    handle: () => Promise.reject(new CaldavError(403, 'forbidden')),
+  },
+  {
+    method: 'GET',
+    path: '/api/caldav-500',
+    handle: () => Promise.reject(new CaldavError(500, 'upstream broke')),
+  },
 ]
 
 const handle = createRouter(routes, testApp())
@@ -81,5 +96,24 @@ describe('router', () => {
     const res = await handle(new Request('http://x/api/unreachable'))
     expect(res.status).toBe(502)
     expect(await res.json()).toMatchObject({ error: 'caldav_unreachable' })
+  })
+
+  // A deleted list must not read as "server unreachable": the client
+  // retries 5xx forever, so flattening 404 to 502 looped endlessly against
+  // a list that no longer exists (docs/specs/api.md — error mapping).
+  it('preserves a CalDAV 404 instead of reporting 502', async () => {
+    const res = await handle(new Request('http://x/api/caldav-404'))
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: 'not_found' })
+  })
+
+  it('preserves other CalDAV 4xx statuses', async () => {
+    const res = await handle(new Request('http://x/api/caldav-403'))
+    expect(res.status).toBe(403)
+  })
+
+  it('still maps a CalDAV 5xx to 502', async () => {
+    const res = await handle(new Request('http://x/api/caldav-500'))
+    expect(res.status).toBe(502)
   })
 })

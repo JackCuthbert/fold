@@ -1,5 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { LuMenu } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
@@ -30,14 +30,26 @@ export function MainScreen() {
   // reaches the trigger back into the trap.
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
-  // The persisted list may no longer exist (deleted elsewhere); fall back
-  // to the first available list rather than showing nothing.
+  // The persisted list may no longer exist (deleted here or elsewhere).
+  // Only trust it once we've actually seen the list index: assuming it's
+  // valid while `lists.data` is undefined made every load fetch todos for
+  // a possibly-deleted list, which 404s on every retry
+  // (docs/specs/api.md — error mapping).
   const selectedExists =
-    selected !== null &&
-    (lists.data?.some((list) => list.id === selected) ?? true)
+    selected !== null && (lists.data?.some((l) => l.id === selected) ?? false)
   const active =
     (selectedExists ? selected : null) ?? lists.data?.[0]?.id ?? null
   const activeList = lists.data?.find((list) => list.id === active)
+
+  // Drop a persisted id the server no longer knows about, so it can't come
+  // back on the next load.
+  useEffect(() => {
+    if (!lists.data || selected === null) return
+    if (!lists.data.some((list) => list.id === selected)) {
+      localStorage.removeItem(SELECTED_LIST_KEY)
+      setSelected(null)
+    }
+  }, [lists.data, selected])
 
   const selectList = (listId: string): void => {
     setSelected(listId)
