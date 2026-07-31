@@ -86,6 +86,14 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
   }
 }
 
+// docs/specs/ui.md — the nav: a newly created list appears in its final
+// position immediately. The CalDAV server (fetchLists — apps/server/src/
+// caldav/tsdav-gateway.ts) returns calendars in the server's own
+// alphabetical-by-name order; matching that order for the optimistic insert
+// means nothing moves once the real response lands.
+const byDisplayName = (a: TodoList, b: TodoList): number =>
+  a.displayName.localeCompare(b.displayName)
+
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,
@@ -97,15 +105,13 @@ export function applyMutationToLists(
       if (lists.some((list) => list.id === mutation.listId)) {
         return [...lists]
       }
-      return [
-        ...lists,
-        {
-          id: mutation.listId,
-          href: '',
-          displayName: mutation.displayName,
-          ctag: '',
-        },
-      ]
+      const placeholder: TodoList = {
+        id: mutation.listId,
+        href: '',
+        displayName: mutation.displayName,
+        ctag: '',
+      }
+      return [...lists, placeholder].toSorted(byDisplayName)
     }
     case 'renameList':
       return lists.map((list) =>

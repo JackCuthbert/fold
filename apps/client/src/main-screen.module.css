@@ -14,20 +14,35 @@
   height: 100dvh;
 }
 
-.nav {
-  display: none;
-}
-
-/* Shared by the desktop pinned sidebar (.nav) and the mobile drawer
-   (.navOpen): a fixed-height flex column. `.navScroll` (the list of lists)
-   is the only child that overflows; `NavFooter` is a sibling below it, so
-   it stays anchored at the bottom instead of scrolling out of view behind
-   a long list (docs/specs/ui.md — scrolling: the nav's list of lists
-   scrolls while the footer stays anchored). */
+/* docs/specs/ui.md — the nav is collapsible on desktop too, opening to the
+   same comfortable width at both sizes. `.nav` (desktop, plain markup) and
+   `.navOpen` (mobile, Base UI's positioned Dialog) share this width so
+   neither reads as narrower than the other. */
 .nav,
 .navOpen {
   display: flex;
   flex-direction: column;
+  width: min(80vw, 20rem);
+  flex: none;
+}
+
+.nav {
+  border-right: 1px solid var(--line);
+}
+
+/* docs/specs/ui.md — the nav has a title above its list of lists, so the
+   panel is labelled rather than starting abruptly. Shares the list rows'
+   left edge/height rhythm via the same horizontal inset as `.navScroll`
+   beneath it.
+   docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, especially once the body scrolls
+   beneath it — the border-bottom here is that divider. */
+.navTitle {
+  flex: none;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  border-bottom: 1px solid var(--line);
 }
 
 /* The scrolling child owns its own padding, not the clipping container —
@@ -43,10 +58,14 @@
 
 /* NavFooter (list-nav's sibling) shares the same horizontal inset as
    .navScroll above it, so Settings/status align to the list rows' left
-   edge (docs/specs/ui.md — the nav: the footer matches the rows). */
+   edge (docs/specs/ui.md — the nav: the footer matches the rows).
+   *(changed 2026-07-31: decrease the padding between the bottom of the
+   menu and the sync status text — the previous bottom inset here echoed
+   .navScroll's own space-4/space-6 top padding, which read as too much air
+   below the last, already-tight row.)* */
 .nav > *:last-child,
 .navOpen > *:last-child {
-  padding: 0 var(--space-4) var(--space-4);
+  padding: 0 var(--space-4) var(--space-2);
 }
 
 /* docs/specs/ui.md — overlays: the drawer animates in/out and dims the
@@ -56,7 +75,6 @@
 .navOpen {
   position: fixed;
   inset: 0 auto 0 0;
-  width: min(80vw, 20rem);
   background: var(--paper);
   border-right: 1px solid var(--line);
   z-index: 30;
@@ -122,10 +140,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: var(--measure);
-  margin: 0 auto;
   min-height: 0;
   width: 100%;
+  min-width: 0;
 }
 
 .title {
@@ -138,15 +155,18 @@
 /* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,
    forming the top row of the content column, rather than a floating
    button in a corner.
-   docs/specs/ui.md — scrolling: sticky so the list title and its controls
-   stay in view while `.mainScroll` scrolls beneath — the header itself
-   never scrolls out of frame. `background` matches the page so scrolled
-   content doesn't show through underneath it. Bottom padding stands in for
-   the old margin-bottom, keeping the same gap above the scrolling body. */
+   docs/specs/ui.md — scrolling: sticky so the list title, nav toggle and
+   "Add a todo" stay in view while `.mainScroll` scrolls beneath — the
+   header itself never scrolls out of frame. `background` matches the page
+   so scrolled content doesn't show through underneath it. This header is
+   full pane width (like `.mainScroll` below it); `.headerRow` and
+   AddTodoTrigger (add-todo-trigger.module.css) each carry the ~34rem
+   measure via their own inner max-width so the reading column still lines
+   up, without narrowing the header/scroller itself (docs/specs/ui.md — the
+   scrollbar sits at the pane's edge, not mid-view: the same
+   padding-inside-not-outside fix applies to every scrolling/sticky pane,
+   not just `.mainScroll`). */
 .header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -155,14 +175,32 @@
   padding: var(--space-4) var(--space-4) var(--space-4);
 }
 
-/* The scrolling child owns its own padding (top matches `.header`'s side
-   inset; bottom repeats it below the last row) so the scrollbar tracks
-   `.main`'s true edge rather than floating inset from it (docs/specs/ui.md
-   — scrollbar gutters sit at the container edge). */
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* The scrolling child spans the full pane width so its scrollbar tracks
+   the pane's true edge rather than floating inset mid-view — the reading
+   measure is applied by `.mainScrollInner`'s padding *inside* the
+   scroller, not by narrowing the scroller itself (docs/specs/ui.md —
+   scrolling: the scrollbar sits at the pane's edge, not mid-view; this is
+   the same padding-on-the-wrong-element fix as `.navScroll`/`.form`
+   elsewhere, applied here structurally instead of just cosmetically). */
 .mainScroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* Centred measure lives here, one level inside the scroller, so padding
+   never affects where the scrollbar itself is drawn. */
+.mainScrollInner {
+  max-width: var(--measure);
+  margin: 0 auto;
   padding: 0 var(--space-4) var(--space-4);
 }
 
@@ -172,37 +210,24 @@
 }
 
 @media (min-width: 768px) {
-  .nav,
-  .navOpen {
-    position: static;
-    width: 15rem;
-    border-right: 1px solid var(--line);
-    inset: auto;
-    transform: none;
+  .navTitle {
+    padding: var(--space-6) var(--space-4) var(--space-3);
   }
 
   .navScroll {
-    padding: var(--space-6) var(--space-4) 0;
+    padding: var(--space-4) var(--space-4) 0;
   }
 
   .nav > :global(*:last-child),
   .navOpen > :global(*:last-child) {
-    padding: 0 var(--space-4) var(--space-6);
-  }
-
-  /* The trigger only exists to open the mobile drawer — the desktop nav
-     is permanently pinned, so the header row collapses to just the
-     centred title. */
-  .menuTrigger,
-  .headerSpacer {
-    display: none;
+    padding: 0 var(--space-4) var(--space-3);
   }
 
   .header {
     padding: var(--space-6) var(--space-4) 0;
   }
 
-  .mainScroll {
-    padding: var(--space-4) var(--space-4) var(--space-6);
+  .mainScrollInner {
+    padding: 0 var(--space-4) var(--space-6);
   }
 }

@@ -1,20 +1,22 @@
 import { Collapsible } from '@base-ui/react/collapsible'
 import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
-import { LuChevronRight, LuPlus } from 'react-icons/lu'
+import { useState } from 'react'
+import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
-import { AddTodoModal } from './add-todo-modal'
 import { sortActiveTodos } from './sort'
 import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
 import styles from './todo-pane.module.css'
-import { useTodoActions } from './use-todo-actions'
+import type { useAddTodo } from './use-add-todo'
 
-export function TodoPane(props: { listId: string }) {
+export function TodoPane(props: {
+  listId: string
+  add: ReturnType<typeof useAddTodo>
+}) {
   const engine = useSyncEngine()
   const todos = useQuery({
     queryKey: ['todos', props.listId],
@@ -39,17 +41,11 @@ export function TodoPane(props: { listId: string }) {
       return engine.reconcileTodos(props.listId, result)
     },
   })
-  const actions = useTodoActions(props.listId)
+  const { actions } = props.add
   const { playPop } = useSound()
   const [openUid, setOpenUid] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
-  const [addOpen, setAddOpen] = useState(false)
-  // docs/specs/ui.md — accessibility: focus must not land somewhere
-  // misleading after an action. Passed to AddTodoModal as an explicit
-  // `finalFocus` target — see add-todo-modal.tsx for why Base UI can't
-  // infer this trigger on its own.
-  const addTriggerRef = useRef<HTMLButtonElement>(null)
 
   const now = new Date()
   const all = todos.data?.todos ?? []
@@ -67,21 +63,6 @@ export function TodoPane(props: { listId: string }) {
 
   return (
     <div className={styles['pane']}>
-      <button
-        ref={addTriggerRef}
-        type="button"
-        className={styles['addTrigger']}
-        onClick={() => setAddOpen(true)}
-      >
-        <LuPlus aria-hidden="true" size={16} />
-        Add a todo
-      </button>
-      <AddTodoModal
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onAdd={(todo) => actions.add(todo)}
-        triggerRef={addTriggerRef}
-      />
       <ul className={styles['list']}>
         {active.map((todo) => (
           <TodoItem

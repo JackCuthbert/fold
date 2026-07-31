@@ -62,9 +62,12 @@
      height is identical whether or not a description is present. */
   min-height: var(--hit-area);
   box-sizing: border-box;
-  /* docs/specs/ui.md — the gap between a title and its description is
-     tight: they read as one unit, not two independent lines. */
-  gap: 2px;
+  /* docs/specs/ui.md — there is no gap between a title and its
+     description: the description sits directly beneath, as though it were
+     a wrapped line of the same block, not a separate line with air around
+     it. *(tightened 2026-07-31: even the 2px this used to carry read as
+     two separate things.)* */
+  gap: 0;
   min-width: 0;
 }
 
@@ -124,8 +127,22 @@
   text-transform: capitalize;
 }
 
+/* docs/specs/ui.md — todos: priority is colour-coded on the row, all three
+   levels, not just high — reusing the same semantic status tokens as sync
+   status (docs/specs/ui.md — status display) rather than a second
+   palette: high reads as urgent (red/danger), medium as cautionary
+   (amber/syncing), low as calm (green/synced). The text label stays in
+   all three cases, so meaning never depends on colour alone. */
 .prioHigh {
-  color: var(--danger);
+  color: var(--status-offline);
+}
+
+.prioMedium {
+  color: var(--status-syncing);
+}
+
+.prioLow {
+  color: var(--status-synced);
 }
 
 .due {

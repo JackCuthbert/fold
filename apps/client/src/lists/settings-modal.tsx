@@ -1,5 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Toggle } from '@base-ui/react/toggle'
+import type { Session } from '@caldav-todo/schemas'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
 import { api, queryClient } from '../providers'
 import { useSound } from '../sound/use-sound'
@@ -15,6 +16,13 @@ export function SettingsModal(props: {
   onOpenChange: (open: boolean) => void
 }) {
   const { muted, toggleMuted } = useSound()
+  // docs/specs/ui.md — Settings: the CalDAV server URL is visible here,
+  // read-only — useful to confirm which server you're on. Signing out is
+  // how you change it. `['session']` is never persisted (providers.tsx)
+  // and always freshly fetched by app.tsx's Gate, so reading it from the
+  // query cache here is the same identity the rest of the app trusts —
+  // no separate fetch of our own.
+  const session = queryClient.getQueryData<Session>(['session'])
 
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
@@ -22,41 +30,51 @@ export function SettingsModal(props: {
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])}>
           <Dialog.Title className={cx(styles['title'])}>Settings</Dialog.Title>
-          <div className={styles['row']}>
-            <span className={styles['label']}>Sound</span>
-            <Toggle
-              pressed={muted}
-              onPressedChange={toggleMuted}
-              className={styles['toggle']}
-              aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+          <div className={styles['body']}>
+            {session && (
+              <div className={styles['serverUrl']}>
+                <span className={styles['label']}>CalDAV server</span>
+                <span className={styles['serverUrlValue']}>
+                  {session.serverUrl}
+                </span>
+              </div>
+            )}
+            <div className={styles['row']}>
+              <span className={styles['label']}>Sound</span>
+              <Toggle
+                pressed={muted}
+                onPressedChange={toggleMuted}
+                className={styles['toggle']}
+                aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+              >
+                {muted ? (
+                  <LuVolumeOff aria-hidden="true" size={16} />
+                ) : (
+                  <LuVolume2 aria-hidden="true" size={16} />
+                )}
+                {muted ? 'Muted' : 'On'}
+              </Toggle>
+            </div>
+            <button
+              type="button"
+              className={styles['signOut']}
+              onClick={() => {
+                // Outbox is preserved; it replays after the next sign-in
+                // (docs/specs/authentication.md).
+                void api.logout().catch(() => {})
+                queryClient.setQueryData(['session'], null)
+              }}
             >
-              {muted ? (
-                <LuVolumeOff aria-hidden="true" size={16} />
-              ) : (
-                <LuVolume2 aria-hidden="true" size={16} />
-              )}
-              {muted ? 'Muted' : 'On'}
-            </Toggle>
+              Sign out
+            </button>
+            <button
+              type="button"
+              className={styles['close']}
+              onClick={() => props.onOpenChange(false)}
+            >
+              Close
+            </button>
           </div>
-          <button
-            type="button"
-            className={styles['signOut']}
-            onClick={() => {
-              // Outbox is preserved; it replays after the next sign-in
-              // (docs/specs/authentication.md).
-              void api.logout().catch(() => {})
-              queryClient.setQueryData(['session'], null)
-            }}
-          >
-            Sign out
-          </button>
-          <button
-            type="button"
-            className={styles['close']}
-            onClick={() => props.onOpenChange(false)}
-          >
-            Close
-          </button>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

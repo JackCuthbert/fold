@@ -113,6 +113,29 @@ describe('applyMutationToLists', () => {
     })
     expect(next).toEqual(lists)
   })
+
+  // docs/specs/ui.md — the nav: a newly created list appears in its final
+  // position immediately, rather than landing at the bottom and jumping
+  // once the server's alphabetical order arrives. The optimistic insert
+  // must sort the same way the server does (alphabetically by name), so a
+  // list created "out of order" lands in its eventual spot straight away.
+  it('inserts a created list in alphabetical position, not at the end', () => {
+    const alphaFirst = [
+      { id: 'l1', href: '/l1/', displayName: 'Apple', ctag: 'c' },
+      { id: 'l3', href: '/l3/', displayName: 'Cherry', ctag: 'c' },
+    ]
+    const next = applyMutationToLists(alphaFirst, {
+      id: '00000000-0000-4000-8000-000000000008',
+      kind: 'createList',
+      listId: 'l2',
+      displayName: 'Banana',
+    })
+    expect(next.map((l) => l.displayName)).toEqual([
+      'Apple',
+      'Banana',
+      'Cherry',
+    ])
+  })
 })
 
 describe('patchTodo', () => {

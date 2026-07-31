@@ -3,27 +3,15 @@
   flex-direction: column;
 }
 
-/* docs/specs/ui.md — clicking "Add a todo" opens a modal; this is the
-   trigger, not the field itself. Styled as a quiet affordance rather than
-   a bordered input, since it no longer needs to look editable in place. */
-.addTrigger {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-1);
-  color: var(--muted);
-  font-size: var(--text-sm);
-}
-
-.addTrigger:hover {
-  color: var(--ink);
-}
-
-/* docs/specs/ui.md — clear separation between quick-add and the list: the
-   add affordance and the todo rows must not crowd each other. */
+/* docs/specs/ui.md — scrolling: "Add a todo" now lives in MainScreen's
+   sticky `.header`, alongside the title, rather than here inside TodoPane's
+   scrolling body — see add-todo-trigger.module.css for that button's
+   styles. The header's own bottom padding already provides the separation
+   from the list below (docs/specs/ui.md — clear separation between
+   quick-add and the list), so `.list` needs no extra top margin of its
+   own. */
 .list {
-  margin-top: var(--space-8);
+  margin-top: 0;
 }
 
 .empty {

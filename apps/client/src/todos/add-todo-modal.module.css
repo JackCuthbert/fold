@@ -50,12 +50,15 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
-/* Padding lives on the popup's children, not the popup — see .popup. */
+/* Padding lives on the popup's children, not the popup — see .popup.
+   docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, especially once the body scrolls
+   beneath it — this modal's `.form` does. */
 .title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  margin-bottom: var(--space-4);
-  padding: var(--space-6) var(--space-6) 0;
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--line);
 }
 
 .form {
@@ -96,8 +99,11 @@
   font-size: var(--text-sm);
 }
 
+/* docs/specs/ui.md — overlays: the title/content divider is for the
+   *title* boundary only — dividers must not scatter between fields.
+   *(changed 2026-07-31: removed the border-top that sat between the
+   summary field and this Advanced trigger, which fragmented the form.)* */
 .accordion {
-  border-top: 1px solid var(--line);
   padding-top: var(--space-2);
 }
 

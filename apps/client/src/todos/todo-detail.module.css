@@ -63,12 +63,15 @@
   }
 }
 
-/* Padding lives on the panel's children, not the panel — see .popup. */
+/* Padding lives on the panel's children, not the popup — see .popup.
+   docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, especially once the body scrolls
+   beneath it — this panel's `.form` does. */
 .title {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
-  margin-bottom: var(--space-4);
-  padding: var(--space-4) var(--space-4) 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--line);
 }
 
 .form {

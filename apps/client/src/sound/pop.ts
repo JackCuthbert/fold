@@ -1,9 +1,17 @@
-// Synthesized completion pop — no audio assets (docs/specs/ui.md).
+// Synthesized completion pop — no audio assets (docs/specs/ui.md — sound).
+//
+// docs/specs/ui.md — sound: two defects fixed here.
+// 1. Browsers create an AudioContext *suspended* until a user gesture; a
+//    cached suspended context stays silent for the rest of the session, so
+//    every play must resume() it first.
+// 2. Reduced motion is a vestibular preference about movement, not sound —
+//    it must not gate the audio path. The mute toggle (use-sound.ts) is the
+//    user's actual control for that.
 let context: AudioContext | null = null
 
-export function playPop(): void {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+export async function playPop(): Promise<void> {
   context ??= new AudioContext()
+  if (context.state === 'suspended') await context.resume()
   const now = context.currentTime
   const oscillator = context.createOscillator()
   const gain = context.createGain()

@@ -22,14 +22,22 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 41;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--paper);
   color: var(--ink);
-  padding: var(--space-6);
   max-width: 22rem;
   width: calc(100% - var(--space-8));
+  max-height: 85dvh;
   outline: none;
+  /* No padding here — .title and .body below own it, so the scrollbar (if
+     .body ever needs to scroll) tracks the popup's true edge instead of
+     floating inset with content sliding under it (docs/specs/ui.md —
+     scrollbar gutters sit at the container edge; same fix as the detail
+     panel and add-todo modal). */
+  padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -41,18 +49,50 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
+/* docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, so the heading reads as a header. */
 .title {
+  flex: none;
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  margin-bottom: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--line);
 }
 
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-6) var(--space-6);
+}
+
+.serverUrl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2);
+  min-height: var(--hit-area);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-2);
+}
+
+.serverUrlValue {
+  font-size: var(--text-sm);
+  word-break: break-all;
+}
+
+/* docs/specs/ui.md — Settings: controls need breathing room from any
+   divider beneath them. *(changed 2026-07-31: there was no padding at all
+   between the sound toggle and this row's divider — the border sat flush
+   against the toggle's own box. padding-bottom now separates the control
+   from its divider before margin-bottom adds the gap to the next row.)* */
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--line);
   margin-bottom: var(--space-2);
 }

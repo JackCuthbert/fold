@@ -1,0 +1,54 @@
+/*
+ * docs/specs/ui.md — clicking "Add a todo" opens a modal; this is the
+ * trigger, not the field itself. Lives in MainScreen's sticky header
+ * (docs/specs/ui.md — scrolling), full width so its desktop hover fill
+ * spans the same measure as the list beneath it.
+ * docs/specs/ui.md — "Add a todo" has a desktop hover state: a full-width
+ * fill, no border, distinct from the todo rows so it reads as an action
+ * rather than another item. Icon-only/nav-item controls stay chromeless
+ * per docs/specs/ui.md's button-chrome section — this isn't one of the
+ * three bordered button roles, just a quiet row that fills on hover.
+ */
+/* Centred to the same ~34rem measure as the header row/title above and the
+   list below (docs/specs/ui.md — main content is centred with a
+   comfortable measure), and given its own top margin for the "clear
+   separation between quick-add and the list" rule — main-screen.module.css
+   only positions the sticky `.header` around it, not this spacing. */
+.addTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: var(--measure);
+  margin: var(--space-3) auto 0;
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+@media (min-width: 768px) {
+  .addTrigger {
+    margin-top: var(--space-4);
+  }
+}
+
+/* Hover fill is desktop-only (fine pointer) — docs/specs/ui.md: controls
+   are always visible and never hover-*revealed*, but a hover *refinement*
+   like this fill is fine, and on touch there's no hover to show it. */
+@media (pointer: fine) {
+  .addTrigger:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
+}
+
+.addTrigger:focus-visible {
+  outline: none;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}

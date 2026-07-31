@@ -43,8 +43,12 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
+/* docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, so the heading reads as a header. */
 .title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
 }

@@ -18,7 +18,7 @@ export function useSound() {
       for (const listener of listeners) listener()
     },
     playPop: (): void => {
-      if (!isMuted()) pop()
+      if (!isMuted()) void pop()
     },
   }
 }

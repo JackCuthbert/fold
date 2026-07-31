@@ -1,7 +1,16 @@
-import type { Todo } from '@caldav-todo/schemas'
+import type { Todo, TodoPriority } from '@caldav-todo/schemas'
+import { cx } from '../styles/cx'
 import { Checkbox } from './checkbox'
 import { dueInstant, isOverdue } from './sort'
 import styles from './todo-item.module.css'
+
+// docs/specs/todos.md — priority is colour-coded on the row, all three
+// levels: high red/urgent, medium amber/cautionary, low green/calm.
+const PRIO_CLASS: Record<TodoPriority, string> = {
+  high: styles['prioHigh'] ?? '',
+  medium: styles['prioMedium'] ?? '',
+  low: styles['prioLow'] ?? '',
+}
 
 const formatDue = (todo: Todo): string | null => {
   if (!todo.due) return null
@@ -40,13 +49,7 @@ export function TodoItem(props: {
           <span className={styles['summary']}>{todo.summary}</span>
           <span className={styles['meta']}>
             {todo.priority && (
-              <span
-                className={
-                  todo.priority === 'high'
-                    ? `${styles['prio']} ${styles['prioHigh']}`
-                    : styles['prio']
-                }
-              >
+              <span className={cx(styles['prio'], PRIO_CLASS[todo.priority])}>
                 {todo.priority}
               </span>
             )}
