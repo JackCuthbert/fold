@@ -15,12 +15,28 @@ import styles from './login-screen.module.css'
 // messages); react-hook-form + zod remain the state/validation layer, wired
 // together via Controller per the Base UI + react-hook-form integration
 // pattern (bundled docs: react/handbook/forms.md).
+// The local compose stack (docs/user/local-caldav-server.md). Dev-only:
+// these credentials exist on nobody's real server, so the button must not
+// appear in a production build.
+const DEMO: Credentials = {
+  serverUrl: 'http://localhost:5232/testuser/',
+  username: 'testuser',
+  password: 'testpass',
+}
+
 export function LoginScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { isSubmitting },
   } = useForm<Credentials>({ resolver: zodResolver(credentialsSchema) })
+
+  const fillDemo = (): void => {
+    for (const [name, value] of Object.entries(DEMO)) {
+      setValue(name as keyof Credentials, value, { shouldValidate: true })
+    }
+  }
 
   const login = useMutation({
     mutationFn: api.login,
@@ -135,6 +151,15 @@ export function LoginScreen() {
         >
           Sign in
         </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            className={styles['demo']}
+            onClick={fillDemo}
+          >
+            Use demo server
+          </button>
+        )}
       </Form>
     </main>
   )

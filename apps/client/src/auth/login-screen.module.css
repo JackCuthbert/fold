@@ -50,3 +50,14 @@
   min-height: var(--hit-area);
   margin-top: var(--space-2);
 }
+
+/* Dev-only convenience for the local compose stack — secondary to Sign in
+   so it never competes with the real action (see login-screen.tsx). */
+.demo {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+}
+.demo:hover {
+  color: var(--ink);
+}
