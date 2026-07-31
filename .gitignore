@@ -4,3 +4,6 @@ dist/
 .env
 test-results/
 playwright-report/
+
+# local manual-testing CalDAV data (see compose.yml)
+radicale-data/
