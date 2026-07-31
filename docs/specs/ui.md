@@ -84,8 +84,11 @@ items, the create action, and Settings alike. Specifically:
   not an inline form that changes the nav's shape while open.
 - **The footer matches the rows.** Settings and the status line align to
   the same left edge and use the same row height as the list items above
-  them. The gap between the footer's divider and the status line is tight
-  — they belong together.
+  them.
+- **The footer is one group.** *(revised 2026-07-31.)* There is **no
+  divider between Settings and the status line** — they belong together.
+  A single divider sits *above* Settings, separating the whole footer from
+  the list, with clear space between that divider and the Settings row.
 - **The nav has a title** above its list of lists, so the panel is
   labelled rather than starting abruptly. *(added 2026-07-31.)*
 - **The nav is collapsible on desktop too**, not only on mobile, and opens
@@ -137,6 +140,15 @@ an off-scale value.
   headers, empty states — shares an identical left edge. Rows must not
   bleed past their container's padding, and no element may introduce its
   own horizontal inset that breaks the column.
+  - **This includes controls, not just text.** *(reinforced 2026-07-31:
+    the nav toggle sat at 9px, "Add a todo" at 16px, and the todo rows at
+    a third value — three edges where there should be one.)* A button's
+    *visible* leading edge is what must align, so an icon button with
+    internal padding needs a negative inline offset to pull its glyph onto
+    the shared edge rather than its box.
+  - **Left and right edges both.** Rows in a panel — including the
+    settings modal — align on both sides; no row carries extra horizontal
+    padding that makes it narrower than its neighbours.
 - **Inputs fit their container.** Fields, selects and textareas size to the
   available width (`width: 100%`, `box-sizing: border-box`, `min-width: 0`
   inside flex parents). Nothing overflows its panel or gets clipped by a
