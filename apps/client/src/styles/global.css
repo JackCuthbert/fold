@@ -78,9 +78,23 @@ button:active {
   transform: scale(0.97);
 }
 
+/* docs/specs/ui.md — focus changes the border, never adds an outline/ring:
+   an outline draws outside the element's box and gets clipped by sheet and
+   sidebar edges. Only inputs/selects/textareas carry a border to change —
+   see the border-box rule above. Other focusable elements (buttons, links)
+   fall back to a visible outline since they have no border to repurpose,
+   but nothing here sits inside a clipping container. */
 :focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  border-width: var(--border-width-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -90,4 +104,19 @@ button:active {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Visually hidden but present for assistive tech — used wherever state is
+   otherwise conveyed only by colour or icon (docs/specs/ui.md —
+   accessibility: nothing is conveyed by colour alone). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

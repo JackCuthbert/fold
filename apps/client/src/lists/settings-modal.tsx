@@ -1,0 +1,64 @@
+import { Dialog } from '@base-ui/react/dialog'
+import { Toggle } from '@base-ui/react/toggle'
+import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
+import { api, queryClient } from '../providers'
+import { useSound } from '../sound/use-sound'
+import { cx } from '../styles/cx'
+import styles from './settings-modal.module.css'
+
+// docs/specs/ui.md — Settings: sound and sign out live in their own modal,
+// opened from a "Settings" entry in the nav footer — they are not loose
+// controls in the nav. Dialog handles focus trapping, scroll locking,
+// Escape-to-close and focus restoration to the trigger.
+export function SettingsModal(props: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { muted, toggleMuted } = useSound()
+
+  return (
+    <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className={cx(styles['backdrop'])} />
+        <Dialog.Popup className={cx(styles['popup'])}>
+          <Dialog.Title className={cx(styles['title'])}>Settings</Dialog.Title>
+          <div className={styles['row']}>
+            <span className={styles['label']}>Sound</span>
+            <Toggle
+              pressed={muted}
+              onPressedChange={toggleMuted}
+              className={styles['toggle']}
+              aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+            >
+              {muted ? (
+                <LuVolumeOff aria-hidden="true" size={16} />
+              ) : (
+                <LuVolume2 aria-hidden="true" size={16} />
+              )}
+              {muted ? 'Muted' : 'On'}
+            </Toggle>
+          </div>
+          <button
+            type="button"
+            className={styles['signOut']}
+            onClick={() => {
+              // Outbox is preserved; it replays after the next sign-in
+              // (docs/specs/authentication.md).
+              void api.logout().catch(() => {})
+              queryClient.setQueryData(['session'], null)
+            }}
+          >
+            Sign out
+          </button>
+          <button
+            type="button"
+            className={styles['close']}
+            onClick={() => props.onOpenChange(false)}
+          >
+            Close
+          </button>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}

@@ -2,12 +2,12 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { LuChevronRight } from 'react-icons/lu'
+import { LuChevronRight, LuPlus } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
-import { QuickAdd } from './quick-add'
+import { AddTodoModal } from './add-todo-modal'
 import { sortActiveTodos } from './sort'
 import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
@@ -44,6 +44,7 @@ export function TodoPane(props: { listId: string }) {
   const [openUid, setOpenUid] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
 
   const now = new Date()
   const all = todos.data?.todos ?? []
@@ -61,8 +62,18 @@ export function TodoPane(props: { listId: string }) {
 
   return (
     <div className={styles['pane']}>
-      <QuickAdd
-        onAdd={(summary) => actions.add({ uid: crypto.randomUUID(), summary })}
+      <button
+        type="button"
+        className={styles['addTrigger']}
+        onClick={() => setAddOpen(true)}
+      >
+        <LuPlus aria-hidden="true" size={16} />
+        Add a todo
+      </button>
+      <AddTodoModal
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdd={(todo) => actions.add(todo)}
       />
       <ul className={styles['list']}>
         {active.map((todo) => (

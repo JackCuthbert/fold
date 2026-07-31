@@ -27,6 +27,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* docs/specs/ui.md — no press-transform on list rows: scaling or
+     shifting a row on `:active` adds nothing and makes the list feel
+     unsteady. Overrides the generic button press feedback in global.css,
+     which is fine for standalone buttons but wrong for a row that's most
+     of the page's content. */
+  transition: none;
   /* Pin the title row to a fixed offset from the top (rather than
      vertically centering the column) so it lands at the same position
      whether or not a description follows. Centering the whole column
@@ -37,6 +43,15 @@
      (44 - 22.5) / 2. */
   justify-content: flex-start;
   padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  /* docs/specs/ui.md — the row's top and bottom padding are equal, so a
+     row with a description stays visually balanced rather than top-heavy.
+     Without an explicit bottom padding a taller (with-description) row
+     only grew past `min-height` at the bottom, leaving 0 padding there
+     while the top kept its full offset — that's the imbalance. Mirroring
+     the same value here keeps both edges equal regardless of content. */
+  padding-bottom: calc(
     (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
   );
   /* docs/specs/ui.md — one left edge: the checkbox's hit area already pulls
@@ -50,8 +65,15 @@
      room for an optional description line — set on .body so the row
      height is identical whether or not a description is present. */
   min-height: var(--hit-area);
+  box-sizing: border-box;
+  /* docs/specs/ui.md — the gap between a title and its description is
+     tight: they read as one unit, not two independent lines. */
   gap: 2px;
   min-width: 0;
+}
+
+.body:active {
+  transform: none;
 }
 
 .titleRow {

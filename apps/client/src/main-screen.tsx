@@ -69,43 +69,54 @@ export function MainScreen() {
     </>
   )
 
-  return (
+  // docs/specs/ui.md — overlays: every overlay dims the background.
+  // Base UI never renders a nested dialog's backdrop (by design — see the
+  // "Nested dialogs" section of its docs), so the nav drawer's Dialog.Root
+  // must NOT wrap the rest of the page: anything inside it (detail sheet,
+  // add-todo modal, confirm dialogs, settings) would be misdetected as
+  // "nested" the moment it opens, even with the drawer itself closed, and
+  // silently lose its own backdrop. Dialog.Root here wraps only the
+  // trigger + its own portal — `<main>` is a sibling, outside the tree.
+  const drawer = (
     <Dialog.Root open={!isDesktop && drawerOpen} onOpenChange={setDrawerOpen}>
-      <div className={styles['layout']}>
-        <Dialog.Trigger
-          className={cx(styles['menuTrigger'])}
-          aria-label="Lists"
-        >
-          <LuMenu aria-hidden="true" size={20} />
-        </Dialog.Trigger>
-        <div className={styles['body']}>
-          {isDesktop ? (
-            <aside className={styles['nav']}>{navContent}</aside>
-          ) : (
-            <Dialog.Portal>
-              {drawerOpen && (
-                <Dialog.Backdrop className={cx(styles['scrim'])} />
-              )}
-              <Dialog.Popup
-                render={<aside />}
-                className={cx(styles['navOpen'])}
-              >
-                {navContent}
-              </Dialog.Popup>
-            </Dialog.Portal>
-          )}
-          <main className={styles['main']}>
+      <Dialog.Trigger className={cx(styles['menuTrigger'])} aria-label="Lists">
+        <LuMenu aria-hidden="true" size={20} />
+      </Dialog.Trigger>
+      {!isDesktop && (
+        <Dialog.Portal>
+          <Dialog.Backdrop className={cx(styles['scrim'])} />
+          <Dialog.Popup render={<aside />} className={cx(styles['navOpen'])}>
+            {navContent}
+          </Dialog.Popup>
+        </Dialog.Portal>
+      )}
+    </Dialog.Root>
+  )
+
+  return (
+    <div className={styles['layout']}>
+      <div className={styles['body']}>
+        {isDesktop && <aside className={styles['nav']}>{navContent}</aside>}
+        <main className={styles['main']}>
+          {/* docs/specs/ui.md — mobile: the nav trigger sits beside the
+              list title, forming the top row of the content column,
+              rather than a floating button in a corner. The title stays
+              centred above the list on every viewport; on desktop the nav
+              is permanently pinned, so there's no trigger to render. */}
+          <div className={styles['header']}>
+            {!isDesktop && drawer}
             <h1 className={styles['title']}>
               {activeList?.displayName ?? 'Todos'}
             </h1>
-            {active ? (
-              <TodoPane listId={active} />
-            ) : (
-              <p className={styles['empty']}>Create a list to get started.</p>
-            )}
-          </main>
-        </div>
+            <span className={styles['headerSpacer']} aria-hidden="true" />
+          </div>
+          {active ? (
+            <TodoPane listId={active} />
+          ) : (
+            <p className={styles['empty']}>Create a list to get started.</p>
+          )}
+        </main>
       </div>
-    </Dialog.Root>
+    </div>
   )
 }

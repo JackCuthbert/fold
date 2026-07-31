@@ -1,9 +1,9 @@
 /*
- * docs/specs/ui.md — detail view: bottom sheet on mobile, side panel on
- * desktop. Positioning differs by viewport; the dialog content is shared.
+ * docs/specs/ui.md — adding a todo opens a dimmed, centred modal (not an
+ * inline field), fully keyboard navigable, with the title as the fast path
+ * and an Advanced accordion (collapsed by default) for due/priority/notes.
  * docs/specs/ui.md — overlays: every overlay dims the background and
- * animates in/out — sheets and panels slide from their edge, the scrim
- * fades with them. Disabled under prefers-reduced-motion (global.css).
+ * animates in/out; the scrim fades with the popup.
  */
 .backdrop {
   position: fixed;
@@ -20,19 +20,20 @@
 
 .popup {
   position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 41;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   background: var(--paper);
-  display: flex;
-  flex-direction: column;
-  outline: none;
-
-  /* Mobile: bottom sheet, sliding up from the bottom edge. */
-  inset: auto 0 0 0;
+  color: var(--ink);
+  padding: var(--space-6);
+  max-width: 26rem;
+  width: calc(100% - var(--space-8));
   max-height: 85dvh;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  border-top: 1px solid var(--line);
-  padding: var(--space-4);
-  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  overflow-y: auto;
+  outline: none;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -41,28 +42,11 @@
 .popup[data-starting-style],
 .popup[data-ending-style] {
   opacity: 0;
-  transform: translateY(100%);
-}
-
-@media (min-width: 768px) {
-  .popup {
-    /* Desktop: side panel, sliding in from the right edge. */
-    inset: 0 0 0 auto;
-    max-height: none;
-    width: min(24rem, 90vw);
-    border-radius: 0;
-    border-top: none;
-    border-left: 1px solid var(--line);
-  }
-
-  .popup[data-starting-style],
-  .popup[data-ending-style] {
-    transform: translateX(100%);
-  }
+  transform: translate(-50%, -50%) translateY(4px);
 }
 
 .title {
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   margin-bottom: var(--space-4);
 }
@@ -71,11 +55,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  overflow-y: auto;
-  /* docs/specs/ui.md — inputs fit their container: without min-width: 0 a
-     flex column's children default to min-width: auto, which can push a
-     100%-wide input wider than the scrollable column and collide with the
-     scrollbar. */
   min-width: 0;
 }
 
@@ -101,6 +80,49 @@
   font-size: var(--text-sm);
 }
 
+.accordion {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+}
+
+.accordionItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.accordionTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--hit-area);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.chevron {
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.accordionTrigger[data-panel-open] .chevron {
+  transform: rotate(90deg);
+}
+
+.accordionPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-1);
+  overflow: hidden;
+  height: var(--accordion-panel-height);
+  transition: height var(--duration-base) var(--ease);
+}
+
+.accordionPanel[data-starting-style],
+.accordionPanel[data-ending-style] {
+  height: 0;
+}
+
 .selectTrigger {
   display: flex;
   align-items: center;
@@ -119,10 +141,9 @@
   text-align: left;
 }
 
-/* docs/specs/ui.md — focus changes the border, not an outline: a button
-   styled to look like an input (this is Base UI's Select.Trigger) should
-   get the same treatment as a real input, especially inside a sheet/panel
-   where an outline would clip against the edge. */
+/* docs/specs/ui.md — focus changes the border, not an outline: this button
+   is styled to look like an input (Base UI's Select.Trigger), so it gets
+   the same treatment inside this modal. */
 .selectTrigger:focus-visible {
   outline: none;
   border-color: var(--accent);
@@ -177,12 +198,7 @@
   font-size: var(--text-sm);
 }
 
-.save {
+.add {
   color: var(--accent);
   font-weight: var(--weight-medium);
-}
-
-.delete {
-  color: var(--danger);
-  margin-left: auto;
 }

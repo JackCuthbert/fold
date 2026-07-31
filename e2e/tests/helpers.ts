@@ -20,8 +20,17 @@ export async function createList(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Create', exact: true }).click()
 }
 
+// docs/specs/ui.md — adding a todo opens a modal (added 2026-07-31): the
+// "Add a todo" button is now the modal's trigger, not the field itself.
+// The modal's title field keeps the same accessible name so Enter still
+// submits and closes it in one step — the fast path is unchanged from the
+// user's perspective, just behind a dialog now.
 export async function addTodo(page: Page, summary: string): Promise<void> {
-  const input = page.getByLabel('Add a todo')
+  await page.getByRole('button', { name: 'Add a todo' }).click()
+  // The modal itself is also labelled "Add a todo" (its Dialog.Title), so
+  // getByLabel would match both the dialog and the field — scope to the
+  // textbox role to get just the input.
+  const input = page.getByRole('textbox', { name: 'Add a todo' })
   await input.fill(summary)
   await input.press('Enter')
 }
@@ -36,16 +45,16 @@ export async function addTodo(page: Page, summary: string): Promise<void> {
  *
  * A plain `toBeHidden()` on the pill would pass trivially if the sync
  * happened to finish (or hadn't started) the instant we check, so this
- * polls the header status pills until none of "Syncing" / "Offline" /
- * "Server unreachable" appear on two separate samples in a row — a
- * mutation that gets coalesced in right after the first all-clear sample
- * will still show up on the second.
+ * polls the header status pills until none of "Syncing" / "Offline" appear
+ * on two separate samples in a row — a mutation that gets coalesced in
+ * right after the first all-clear sample will still show up on the
+ * second. *(changed 2026-07-31: "Server unreachable" no longer appears as
+ * pill text — docs/specs/ui.md moved server reachability onto the status
+ * dot. A blip now only recolors the dot, so it isn't part of this wait.)*
  */
 export async function waitForSync(page: Page): Promise<void> {
   const isIdle = async (): Promise<boolean> =>
-    (await page
-      .getByText(/Syncing \d+ change|Offline|Server unreachable/)
-      .count()) === 0
+    (await page.getByText(/Syncing \d+ change|Offline/).count()) === 0
   await expect(async () => {
     if (!(await isIdle())) throw new Error('sync still in progress')
     await page.waitForTimeout(200)

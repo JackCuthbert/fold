@@ -152,11 +152,7 @@ export function LoginScreen() {
           Sign in
         </button>
         {import.meta.env.DEV && (
-          <button
-            type="button"
-            className={styles['demo']}
-            onClick={fillDemo}
-          >
+          <button type="button" className={styles['demo']} onClick={fillDemo}>
             Use demo server
           </button>
         )}

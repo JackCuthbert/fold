@@ -1,15 +1,14 @@
-import { Toggle } from '@base-ui/react/toggle'
-import { Toolbar } from '@base-ui/react/toolbar'
-import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
-import { api, queryClient, useOnline, useSyncStatus } from '../providers'
-import { useSound } from '../sound/use-sound'
+import { useState } from 'react'
+import { LuSettings } from 'react-icons/lu'
+import { useOnline, useSyncStatus } from '../providers'
 import { StatusDot, type StatusKind } from '../status-dot'
 import styles from './nav-footer.module.css'
+import { SettingsModal } from './settings-modal'
 
-// docs/specs/ui.md — status display: healthy is a quiet dot with no text;
-// a degraded state (offline, server unreachable, or work queued) is shown
-// by the separate fixed StatusPill, not here — the footer stays silent in
-// the common case.
+// docs/specs/ui.md — status display: the dot carries server reachability
+// (healthy vs unreachable/erroring); a degraded state the user must act on
+// or wait through (offline, queued work) is shown by the separate fixed
+// StatusPill, not here — the footer stays silent in the common case.
 function statusFor(
   online: boolean,
   blocked: 'offline' | 'server' | 'auth' | null,
@@ -21,45 +20,30 @@ function statusFor(
   return 'synced'
 }
 
-// docs/specs/ui.md — layout: no top bar. Configuration (sign out, sound
-// toggle, sync status) lives at the bottom of the left nav instead.
-// The mute toggle and sign-out button are grouped controls, so they use
-// Base UI's Toolbar (docs/specs/ui.md — component library) rather than
-// plain buttons in a row.
+// docs/specs/ui.md — layout: no top bar. The footer at the bottom of the
+// left nav keeps only a single "Settings" entry (opening the settings
+// modal — sound and sign out) and the status dot; it is not itself a rack
+// of controls.
 export function NavFooter() {
   const online = useOnline()
   const { pending, blocked } = useSyncStatus()
-  const { muted, toggleMuted } = useSound()
   const kind = statusFor(online, blocked, pending)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
-    <Toolbar.Root className={styles['footer']} aria-label="Status and settings">
+    <div className={styles['footer']}>
       <div className={styles['status']}>
         <StatusDot kind={kind} />
       </div>
-      <Toolbar.Button
-        render={<Toggle pressed={muted} onPressedChange={toggleMuted} />}
-        className={styles['iconButton']}
-        aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+      <button
+        type="button"
+        className={styles['settings']}
+        onClick={() => setSettingsOpen(true)}
       >
-        {muted ? (
-          <LuVolumeOff aria-hidden="true" size={16} />
-        ) : (
-          <LuVolume2 aria-hidden="true" size={16} />
-        )}
-      </Toolbar.Button>
-      <Toolbar.Separator className={styles['separator']} />
-      <Toolbar.Button
-        className={styles['signOut']}
-        onClick={() => {
-          // Outbox is preserved; it replays after the next sign-in
-          // (docs/specs/authentication.md).
-          void api.logout().catch(() => {})
-          queryClient.setQueryData(['session'], null)
-        }}
-      >
-        Sign out
-      </Toolbar.Button>
-    </Toolbar.Root>
+        <LuSettings aria-hidden="true" size={16} />
+        Settings
+      </button>
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </div>
   )
 }

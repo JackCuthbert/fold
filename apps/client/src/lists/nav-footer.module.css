@@ -1,4 +1,5 @@
-/* docs/specs/ui.md — configuration lives at the bottom of the left nav. */
+/* docs/specs/ui.md — configuration lives at the bottom of the left nav:
+   a single Settings entry (opens the settings modal) plus the status dot. */
 .footer {
   margin-top: auto;
   padding-top: var(--space-4);
@@ -9,36 +10,16 @@
 }
 
 .status {
+  flex: none;
+}
+
+.settings {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.separator {
-  width: 1px;
-  height: var(--space-4);
-  background: var(--line);
-  margin-inline: var(--space-1);
-}
-
-.iconButton {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: var(--hit-area);
-  height: var(--hit-area);
-  color: var(--muted);
-  flex: none;
-}
-
-.iconButton[data-pressed] {
-  color: var(--accent);
-}
-
-.signOut {
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-1);
   color: var(--muted);
   font-size: var(--text-sm);
-  padding: var(--space-2) var(--space-1);
-  min-height: var(--hit-area);
-  flex: none;
 }

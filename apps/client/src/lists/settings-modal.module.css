@@ -1,0 +1,105 @@
+/*
+ * docs/specs/ui.md — Settings modal: sound and sign out live here rather
+ * than as loose nav controls. Same dimmed/animated overlay treatment as
+ * every other modal in the app (docs/specs/ui.md — overlays).
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 40;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-6);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+  outline: none;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-6);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--hit-area);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.toggle[data-pressed] {
+  color: var(--accent);
+}
+
+.toggle:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  border-width: var(--border-width-focus);
+}
+
+.signOut {
+  width: 100%;
+  text-align: left;
+  color: var(--danger);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  padding: var(--space-2) 0;
+  margin-top: var(--space-2);
+}
+
+.close {
+  width: 100%;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+}

@@ -15,6 +15,31 @@
   background: var(--status-offline);
 }
 
+/* docs/specs/ui.md — status display: server unreachable/erroring turns the
+   dot red and gently pulsing. Colour alone never carries this — the
+   sr-only label (status-dot.tsx) names the state for assistive tech. */
+.dot--server {
+  background: var(--danger);
+  animation: status-pulse var(--duration-pulse) var(--ease) infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot--server {
+    /* Colour alone carries the state once the pulse is gone. */
+    animation: none;
+  }
+}
+
 /* The dot itself is decorative-sized; the wrapper keeps a comfortable
    inline footprint without claiming a full 44px hit area — it's not
    interactive, just a status indicator (docs/specs/ui.md). */

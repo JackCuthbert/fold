@@ -51,6 +51,11 @@
   margin-top: var(--space-2);
 }
 
+.submit:focus-visible {
+  outline: none;
+  border-width: var(--border-width-focus);
+}
+
 /* Dev-only convenience for the local compose stack — secondary to Sign in
    so it never competes with the real action (see login-screen.tsx). */
 .demo {

@@ -34,8 +34,11 @@
   --line-tight: 1.3;
   --line-normal: 1.5;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  /* docs/specs/ui.md — corner radii are small; restrained rounding suits
+     the typography. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
   --radius-full: 999px;
 
   --measure: 34rem;
@@ -60,9 +63,14 @@
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 260ms;
+  --duration-pulse: 1600ms;
 
-  --focus-ring: 2px solid var(--accent);
-  --focus-ring-offset: 2px;
+  /* docs/specs/ui.md — focus is shown by changing the border, never by an
+     outline/ring: an outline draws outside the box and gets clipped by
+     sheet/sidebar edges. Inputs already carry a 1px border (global.css),
+     so focus only needs to swap its colour and weight in place. */
+  --border-width: 1px;
+  --border-width-focus: 2px;
 }
 
 @media (prefers-color-scheme: dark) {

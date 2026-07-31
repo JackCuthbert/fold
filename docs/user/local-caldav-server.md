@@ -37,8 +37,9 @@ The interesting part of this app is what happens when the server goes away
 docker compose stop     # server disappears
 ```
 
-Keep using the app — add todos, tick things off. The header shows
-**Server unreachable** with a queued count. Then:
+Keep using the app — add todos, tick things off. The status dot next to
+Settings turns red and pulses; the pill still shows the queued count
+(`Syncing N changes`). Then:
 
 ```bash
 docker compose start    # server returns

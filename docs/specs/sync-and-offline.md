@@ -84,17 +84,25 @@ history:
 - `navigator.onLine` + fetch failures.
 - Header shows an **offline pill** and a queued-changes count while the
   outbox is non-empty.
-- API 502 (CalDAV server down, network up) shows a distinct
-  "server unreachable" pill; queue behavior is identical ([ui](./ui.md)).
-  *(changed 2026-07-31: any 5xx from the API — not only 502 — shows this
-  pill and queues identically; see [api](./api.md) error mapping.)*
+- API 502 (CalDAV server down, network up), or any 5xx, marks the server
+  unreachable; queue behavior is identical either way
+  ([api](./api.md) error mapping).
+  *(changed 2026-07-31: this state no longer gets its own pill text — a
+  transient upstream failure while work was queued made the pill announce
+  "Server unreachable" for a second and vanish, which read as a flash of
+  broken UI for a condition the sync layer was already handling. Server
+  reachability now lives on the nav footer's status dot instead — red and
+  gently pulsing, with an accessible label — while the pill keeps showing
+  whatever text was already true (`Syncing N changes`, `Offline · N
+  queued`, or nothing if the queue is empty); see [ui](./ui.md) — status
+  display.)*
 
 ## Failure behavior summary
 
 | Failure | Behavior |
 |---|---|
 | Network offline | Offline pill; all actions queue; replay on reconnect |
-| CalDAV server down (502) or any 5xx | "Server unreachable" pill; identical queueing |
+| CalDAV server down (502) or any 5xx | Status dot turns red/pulsing; identical queueing; pill text unchanged (or absent if nothing is queued) |
 | ETag conflict (412) | Rebase + retry once → else toast + refetch |
 | Auth expired (401) | Route to login; outbox preserved, replays after re-login ([authentication](./authentication.md)) |
 | Invalid API input (400) | Client-side bug; toast + error boundary logging |

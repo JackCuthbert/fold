@@ -1,8 +1,17 @@
+/* docs/specs/ui.md — overlays: every overlay dims the background and
+   animates in/out; the scrim fades with the popup. Disabled under
+   prefers-reduced-motion (global.css). */
 .backdrop {
   position: fixed;
   inset: 0;
   background: var(--scrim);
   z-index: 40;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
 }
 
 .confirm {
@@ -19,6 +28,15 @@
   max-width: 22rem;
   width: calc(100% - var(--space-8));
   outline: none;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.confirm[data-starting-style],
+.confirm[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
 }
 
 .title {

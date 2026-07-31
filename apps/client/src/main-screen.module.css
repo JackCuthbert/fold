@@ -1,6 +1,6 @@
 /* docs/specs/ui.md — layout: collapsible left nav, centred main content.
    No top bar — content starts at the top of the page on desktop, and the
-   mobile nav trigger is a single floating control, not a bar. */
+   mobile nav trigger sits beside the list title rather than floating. */
 .layout {
   min-height: 100dvh;
 }
@@ -14,6 +14,31 @@
   display: none;
 }
 
+/* Shared by the desktop pinned sidebar (.nav) and the mobile drawer
+   (.navOpen): a scrolling column whose own padding lives on its *children*,
+   not on the scrolling element itself — so the scrollbar (drawn at the
+   overflow container's border-box edge) tracks the pane's true edge
+   instead of floating inset from it (docs/specs/ui.md — scrollbar gutters
+   sit at the container edge). */
+.nav > *,
+.navOpen > * {
+  padding-inline: var(--space-4);
+}
+
+.nav > *:first-child,
+.navOpen > *:first-child {
+  padding-top: var(--space-4);
+}
+
+.nav > *:last-child,
+.navOpen > *:last-child {
+  padding-bottom: var(--space-4);
+}
+
+/* docs/specs/ui.md — overlays: the drawer animates in/out and dims the
+   background; the scrim fades with it. Both are disabled under
+   prefers-reduced-motion (global.css turns off all transitions/animations
+   there). */
 .navOpen {
   display: flex;
   flex-direction: column;
@@ -22,9 +47,14 @@
   width: min(80vw, 20rem);
   background: var(--paper);
   border-right: 1px solid var(--line);
-  padding: var(--space-4);
   z-index: 30;
   overflow-y: auto;
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.navOpen[data-starting-style],
+.navOpen[data-ending-style] {
+  transform: translateX(-100%);
 }
 
 .navOpen:focus {
@@ -39,25 +69,47 @@
   z-index: 29;
   border: none;
   padding: 0;
+  transition: opacity var(--duration-base) var(--ease);
 }
 
-/* The only persistent mobile chrome — a single floating control, never a
-   bar (docs/specs/ui.md). Hidden on desktop, where the nav is pinned open. */
+.scrim[data-starting-style],
+.scrim[data-ending-style] {
+  opacity: 0;
+}
+
+/* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,
+   forming the top row of the content column, rather than a floating
+   button in a corner. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
 .menuTrigger {
-  position: fixed;
-  bottom: var(--space-4);
-  left: var(--space-4);
-  z-index: 25;
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--hit-area);
   height: var(--hit-area);
-  border-radius: var(--radius-full);
-  background: var(--surface);
+  flex: none;
   color: var(--ink);
-  border: 1px solid var(--line);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+  /* Pull the 44px hit area back so the *visible* icon lands on the
+     column's shared left edge rather than the hit area's own inset
+     (docs/specs/ui.md — one left edge; same technique as the checkbox in
+     checkbox.module.css). Icon glyphs are visually smaller than their
+     24px box within the button, roughly matching the checkbox's ratio. */
+  margin-left: calc((20px - var(--hit-area)) / 2);
+}
+
+/* Mirrors the trigger's width on the opposite side so the title —
+   text-aligned center within the row — reads as truly centred rather than
+   pushed right by the trigger's own width (docs/specs/ui.md — the list
+   title is centred above the list). */
+.headerSpacer {
+  width: var(--hit-area);
+  flex: none;
 }
 
 .main {
@@ -69,9 +121,10 @@
 }
 
 .title {
+  flex: 1;
+  text-align: center;
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
-  margin-bottom: var(--space-4);
 }
 
 .empty {
@@ -87,11 +140,26 @@
     position: static;
     width: 15rem;
     border-right: 1px solid var(--line);
-    padding: var(--space-6) var(--space-4);
     inset: auto;
+    transform: none;
+    overflow-y: auto;
   }
 
-  .menuTrigger {
+  .nav > *:first-child,
+  .navOpen > *:first-child {
+    padding-top: var(--space-6);
+  }
+
+  .nav > *:last-child,
+  .navOpen > *:last-child {
+    padding-bottom: var(--space-6);
+  }
+
+  /* The trigger only exists to open the mobile drawer — the desktop nav
+     is permanently pinned, so the header row collapses to just the
+     centred title. */
+  .menuTrigger,
+  .headerSpacer {
     display: none;
   }
 
