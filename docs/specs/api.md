@@ -56,3 +56,30 @@ originate from an intermediary in front of this API (reverse proxy, load
 balancer, CDN) and is never the client's fault, so it must retry rather
 than drop the mutation; only 4xx is treated as a client-side/fatal error,
 with 401/412 handled specially as above.)*
+
+## Spurious vs. genuine unreachable
+
+*(added 2026-07-31: against a healthy local Radicale, roughly 1 request in
+4 was reported as `caldav_unreachable` (502) under ordinary concurrent
+usage — reproduced deterministically by firing concurrent bursts at
+`GET /api/lists`. Instrumenting `translate()` in
+`apps/server/src/caldav/tsdav-gateway.ts` showed every failure was the
+exact same error, thrown from inside tsdav's internal requests: `"The
+socket connection was closed unexpectedly"` — Bun's fetch dropping an
+idle/reused connection under concurrent load, never a real error from
+Radicale. Each API request builds a fresh `DAVClient` per
+[authentication](./authentication.md)'s stateless-per-request design, so
+ordinary concurrent usage opens far more simultaneous sockets against
+Radicale than "one request per user action" suggests.
+
+Fixed via a `fetch` override passed into `DAVClient` (`makeFetchWithRetry`
+in tsdav-gateway.ts), retrying only idempotent/safe methods
+(GET/HEAD/OPTIONS/PROPFIND/REPORT) a bounded number of times on that exact
+error. Mutating methods (PUT/DELETE/PROPPATCH/MKCALENDAR/POST) are
+deliberately left unretried at this layer: create/update/delete already
+carry ETag preconditions (`If-None-Match`/`If-Match` above), so blindly
+retrying a write whose reset happened after it reached the server risks a
+spurious 412 instead of the honest failure. A server that is genuinely
+down still fails every attempt and correctly surfaces as 502 — this only
+absorbs the spurious, connection-level case, per the "distinguish
+spurious from real" requirement above.)*

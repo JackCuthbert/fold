@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { CaldavError } from '../src/caldav/errors'
-import { toTodo } from '../src/caldav/tsdav-gateway'
+import { makeFetchWithRetry, toTodo } from '../src/caldav/tsdav-gateway'
 
 const ICS = [
   'BEGIN:VCALENDAR',
@@ -45,5 +45,81 @@ describe('toTodo', () => {
         data: ICS,
       }),
     ).toThrowError(CaldavError)
+  })
+})
+
+const socketError = (): Error =>
+  new Error(
+    'The socket connection was closed unexpectedly. For more ' +
+      'information, pass `verbose: true` in the second argument to fetch()',
+  )
+
+// Regression for the reproducible ~1-in-4 502 burst against a healthy
+// Radicale: Bun's fetch drops an idle/reused connection under concurrent
+// load and throws "The socket connection was closed unexpectedly" from
+// inside tsdav's internal requests (login, fetchCalendars, REPORT, ...).
+// Confirmed by instrumenting the gateway's error handling and firing
+// concurrent bursts at a real Radicale — every failure was this exact,
+// connection-level error, never a genuine server error. See
+// tsdav-gateway.ts's `makeFetchWithRetry` for the full account.
+describe('makeFetchWithRetry', () => {
+  it('retries a transient socket error on an idempotent method', async () => {
+    const baseFetch = vi
+      .fn()
+      .mockRejectedValueOnce(socketError())
+      .mockResolvedValueOnce(new Response('ok'))
+    const fetchWithRetry = makeFetchWithRetry(baseFetch)
+
+    const response = await fetchWithRetry('http://x/', { method: 'PROPFIND' })
+    expect(await response.text()).toBe('ok')
+    expect(baseFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('gives up after exhausting attempts, surfacing the real error', async () => {
+    const baseFetch = vi.fn().mockRejectedValue(socketError())
+    const fetchWithRetry = makeFetchWithRetry(baseFetch)
+
+    // A genuinely unreachable server must still fail — retrying can't
+    // paper over an outage, only a spurious connection-level blip.
+    await expect(
+      fetchWithRetry('http://x/', { method: 'GET' }),
+    ).rejects.toThrow('socket connection was closed unexpectedly')
+    expect(baseFetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not retry a mutating method, even on the same transient error', async () => {
+    const baseFetch = vi.fn().mockRejectedValueOnce(socketError())
+    const fetchWithRetry = makeFetchWithRetry(baseFetch)
+
+    // PUT (createTodo) carries `If-None-Match: *`; update/delete carry an
+    // etag precondition. Retrying blindly risks turning a reset that
+    // happened *after* the write landed into a spurious 412 instead of
+    // the write genuinely failing — not worth it for a rare edge case.
+    await expect(
+      fetchWithRetry('http://x/', { method: 'PUT' }),
+    ).rejects.toThrow('socket connection was closed unexpectedly')
+    expect(baseFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry a different kind of error', async () => {
+    const baseFetch = vi.fn().mockRejectedValue(new Error('DNS lookup failed'))
+    const fetchWithRetry = makeFetchWithRetry(baseFetch)
+
+    await expect(
+      fetchWithRetry('http://x/', { method: 'GET' }),
+    ).rejects.toThrow('DNS lookup failed')
+    expect(baseFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('defaults to GET (idempotent) when no method is given', async () => {
+    const baseFetch = vi
+      .fn()
+      .mockRejectedValueOnce(socketError())
+      .mockResolvedValueOnce(new Response('ok'))
+    const fetchWithRetry = makeFetchWithRetry(baseFetch)
+
+    const response = await fetchWithRetry('http://x/')
+    expect(await response.text()).toBe('ok')
+    expect(baseFetch).toHaveBeenCalledTimes(2)
   })
 })

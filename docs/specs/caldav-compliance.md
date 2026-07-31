@@ -24,6 +24,9 @@ correctly, and never destroying data we don't understand.
 - Collection `ctag` used to short-circuit refetches when nothing changed.
 - MKCALENDAR with extended-MKCOL fallback for list creation, since server
   support varies.
+- Transient connection resets on idempotent reads (GET/PROPFIND/REPORT) are
+  retried at the `fetch` layer before surfacing as `caldav_unreachable`
+  ([api](./api.md) — "spurious vs. genuine unreachable").
 
 ## Round-trip preservation (cornerstone)
 
