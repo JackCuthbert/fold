@@ -126,7 +126,6 @@
 .selectTrigger:focus-visible {
   outline: none;
   border-color: var(--accent);
-  border-width: var(--border-width-focus);
 }
 
 .selectIcon {

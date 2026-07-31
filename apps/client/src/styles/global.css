@@ -94,7 +94,6 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: var(--accent);
-  border-width: var(--border-width-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {

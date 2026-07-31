@@ -81,7 +81,6 @@
 .toggle:focus-visible {
   outline: none;
   border-color: var(--accent);
-  border-width: var(--border-width-focus);
 }
 
 .signOut {

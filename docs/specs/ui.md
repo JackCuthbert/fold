@@ -158,10 +158,12 @@ over an undimmed background, so they didn't read as modal.)*
 
 *(added 2026-07-31, from design review:)*
 
-- **Focus is shown by changing the border, not by adding an outline or
-  ring.** An outline draws outside the element's box and gets clipped by
-  sheet and sidebar edges. Focus must remain clearly visible — this
-  changes how, not whether.
+- **Focus is shown by changing the border *colour* only.** An outline draws
+  outside the element's box and gets clipped by sheet and sidebar edges;
+  changing the border *width* reflows the element. Border width is
+  constant — only the colour changes. Focus must remain clearly visible;
+  this changes how, not whether. *(clarified 2026-07-31: the first
+  implementation widened the border on focus, causing a 1px layout shift.)*
 - **Corner radii are small.** Restrained rounding suits the typography;
   large radii read as soft and generic.
 - **No press-transform on list rows.** Scaling or shifting a row on

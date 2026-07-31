@@ -69,8 +69,9 @@
      outline/ring: an outline draws outside the box and gets clipped by
      sheet/sidebar edges. Inputs already carry a 1px border (global.css),
      so focus only needs to swap its colour and weight in place. */
+  /* One width, always. Focus is shown by colour alone — widening a border
+     reflows the element (docs/specs/ui.md — controls & touch targets). */
   --border-width: 1px;
-  --border-width-focus: 2px;
 }
 
 @media (prefers-color-scheme: dark) {
