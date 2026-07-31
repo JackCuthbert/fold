@@ -13,8 +13,14 @@ and centre.)*
   configuration ([lists](./lists.md)) — not primary content. On desktop
   (≥768px) it may stay pinned open; on mobile it overlays with a scrim.
   Dismissible by Escape, scrim tap, or selecting a list.
-- **No top menu bar.** Chrome is minimal: the list title sits with the
-  content, not in a separate bar competing for attention.
+- **No top bar at all.** *(clarified 2026-07-31: a slim header still
+  existed; it is now removed entirely.)* The list title is the first
+  heading of the content column, not a separate bar. Configuration —
+  sign out, sound toggle, sync status — lives at the **bottom of the left
+  nav**, since that is what the nav is for.
+  - On mobile the nav is hidden, so a single floating control opens it.
+    That trigger is the only persistent chrome; it must not become a bar.
+  - Content therefore starts at the top of the page on desktop.
 - **Main content is centred** with a comfortable measure (max ~34rem) so it
   reads well at any window width.
 - **Todo pane:** quick-add at top; active todos per [todos](./todos.md);
