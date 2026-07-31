@@ -30,6 +30,18 @@ export const queryClient = new QueryClient({
       staleTime: 30_000,
       retry: 1,
       networkMode: 'offlineFirst',
+      // docs/specs/sync-and-offline.md: refetch on window focus, reconnect,
+      // after outbox drain, and on interval. Drain is handled by the sync
+      // engine (invalidateQueries once the queue empties); these three
+      // cover the "ordinary triggers" so a change made on another device
+      // shows up without a reload even while this client sits idle. Every
+      // refetch runs through queryFn, which reconciles any still-queued
+      // mutation on top of the response, so this can never clobber a
+      // pending local change — it's exactly why the ctag/304 short-circuit
+      // exists: an idle poll that finds nothing new costs a cheap 304.
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchInterval: 45_000,
     },
   },
 })
