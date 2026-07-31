@@ -3,6 +3,19 @@
 Specifications live in [docs/specs](docs/specs/overview.md). Read
 [docs/specs/overview.md](docs/specs/overview.md) before starting any task.
 
+## Never install software on the machine
+
+**Do not install anything system-wide or user-wide** — no `pip install`,
+`pipx`, `uv tool install`, `brew install`, or global npm. Project
+dependencies go in the repo's own `package.json` and nowhere else.
+
+**Test infrastructure runs in Docker.** A CalDAV server for tests comes
+from a container (see `compose.yml`), never a binary placed on `PATH`.
+
+_(added 2026-07-31: an agent installed Radicale via pipx — and bootstrapped
+pipx itself — to run the integration suite. Docker was already available
+and sanctioned for exactly this. Both were removed.)_
+
 ## Workflow
 
 - Always lint and format before committing: `bun run lint` and
