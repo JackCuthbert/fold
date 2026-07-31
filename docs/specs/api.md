@@ -40,3 +40,10 @@ composes them. No monolithic route files.
 | CalDAV 412 | 412 + fresh todo in body | rebase + retry |
 | CalDAV server unreachable | 502 | "server unreachable" pill, keep queueing |
 | Invalid request body | 400 + structured error | toast + error logging |
+
+*(changed 2026-07-31: the client treats **any 5xx** — not only the
+documented 502 — as transient and keeps queueing. A 500/503/504 can
+originate from an intermediary in front of this API (reverse proxy, load
+balancer, CDN) and is never the client's fault, so it must retry rather
+than drop the mutation; only 4xx is treated as a client-side/fatal error,
+with 401/412 handled specially as above.)*

@@ -19,6 +19,7 @@ import {
   type SyncStatus,
 } from './sync/engine'
 import { idbStorage } from './sync/idb-storage'
+import { TaggedFatalError } from './sync/process'
 import { useToast } from './toast'
 
 export const api: Api = createApi()
@@ -84,6 +85,30 @@ export function useOnline(): boolean {
   return useSyncExternalStore(subscribeOnline, () => navigator.onLine)
 }
 
+// Best-effort label for the toast — only from data the mutation itself
+// carries (no cache reach-through). Falls back to a generic noun when the
+// mutation doesn't carry a name (e.g. completing or deleting a todo only
+// carries its uid).
+const describeMutation = (mutation: Mutation): string => {
+  switch (mutation.kind) {
+    case 'createTodo':
+      return `'${mutation.todo.summary}'`
+    case 'updateTodo':
+      return mutation.changes.summary
+        ? `'${mutation.changes.summary}'`
+        : 'a todo change'
+    case 'deleteTodo':
+      return 'a todo change'
+    case 'createList':
+    case 'renameList':
+      return `'${mutation.displayName}'`
+    case 'deleteList':
+      return 'a change'
+    default:
+      return mutation satisfies never
+  }
+}
+
 export function AppProviders({ children }: { children: ReactNode }) {
   const [engine, setEngine] = useState<SyncEngine | null>(null)
   const toast = useToast()
@@ -98,12 +123,18 @@ export function AppProviders({ children }: { children: ReactNode }) {
         typeof indexedDB === 'undefined' ? memoryStorage() : idbStorage(),
       onUnauthorized: () => queryClient.setQueryData(['session'], null),
       onStorageProblem: (message: string) => toast(message),
-      onDropped: (mutation: Mutation, _error: FatalError) => {
-        const what =
-          mutation.kind === 'updateTodo' || mutation.kind === 'createTodo'
-            ? 'a todo change'
-            : 'a change'
-        toast(`Couldn't save ${what} — it changed on the server`)
+      onDropped: (mutation: Mutation, error: FatalError) => {
+        const what = describeMutation(mutation)
+        // Only a genuine 412-after-rebase is a real conflict — say so.
+        // Any other fatal drop (docs/specs/sync-and-offline.md) didn't
+        // change on the server; saying it did would be false.
+        const isConflict =
+          error instanceof TaggedFatalError && error.reason === 'conflict'
+        toast(
+          isConflict
+            ? `Couldn't save ${what} — it changed on the server`
+            : `Couldn't save ${what}`,
+        )
       },
     }).then((instance) => {
       if (cancelled) return

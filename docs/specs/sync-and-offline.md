@@ -61,6 +61,10 @@ storage adapter (the client supplies IndexedDB). Every user action:
   managed-field changes on top, and retries once with the new ETag.
 - If the retry also fails: drop the mutation, toast
   ("Couldn't save '<summary>' — it changed on the server"), and refetch.
+- *(changed 2026-07-31: any other fatal drop (e.g. a 4xx we don't otherwise
+  handle) is never a conflict — nothing "changed on the server" in that
+  case. The toast for a non-conflict drop is a plain "Couldn't save
+  '<summary>'", so the message never claims a conflict that didn't happen.)*
 
 ## Offline detection & UX
 
@@ -69,13 +73,15 @@ storage adapter (the client supplies IndexedDB). Every user action:
   outbox is non-empty.
 - API 502 (CalDAV server down, network up) shows a distinct
   "server unreachable" pill; queue behavior is identical ([ui](./ui.md)).
+  *(changed 2026-07-31: any 5xx from the API — not only 502 — shows this
+  pill and queues identically; see [api](./api.md) error mapping.)*
 
 ## Failure behavior summary
 
 | Failure | Behavior |
 |---|---|
 | Network offline | Offline pill; all actions queue; replay on reconnect |
-| CalDAV server down (502) | "Server unreachable" pill; identical queueing |
+| CalDAV server down (502) or any 5xx | "Server unreachable" pill; identical queueing |
 | ETag conflict (412) | Rebase + retry once → else toast + refetch |
 | Auth expired (401) | Route to login; outbox preserved, replays after re-login ([authentication](./authentication.md)) |
 | Invalid API input (400) | Client-side bug; toast + error boundary logging |

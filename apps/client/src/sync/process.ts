@@ -22,6 +22,19 @@ export class TaggedRetryableError extends RetryableError {
   }
 }
 
+// Distinguishes *why* a mutation was dropped so the UI can say something
+// true: a real 412-after-rebase is a conflict; anything else (a 4xx client
+// bug we don't otherwise handle) isn't — docs/specs/sync-and-offline.md.
+export type DropReason = 'conflict' | 'other'
+
+export class TaggedFatalError extends FatalError {
+  reason: DropReason
+  constructor(reason: DropReason, message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.reason = reason
+  }
+}
+
 // Drain-side mutation processing with LWW conflict rebase —
 // docs/specs/sync-and-offline.md (conflict handling).
 //
@@ -78,8 +91,13 @@ export function makeProcessMutation(
         throw new TaggedRetryableError('offline', 'offline', { cause: error })
       }
       if (!(error instanceof ApiError)) throw error
-      if (error.status === 502) {
-        throw new TaggedRetryableError('server', 'caldav unreachable', {
+      if (error.status >= 500) {
+        // Any 5xx — not just the documented 502 (CalDAV unreachable) — is
+        // the server (or an intermediary: reverse proxy, load balancer,
+        // CDN) reporting its own problem. That's inherently transient,
+        // never the client's fault, so it must retry rather than drop the
+        // user's work (docs/specs/api.md — error mapping).
+        throw new TaggedRetryableError('server', 'server error', {
           cause: error,
         })
       }
@@ -106,15 +124,17 @@ export function makeProcessMutation(
           try {
             return await dispatch(mutation, etag)
           } catch (retryError) {
-            throw new FatalError('conflict after rebase', {
+            throw new TaggedFatalError('conflict', 'conflict after rebase', {
               cause: retryError,
             })
           }
         }
       }
-      throw new FatalError(`unrecoverable API error ${error.status}`, {
-        cause: error,
-      })
+      throw new TaggedFatalError(
+        'other',
+        `unrecoverable API error ${error.status}`,
+        { cause: error },
+      )
     }
   }
 }

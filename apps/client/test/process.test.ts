@@ -3,7 +3,11 @@ import type { Mutation, Todo } from '@caldav-todo/schemas'
 import { describe, expect, it, vi } from 'vitest'
 import type { Api } from '../src/api/client'
 import { ApiError, NetworkError } from '../src/api/errors'
-import { makeProcessMutation } from '../src/sync/process'
+import {
+  makeProcessMutation,
+  TaggedFatalError,
+  TaggedRetryableError,
+} from '../src/sync/process'
 
 const FRESH: Todo = {
   uid: 'a',
@@ -107,6 +111,28 @@ describe('processMutation', () => {
     }
   })
 
+  it('maps every 5xx to RetryableError, not just 502', async () => {
+    // A dead backend behind a reverse proxy/load balancer/CDN can surface
+    // as any 5xx, not only 502 — all of them are the server's problem,
+    // never the client's, so none of them should drop the mutation.
+    for (const status of [500, 503, 504]) {
+      const updateTodo = vi.fn().mockRejectedValue(new ApiError(status, {}))
+      const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
+      await expect(process(update)).rejects.toBeInstanceOf(RetryableError)
+    }
+  })
+
+  it('tags every 5xx with the "server" block reason', async () => {
+    for (const status of [500, 502, 503, 504]) {
+      const updateTodo = vi.fn().mockRejectedValue(new ApiError(status, {}))
+      const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
+      await expect(process(update)).rejects.toMatchObject({
+        reason: 'server',
+      })
+      await expect(process(update)).rejects.toBeInstanceOf(TaggedRetryableError)
+    }
+  })
+
   it('maps 401 to RetryableError and notifies onUnauthorized', async () => {
     const onUnauthorized = vi.fn()
     const updateTodo = vi.fn().mockRejectedValue(new ApiError(401, {}))
@@ -119,5 +145,26 @@ describe('processMutation', () => {
     const updateTodo = vi.fn().mockRejectedValue(new ApiError(400, {}))
     const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
     await expect(process(update)).rejects.toBeInstanceOf(FatalError)
+  })
+
+  it('tags a drop reason of "other" for a non-conflict fatal error', async () => {
+    // A 400 (or any other unhandled 4xx) is a client-side bug, not a
+    // conflict — nothing "changed on the server" — so the drop must be
+    // tagged distinctly from a genuine conflict-after-rebase.
+    const updateTodo = vi.fn().mockRejectedValue(new ApiError(400, {}))
+    const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
+    await expect(process(update)).rejects.toMatchObject({ reason: 'other' })
+    await expect(process(update)).rejects.toBeInstanceOf(TaggedFatalError)
+  })
+
+  it('tags a drop reason of "conflict" when the rebase also conflicts', async () => {
+    const updateTodo = vi
+      .fn()
+      .mockRejectedValue(new ApiError(412, { todo: FRESH }))
+    const process = makeProcessMutation(fakeApi({ updateTodo }), vi.fn())
+    await expect(process(update)).rejects.toMatchObject({
+      reason: 'conflict',
+    })
+    await expect(process(update)).rejects.toBeInstanceOf(TaggedFatalError)
   })
 })
