@@ -33,9 +33,9 @@ export function LoginScreen() {
   } = useForm<Credentials>({ resolver: zodResolver(credentialsSchema) })
 
   const fillDemo = (): void => {
-    for (const [name, value] of Object.entries(DEMO)) {
-      setValue(name as keyof Credentials, value, { shouldValidate: true })
-    }
+    setValue('serverUrl', DEMO.serverUrl, { shouldValidate: true })
+    setValue('username', DEMO.username, { shouldValidate: true })
+    setValue('password', DEMO.password, { shouldValidate: true })
   }
 
   const login = useMutation({
