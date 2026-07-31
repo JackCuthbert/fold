@@ -8,6 +8,14 @@
 
 **Tech Stack:** @playwright/test, GitHub Actions, Radicale (via uv).
 
+**Selectors the client actually exposes (confirmed in plan 05):**
+`role="checkbox"` + `aria-checked` + `aria-label="Mark "<summary>" done"` /
+`…active"` on todo items; `aria-label="Lists"` on the mobile menu button;
+`aria-label="Add a todo"` on quick-add; `role="alert"` on form/login errors;
+`aria-expanded` on the completed-section toggle; toasts are
+`role="status" aria-live="polite"`. **Confirm dialogs are native
+`<dialog>`** (`showModal()`), so target `dialog[open]` — not a div overlay.
+
 **Two traps confirmed in plan 04 — don't rediscover them:**
 
 1. Radicale must be installed and on `PATH` before the integration/e2e
@@ -17,6 +25,16 @@
    invocation executes under Node — where `Bun.spawn` (used to start
    Radicale) doesn't exist. **Always go through `bun run <script>`;** never
    shell out to `vitest` directly in CI.
+
+**Serve the BUILT bundle through the Bun server — never `vite dev`.** In
+production the Bun server serves both `/api` and the static bundle from one
+origin, so a downed backend surfaces to the browser as a real `fetch`
+rejection (→ `NetworkError` → retryable, stays queued). Vite's dev proxy
+instead answers `ECONNREFUSED` with its own **HTTP 500**, which the client
+correctly classifies as fatal and *drops* the mutation. An offline spec run
+against `vite dev` therefore fails in a way that looks like an app bug but
+is a dev-tooling artifact. The `webServer` config below already does the
+right thing; don't "simplify" it to `vite dev`.
 
 ---
 
