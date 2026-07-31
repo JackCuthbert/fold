@@ -1,0 +1,113 @@
+/*
+ * docs/specs/ui.md — vertical rhythm: every row occupies a consistent
+ * height regardless of content. The title/checkbox row is a fixed-height
+ * line; the description (if present) is an additional line within the
+ * row rather than a nudge that misaligns neighbours.
+ */
+.todo {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  animation: todo-in var(--duration-slow) var(--ease);
+}
+
+@keyframes todo-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Pin the title row to a fixed offset from the top (rather than
+     vertically centering the column) so it lands at the same position
+     whether or not a description follows. Centering the whole column
+     would shift the title line itself whenever a description makes the
+     column taller — breaking the "identical alignment" requirement in
+     docs/specs/ui.md. The offset below centers a single --text-base
+     (15px / 1.5 line-height = 22.5px box) line within the 44px hit area:
+     (44 - 22.5) / 2. */
+  justify-content: flex-start;
+  padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  padding-inline: var(--space-1);
+  text-align: left;
+  /* One line for the title row (matches the 44px checkbox hit area) plus
+     room for an optional description line — set on .body so the row
+     height is identical whether or not a description is present. */
+  min-height: var(--hit-area);
+  gap: 2px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.summary {
+  font-size: var(--text-base);
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.summary::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 1px;
+  width: 0;
+  background: var(--muted);
+  transition: width var(--duration-slow) var(--ease);
+}
+
+.todoCompleted .summary {
+  color: var(--muted);
+}
+
+.todoCompleted .summary::after {
+  width: 100%;
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  flex: none;
+}
+
+.prio {
+  text-transform: capitalize;
+}
+
+.prioHigh {
+  color: var(--danger);
+}
+
+.due {
+  white-space: nowrap;
+}
+
+.dueOverdue {
+  color: var(--danger);
+}

@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import styles from './list-form.module.css'
 
 const listFormSchema = z.object({ displayName: z.string().min(1) })
 type ListForm = z.infer<typeof listFormSchema>
@@ -17,7 +18,7 @@ export function ListNameForm(props: {
   })
   return (
     <form
-      className="list-form"
+      className={styles['form']}
       onSubmit={handleSubmit((values) => props.onSubmit(values.displayName))}
     >
       <input autoFocus placeholder="List name" {...register('displayName')} />

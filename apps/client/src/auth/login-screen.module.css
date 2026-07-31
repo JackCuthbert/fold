@@ -1,0 +1,46 @@
+.login {
+  max-width: 22rem;
+  margin: 15dvh auto 0;
+  padding: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.submit {
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+  min-height: var(--hit-area);
+  margin-top: var(--space-2);
+}

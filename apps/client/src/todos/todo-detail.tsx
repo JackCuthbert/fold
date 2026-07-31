@@ -1,3 +1,4 @@
+import { Dialog } from '@base-ui-components/react/dialog'
 import {
   todoPrioritySchema,
   type Todo,
@@ -6,7 +7,9 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { cx } from '../styles/cx'
 import { dueInstant } from './sort'
+import styles from './todo-detail.module.css'
 
 const detailSchema = z.object({
   summary: z.string().min(1),
@@ -24,7 +27,10 @@ const toDateInputValue = (date: Date): string =>
     String(date.getDate()).padStart(2, '0'),
   ].join('-')
 
-// Detail edit — docs/specs/todos.md.
+// Detail edit — docs/specs/todos.md. Rendered as a bottom sheet on mobile
+// and a side panel on desktop (docs/specs/ui.md — layout), using Base UI's
+// Dialog for focus management: focus moves into the surface on open and
+// restores to the trigger on close.
 // The date input shows the local date of whatever form the DUE has. If the
 // user doesn't touch it, we send NO due change at all, so a foreign client's
 // floating/zoned/UTC value survives untouched
@@ -72,43 +78,56 @@ export function TodoDetail(props: {
   }
 
   return (
-    <section className="detail" aria-label="Edit todo">
-      <form onSubmit={handleSubmit(submit)}>
-        <label>
-          Summary
-          <input {...register('summary')} />
-        </label>
-        <label>
-          Due
-          <input type="date" {...register('due')} />
-        </label>
-        <label>
-          Priority
-          <select {...register('priority')}>
-            <option value="">None</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
-        <label>
-          Notes
-          <textarea rows={4} {...register('description')} />
-        </label>
-        <div className="detail__actions">
-          <button type="submit">Save</button>
-          <button type="button" onClick={props.onClose}>
-            Close
-          </button>
-          <button
-            type="button"
-            className="detail__delete"
-            onClick={props.onDelete}
-          >
-            Delete
-          </button>
-        </div>
-      </form>
-    </section>
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) props.onClose()
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className={cx(styles['backdrop'])} />
+        <Dialog.Popup className={cx(styles['popup'])}>
+          <Dialog.Title className={cx(styles['title'])}>Edit todo</Dialog.Title>
+          <form className={styles['form']} onSubmit={handleSubmit(submit)}>
+            <label className={styles['field']}>
+              Summary
+              <input {...register('summary')} />
+            </label>
+            <label className={styles['field']}>
+              Due
+              <input type="date" {...register('due')} />
+            </label>
+            <label className={styles['field']}>
+              Priority
+              <select {...register('priority')}>
+                <option value="">None</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label className={styles['field']}>
+              Notes
+              <textarea rows={4} {...register('description')} />
+            </label>
+            <div className={styles['actions']}>
+              <button type="submit" className={styles['save']}>
+                Save
+              </button>
+              <button type="button" onClick={props.onClose}>
+                Close
+              </button>
+              <button
+                type="button"
+                className={styles['delete']}
+                onClick={props.onDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </form>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }

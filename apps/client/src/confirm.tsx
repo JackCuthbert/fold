@@ -1,4 +1,5 @@
 import { useRef, type ReactNode } from 'react'
+import styles from './confirm.module.css'
 
 export function ConfirmDialog(props: {
   open: boolean
@@ -12,16 +13,16 @@ export function ConfirmDialog(props: {
   if (props.open && ref.current && !ref.current.open) ref.current.showModal()
   if (!props.open && ref.current?.open) ref.current.close()
   return (
-    <dialog ref={ref} className="confirm" onCancel={props.onCancel}>
-      <h2>{props.title}</h2>
-      <div>{props.children}</div>
-      <div className="confirm__actions">
+    <dialog ref={ref} className={styles['confirm']} onCancel={props.onCancel}>
+      <h2 className={styles['title']}>{props.title}</h2>
+      <div className={styles['body']}>{props.children}</div>
+      <div className={styles['actions']}>
         <button type="button" onClick={props.onCancel}>
           Cancel
         </button>
         <button
           type="button"
-          className="confirm__danger"
+          className={styles['danger']}
           onClick={props.onConfirm}
         >
           {props.confirmLabel}

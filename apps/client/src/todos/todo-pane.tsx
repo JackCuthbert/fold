@@ -1,13 +1,17 @@
+import { Collapsible } from '@base-ui-components/react/collapsible'
 import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
+import { cx } from '../styles/cx'
 import { QuickAdd } from './quick-add'
 import { sortActiveTodos } from './sort'
 import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
+import styles from './todo-pane.module.css'
 import { useTodoActions } from './use-todo-actions'
 
 export function TodoPane(props: { listId: string }) {
@@ -56,11 +60,11 @@ export function TodoPane(props: { listId: string }) {
   }
 
   return (
-    <div className="pane">
+    <div className={styles['pane']}>
       <QuickAdd
         onAdd={(summary) => actions.add({ uid: crypto.randomUUID(), summary })}
       />
-      <ul className="todos">
+      <ul className={styles['list']}>
         {active.map((todo) => (
           <TodoItem
             key={todo.uid}
@@ -72,42 +76,45 @@ export function TodoPane(props: { listId: string }) {
         ))}
       </ul>
       {active.length === 0 && completed.length === 0 && (
-        <p className="empty">Nothing to do. Savor it.</p>
+        <p className={styles['empty']}>Nothing to do. Savor it.</p>
       )}
 
       {completed.length > 0 && (
-        <section className="completed">
-          <button
-            type="button"
-            className="completed__toggle"
-            aria-expanded={showCompleted}
-            onClick={() => setShowCompleted((value) => !value)}
-          >
+        <Collapsible.Root
+          className={cx(styles['completed'])}
+          open={showCompleted}
+          onOpenChange={setShowCompleted}
+          render={<section />}
+        >
+          <Collapsible.Trigger className={cx(styles['completedToggle'])}>
+            <LuChevronRight
+              className={styles['chevron']}
+              aria-hidden="true"
+              size={14}
+            />
             Completed ({completed.length})
-          </button>
-          {showCompleted && (
-            <>
-              <ul className="todos todos--completed">
-                {completed.map((todo) => (
-                  <TodoItem
-                    key={todo.uid}
-                    todo={todo}
-                    now={now}
-                    onToggle={() => toggle(todo)}
-                    onOpen={() => setOpenUid(todo.uid)}
-                  />
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="completed__clear"
-                onClick={() => setConfirmClear(true)}
-              >
-                Clear completed
-              </button>
-            </>
-          )}
-        </section>
+          </Collapsible.Trigger>
+          <Collapsible.Panel>
+            <ul className={cx(styles['list'], styles['completedList'])}>
+              {completed.map((todo) => (
+                <TodoItem
+                  key={todo.uid}
+                  todo={todo}
+                  now={now}
+                  onToggle={() => toggle(todo)}
+                  onOpen={() => setOpenUid(todo.uid)}
+                />
+              ))}
+            </ul>
+            <button
+              type="button"
+              className={styles['clear']}
+              onClick={() => setConfirmClear(true)}
+            >
+              Clear completed
+            </button>
+          </Collapsible.Panel>
+        </Collapsible.Root>
       )}
 
       {open && (

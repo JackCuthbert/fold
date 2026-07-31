@@ -1,0 +1,66 @@
+/* docs/specs/lists.md — sidebar (desktop) / drawer (mobile). */
+.nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  flex: 1;
+  text-align: left;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  min-height: var(--hit-area);
+  display: flex;
+  align-items: center;
+}
+
+.linkActive {
+  background: var(--line);
+  font-weight: var(--weight-medium);
+}
+
+.action {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  opacity: 0;
+}
+
+.item:hover .action,
+.item:focus-within .action {
+  opacity: 1;
+}
+
+/* Touch devices have no hover, so hover-to-reveal would make these
+   controls undiscoverable — show them permanently there. */
+@media (hover: none) {
+  .action {
+    opacity: 0.6;
+  }
+}
+
+.add {
+  margin-top: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  padding: var(--space-2);
+}
+
+.form {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}

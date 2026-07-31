@@ -1,0 +1,40 @@
+.confirm {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-6);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+}
+
+.confirm::backdrop {
+  background: var(--scrim);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.body {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.actions button {
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.danger {
+  color: var(--danger);
+}

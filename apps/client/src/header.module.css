@@ -1,0 +1,63 @@
+/* docs/specs/ui.md — no top menu bar; chrome stays minimal. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  z-index: 20;
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  margin-left: calc(var(--space-3) * -1);
+  color: var(--ink);
+  flex: none;
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  color: var(--muted);
+  flex: none;
+}
+
+.signOut {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-1);
+  min-height: var(--hit-area);
+}
+
+@media (min-width: 768px) {
+  .menu {
+    display: none;
+  }
+}

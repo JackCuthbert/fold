@@ -1,6 +1,7 @@
 import type { Todo } from '@caldav-todo/schemas'
 import { Checkbox } from './checkbox'
 import { dueInstant, isOverdue } from './sort'
+import styles from './todo-item.module.css'
 
 const formatDue = (todo: Todo): string | null => {
   if (!todo.due) return null
@@ -20,27 +21,45 @@ export function TodoItem(props: {
 }) {
   const { todo } = props
   const overdue = !todo.completed && isOverdue(todo, props.now)
+  const due = formatDue(todo)
   return (
-    <li className={todo.completed ? 'todo todo--completed' : 'todo'}>
+    <li
+      className={
+        todo.completed
+          ? `${styles['todo']} ${styles['todoCompleted']}`
+          : styles['todo']
+      }
+    >
       <Checkbox
         checked={todo.completed}
         label={`Mark "${todo.summary}" ${todo.completed ? 'active' : 'done'}`}
         onToggle={props.onToggle}
       />
-      <button type="button" className="todo__body" onClick={props.onOpen}>
-        <span className="todo__summary">{todo.summary}</span>
-        <span className="todo__meta">
-          {todo.priority && (
-            <span className={`prio prio--${todo.priority}`}>
-              {todo.priority}
-            </span>
-          )}
-          {formatDue(todo) && (
-            <span className={overdue ? 'due due--overdue' : 'due'}>
-              {formatDue(todo)}
-            </span>
-          )}
+      <button type="button" className={styles['body']} onClick={props.onOpen}>
+        <span className={styles['titleRow']}>
+          <span className={styles['summary']}>{todo.summary}</span>
+          <span className={styles['meta']}>
+            {todo.priority && (
+              <span
+                className={
+                  todo.priority === 'high'
+                    ? `${styles['prio']} ${styles['prioHigh']}`
+                    : styles['prio']
+                }
+              >
+                {todo.priority}
+              </span>
+            )}
+            {due && (
+              <span className={overdue ? styles['dueOverdue'] : styles['due']}>
+                {due}
+              </span>
+            )}
+          </span>
         </span>
+        {todo.description && (
+          <span className={styles['description']}>{todo.description}</span>
+        )}
       </button>
     </li>
   )

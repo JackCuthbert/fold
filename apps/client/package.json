@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@base-ui-components/react": "^1.0.0-rc.0",
     "@caldav-todo/outbox": "workspace:*",
     "@caldav-todo/schemas": "workspace:*",
     "@hookform/resolvers": "^5.0.0",
@@ -19,6 +20,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.50.0",
+    "react-icons": "^5.7.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

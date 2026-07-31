@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Header } from './header'
 import { ListNav, useLists } from './lists/list-nav'
+import styles from './main-screen.module.css'
 import { TodoPane } from './todos/todo-pane'
 
 const SELECTED_LIST_KEY = 'caldav-todo:selected-list'
@@ -52,17 +53,17 @@ export function MainScreen() {
   }, [drawerOpen])
 
   return (
-    <div className="layout">
+    <div className={styles['layout']}>
       <Header
         ref={menuRef}
         title={activeList?.displayName ?? 'Todos'}
         onMenu={() => setDrawerOpen((open) => !open)}
       />
-      <div className="layout__body">
+      <div className={styles['body']}>
         {drawerOpen && (
           <button
             type="button"
-            className="layout__scrim"
+            className={styles['scrim']}
             aria-label="Close lists"
             onClick={closeDrawer}
           />
@@ -70,9 +71,7 @@ export function MainScreen() {
         <aside
           ref={drawerRef}
           tabIndex={-1}
-          className={
-            drawerOpen ? 'layout__nav layout__nav--open' : 'layout__nav'
-          }
+          className={drawerOpen ? styles['navOpen'] : styles['nav']}
         >
           <ListNav
             selected={active}
@@ -82,11 +81,11 @@ export function MainScreen() {
             }}
           />
         </aside>
-        <main className="layout__main">
+        <main className={styles['main']}>
           {active ? (
             <TodoPane listId={active} />
           ) : (
-            <p className="empty">Create a list to get started.</p>
+            <p className={styles['empty']}>Create a list to get started.</p>
           )}
         </main>
       </div>

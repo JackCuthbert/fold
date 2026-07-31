@@ -1,0 +1,46 @@
+.pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.list {
+  margin-top: var(--space-4);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-4);
+}
+
+.completed {
+  margin-top: var(--space-6);
+}
+
+.completedToggle {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.chevron {
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.completedToggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.completedList {
+  opacity: 0.75;
+}
+
+.clear {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-1);
+}

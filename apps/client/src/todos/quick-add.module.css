@@ -1,0 +1,11 @@
+.form input {
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--space-3) var(--space-1);
+}
+
+.form input:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}

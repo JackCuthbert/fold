@@ -1,10 +1,12 @@
 import type { TodoList } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { LuPencil, LuX } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { applyMutationToLists } from '../sync/optimistic'
 import { ListNameForm } from './list-form'
+import styles from './list-nav.module.css'
 
 const slug = (): string => crypto.randomUUID()
 
@@ -42,16 +44,16 @@ export function ListNav(props: {
   }
 
   return (
-    <nav className="list-nav" aria-label="Lists">
+    <nav className={styles['nav']} aria-label="Lists">
       <ul>
         {(lists.data ?? []).map((list) => (
-          <li key={list.id}>
+          <li key={list.id} className={styles['item']}>
             <button
               type="button"
               className={
                 list.id === props.selected
-                  ? 'list-nav__item list-nav__item--active'
-                  : 'list-nav__item'
+                  ? `${styles['link']} ${styles['linkActive']}`
+                  : styles['link']
               }
               onClick={() => props.onSelect(list.id)}
             >
@@ -59,19 +61,19 @@ export function ListNav(props: {
             </button>
             <button
               type="button"
-              className="list-nav__action"
+              className={styles['action']}
               aria-label={`Rename ${list.displayName}`}
               onClick={() => setRenaming(list)}
             >
-              ✎
+              <LuPencil aria-hidden="true" size={14} />
             </button>
             <button
               type="button"
-              className="list-nav__action"
+              className={styles['action']}
               aria-label={`Delete ${list.displayName}`}
               onClick={() => setDeleting(list)}
             >
-              ×
+              <LuX aria-hidden="true" size={14} />
             </button>
           </li>
         ))}
@@ -96,7 +98,7 @@ export function ListNav(props: {
       ) : (
         <button
           type="button"
-          className="list-nav__add"
+          className={styles['add']}
           onClick={() => setCreating(true)}
         >
           + New list

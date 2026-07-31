@@ -1,0 +1,33 @@
+/* Peripheral sync status — a quiet dot, not a banner (docs/specs/ui.md). */
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--status-synced);
+  flex: none;
+}
+
+.dot--syncing {
+  background: var(--status-syncing);
+}
+
+.dot--offline {
+  background: var(--status-offline);
+}
+
+/* The dot itself is decorative-sized; the wrapper keeps a comfortable
+   inline footprint without claiming a full 44px hit area — it's not
+   interactive, just a status indicator (docs/specs/ui.md). */
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+}
+
+.label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
