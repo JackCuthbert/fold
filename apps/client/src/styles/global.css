@@ -20,10 +20,17 @@ body {
   color: var(--ink);
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
+  /* docs/specs/ui.md — Base UI: required for iOS Safari so portalled
+     popups (dialogs, selects) position correctly against the viewport. */
+  position: relative;
 }
 
 #root {
   min-height: 100dvh;
+  /* docs/specs/ui.md — Base UI: isolates a new stacking context so
+     portalled popups (dialogs, selects, drawers) stack correctly above
+     app content regardless of z-index elsewhere in the tree. */
+  isolation: isolate;
 }
 
 h1,

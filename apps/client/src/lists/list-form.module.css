@@ -5,9 +5,14 @@
   flex-wrap: wrap;
 }
 
-.form input {
+.field {
   flex: 1;
   min-width: 8rem;
+}
+
+.field :global(input) {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form button {

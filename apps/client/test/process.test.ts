@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Api } from '../src/api/client'
 import { ApiError, NetworkError } from '../src/api/errors'
 import {
+  classifyBlockReason,
   makeProcessMutation,
   TaggedFatalError,
   TaggedRetryableError,
@@ -166,5 +167,29 @@ describe('processMutation', () => {
       reason: 'conflict',
     })
     await expect(process(update)).rejects.toBeInstanceOf(TaggedFatalError)
+  })
+})
+
+describe('classifyBlockReason', () => {
+  // Shared with the query layer so a failed read (getSession/getTodos/
+  // getLists) can report the same blocked reason a failed mutation would —
+  // docs/specs/sync-and-offline.md ("status must reflect reality").
+  it('classifies a NetworkError as offline', () => {
+    expect(classifyBlockReason(new NetworkError('offline'))).toBe('offline')
+  })
+
+  it('classifies any 5xx ApiError as server', () => {
+    for (const status of [500, 502, 503, 504]) {
+      expect(classifyBlockReason(new ApiError(status, {}))).toBe('server')
+    }
+  })
+
+  it('does not classify a 4xx ApiError as blocked', () => {
+    expect(classifyBlockReason(new ApiError(401, {}))).toBeNull()
+    expect(classifyBlockReason(new ApiError(400, {}))).toBeNull()
+  })
+
+  it('does not classify an unrelated error as blocked', () => {
+    expect(classifyBlockReason(new Error('boom'))).toBeNull()
   })
 })

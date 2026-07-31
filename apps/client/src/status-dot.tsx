@@ -4,13 +4,12 @@ export type StatusKind = 'synced' | 'syncing' | 'offline' | 'server'
 
 /**
  * Peripheral sync indicator — a quiet dot, not a banner
- * (docs/specs/ui.md — status display). The dot conveys state by colour;
- * a short label only appears for non-synced states, keeping the common
- * case (synced, nothing queued) silent and unobtrusive. The label text is
- * also what assistive tech and the e2e suite key off (e.g. "Offline · N
- * queued", "Server unreachable", "Syncing N changes").
+ * (docs/specs/ui.md — status display). Healthy is silent (no text, no
+ * chrome); a degraded state is announced separately by the fixed
+ * StatusPill, which carries the full message. The dot itself only ever
+ * conveys state by colour.
  */
-export function StatusDot(props: { kind: StatusKind; label?: string }) {
+export function StatusDot(props: { kind: StatusKind }) {
   const dotClass =
     props.kind === 'synced'
       ? styles['dot']
@@ -20,10 +19,9 @@ export function StatusDot(props: { kind: StatusKind; label?: string }) {
     <span
       className={styles['wrapper']}
       role="status"
-      aria-label={props.label ? undefined : 'Synced'}
+      aria-label={props.kind === 'synced' ? 'Synced' : undefined}
     >
       <span className={dotClass} aria-hidden="true" />
-      {props.label && <span className={styles['label']}>{props.label}</span>}
     </span>
   )
 }

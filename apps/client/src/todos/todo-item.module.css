@@ -7,6 +7,11 @@
 .todo {
   display: flex;
   align-items: flex-start;
+  /* Gap, not padding, between the checkbox and the body — a gap doesn't
+     add a leading inset before the first child, so the checkbox's visible
+     ring (pulled to the row's edge in checkbox.module.css) stays on the
+     shared column edge (docs/specs/ui.md — one left edge). */
+  gap: var(--space-1);
   border-bottom: 1px solid var(--line);
   animation: todo-in var(--duration-slow) var(--ease);
 }
@@ -34,7 +39,12 @@
   padding-top: calc(
     (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
   );
-  padding-inline: var(--space-1);
+  /* docs/specs/ui.md — one left edge: the checkbox's hit area already pulls
+     itself back to the shared column edge (see checkbox.module.css), so
+     the body must not add its own left inset on top of that or the text
+     would be indented again. Keep a small trailing inset for symmetry with
+     the row's right edge. */
+  padding-inline: 0 var(--space-1);
   text-align: left;
   /* One line for the title row (matches the 44px checkbox hit area) plus
      room for an optional description line — set on .body so the row

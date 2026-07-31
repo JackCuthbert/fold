@@ -28,6 +28,12 @@
   gap: var(--space-1);
   font-size: var(--text-sm);
   color: var(--muted);
+  min-width: 0;
+}
+
+.field :global(input) {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .error {

@@ -1,4 +1,4 @@
-import { Collapsible } from '@base-ui-components/react/collapsible'
+import { Collapsible } from '@base-ui/react/collapsible'
 import type { Todo, TodosResponse } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'

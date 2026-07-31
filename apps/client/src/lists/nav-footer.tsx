@@ -1,71 +1,55 @@
-import { useIsFetching } from '@tanstack/react-query'
+import { Toggle } from '@base-ui/react/toggle'
+import { Toolbar } from '@base-ui/react/toolbar'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
 import { api, queryClient, useOnline, useSyncStatus } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { StatusDot, type StatusKind } from '../status-dot'
 import styles from './nav-footer.module.css'
 
-// docs/specs/ui.md — status display: peripheral, not prominent. The dot
-// conveys state by colour; a short label is only shown for non-synced
-// states so the common case (nothing queued) stays silent.
+// docs/specs/ui.md — status display: healthy is a quiet dot with no text;
+// a degraded state (offline, server unreachable, or work queued) is shown
+// by the separate fixed StatusPill, not here — the footer stays silent in
+// the common case.
 function statusFor(
   online: boolean,
   blocked: 'offline' | 'server' | null,
   pending: number,
-  fetching: number,
-): { kind: StatusKind; label?: string } {
-  if (!online) {
-    return {
-      kind: 'offline',
-      label: `Offline${pending > 0 ? ` · ${pending} queued` : ''}`,
-    }
-  }
-  if (blocked === 'server') {
-    return {
-      kind: 'server',
-      label: `Server unreachable${pending > 0 ? ` · ${pending} queued` : ''}`,
-    }
-  }
-  if (pending > 0) {
-    return {
-      kind: 'syncing',
-      label: `Syncing ${pending} change${pending === 1 ? '' : 's'}`,
-    }
-  }
-  if (fetching > 0) {
-    return { kind: 'syncing', label: 'Refreshing' }
-  }
-  return { kind: 'synced' }
+): StatusKind {
+  if (!online) return 'offline'
+  if (blocked === 'server') return 'server'
+  if (pending > 0) return 'syncing'
+  return 'synced'
 }
 
 // docs/specs/ui.md — layout: no top bar. Configuration (sign out, sound
 // toggle, sync status) lives at the bottom of the left nav instead.
+// The mute toggle and sign-out button are grouped controls, so they use
+// Base UI's Toolbar (docs/specs/ui.md — component library) rather than
+// plain buttons in a row.
 export function NavFooter() {
   const online = useOnline()
   const { pending, blocked } = useSyncStatus()
-  const fetching = useIsFetching()
   const { muted, toggleMuted } = useSound()
-  const status = statusFor(online, blocked, pending, fetching)
+  const kind = statusFor(online, blocked, pending)
 
   return (
-    <div className={styles['footer']}>
+    <Toolbar.Root className={styles['footer']} aria-label="Status and settings">
       <div className={styles['status']}>
-        <StatusDot {...status} />
+        <StatusDot kind={kind} />
       </div>
-      <button
-        type="button"
+      <Toolbar.Button
+        render={<Toggle pressed={muted} onPressedChange={toggleMuted} />}
         className={styles['iconButton']}
         aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
-        onClick={toggleMuted}
       >
         {muted ? (
           <LuVolumeOff aria-hidden="true" size={16} />
         ) : (
           <LuVolume2 aria-hidden="true" size={16} />
         )}
-      </button>
-      <button
-        type="button"
+      </Toolbar.Button>
+      <Toolbar.Separator className={styles['separator']} />
+      <Toolbar.Button
         className={styles['signOut']}
         onClick={() => {
           // Outbox is preserved; it replays after the next sign-in
@@ -75,7 +59,7 @@ export function NavFooter() {
         }}
       >
         Sign out
-      </button>
-    </div>
+      </Toolbar.Button>
+    </Toolbar.Root>
   )
 }

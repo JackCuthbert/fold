@@ -14,6 +14,13 @@
   overflow: hidden;
 }
 
+.separator {
+  width: 1px;
+  height: var(--space-4);
+  background: var(--line);
+  margin-inline: var(--space-1);
+}
+
 .iconButton {
   display: flex;
   align-items: center;
@@ -22,6 +29,10 @@
   height: var(--hit-area);
   color: var(--muted);
   flex: none;
+}
+
+.iconButton[data-pressed] {
+  color: var(--accent);
 }
 
 .signOut {

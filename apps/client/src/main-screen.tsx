@@ -1,4 +1,4 @@
-import { Dialog } from '@base-ui-components/react/dialog'
+import { Dialog } from '@base-ui/react/dialog'
 import { useState, type ReactNode } from 'react'
 import { LuMenu } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'

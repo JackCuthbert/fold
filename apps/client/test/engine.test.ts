@@ -361,4 +361,59 @@ describe('sync engine', () => {
     expect(engine.getStatus()).toEqual({ pending: 0, blocked: null })
     engine.stop()
   })
+
+  it('reportHealthy clears a stale blocked reason from a successful read', async () => {
+    // Regression (docs/specs/sync-and-offline.md — "Status must reflect
+    // reality"): `blocked` was previously only ever touched by the
+    // outbox's own mutation-processing loop. If it was set by a failed
+    // mutation attempt and the outbox then sits idle waiting on its next
+    // backoff-scheduled retry (still pending > 0, so `notify` won't clear
+    // it either), nothing re-evaluated it — even though ordinary reads
+    // (getSession/getTodos/getLists) were succeeding the whole time and
+    // proving the server is actually reachable. This is exactly the "signed
+    // in, everything healthy, yet Server unreachable" report: a successful
+    // read must be able to clear it immediately, without waiting for the
+    // next queued-mutation retry.
+    const createTodo = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(502, { error: 'caldav_unreachable' }))
+      .mockImplementation(() => new Promise(() => {})) // never resolves
+    const engine = await createSyncEngine({
+      api: fakeApi({ createTodo }),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(mutation)
+    await vi.waitFor(() => expect(engine.getStatus().blocked).toBe('server'))
+    // The outbox is still non-empty (the second attempt never resolves),
+    // so nothing about the mutation loop itself would clear `blocked` here
+    // — only a successful read reporting in does.
+    expect(engine.getStatus().pending).toBe(1)
+    engine.reportHealthy()
+    expect(engine.getStatus().blocked).toBeNull()
+    engine.stop()
+  })
+
+  it('reportUnhealthy sets a blocked reason from a failed read', async () => {
+    // Symmetric case: a failed read is also "current conditions" and
+    // should surface immediately, not only once a mutation happens to be
+    // queued and attempted.
+    const engine = await createSyncEngine({
+      api: fakeApi({}),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    expect(engine.getStatus().blocked).toBeNull()
+    engine.reportUnhealthy('server')
+    expect(engine.getStatus().blocked).toBe('server')
+    engine.stop()
+  })
 })

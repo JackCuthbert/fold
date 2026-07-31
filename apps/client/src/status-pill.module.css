@@ -1,0 +1,29 @@
+/*
+ * docs/specs/ui.md — status display: degraded is a fixed, persistent pill
+ * at the bottom of the viewport, centred, above the content. It never
+ * blocks interaction — no backdrop, no focus trap, pointer-events stay on
+ * for the rest of the page.
+ */
+.pill {
+  position: fixed;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  max-width: calc(100vw - var(--space-8));
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  text-align: center;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+  animation: pill-in var(--duration-base) var(--ease);
+}
+
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}

@@ -1,5 +1,8 @@
+import { Field } from '@base-ui/react/field'
+import { Form } from '@base-ui/react/form'
+import { Input } from '@base-ui/react/input'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import styles from './list-form.module.css'
 
@@ -12,20 +15,38 @@ export function ListNameForm(props: {
   onSubmit: (displayName: string) => void
   onCancel: () => void
 }) {
-  const { register, handleSubmit } = useForm<ListForm>({
+  const { control, handleSubmit } = useForm<ListForm>({
     resolver: zodResolver(listFormSchema),
     defaultValues: { displayName: props.initial ?? '' },
   })
   return (
-    <form
+    <Form
       className={styles['form']}
       onSubmit={handleSubmit((values) => props.onSubmit(values.displayName))}
     >
-      <input autoFocus placeholder="List name" {...register('displayName')} />
+      <Controller
+        name="displayName"
+        control={control}
+        render={({
+          field: { ref, name, value, onBlur, onChange },
+          fieldState: { invalid },
+        }) => (
+          <Field.Root className={styles['field']} name={name} invalid={invalid}>
+            <Input
+              ref={ref}
+              autoFocus
+              placeholder="List name"
+              value={value}
+              onBlur={onBlur}
+              onValueChange={onChange}
+            />
+          </Field.Root>
+        )}
+      />
       <button type="submit">{props.submitLabel}</button>
       <button type="button" onClick={props.onCancel}>
         Cancel
       </button>
-    </form>
+    </Form>
   )
 }

@@ -217,6 +217,25 @@ export async function createSyncEngine(options: SyncEngineOptions) {
       return () => listeners.delete(listener)
     },
     /**
+     * Status must be derived from current conditions, never latched
+     * history (docs/specs/sync-and-offline.md). `blocked` is otherwise
+     * only ever touched by the outbox's own mutation-processing loop, so
+     * it can go stale for as long as the backoff timer between mutation
+     * attempts if nothing else re-evaluates it — even while ordinary reads
+     * (getSession/getTodos/getLists) are succeeding and proving the server
+     * is reachable. Call this from any successful API call, mutation or
+     * read alike, to clear a stale blocked reason immediately rather than
+     * waiting for the next queued-mutation retry.
+     */
+    reportHealthy: (): void => setBlocked(null),
+    /**
+     * Symmetric with reportHealthy: a failed read (not just a failed
+     * queued mutation) is also "current conditions" and should set the
+     * blocked reason immediately, so the pill reflects reality without
+     * waiting for a mutation to be queued and attempted.
+     */
+    reportUnhealthy: (reason: BlockReason): void => setBlocked(reason),
+    /**
      * Re-apply every still-queued mutation for `listId` on top of
      * server-fetched todos, so a refetch never overrides a pending local
      * change. Call this on the result of every todos fetch before it

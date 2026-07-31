@@ -1,7 +1,7 @@
 import { memoryStorage, type FatalError } from '@caldav-todo/outbox'
 import type { Mutation } from '@caldav-todo/schemas'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import { QueryClient } from '@tanstack/react-query'
+import { QueryCache, QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { del, get, set } from 'idb-keyval'
 import {
@@ -19,12 +19,31 @@ import {
   type SyncStatus,
 } from './sync/engine'
 import { idbStorage } from './sync/idb-storage'
-import { TaggedFatalError } from './sync/process'
+import { classifyBlockReason, TaggedFatalError } from './sync/process'
 import { useToast } from './toast'
 
 export const api: Api = createApi()
 
+// Status must reflect current conditions, never latched history
+// (docs/specs/sync-and-offline.md). `blocked` would otherwise only ever be
+// touched by the outbox's own mutation-processing loop, so it can stay
+// stale for as long as the backoff timer between mutation attempts even
+// while ordinary reads (getSession/getTodos/getLists) are succeeding or
+// failing right now. This holder lets the QueryCache's global hooks below
+// reach the engine created later, without restructuring `queryClient`
+// (module-level, created before the engine mounts) around it.
+let syncEngineForQueryHealth: SyncEngine | null = null
+
+const queryCache = new QueryCache({
+  onSuccess: () => syncEngineForQueryHealth?.reportHealthy(),
+  onError: (error) => {
+    const reason = classifyBlockReason(error)
+    if (reason) syncEngineForQueryHealth?.reportUnhealthy(reason)
+  },
+})
+
 export const queryClient = new QueryClient({
+  queryCache,
   defaultOptions: {
     queries: {
       gcTime: 7 * 24 * 60 * 60 * 1000,
@@ -139,12 +158,16 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }).then((instance) => {
       if (cancelled) return
       created = instance
+      syncEngineForQueryHealth = instance
       instance.start()
       setEngine(instance)
     })
     return () => {
       cancelled = true
       created?.stop()
+      if (syncEngineForQueryHealth === created) {
+        syncEngineForQueryHealth = null
+      }
     }
   }, [toast])
 

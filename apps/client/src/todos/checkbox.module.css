@@ -9,6 +9,14 @@
   width: var(--hit-area);
   height: var(--hit-area);
   flex: none;
+  /* docs/specs/ui.md — one left edge: the hit area is wider than the
+     visible checkbox so touch targets stay >=44px, but that invisible
+     padding must not push the row's visible content off the column's
+     shared left edge. Pull the hit area back by its own inset so the
+     *visible* checkbox ring lands on the shared edge; the touch target
+     still extends the full 44px, just centered on the ring rather than
+     on the row's padding-box. */
+  margin-left: calc((var(--checkbox-size) - var(--hit-area)) / 2);
 }
 
 .box {

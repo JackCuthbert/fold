@@ -42,6 +42,16 @@ drawers, checkboxes, fields, and forms all use its primitives, so focus
 handling, keyboard behaviour and ARIA are consistent everywhere and are not
 re-implemented per component.
 
+*(clarified 2026-07-31: the mobile nav overlay and the todo detail sheet
+use Base UI's `Dialog`, not `Drawer`. Base UI's own docs describe `Drawer`
+as `Dialog` plus swipe-to-dismiss gestures, snap points and indent effects
+— "a panel that slides in from the edge of the screen and doesn't need
+gesture support is a positioned Dialog." Neither surface here needs swipe
+gestures; both are already positioned with CSS exactly like the rest of the
+app. Adopting `Drawer` would add unused surface area (swipe physics, snap
+points, a virtual-keyboard provider) for no behavioural gain, so `Dialog`
+is the correct choice per Base UI's own guidance, not a shortcut.)*
+
 - Base UI ships no styles; all appearance comes from our CSS Modules and
   design tokens.
 - The app root sets `isolation: isolate` so portalled popups stack

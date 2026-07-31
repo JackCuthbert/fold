@@ -14,6 +14,17 @@ const freshEtag = (error: ApiError): string | null => {
 
 export type BlockReason = 'offline' | 'server'
 
+// Shared with the query layer (docs/specs/sync-and-offline.md — "Status
+// must reflect reality"): ordinary reads (getSession/getTodos/getLists)
+// never go through the outbox, so they need the same offline/server
+// classification the mutation path uses in order to report a blocked
+// reason from a failed read too, not just a failed queued mutation.
+export const classifyBlockReason = (error: unknown): BlockReason | null => {
+  if (error instanceof NetworkError) return 'offline'
+  if (error instanceof ApiError && error.status >= 500) return 'server'
+  return null
+}
+
 export class TaggedRetryableError extends RetryableError {
   reason: BlockReason
   constructor(reason: BlockReason, message: string, options?: ErrorOptions) {

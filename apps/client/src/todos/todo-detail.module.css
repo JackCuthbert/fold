@@ -49,6 +49,11 @@
   flex-direction: column;
   gap: var(--space-4);
   overflow-y: auto;
+  /* docs/specs/ui.md — inputs fit their container: without min-width: 0 a
+     flex column's children default to min-width: auto, which can push a
+     100%-wide input wider than the scrollable column and collide with the
+     scrollbar. */
+  min-width: 0;
 }
 
 .field {
@@ -57,6 +62,73 @@
   gap: var(--space-1);
   font-size: var(--text-sm);
   color: var(--muted);
+  min-width: 0;
+}
+
+.field :global(input),
+.field :global(textarea),
+.field :global(button) {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+.selectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--hit-area);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-input);
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+}
+
+.selectIcon {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  flex: none;
+}
+
+.selectPositioner {
+  z-index: 42;
+}
+
+.selectPopup {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-1);
+  max-height: var(--available-height, 16rem);
+  overflow-y: auto;
+}
+
+.selectItem {
+  display: flex;
+  align-items: center;
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  cursor: pointer;
+}
+
+.selectItem[data-highlighted] {
+  background: var(--line);
 }
 
 .actions {
