@@ -1,6 +1,22 @@
 import { expect, type Page } from '@playwright/test'
 
-export const CALDAV_URL = 'http://127.0.0.1:5233/e2e-user/'
+// Set by global-setup.ts, which runs once in Playwright's root process
+// before any worker spawns, to the throwaway Docker container's
+// Docker-assigned host port — see helpers/radicale-container.ts. Worker
+// processes inherit it because Node subprocesses inherit their parent's
+// environment by default.
+function requireCaldavUrl(): string {
+  const base = process.env['E2E_CALDAV_URL']
+  if (!base) {
+    throw new Error(
+      'E2E_CALDAV_URL is not set — global-setup.ts should have set it ' +
+        'after starting the throwaway Radicale container',
+    )
+  }
+  return `${base}/e2e-user/`
+}
+
+export const CALDAV_URL = requireCaldavUrl()
 
 export async function login(page: Page): Promise<void> {
   await page.goto('/')

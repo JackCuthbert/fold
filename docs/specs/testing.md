@@ -19,7 +19,12 @@ never assert that a defined schema equals its definition.
 
 ## Integration (vitest, CI)
 
-API tests against a **real Radicale instance** (spawned in CI via pip/uv):
+API tests against a **real Radicale instance**, spawned as a throwaway
+Docker container per run (never a `radicale` binary on PATH — see
+`apps/server/test/integration/helpers/radicale.ts` and
+`e2e/helpers/radicale-container.ts`; *(changed 2026-07-31: previously
+installed via pip/uv, which violated the "never install system/user-wide"
+rule in CLAUDE.md)*):
 
 - Full CRUD for lists and todos.
 - Conflict scenarios (412 paths).

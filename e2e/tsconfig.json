@@ -12,7 +12,11 @@
       "ESNext.Iterator",
       "ESNext.Promise",
       "DOM"
-    ]
+    ],
+    // playwright.config.ts, global-setup.ts and helpers/ run under Node
+    // (Playwright's own runtime, not Bun — see
+    // helpers/radicale-container.ts) and need `process`/`node:*` types.
+    "types": ["node"]
   },
-  "include": ["tests", "playwright.config.ts"]
+  "include": ["tests", "helpers", "playwright.config.ts", "global-setup.ts"]
 }
