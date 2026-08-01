@@ -140,9 +140,14 @@
   color: var(--danger);
 }
 
+/* docs/specs/ui.md — hover is a whisper. This used to flood the button
+   with solid --danger and invert the text, which was by far the loudest
+   hover in the app — and on the one control where a startling response is
+   least wanted. A faint tint of the same red matches the weight of every
+   other hover while still reading unmistakably as destructive; the border
+   and ink already carry that meaning at rest. */
 .destructive:hover {
-  background: var(--danger);
-  color: var(--surface);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
 }
 
 /* docs/specs/ui.md — accessibility: destructive controls need a focus

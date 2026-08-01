@@ -13,12 +13,17 @@
    sit inside it with square abutting inner corners and no border/radius
    of their own, so only the outer corners round. `overflow: hidden` clips
    both segments' backgrounds to the outer radius. */
+/* docs/specs/ui.md — buttons carry a very slight shadow. It goes on the
+   segmented shell rather than on `.link`/the kebab inside it: those are two
+   halves of one control, so a shadow on each would draw a seam down the
+   middle. */
 .item {
   display: flex;
   align-items: stretch;
   border: var(--border-width) solid var(--line);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  box-shadow: var(--shadow-button);
 }
 
 /* docs/specs/ui.md — the nav: list rows are full width — the name takes

@@ -30,11 +30,19 @@
   opacity: 0.6;
 }
 
+/* The kebab is the other half of the same segmented control as the list
+   title, so its hover must be the identical wash — a solid --line fill
+   here made one half of one button look markedly heavier than the other
+   (docs/specs/ui.md — hover is a whisper). */
 .trigger:hover,
 .trigger[data-popup-open] {
   color: var(--ink);
-  background: var(--line);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
   opacity: 1;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    opacity var(--duration-fast) var(--ease);
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an
@@ -93,5 +101,7 @@
 }
 
 .destructive[data-highlighted] {
-  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  /* Matches the destructive button's hover tint (button.module.css) so
+     the two feel like one treatment. */
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
 }
