@@ -68,7 +68,22 @@ export const dueInstant = (todo: Todo): number => {
 export const isOverdue = (todo: Todo, now: Date): boolean =>
   dueInstant(todo) < now.getTime()
 
-// Sort order per docs/specs/todos.md: overdue, due date, priority, stable.
+// Sort order per docs/specs/todos.md: overdue, due date, priority, then
+// oldest-first by creation time.
+//
+// That last comparison is what keeps a newly-created todo from jumping. The
+// server's own todo order is arbitrary (Radicale returns resources in
+// filesystem order of their UUID-named files — the same problem
+// docs/specs/lists.md describes for collections), so for the common case of
+// a todo with neither a due date nor a priority, *every* comparison above
+// ties and the incoming server order decided placement. An optimistic
+// insert can't predict that order, so the new todo sat where it was
+// appended and then moved once the server response landed. CREATED is
+// client-stamped, written once, and identical before and after the
+// round-trip, so ordering by it puts the new todo at the end — where it was
+// added — and keeps it there. Todos with no CREATED (written by another
+// client) sort before those that have one, keeping them in a stable block
+// rather than interleaving unpredictably. *(fixed 2026-08-01.)*
 export function sortActiveTodos(todos: readonly Todo[], now: Date): Todo[] {
   return todos.toSorted((a, b) => {
     const overdue = Number(isOverdue(b, now)) - Number(isOverdue(a, now))
@@ -82,6 +97,8 @@ export function sortActiveTodos(todos: readonly Todo[], now: Date): Todo[] {
     const priority =
       PRIORITY_RANK[a.priority ?? 'low'] - PRIORITY_RANK[b.priority ?? 'low']
     if (priority !== 0 && (a.priority || b.priority)) return priority
-    return 0
+    // ISO-8601 UTC strings compare lexicographically. '' sorts before any
+    // real timestamp, so CREATED-less todos form a stable leading block.
+    return (a.created ?? '').localeCompare(b.created ?? '')
   })
 }

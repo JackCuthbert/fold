@@ -23,7 +23,20 @@ describe('createTodoIcs', () => {
       due: { kind: 'date', value: '2026-08-01' },
       priority: 'high',
       description: 'The ferns too',
+      // Falls back to `now` when the input carries no CREATED of its own.
+      created: NOW.toISOString(),
     })
+  })
+
+  // The ordering fix (docs/specs/todos.md — ordering) depends on the
+  // client's own CREATED surviving the round-trip untouched: if the codec
+  // substituted its own stamp, the optimistic placeholder and the stored
+  // copy would sort differently and a new todo would jump.
+  it('preserves a caller-supplied created stamp', () => {
+    const created = '2026-01-02T03:04:05.000Z'
+    const ics = createTodoIcs({ uid: 'c1', summary: 's', created }, NOW)
+    expect(readTodo(ics)?.created).toBe(created)
+    expect(ics).toContain('CREATED:20260102T030405Z')
   })
 
   it('is deterministic for a fixed now', () => {

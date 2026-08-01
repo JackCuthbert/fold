@@ -35,6 +35,11 @@ export const todoSchema = z.object({
   due: todoDueSchema.optional(),
   description: z.string().optional(),
   priority: todoPrioritySchema.optional(),
+  // RFC 5545 CREATED, ISO-8601 UTC. Optional — todos written by other
+  // clients need not carry one. Read-only: the client uses it purely as a
+  // stable ordering tie-break (docs/specs/todos.md — ordering), so a new
+  // todo lands where the server copy will and never jumps.
+  created: z.iso.datetime().optional(),
 })
 export type Todo = z.infer<typeof todoSchema>
 
@@ -44,6 +49,11 @@ export const newTodoSchema = z.object({
   due: todoDueSchema.optional(),
   description: z.string().optional(),
   priority: todoPrioritySchema.optional(),
+  // Set by the client at creation time so the optimistic placeholder sorts
+  // exactly where the server copy will (docs/specs/todos.md — ordering).
+  // The server writes this straight through to CREATED rather than
+  // stamping its own, so the two can't disagree.
+  created: z.iso.datetime().optional(),
 })
 export type NewTodo = z.infer<typeof newTodoSchema>
 

@@ -20,8 +20,17 @@ export function useTodoActions(listId: string) {
   }
 
   return {
+    // Stamp `created` here, client-side, rather than letting the server do
+    // it: the optimistic placeholder and the stored copy must carry the
+    // same value or they'd sort differently and the new todo would jump
+    // when the response landed (docs/specs/todos.md — ordering).
     add: (todo: NewTodo) =>
-      mutate({ id: crypto.randomUUID(), kind: 'createTodo', listId, todo }),
+      mutate({
+        id: crypto.randomUUID(),
+        kind: 'createTodo',
+        listId,
+        todo: { created: new Date().toISOString(), ...todo },
+      }),
     update: (todo: Todo, changes: TodoChanges) =>
       mutate({
         id: crypto.randomUUID(),

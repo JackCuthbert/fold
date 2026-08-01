@@ -10,6 +10,13 @@ export interface VtodoData {
   due?: TodoDue
   description?: string
   priority?: TodoPriority
+  /**
+   * RFC 5545 §3.8.7.1 CREATED, as an ISO-8601 UTC string. Optional: it is
+   * not a required VTODO property, so todos written by other clients may
+   * not carry one. Used only as a stable ordering tie-break
+   * (docs/specs/todos.md — ordering); never written back except on create.
+   */
+  created?: string
 }
 
 export function readTodo(ics: string): VtodoData | null {
@@ -32,6 +39,13 @@ export function readTodo(ics: string): VtodoData | null {
     ? (dueFromProperty(dueProperty) ?? undefined)
     : undefined
   const priority = priorityFromNumber(vtodo.getFirstPropertyValue('priority'))
+  // ICAL.Time (or absent). Normalised to an ISO-8601 UTC string so the
+  // value compares lexicographically and survives JSON transport.
+  const createdValue = vtodo.getFirstPropertyValue('created')
+  const created =
+    createdValue instanceof ICAL.Time
+      ? createdValue.toJSDate().toISOString()
+      : undefined
 
   return {
     uid,
@@ -42,5 +56,6 @@ export function readTodo(ics: string): VtodoData | null {
       ? { description }
       : {}),
     ...(priority ? { priority } : {}),
+    ...(created ? { created } : {}),
   }
 }

@@ -74,6 +74,30 @@ is what "overdue" means to the person reading the list:
 This resolution is for display ordering only — it must never be written back
 to the server ([caldav-compliance](./caldav-compliance.md)).
 
+Active todos sort by: overdue first, then due date, then priority, then
+**oldest-created first**.
+
+That last key is not cosmetic — it is what stops a newly-added todo from
+jumping. A CalDAV server's own todo order is arbitrary (Radicale returns
+resources in filesystem order of their UUID-named files, the same problem
+[lists](./lists.md) describes for collections), so a todo with neither a
+due date nor a priority — the common case — ties on every other key and
+would otherwise take whatever position the server happened to return. The
+optimistic insert appends it locally; the server response then moved it.
+
+To make the two agree, the client stamps `CREATED` (RFC 5545 §3.8.7.1) at
+creation time and the server writes that value through rather than
+substituting its own. Because the value is identical before and after the
+round-trip, the client can place a new todo exactly where the server copy
+will land: at the end, where it was added, and it stays there. `CREATED` is
+written once and never rewritten on edit — unlike `DTSTAMP`, which tracks
+last-modified and so would reshuffle the list on every change.
+
+Todos with no `CREATED` (written by another client, or predating this
+behaviour) sort ahead of those that have one, keeping them in a stable
+block rather than interleaving unpredictably. *(added 2026-08-01: new todos
+visibly re-ordered after being added.)*
+
 ## Behavior
 
 - **Quick add:** input at the top of the todo pane; Enter adds and keeps

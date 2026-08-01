@@ -38,6 +38,12 @@ Updates never regenerate a VTODO from our model. The flow, implemented in
 3. Mutate **only managed properties** ([todos](./todos.md)): `SUMMARY`,
    `STATUS`, `PERCENT-COMPLETE`, `COMPLETED`, `DUE`, `DESCRIPTION`,
    `PRIORITY`, `DTSTAMP`, `LAST-MODIFIED`, `SEQUENCE` (incremented).
+   `CREATED` is written **once, on create, and never on update** — it is
+   the stable ordering key ([todos](./todos.md) — ordering), so rewriting
+   it on edit would reshuffle the list every time a todo changed. On
+   create the client's own timestamp is written through rather than
+   replaced with server time, so the optimistic copy and the stored copy
+   sort identically. *(added 2026-08-01.)*
 4. Serialize the whole calendar object back — VALARMs, X-properties,
    RELATED-TO, RRULE, unknown components, and other VTODOs in the same
    resource all pass through untouched.

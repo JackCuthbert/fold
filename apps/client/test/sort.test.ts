@@ -31,6 +31,49 @@ describe('sortActiveTodos', () => {
     ])
   })
 
+  // docs/specs/todos.md — ordering. The bug this guards: todos that tie on
+  // every content rule used to keep whatever order the server returned, and
+  // the server's order is arbitrary. A newly-created todo was appended
+  // locally, then moved when the response landed in a different order.
+  it('orders todos that tie on content by creation time, not arrival order', () => {
+    const items = [
+      todo('third', { created: '2026-07-30T10:00:03.000Z' }),
+      todo('first', { created: '2026-07-30T10:00:01.000Z' }),
+      todo('second', { created: '2026-07-30T10:00:02.000Z' }),
+    ]
+    const order = sortActiveTodos(items, NOW).map((t) => t.uid)
+    expect(order).toEqual(['first', 'second', 'third'])
+    // Same set, different arrival order — same result, which is the whole
+    // point: the client can predict where a new todo will land.
+    expect(sortActiveTodos(items.toReversed(), NOW).map((t) => t.uid)).toEqual(
+      order,
+    )
+  })
+
+  it('keeps a newly-created todo at the end rather than moving it', () => {
+    const existing = [
+      todo('a', { created: '2026-07-30T10:00:00.000Z' }),
+      todo('b', { created: '2026-07-30T10:00:01.000Z' }),
+    ]
+    const added = todo('new', { created: '2026-07-30T11:00:00.000Z' })
+    // Optimistic insert appends; the server may return it anywhere.
+    const optimistic = sortActiveTodos([...existing, added], NOW)
+    const fromServer = sortActiveTodos([added, ...existing], NOW)
+    expect(optimistic.map((t) => t.uid)).toEqual(['a', 'b', 'new'])
+    expect(fromServer.map((t) => t.uid)).toEqual(optimistic.map((t) => t.uid))
+  })
+
+  it('groups todos without a creation stamp ahead of those with one', () => {
+    const items = [
+      todo('stamped', { created: '2026-07-30T10:00:00.000Z' }),
+      todo('legacy'),
+    ]
+    expect(sortActiveTodos(items, NOW).map((t) => t.uid)).toEqual([
+      'legacy',
+      'stamped',
+    ])
+  })
+
   it('date-only due is overdue only after the whole day has passed', () => {
     expect(
       isOverdue(todo('t', { due: { kind: 'date', value: '2026-07-30' } }), NOW),
