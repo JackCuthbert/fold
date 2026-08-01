@@ -44,6 +44,22 @@ just-completed todo could visibly revert.)*
 - A dropped (fatal) mutation still refetches, since the cache is then known
   to be wrong.
 
+### Renaming a persisted key
+
+Persisted keys are part of the data contract, not just names. Changing one
+without migrating it silently discards whatever it held — for the outbox
+that means **losing writes the user made offline that have not yet reached
+the server**.
+
+So any rename must copy first and delete second, and must be safe to re-run
+(a tab closed midway, a quota error): skip when the source is absent, and
+let a value already present at the destination win, so a stale copy can
+never clobber a newer one. The migration runs before the app mounts, since
+the sync loop reads the queue as soon as the tree renders.
+
+*(added 2026-08-01: the project rename from `caldav-todo*` to `fold*` moved
+every persisted key — see `apps/client/src/storage-migration.ts`.)*
+
 ## Writes (the outbox)
 
 `packages/outbox` — a generic durable FIFO mutation queue with an injectable

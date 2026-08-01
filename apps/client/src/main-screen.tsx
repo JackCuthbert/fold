@@ -10,12 +10,12 @@ import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
 import { useMediaQuery } from './use-media-query'
 
-const SELECTED_LIST_KEY = 'caldav-todo:selected-list'
+const SELECTED_LIST_KEY = 'fold:selected-list'
 // docs/specs/ui.md — the nav: collapsible on desktop too, pinned open by
 // default (chosen as the least disruptive default — the desktop nav has
 // always been visible, so opting *out* of it should be the explicit
 // action). Persisted so a deliberate collapse survives a reload.
-const NAV_PINNED_KEY = 'caldav-todo:nav-pinned'
+const NAV_PINNED_KEY = 'fold:nav-pinned'
 // Matches the `min-width: 768px` breakpoint in main-screen.module.css where
 // the nav switches from an overlay drawer to a permanently pinned sidebar.
 const DESKTOP_QUERY = '(min-width: 768px)'

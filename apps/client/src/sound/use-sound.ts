@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { playPop as pop } from './pop'
 
-const KEY = 'caldav-todo-muted'
+const KEY = 'fold-muted'
 const listeners = new Set<() => void>()
 
 const isMuted = (): boolean => localStorage.getItem(KEY) === '1'
