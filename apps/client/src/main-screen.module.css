@@ -198,6 +198,16 @@
    left edges even though both used the same measure and padding token —
    one left edge, docs/specs/ui.md — needs one shared width to centre
    within, not just one padding value.)* */
+/* docs/specs/ui.md — one left edge: `.mainScroll` below holds a stable
+   scrollbar gutter, which permanently narrows its content box by the
+   scrollbar's width. `scrollbar-gutter` only applies to scroll containers,
+   and this header isn't one, so it mirrors that reserved width as an
+   inline-end padding instead — otherwise `.headerRow` centres in a box
+   that's a scrollbar wider than the one `.mainScrollInner` centres in, and
+   the title sits half a scrollbar right of the list. `--scrollbar-gutter`
+   is measured once at runtime (main-screen.tsx) because the width is
+   platform-dependent — 15px on Windows/Linux, 0 where the OS draws overlay
+   scrollbars. *(fixed 2026-08-01.)* */
 .header {
   position: sticky;
   top: 0;
@@ -205,6 +215,7 @@
   flex: none;
   background: var(--paper);
   padding: var(--space-4) 0;
+  padding-inline-end: var(--scrollbar-gutter, 0px);
 
   display: flex;
   flex-direction: column;
@@ -233,10 +244,20 @@
    scrolling: the scrollbar sits at the pane's edge, not mid-view; this is
    the same padding-on-the-wrong-element fix as `.navScroll`/`.form`
    elsewhere, applied here structurally instead of just cosmetically). */
+/* docs/specs/ui.md — one left edge: reserve the scrollbar's gutter whether
+   or not a scrollbar is showing. `.header` is a sibling of this scroller,
+   not a child of it, so a scrollbar appearing here narrows only this box —
+   `.mainScrollInner` then centres in a narrower width than `.headerRow`
+   does and the list visibly shifts left of the title while the sticky
+   header stays put. Holding the gutter open keeps the scroller one width at
+   every list length, so nothing moves when a list grows past a screenful.
+   `.header` mirrors the same gutter (see below) so the two still centre in
+   the same width. *(fixed 2026-08-01.)* */
 .mainScroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 /* Centred measure lives here, one level inside the scroller, so padding
