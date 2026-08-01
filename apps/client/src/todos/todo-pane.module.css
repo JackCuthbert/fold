@@ -2,8 +2,8 @@
    pane in with a slight downward move. Applied here, on the parent, rather
    than per row: animating each row made the parts arrive separately, like
    a stagger of unrelated elements instead of one view. This covers the
-   active list, the empty state and the completed accordion (header
-   included) in a single motion.
+   active list and the completed accordion (header included) in a single
+   motion.
    Keyed by list id in todo-pane.tsx so React remounts the pane — and so
    replays this — on every list switch. Disabled under
    prefers-reduced-motion by the global rule in global.css. */
@@ -29,12 +29,6 @@
    own. */
 .list {
   margin-top: 0;
-}
-
-.empty {
-  color: var(--muted);
-  font-size: var(--text-sm);
-  margin-top: var(--space-4);
 }
 
 .completed {

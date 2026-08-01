@@ -48,6 +48,13 @@ export function TodoPane(props: {
   const [showCompleted, setShowCompleted] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
 
+  // docs/specs/todos.md — ordering: sorting happens here, on read, so the
+  // list is always in sorted order — including the moment a todo is created.
+  // The optimistic placeholder is appended to the cache (sync/optimistic.ts)
+  // and this sort immediately places it, so a new todo appears directly in
+  // its final position rather than landing at the bottom and jumping.
+  // `now` is captured once per render so every comparison in one pass shares
+  // a single instant. *(clarified 2026-08-01.)*
   const now = new Date()
   const all = todos.data?.todos ?? []
   const active = sortActiveTodos(
@@ -78,9 +85,10 @@ export function TodoPane(props: {
         ))}
         <AddTodoTrigger {...props.add} />
       </ul>
-      {active.length === 0 && completed.length === 0 && (
-        <p className={styles['empty']}>Nothing to do. Savor it.</p>
-      )}
+      {/* No empty-state copy: the "Add a todo" ghost row is always the
+          list's last child, so an empty list already reads as an invitation
+          to add something rather than as a blank pane. A message beneath it
+          only repeated what the row says. *(removed 2026-08-01.)* */}
 
       {completed.length > 0 && (
         <Collapsible.Root
