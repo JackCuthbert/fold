@@ -212,8 +212,19 @@ at and can act on it without scrolling back up.
 - The content column is a fixed-height flex layout: a **sticky header**
   (list title, nav trigger on mobile, any list-level controls) and a
   scrolling body beneath it.
-- **"Add a todo" sits outside the scroll container**, alongside the title —
-  always reachable, never scrolled away. *(added 2026-07-31.)*
+- **"Add a todo" is a ghost row at the top of the list.** *(redesigned
+  2026-08-01: as a standalone button above the list it never sat right —
+  neither chrome nor content.)* It mirrors a todo row exactly — same
+  height, same checkbox column, same left edge — but reads as a
+  placeholder rather than a real item:
+  - The label is **italic and muted**, visibly distinct from real todos.
+  - The **check circle is inert**: it is decorative, not a control, and
+    tapping anywhere on the row (circle included) opens the add-todo modal.
+    It must not be focusable or announced as a checkbox.
+  - The whole row is one target, so there is no dead space between the
+    circle and the label.
+  - It sits with the list, scrolling with it — it is content, not a
+    toolbar.
 - **The scrollbar sits at the pane's edge, not mid-view.** *(added
   2026-07-31: with many items the scrollbar appeared inset in the middle of
   the viewport.)* The scrolling element must span the full pane width, with

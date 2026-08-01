@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
+import { AddTodoTrigger } from './add-todo-trigger'
 import { sortActiveTodos } from './sort'
 import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
@@ -63,7 +64,10 @@ export function TodoPane(props: {
 
   return (
     <div className={styles['pane']}>
+      {/* docs/specs/ui.md — the add-todo ghost row sits with the list, as
+          its first row, scrolling with it: it is content, not a toolbar. */}
       <ul className={styles['list']}>
+        <AddTodoTrigger {...props.add} />
         {active.map((todo) => (
           <TodoItem
             key={todo.uid}

@@ -1,54 +1,87 @@
-/*
- * docs/specs/ui.md — clicking "Add a todo" opens a modal; this is the
- * trigger, not the field itself. Lives in MainScreen's sticky header
- * (docs/specs/ui.md — scrolling), full width so its desktop hover fill
- * spans the same measure as the list beneath it.
- * docs/specs/ui.md — "Add a todo" has a desktop hover state: a full-width
- * fill, no border, distinct from the todo rows so it reads as an action
- * rather than another item. Icon-only/nav-item controls stay chromeless
- * per docs/specs/ui.md's button-chrome section — this isn't one of the
- * three bordered button roles, just a quiet row that fills on hover.
- */
-/* Centred to the same ~34rem measure as the header row/title above and the
-   list below (docs/specs/ui.md — main content is centred with a
-   comfortable measure), and given its own top margin for the "clear
-   separation between quick-add and the list" rule — main-screen.module.css
-   only positions the sticky `.header` around it, not this spacing. */
-.addTrigger {
+/* docs/specs/ui.md — "Add a todo" is a ghost row at the top of the list:
+   it mirrors a todo row exactly (same height, same checkbox column, same
+   left edge) but reads as a placeholder rather than a real item.
+   Geometry deliberately mirrors todo-item.module.css's `.todo`/`.body` and
+   checkbox.module.css's `.hitArea`/`.box` — if those change, this must too. */
+.row {
+  display: flex;
+  align-items: flex-start;
+  /* Gap, not padding — same reason as `.todo`: a leading inset would push
+     the circle off the column's shared left edge. */
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The whole row is one target, so there is no dead space between the
+   circle and the label (docs/specs/ui.md). */
+.trigger {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  text-align: left;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+/* Matches checkbox.module.css's `.hitArea`, including the negative inset
+   that pulls the *visible* ring onto the shared column edge. */
+.circle {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  max-width: var(--measure);
-  margin: var(--space-3) auto 0;
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  margin-left: calc((var(--checkbox-size) - var(--hit-area)) / 2);
+}
+
+.circle svg {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  fill: none;
+  /* Fainter than a real checkbox's --muted ring: this circle is
+     decorative, not a control. */
+  stroke: var(--faint);
+  stroke-width: 1.5;
+  transition: stroke var(--duration-fast) var(--ease);
+}
+
+/* Same vertical pinning as `.body` in todo-item.module.css, so the label
+   sits on the same baseline as every todo title beneath it. */
+.label {
+  font-size: var(--text-base);
+  font-style: italic;
   color: var(--muted);
-  font-size: var(--text-sm);
-  transition:
-    background-color var(--duration-fast) var(--ease),
-    color var(--duration-fast) var(--ease);
+  padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  padding-bottom: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  min-height: var(--hit-area);
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  transition: color var(--duration-fast) var(--ease);
 }
 
-@media (min-width: 768px) {
-  .addTrigger {
-    margin-top: var(--space-4);
-  }
-}
-
-/* Hover fill is desktop-only (fine pointer) — docs/specs/ui.md: controls
-   are always visible and never hover-*revealed*, but a hover *refinement*
-   like this fill is fine, and on touch there's no hover to show it. */
-@media (pointer: fine) {
-  .addTrigger:hover {
-    background: var(--line);
-    color: var(--ink);
-  }
-}
-
-.addTrigger:focus-visible {
-  outline: none;
+/* Hover and focus lift the placeholder toward real-item weight without it
+   becoming one — colour only, no transform (docs/specs/ui.md). */
+.trigger:hover .label,
+.trigger:focus-visible .label {
   color: var(--ink);
-  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
+.trigger:hover .circle svg,
+.trigger:focus-visible .circle svg {
+  stroke: var(--muted);
+}
+
+.trigger:focus-visible {
+  outline: none;
 }

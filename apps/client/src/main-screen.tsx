@@ -5,7 +5,6 @@ import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import styles from './main-screen.module.css'
 import { cx } from './styles/cx'
-import { AddTodoTrigger } from './todos/add-todo-trigger'
 import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
 import { useMediaQuery } from './use-media-query'
@@ -177,7 +176,6 @@ export function MainScreen() {
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
             </div>
-            {active && <AddTodoTrigger {...add} />}
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
