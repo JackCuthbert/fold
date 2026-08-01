@@ -6,6 +6,12 @@
 :root {
   /* Spacing scale — 4, 8, 12, 16, 24, 32, 48. */
   --space-1: 4px;
+  /* Ink overhang: glyphs can paint slightly outside their layout box —
+     an italic "A" leans left past its origin — so `overflow: hidden` (used
+     with text-overflow: ellipsis) shaves the leading edge. Pair this as
+     padding-left with an equal negative margin-left: the clip box grows,
+     the text stays put, the ellipsis is unaffected. */
+  --ink-overhang: 2px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;

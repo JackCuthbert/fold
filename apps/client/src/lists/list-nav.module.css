@@ -34,6 +34,10 @@
   flex: 1;
   min-width: 0;
   text-align: left;
+  /* Padding, not a clip edge flush against the text: this row already has
+     --space-2 of leading padding, so a glyph's ink overhang (an "A" leans
+     left past its origin) has room and `overflow: hidden` can't shave it.
+     See --ink-overhang in tokens.css for rows that don't have that luxury. */
   padding: var(--space-2) var(--space-2);
   font-size: var(--text-base);
   min-height: var(--hit-area);

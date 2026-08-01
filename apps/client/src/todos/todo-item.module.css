@@ -82,6 +82,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  /* Glyphs can paint outside their box (an "A"'s apex leans left), which
+     `overflow: hidden` would shave — see --ink-overhang in tokens.css. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
 }
 
 .summary::after {
@@ -109,6 +113,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* See .summary — same ink-overhang guard. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
 }
 
 .meta {

@@ -67,6 +67,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  /* Widen the clip box leftward without moving the text, so the italic
+     "A"'s overhang isn't shaved (see --ink-overhang in tokens.css). */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
   transition: color var(--duration-fast) var(--ease);
 }
 
