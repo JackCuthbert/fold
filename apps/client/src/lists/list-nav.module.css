@@ -37,11 +37,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* A leading marker (see .linkActive) needs room to sit inside the row
+     without nudging the label when it appears — reserved unconditionally
+     so selecting a list doesn't shift the text horizontally. */
+  border-left: var(--space-1) solid transparent;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+/* docs/specs/ui.md — the nav: selecting a list looks like selection, not
+   hover. A background fill (the previous treatment) used the same --line
+   token a hover fill would, so the active row read as a stuck hover state
+   rather than a distinct selected state. Hover now darkens the row
+   slightly (a lighter, transient cue); active carries weight, accent ink
+   and a leading marker instead — three signals that don't overlap with
+   hover at all, so the two stay visibly different at every moment (hover
+   *on* the active row simply adds its own faint fill on top).
+   *(changed 2026-08-01.)* */
+.link:hover {
+  background: color-mix(in srgb, var(--line) 55%, transparent);
 }
 
 .linkActive {
-  background: var(--line);
+  color: var(--accent);
   font-weight: var(--weight-medium);
+  border-left-color: var(--accent);
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an

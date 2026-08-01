@@ -53,18 +53,29 @@
 /* Padding lives on the popup's children, not the popup — see .popup.
    docs/specs/ui.md — overlays: a divider separates a title from its
    content in modals and side panels, especially once the body scrolls
-   beneath it — this modal's `.form` does. */
+   beneath it — this modal's `.form` does. Modal padding is uniform on all
+   four edges and modest — matched to the gap between action buttons
+   (--space-3). *(changed 2026-08-01: was --space-6/--space-4, roomier than
+   the other modals and inconsistent between the title and .form's own
+   inset.)* */
 .title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  padding: var(--space-6) var(--space-6) var(--space-4);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--line);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  /* docs/specs/ui.md — overlays: spacing between form controls is
+     uniform — one gap value between every field, accordion trigger and
+     control in a form, matching the gap between the modal title and the
+     first field (.title's own padding-bottom, above). *(changed
+     2026-08-01: was --space-4, which combined with .accordion's extra
+     padding-top produced a visibly larger gap before the Advanced trigger
+     than between the other fields.)* */
+  gap: var(--space-3);
   overflow-y: auto;
   /* .title sits above at a fixed height; .form takes the remaining space
      within .popup's max-height and is the only child that scrolls — see
@@ -73,7 +84,7 @@
   min-height: 0;
   /* The scroller owns the padding so its scrollbar sits at the popup's
      true edge. */
-  padding: var(--space-1) var(--space-6) var(--space-6);
+  padding: var(--space-3);
   min-width: 0;
 }
 
@@ -102,10 +113,12 @@
 /* docs/specs/ui.md — overlays: the title/content divider is for the
    *title* boundary only — dividers must not scatter between fields.
    *(changed 2026-07-31: removed the border-top that sat between the
-   summary field and this Advanced trigger, which fragmented the form.)* */
-.accordion {
-  padding-top: var(--space-2);
-}
+   summary field and this Advanced trigger, which fragmented the form.)*
+   No padding-top here — `.form`'s own `gap` already separates this from
+   the summary field above, same as every other control in the form.
+   *(changed 2026-08-01: the extra padding-top stacked on top of that gap,
+   making this one gap visibly larger than the rest — docs/specs/ui.md —
+   overlays: spacing between form controls must be uniform.)* */
 
 .accordionItem {
   display: flex;
@@ -132,7 +145,10 @@
 .accordionPanel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  /* docs/specs/ui.md — overlays: one uniform gap between every field,
+     accordion trigger and control in the form. *(changed 2026-08-01: was
+     --space-4, inconsistent with the --space-3 gap everywhere else.)* */
+  gap: var(--space-3);
   padding-top: var(--space-2);
   padding-bottom: var(--space-1);
   overflow: hidden;
@@ -211,11 +227,15 @@
   background: var(--line);
 }
 
+/* No margin-top — `.form`'s own `gap` already separates this row from the
+   accordion above by the same uniform --space-3 used everywhere else in
+   the form (docs/specs/ui.md — overlays: spacing between form controls is
+   uniform). *(changed 2026-08-01: margin-top stacked on top of that gap,
+   making this one gap larger than the rest.)* */
 .actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-2);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared

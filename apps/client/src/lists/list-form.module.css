@@ -1,10 +1,17 @@
 /* docs/specs/ui.md — the nav: this form now only ever renders inside
    ListFormModal (create and rename), so it stacks like every other modal
-   form rather than wrapping inline fields + buttons on one line. */
+   form rather than wrapping inline fields + buttons on one line.
+   docs/specs/ui.md — overlays: modal padding is uniform on all four edges,
+   matched to the gap between action buttons (--space-3) — ListFormModal's
+   popup no longer carries its own padding (see list-form-modal.module.css),
+   so this form supplies it instead. Spacing between form controls is
+   uniform too: the same --space-3 gap separates the field from the
+   actions row as separates the two buttons within it. */
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 
 .field {

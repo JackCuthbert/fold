@@ -130,9 +130,24 @@ export function MainScreen() {
             `.navOpen`'s `min(80vw, 20rem)` exactly). Plain markup, not a
             dialog — the desktop nav was never an overlay and doesn't need
             a scrim, focus trap or Escape-to-close; toggling it is a layout
-            change, not opening/closing a surface. */}
-        {desktopNavOpen && (
-          <aside className={styles['nav']}>{navContent}</aside>
+            change, not opening/closing a surface.
+            docs/specs/ui.md — overlays: the desktop nav animates too, with
+            the same duration/easing as the mobile drawer. Always mounted
+            (rather than conditionally rendered) so collapsing/expanding is
+            a width transition, not an instant mount/unmount; hidden from
+            assistive tech and unreachable by Tab while collapsed, matching
+            the mobile drawer's closed state. */}
+        {isDesktop && (
+          <aside
+            className={cx(
+              styles['nav'],
+              !desktopNavOpen && styles['navCollapsed'],
+            )}
+            aria-hidden={!desktopNavOpen}
+            inert={!desktopNavOpen}
+          >
+            <div className={styles['navInner']}>{navContent}</div>
+          </aside>
         )}
         <main className={styles['main']}>
           {/* docs/specs/ui.md — mobile: the nav trigger sits beside the

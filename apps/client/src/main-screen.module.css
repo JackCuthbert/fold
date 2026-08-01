@@ -17,17 +17,49 @@
 /* docs/specs/ui.md — the nav is collapsible on desktop too, opening to the
    same comfortable width at both sizes. `.nav` (desktop, plain markup) and
    `.navOpen` (mobile, Base UI's positioned Dialog) share this width so
-   neither reads as narrower than the other. */
+   neither reads as narrower than the other.
+   docs/specs/ui.md — overlays: the desktop nav animates too, collapsing
+   and expanding with the same duration/easing tokens the mobile drawer
+   uses, so the two read as one behaviour at different sizes. *(changed
+   2026-08-01: `.nav` used to be conditionally rendered — mounted only
+   while open — which meant it appeared/disappeared instantly with no
+   transition at all. It's now always mounted and animates its own width
+   instead, clipping its content while collapsed.)* */
 .nav,
 .navOpen {
   display: flex;
   flex-direction: column;
-  width: min(80vw, 20rem);
   flex: none;
 }
 
+.navOpen {
+  width: min(80vw, 20rem);
+}
+
 .nav {
+  width: min(80vw, 20rem);
+  overflow: hidden;
   border-right: 1px solid var(--line);
+  transition:
+    width var(--duration-base) var(--ease),
+    border-color var(--duration-base) var(--ease);
+}
+
+.navCollapsed {
+  width: 0;
+  border-right-color: transparent;
+}
+
+/* The collapsed nav's children must not reflow/wrap as `.nav` shrinks to
+   0 — they keep the open width and simply get clipped by `.nav`'s own
+   `overflow: hidden`, exactly like content sliding under the mobile
+   drawer's edge rather than reflowing within it. */
+.navInner {
+  display: flex;
+  flex-direction: column;
+  width: min(80vw, 20rem);
+  height: 100%;
+  flex: none;
 }
 
 /* docs/specs/ui.md — the nav has a title above its list of lists, so the
@@ -36,10 +68,14 @@
    beneath it.
    docs/specs/ui.md — overlays: a divider separates a title from its
    content in modals and side panels, especially once the body scrolls
-   beneath it — the border-bottom here is that divider. */
+   beneath it — the border-bottom here is that divider.
+   docs/specs/ui.md — the nav: the "Lists" heading is compact — it labels
+   the panel, so it shouldn't claim as much vertical space as the rows
+   beneath it. *(changed 2026-08-01: was --space-4/--space-3 top/bottom,
+   as roomy as a modal title; reduced to --space-2/--space-2.)* */
 .navTitle {
   flex: none;
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
   border-bottom: 1px solid var(--line);
@@ -232,7 +268,7 @@
 
 @media (min-width: 768px) {
   .navTitle {
-    padding: var(--space-6) var(--space-4) var(--space-3);
+    padding: var(--space-2) var(--space-4);
   }
 
   .navScroll {

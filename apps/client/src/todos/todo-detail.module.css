@@ -66,18 +66,21 @@
 /* Padding lives on the panel's children, not the popup — see .popup.
    docs/specs/ui.md — overlays: a divider separates a title from its
    content in modals and side panels, especially once the body scrolls
-   beneath it — this panel's `.form` does. */
+   beneath it — this panel's `.form` does. Modal padding is uniform on all
+   four edges and modest — matched to the gap between action buttons
+   (--space-3) — and the detail panel agrees with every modal on this.
+   *(changed 2026-08-01: was --space-4, inconsistent with the modals.)* */
 .title {
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--line);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   overflow-y: auto;
   /* .title sits above at a fixed height; .form takes the rest of .popup's
      max-height and is the only child that scrolls. Without flex: 1 the
@@ -89,7 +92,7 @@
   min-height: 0;
   /* The scroller owns the horizontal padding, so its scrollbar sits at the
      panel's true edge rather than inset with content sliding beneath it. */
-  padding: var(--space-1) var(--space-4);
+  padding: var(--space-3);
   /* docs/specs/ui.md — inputs fit their container: without min-width: 0 a
      flex column's children default to min-width: auto, which can push a
      100%-wide input wider than the scrollable column and collide with the
@@ -187,10 +190,10 @@
 }
 
 /* .actions is a child of .form (the scroller), which already contributes
-   the shared space-4 horizontal inset — no horizontal padding here, or the
-   action row would sit 32px from the edge while every field above it sits
-   at 16px (docs/specs/ui.md — one left edge). Only bottom padding is added,
-   for the safe-area inset below the last field's own gap. */
+   the shared horizontal inset — no horizontal padding here, or the action
+   row would sit narrower than the fields above it (docs/specs/ui.md — one
+   left edge). Only bottom padding is added, for the safe-area inset below
+   the last field's own gap. */
 .actions {
   display: flex;
   align-items: center;

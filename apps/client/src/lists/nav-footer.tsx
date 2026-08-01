@@ -25,6 +25,10 @@ function statusFor(
 // left nav keeps only a single "Settings" entry (opening the settings
 // modal — sound and sign out) and the status dot; it is not itself a rack
 // of controls.
+// docs/specs/ui.md — the nav: Settings is a ghost icon button inline with
+// the sync status, not a full-width bordered row above it — that read as a
+// heavier action than it is. Both now sit on one quiet row instead of two
+// stacked ones. *(changed 2026-08-01.)*
 export function NavFooter() {
   const online = useOnline()
   const { pending, blocked } = useSyncStatus()
@@ -33,17 +37,17 @@ export function NavFooter() {
 
   return (
     <div className={styles['footer']}>
-      <button
-        type="button"
-        className={styles['settings']}
-        onClick={() => setSettingsOpen(true)}
-      >
-        <LuSettings aria-hidden="true" size={16} />
-        Settings
-      </button>
       <div className={styles['status']}>
         <StatusDot kind={kind} />
       </div>
+      <button
+        type="button"
+        className={styles['settings']}
+        aria-label="Settings"
+        onClick={() => setSettingsOpen(true)}
+      >
+        <LuSettings aria-hidden="true" size={16} />
+      </button>
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )

@@ -86,14 +86,11 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
   }
 }
 
-// docs/specs/ui.md — the nav: a newly created list appears in its final
-// position immediately. The CalDAV server (fetchLists — apps/server/src/
-// caldav/tsdav-gateway.ts) returns calendars in the server's own
-// alphabetical-by-name order; matching that order for the optimistic insert
-// means nothing moves once the real response lands.
-const byDisplayName = (a: TodoList, b: TodoList): number =>
-  a.displayName.localeCompare(b.displayName)
-
+// docs/specs/lists.md — Ordering: the server returns lists in collection
+// (creation) order, not alphabetical, so the client renders them in that
+// same order and never re-sorts. The optimistic insert appends the
+// placeholder at the end, matching where the server will place the new
+// list, so nothing moves once the real response lands.
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,
@@ -111,7 +108,7 @@ export function applyMutationToLists(
         displayName: mutation.displayName,
         ctag: '',
       }
-      return [...lists, placeholder].toSorted(byDisplayName)
+      return [...lists, placeholder]
     }
     case 'renameList':
       return lists.map((list) =>

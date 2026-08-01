@@ -24,14 +24,24 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 41;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--paper);
   color: var(--ink);
-  padding: var(--space-6);
   max-width: 22rem;
   width: calc(100% - var(--space-8));
   outline: none;
+  /* docs/specs/ui.md — overlays: modal padding is uniform on all four
+     edges and modest — matched to the gap between action buttons
+     (var(--space-3), the same value list-form.module.css's .actions uses).
+     No padding on the popup itself — .title and .body below own it, so the
+     divider between them (see .title) can span the full surface width
+     edge to edge. *(changed 2026-08-01: was --space-6 on the popup with
+     the divider inset inside it, reading as a stray line instead of a
+     structural boundary — see docs/specs/ui.md overlays.)* */
+  padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -44,11 +54,15 @@
 }
 
 /* docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, so the heading reads as a header. */
+   content in modals and side panels, so the heading reads as a header.
+   The divider spans the full width of the surface, edge to edge — no
+   horizontal inset — so .title carries the shared --space-3 padding on
+   all sides instead of the popup, and the border-bottom sits flush with
+   the popup's own left/right edges. */
 .title {
+  flex: none;
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  padding-bottom: var(--space-4);
-  margin-bottom: var(--space-4);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--line);
 }

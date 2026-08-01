@@ -20,14 +20,22 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 41;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--paper);
   color: var(--ink);
-  padding: var(--space-6);
   max-width: 22rem;
   width: calc(100% - var(--space-8));
   outline: none;
+  /* docs/specs/ui.md — overlays: modal padding is uniform on all four
+     edges and modest — matched to the gap between action buttons
+     (--space-3). No padding on the surface itself — .title and .body
+     below own it, so the title/content divider (see .title) spans the
+     full width of the surface edge to edge. *(changed 2026-08-01: was
+     --space-6 with the divider inset inside it.)* */
+  padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -40,24 +48,26 @@
 }
 
 /* docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, so the heading reads as a header. */
+   content in modals and side panels, so the heading reads as a header.
+   The divider spans the full width of the surface, edge to edge. */
 .title {
+  flex: none;
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-3);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--line);
 }
 
 .body {
   font-size: var(--text-sm);
   color: var(--muted);
+  padding: var(--space-3) var(--space-3) 0;
 }
 
 .actions {
   display: flex;
   gap: var(--space-3);
-  margin-top: var(--space-4);
+  padding: var(--space-3);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
