@@ -227,6 +227,10 @@ at and can act on it without scrolling back up.
     circle and the label.
   - It sits with the list, scrolling with it — it is content, not a
     toolbar.
+  - Because it is always the list's last row, **an empty list needs no
+    empty-state copy** — the row already reads as an invitation to add
+    something. *(added 2026-08-01: a "Nothing to do" message beneath it
+    only repeated what the row says.)*
 - **The scrollbar sits at the pane's edge, not mid-view.** *(added
   2026-07-31: with many items the scrollbar appeared inset in the middle of
   the viewport.)* The scrolling element must span the full pane width, with
@@ -235,6 +239,20 @@ at and can act on it without scrolling back up.
 - The same applies inside the nav: its list of lists scrolls while the
   footer (Settings, status) stays anchored.
 - Scrollbar gutters still sit at the true container edge (see below).
+- **A sticky header and the content scrolling beneath it keep one left
+  edge, whether or not a scrollbar is present.** *(added 2026-08-01: once a
+  list had enough items to scroll, the list shifted left to make room for
+  the scrollbar while the sticky header above it didn't, so the title
+  visibly stopped lining up with the rows.)* The header is a *sibling* of
+  the scroller, not a child, so a scrollbar narrows only the scroller —
+  their centred inner columns then centre in different widths. Fix both
+  halves: hold the scroller's gutter open permanently (`scrollbar-gutter:
+  stable`, so it doesn't appear and disappear as the list grows) **and**
+  reserve the same width on the header, which as a non-scrolling element
+  needs an explicit inline-end padding. The gutter width is platform
+  dependent — real width with classic scrollbars, zero with overlay ones —
+  so measure it once at startup and publish it as a custom property rather
+  than hard-coding a guess.
 
 ## Overlays
 
@@ -244,6 +262,17 @@ over an undimmed background, so they didn't read as modal.)*
 - **Every overlay dims the background** — nav drawer, bottom sheet, side
   panel, confirm dialogs, the add-todo modal, settings. Without exception:
   a modal surface over undimmed content reads as a rendering glitch.
+  - **A modal must never be rendered inside another dialog's subtree**, even
+    when the control that opens it lives there. Base UI deliberately
+    suppresses a *nested* dialog's backdrop, and with no backdrop there is
+    also nothing to click to dismiss — so such a modal silently loses both
+    its scrim and click-outside-to-close. Keep the trigger and the open
+    state where they belong, and render the modal itself as a sibling of the
+    outer dialog. *(added 2026-08-01: Settings is opened from the nav
+    footer, which on mobile renders inside the drawer's dialog, so on mobile
+    only it came up undimmed and couldn't be dismissed by tapping away.
+    Opening it also closes the drawer — otherwise two overlays would stack
+    their scrims and focus traps.)*
 - **A divider separates a title from its content** in modals and side
   panels, so the heading reads as a header — especially once the body
   scrolls beneath it. *(added 2026-07-31.)* This is for the *title*

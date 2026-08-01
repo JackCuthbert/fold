@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { LuMenu } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
+import { SettingsModal } from './lists/settings-modal'
 import styles from './main-screen.module.css'
 import { cx } from './styles/cx'
 import { TodoPane } from './todos/todo-pane'
@@ -25,6 +26,14 @@ export function MainScreen() {
     localStorage.getItem(SELECTED_LIST_KEY),
   )
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // Settings lives here, not in NavFooter, for the same reason the other
+  // dialogs do: on mobile the footer renders inside the drawer's
+  // Dialog.Popup, so a modal owned there is a *nested* dialog — Base UI
+  // suppresses a nested dialog's backdrop by design, which cost Settings
+  // both its scrim and its click-outside-to-close. Rendered below as a
+  // sibling of the drawer, it's a top-level dialog at every viewport.
+  // *(fixed 2026-08-01.)*
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [navPinned, setNavPinned] = useState<boolean>(
     () => localStorage.getItem(NAV_PINNED_KEY) !== '0',
   )
@@ -92,7 +101,16 @@ export function MainScreen() {
           }}
         />
       </div>
-      <NavFooter />
+      <NavFooter
+        onOpenSettings={() => {
+          // Close the drawer first: on mobile it's an overlay in its own
+          // right, and leaving it open behind Settings would stack two
+          // scrims and two focus traps. On desktop the nav is plain markup
+          // and `drawerOpen` is already false, so this is a no-op there.
+          setDrawerOpen(false)
+          setSettingsOpen(true)
+        }}
+      />
     </>
   )
 
@@ -122,6 +140,8 @@ export function MainScreen() {
 
   return (
     <div className={styles['layout']}>
+      {/* Sibling of `drawer`, never inside it — see `settingsOpen` above. */}
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <div className={styles['body']}>
         {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both
