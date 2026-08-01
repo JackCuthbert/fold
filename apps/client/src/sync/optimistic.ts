@@ -1,9 +1,4 @@
-import type {
-  Mutation,
-  Todo,
-  TodoList,
-  TodosResponse,
-} from '@caldav-todo/schemas'
+import type { Mutation, Todo, TodoList, TodosResponse } from '@fold/schemas'
 
 // Optimistic cache updates — docs/specs/sync-and-offline.md (writes).
 export function applyMutationToTodos(

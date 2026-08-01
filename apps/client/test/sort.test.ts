@@ -1,4 +1,4 @@
-import type { Todo } from '@caldav-todo/schemas'
+import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
 import { dueInstant, isOverdue, sortActiveTodos } from '../src/todos/sort'
 

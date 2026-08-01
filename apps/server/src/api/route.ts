@@ -1,4 +1,4 @@
-import type { Credentials } from '@caldav-todo/schemas'
+import type { Credentials } from '@fold/schemas'
 import type { ZodType } from 'zod'
 import type { GatewayFactory } from '../caldav/gateway'
 import type { Config } from '../config'

@@ -1,10 +1,10 @@
 {
-  "name": "@caldav-todo/e2e",
+  "name": "@fold/e2e",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bun run --filter @caldav-todo/client build && playwright test",
+    "test": "bun run --filter @fold/client build && playwright test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

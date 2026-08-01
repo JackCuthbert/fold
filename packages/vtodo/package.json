@@ -1,5 +1,5 @@
 {
-  "name": "@caldav-todo/vtodo",
+  "name": "@fold/vtodo",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@caldav-todo/schemas": "workspace:*",
+    "@fold/schemas": "workspace:*",
     "ical.js": "^2.1.0"
   },
   "devDependencies": {

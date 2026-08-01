@@ -1,4 +1,4 @@
-import { listsResponseSchema } from '@caldav-todo/schemas'
+import { listsResponseSchema } from '@fold/schemas'
 import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // GET /api/lists — docs/specs/lists.md

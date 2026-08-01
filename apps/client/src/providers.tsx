@@ -1,5 +1,5 @@
-import { memoryStorage, type FatalError } from '@caldav-todo/outbox'
-import type { Mutation } from '@caldav-todo/schemas'
+import { memoryStorage, type FatalError } from '@fold/outbox'
+import type { Mutation } from '@fold/schemas'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
 import { QueryCache, QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'

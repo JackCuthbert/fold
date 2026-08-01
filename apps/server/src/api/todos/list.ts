@@ -1,4 +1,4 @@
-import { todosResponseSchema } from '@caldav-todo/schemas'
+import { todosResponseSchema } from '@fold/schemas'
 import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // GET /api/lists/:listId/todos — docs/specs/api.md

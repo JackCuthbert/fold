@@ -1,5 +1,5 @@
-import { FatalError, RetryableError } from '@caldav-todo/outbox'
-import type { Mutation, Todo } from '@caldav-todo/schemas'
+import { FatalError, RetryableError } from '@fold/outbox'
+import type { Mutation, Todo } from '@fold/schemas'
 import { describe, expect, it, vi } from 'vitest'
 import type { Api } from '../src/api/client'
 import { ApiError, NetworkError } from '../src/api/errors'

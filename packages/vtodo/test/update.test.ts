@@ -1,4 +1,4 @@
-import type { TodoDue } from '@caldav-todo/schemas'
+import type { TodoDue } from '@fold/schemas'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'

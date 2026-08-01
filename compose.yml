@@ -11,7 +11,7 @@
 services:
   radicale:
     image: tomsquest/docker-radicale:3.5.4.0
-    container_name: caldav-todo-radicale
+    container_name: fold-radicale
     ports:
       - '5232:5232'
     volumes:

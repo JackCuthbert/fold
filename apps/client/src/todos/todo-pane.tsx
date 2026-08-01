@@ -1,5 +1,5 @@
 import { Collapsible } from '@base-ui/react/collapsible'
-import type { Todo, TodosResponse } from '@caldav-todo/schemas'
+import type { Todo, TodosResponse } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'

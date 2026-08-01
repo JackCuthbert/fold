@@ -1,4 +1,4 @@
-import type { TodoList } from '@caldav-todo/schemas'
+import type { TodoList } from '@fold/schemas'
 import { describe, expect, it, vi } from 'vitest'
 import { createRouter } from '../../src/api/router'
 import { routes } from '../../src/api/routes'

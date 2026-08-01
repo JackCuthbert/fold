@@ -1,5 +1,5 @@
 {
-  "name": "@caldav-todo/server",
+  "name": "@fold/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "test:integration": "bun --bun vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@caldav-todo/schemas": "workspace:*",
-    "@caldav-todo/vtodo": "workspace:*",
+    "@fold/schemas": "workspace:*",
+    "@fold/vtodo": "workspace:*",
     "tsdav": "^2.1.0",
     "zod": "^4.0.0"
   },

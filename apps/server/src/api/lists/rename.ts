@@ -1,4 +1,4 @@
-import { renameListRequestSchema } from '@caldav-todo/schemas'
+import { renameListRequestSchema } from '@fold/schemas'
 import { requireCredentials, type Route } from '../route'
 
 // PATCH /api/lists/:listId — docs/specs/lists.md

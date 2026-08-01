@@ -1,5 +1,5 @@
 {
-  "name": "caldav-todo-client",
+  "name": "fold",
   "private": true,
   "workspaces": [
     "apps/*",
@@ -13,8 +13,8 @@
     "fmt:check": "oxfmt --check",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "vitest run",
-    "test:integration": "bun run --filter @caldav-todo/server test:integration",
-    "test:e2e": "bun run --filter @caldav-todo/e2e test"
+    "test:integration": "bun run --filter @fold/server test:integration",
+    "test:e2e": "bun run --filter @fold/e2e test"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

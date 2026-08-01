@@ -3,13 +3,13 @@ import {
   SyncLoop,
   type FatalError,
   type OutboxStorage,
-} from '@caldav-todo/outbox'
+} from '@fold/outbox'
 import {
   mutationSchema,
   type Mutation,
   type TodoList,
   type TodosResponse,
-} from '@caldav-todo/schemas'
+} from '@fold/schemas'
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'

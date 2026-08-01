@@ -5,7 +5,7 @@ import type {
   TodoChanges,
   TodoList,
   TodosResponse,
-} from '@caldav-todo/schemas'
+} from '@fold/schemas'
 
 // The seam between HTTP handlers and CalDAV. Handlers are unit-tested
 // against a fake; the tsdav implementation is covered by the Radicale

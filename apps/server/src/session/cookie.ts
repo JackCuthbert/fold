@@ -1,4 +1,4 @@
-import { credentialsSchema, type Credentials } from '@caldav-todo/schemas'
+import { credentialsSchema, type Credentials } from '@fold/schemas'
 import { seal, unseal } from '../crypto/seal'
 
 const NAME = 'session'

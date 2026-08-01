@@ -1,4 +1,4 @@
-import type { Mutation } from '@caldav-todo/schemas'
+import type { Mutation } from '@fold/schemas'
 
 // Coalescing rules — docs/specs/sync-and-offline.md (sync loop).
 export function coalesceMutations(

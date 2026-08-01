@@ -5,8 +5,8 @@ import type {
   TodoChanges,
   TodoList,
   TodosResponse,
-} from '@caldav-todo/schemas'
-import { applyChanges, createTodoIcs, readTodo } from '@caldav-todo/vtodo'
+} from '@fold/schemas'
+import { applyChanges, createTodoIcs, readTodo } from '@fold/vtodo'
 import { DAVClient } from 'tsdav'
 import { CaldavError, CaldavUnreachableError } from './errors'
 import type { CaldavGateway } from './gateway'

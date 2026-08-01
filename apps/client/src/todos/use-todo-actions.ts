@@ -4,7 +4,7 @@ import type {
   Todo,
   TodoChanges,
   TodosResponse,
-} from '@caldav-todo/schemas'
+} from '@fold/schemas'
 import { queryClient, useSyncEngine } from '../providers'
 import { applyMutationToTodos } from '../sync/optimistic'
 

@@ -4,7 +4,7 @@
     {
       "name": "client",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--filter", "@caldav-todo/client", "dev"],
+      "runtimeArgs": ["run", "--filter", "@fold/client", "dev"],
       "port": 5173
     }
   ]

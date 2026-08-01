@@ -1,4 +1,4 @@
-import type { Credentials } from '@caldav-todo/schemas'
+import type { Credentials } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
 import {
   clearSessionCookie,

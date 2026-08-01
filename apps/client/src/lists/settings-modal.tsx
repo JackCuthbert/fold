@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { Toggle } from '@base-ui/react/toggle'
-import type { Session } from '@caldav-todo/schemas'
+import type { Session } from '@fold/schemas'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
 import { api, queryClient } from '../providers'
 import { useSound } from '../sound/use-sound'

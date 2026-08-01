@@ -1,4 +1,4 @@
-import type { NewTodo } from '@caldav-todo/schemas'
+import type { NewTodo } from '@fold/schemas'
 import ICAL from 'ical.js'
 import { priorityToNumber } from './priority'
 import { icalTimeFromDate, setDueOnComponent } from './time'

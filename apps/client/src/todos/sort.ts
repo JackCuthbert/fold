@@ -1,4 +1,4 @@
-import type { Todo } from '@caldav-todo/schemas'
+import type { Todo } from '@fold/schemas'
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 } as const
 

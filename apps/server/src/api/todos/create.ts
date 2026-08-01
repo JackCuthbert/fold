@@ -2,7 +2,7 @@ import {
   conflictResponseSchema,
   createTodoRequestSchema,
   todoSchema,
-} from '@caldav-todo/schemas'
+} from '@fold/schemas'
 import { CaldavError } from '../../caldav/errors'
 import { json, parseResponse, requireCredentials, type Route } from '../route'
 

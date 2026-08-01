@@ -1,4 +1,4 @@
-import type { TodoPriority } from '@caldav-todo/schemas'
+import type { TodoPriority } from '@fold/schemas'
 
 const WRITE: Record<TodoPriority, number> = { high: 1, medium: 5, low: 9 }
 

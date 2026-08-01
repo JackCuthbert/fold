@@ -1,4 +1,4 @@
-import { createListRequestSchema, todoListSchema } from '@caldav-todo/schemas'
+import { createListRequestSchema, todoListSchema } from '@fold/schemas'
 import { json, parseResponse, requireCredentials, type Route } from '../route'
 
 // POST /api/lists — docs/specs/lists.md

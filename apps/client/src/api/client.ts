@@ -11,7 +11,7 @@ import {
   type TodoChanges,
   type TodoList,
   type TodosResponse,
-} from '@caldav-todo/schemas'
+} from '@fold/schemas'
 import { ApiError, NetworkError } from './errors'
 
 async function call(

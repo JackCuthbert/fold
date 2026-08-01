@@ -1,4 +1,4 @@
-import type { TodoList } from '@caldav-todo/schemas'
+import type { TodoList } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuPlus } from 'react-icons/lu'

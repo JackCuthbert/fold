@@ -1,4 +1,4 @@
-import { credentialsSchema, type Credentials } from '@caldav-todo/schemas'
+import { credentialsSchema, type Credentials } from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Field } from '@base-ui/react/field'
 import { Form } from '@base-ui/react/form'
@@ -52,7 +52,7 @@ export function LoginScreen() {
 
   return (
     <main className={styles['login']}>
-      <h1 className={styles['heading']}>Todos</h1>
+      <h1 className={styles['heading']}>Fold</h1>
       <p className={styles['hint']}>Sign in to your CalDAV server</p>
       <Form
         className={styles['form']}

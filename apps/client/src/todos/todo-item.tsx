@@ -1,4 +1,4 @@
-import type { Todo, TodoPriority } from '@caldav-todo/schemas'
+import type { Todo, TodoPriority } from '@fold/schemas'
 import { cx } from '../styles/cx'
 import { Checkbox } from './checkbox'
 import { dueInstant, isOverdue } from './sort'

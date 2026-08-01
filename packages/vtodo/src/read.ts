@@ -1,4 +1,4 @@
-import type { TodoDue, TodoPriority } from '@caldav-todo/schemas'
+import type { TodoDue, TodoPriority } from '@fold/schemas'
 import ICAL from 'ical.js'
 import { priorityFromNumber } from './priority'
 import { dueFromProperty } from './time'

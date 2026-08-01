@@ -1,5 +1,5 @@
 {
-  "name": "@caldav-todo/outbox",
+  "name": "@fold/outbox",
   "version": "0.1.0",
   "type": "module",
   "exports": {

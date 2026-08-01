@@ -1,5 +1,5 @@
-import { memoryStorage } from '@caldav-todo/outbox'
-import type { Mutation, TodosResponse } from '@caldav-todo/schemas'
+import { memoryStorage } from '@fold/outbox'
+import type { Mutation, TodosResponse } from '@fold/schemas'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import type { Api } from '../src/api/client'

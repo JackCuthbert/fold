@@ -1,4 +1,4 @@
-import { credentialsSchema } from '@caldav-todo/schemas'
+import { credentialsSchema } from '@fold/schemas'
 import { sessionCookie } from '../../session/cookie'
 import { json, type Route } from '../route'
 

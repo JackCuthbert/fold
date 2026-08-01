@@ -1,4 +1,4 @@
-import type { TodoChanges } from '@caldav-todo/schemas'
+import type { TodoChanges } from '@fold/schemas'
 import ICAL from 'ical.js'
 import { VtodoError } from './error'
 import { priorityToNumber } from './priority'

@@ -1,4 +1,4 @@
-import type { TodoDue } from '@caldav-todo/schemas'
+import type { TodoDue } from '@fold/schemas'
 import ICAL from 'ical.js'
 
 export function icalTimeFromDate(date: Date): ICAL.Time {

@@ -1,14 +1,18 @@
-# caldav-todo-client
+# Fold
 
-A simple, offline-resilient todo client for any spec-compliant CalDAV
-server (developed against Radicale). Bun BFF + React SPA.
+A calm, offline-resilient todo client for any spec-compliant CalDAV server
+(developed against Radicale). Bun BFF + React SPA.
+
+Only the features you actually need: multiple lists, due dates, priorities,
+notes. No notifications, no nagging, no streaks — just a quiet list that
+syncs to your own server and works when the network doesn't.
 
 ## Quick start
 
 ```bash
 bun install
-SESSION_SECRET=$(openssl rand -hex 16) bun run --filter @caldav-todo/server dev
-bun run --filter @caldav-todo/client dev   # second terminal
+SESSION_SECRET=$(openssl rand -hex 16) bun run --filter @fold/server dev
+bun run --filter @fold/client dev   # second terminal
 ```
 
 Open the Vite URL and sign in with your CalDAV server URL + credentials.

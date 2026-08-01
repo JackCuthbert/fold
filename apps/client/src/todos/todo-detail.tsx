@@ -3,11 +3,7 @@ import { Field } from '@base-ui/react/field'
 import { Form } from '@base-ui/react/form'
 import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
-import {
-  todoPrioritySchema,
-  type Todo,
-  type TodoChanges,
-} from '@caldav-todo/schemas'
+import { todoPrioritySchema, type Todo, type TodoChanges } from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown } from 'react-icons/lu'

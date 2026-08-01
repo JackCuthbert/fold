@@ -1,4 +1,4 @@
-import type { Todo } from '@caldav-todo/schemas'
+import type { Todo } from '@fold/schemas'
 import { describe, expect, it, vi } from 'vitest'
 import { CaldavError } from '../../src/caldav/errors'
 import { createRouter } from '../../src/api/router'

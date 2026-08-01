@@ -1,4 +1,4 @@
-import type { Mutation, Todo, TodosResponse } from '@caldav-todo/schemas'
+import type { Mutation, Todo, TodosResponse } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
 import {
   applyMutationToLists,

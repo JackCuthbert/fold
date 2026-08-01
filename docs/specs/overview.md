@@ -1,4 +1,9 @@
-# CalDAV Todo Client — Overview
+# Fold — Overview
+
+*(renamed 2026-08-01: was "CalDAV Todo Client", which named the protocol
+rather than the product — CalDAV is an implementation detail the person
+using this never thinks about. "Fold" is folded paper, and the fold that
+tucks finished work out of sight.)*
 
 A simple but feature-complete todo client for CalDAV servers (developed
 against Radicale, compliant with any server that correctly implements the
@@ -6,6 +11,11 @@ CalDAV spec). A stateless Bun server acts as a backend-for-frontend (BFF),
 exposing a clean JSON API and speaking CalDAV out the back. A React SPA
 provides an offline-resilient, mobile-and-desktop UI with a minimalist serif
 aesthetic.
+
+**Product intent.** Only the features its owner actually needs — deliberately
+not a Todoist competitor. Calm and unhurried: no notifications, no badges, no
+streaks, nothing that nags. Elegance comes from restraint and from micro
+interactions that feel considered rather than decorative.
 
 ## Goals
 

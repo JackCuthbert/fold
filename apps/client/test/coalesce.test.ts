@@ -1,4 +1,4 @@
-import type { Mutation } from '@caldav-todo/schemas'
+import type { Mutation } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
 import { coalesceMutations } from '../src/sync/coalesce'
 

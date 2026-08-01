@@ -1,5 +1,5 @@
 {
-  "name": "@caldav-todo/client",
+  "name": "@fold/client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
-    "@caldav-todo/outbox": "workspace:*",
-    "@caldav-todo/schemas": "workspace:*",
+    "@fold/outbox": "workspace:*",
+    "@fold/schemas": "workspace:*",
     "@hookform/resolvers": "^5.0.0",
     "@tanstack/query-async-storage-persister": "^5.0.0",
     "@tanstack/react-query": "^5.0.0",
