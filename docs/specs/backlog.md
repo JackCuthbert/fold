@@ -42,7 +42,23 @@ So this is mostly interface work:
 - Display and sorting already resolve all four forms, so little should
   change there.
 
-## 3. Per-list colours
+## 3. Reordering lists
+
+Let the user arrange lists in the nav, persisted to the server so the order
+follows them to other devices and clients.
+
+- Lists currently render in whatever order the server returns
+  ([lists](./lists.md#ordering)), which is effectively creation order and
+  can't be changed from the app.
+- Drag-to-reorder in the nav is the obvious interaction.
+
+Open question: **where does the order live?** CalDAV has no standard
+ordering property for collections. Apple uses `calendar-order` (the same
+`http://apple.com/ns/ical/` namespace as `calendar-color`), which Radicale
+supports — that's the most interoperable option, but it's an extension, so
+it must degrade gracefully on a server that ignores it.
+
+## 4. Per-list colours
 
 A colour on each list, chosen from a picker in the list's edit menu, used
 as a subtle accent in the nav and possibly on todo rows.

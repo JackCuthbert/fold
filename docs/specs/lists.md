@@ -18,6 +18,19 @@ Full list management is in scope: discover, create, rename, delete.
 | Rename | PROPPATCH on `displayname` |
 | Delete | DELETE on the collection |
 
+## Ordering
+
+*(added 2026-08-01: the client sorted alphabetically while the server
+returns collection order, so a newly created list appeared in one position
+and then jumped when the server response landed.)*
+
+**Lists render in the order the server returns them.** We do not re-sort.
+A new list is appended at the end — where the server will also place it —
+so nothing moves once the response arrives.
+
+Reordering lists on the server is a wanted feature; see
+[backlog](./backlog.md).
+
 ## Behavior
 
 - Lists appear in a sidebar (desktop) or drawer (mobile) — see [ui](./ui.md).

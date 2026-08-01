@@ -89,6 +89,19 @@ items, the create action, and Settings alike. Specifically:
   divider between Settings and the status line** — they belong together.
   A single divider sits *above* Settings, separating the whole footer from
   the list, with clear space between that divider and the Settings row.
+- **Settings is a ghost icon button inline with the sync status.**
+  *(revised 2026-08-01: as a full-width bordered row it read as a heavier
+  action than it is.)* No background or border until hover; it sits on the
+  same line as the status dot and label rather than stacked above them,
+  so the footer is a single quiet row.
+- **The "Lists" heading is compact** — it labels the panel, so it should
+  not claim as much vertical space as the rows beneath it.
+  *(added 2026-08-01.)*
+- **Selecting a list looks like selection, not hover.** *(added
+  2026-08-01: the active row used a hover-ish fill that read as a stuck
+  button.)* The active row is distinct from the hover state — carry it with
+  weight, ink colour, or a leading marker rather than a slightly darker
+  fill that hover then has to compete with.
 - **The nav has a title** above its list of lists, so the panel is
   labelled rather than starting abruptly. *(added 2026-07-31.)*
 - **The nav is collapsible on desktop too**, not only on mobile, and opens
@@ -224,9 +237,25 @@ over an undimmed background, so they didn't read as modal.)*
   boundary only: don't scatter dividers between fields (the add-todo modal
   had one between the summary field and the Advanced accordion, which just
   fragmented the form).
+  - **The divider spans the full width of the surface**, edge to edge, with
+    no horizontal inset. *(added 2026-08-01: the create/rename/delete-list
+    modals inset theirs, so it read as a stray line rather than a
+    structural boundary. Every modal's divider must look identical.)*
+- **Modal padding is uniform on all four edges** and modest — matched to
+  the gap between action buttons, so the surface feels of a piece rather
+  than roomy on one side. *(added 2026-08-01.)*
+- **Spacing between form controls is uniform.** One gap value between every
+  field, accordion trigger and control in a form; and the gap between the
+  modal title and the first field matches it. *(added 2026-08-01: the
+  add-todo modal had a large gap before the Advanced accordion and a
+  cramped one under the title.)*
 - **Overlays animate in and out.** Sheets and drawers slide from their
   edge; modals fade with a slight rise. The scrim fades with them. All of
   it is disabled under `prefers-reduced-motion`.
+- **The desktop nav animates too.** *(added 2026-08-01: collapsing it on
+  desktop snapped instantly while the mobile drawer slid.)* Collapsing and
+  expanding the pinned sidebar uses the same duration and easing as the
+  mobile drawer, so the two read as one behaviour at different sizes.
 
 ## Controls & touch targets
 
