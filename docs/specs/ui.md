@@ -212,11 +212,13 @@ at and can act on it without scrolling back up.
 - The content column is a fixed-height flex layout: a **sticky header**
   (list title, nav trigger on mobile, any list-level controls) and a
   scrolling body beneath it.
-- **"Add a todo" is a ghost row at the top of the list.** *(redesigned
+- **"Add a todo" is a ghost row at the end of the list.** *(redesigned
   2026-08-01: as a standalone button above the list it never sat right —
-  neither chrome nor content.)* It mirrors a todo row exactly — same
-  height, same checkbox column, same left edge — but reads as a
-  placeholder rather than a real item:
+  neither chrome nor content. Moved to the end the same day: adding is
+  where the list continues, so the row belongs after the existing items,
+  not before them.)* It mirrors a todo row exactly — same height, same
+  checkbox column, same left edge — but reads as a placeholder rather
+  than a real item:
   - The label is **italic and muted**, visibly distinct from real todos.
   - The **check circle is inert**: it is decorative, not a control, and
     tapping anywhere on the row (circle included) opens the add-todo modal.

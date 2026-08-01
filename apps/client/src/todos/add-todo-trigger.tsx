@@ -27,7 +27,7 @@ export function AddTodoTrigger(props: ReturnType<typeof useAddTodo>) {
               <circle cx="12" cy="12" r="10.5" />
             </svg>
           </span>
-          <span className={styles['label']}>Add a todo</span>
+          <span className={styles['label']}>Add a todo…</span>
         </button>
       </li>
       <AddTodoModal

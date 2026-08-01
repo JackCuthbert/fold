@@ -65,9 +65,8 @@ export function TodoPane(props: {
   return (
     <div className={styles['pane']}>
       {/* docs/specs/ui.md — the add-todo ghost row sits with the list, as
-          its first row, scrolling with it: it is content, not a toolbar. */}
+          its last row, scrolling with it: it is content, not a toolbar. */}
       <ul className={styles['list']}>
-        <AddTodoTrigger {...props.add} />
         {active.map((todo) => (
           <TodoItem
             key={todo.uid}
@@ -77,6 +76,7 @@ export function TodoPane(props: {
             onOpen={() => setOpenUid(todo.uid)}
           />
         ))}
+        <AddTodoTrigger {...props.add} />
       </ul>
       {active.length === 0 && completed.length === 0 && (
         <p className={styles['empty']}>Nothing to do. Savor it.</p>
