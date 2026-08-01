@@ -12,16 +12,19 @@
 /* Matches .link's row box in list-nav.module.css (same padding, same
    min-height) so Settings shares one left edge and row height with every
    list item above it.
-   docs/specs/ui.md — the nav: Settings needs breathing room above the
-   divider that separates it from the status line — a hairline border plus
-   the spacing scale's own gap, not the two sitting flush. */
+   docs/specs/ui.md — the nav: the footer is one group — Settings and the
+   status line belong together with no divider between them. The single
+   divider that separates the whole footer from the list above is
+   `.footer`'s own `border-top`; Settings gets its breathing room from
+   `.footer`'s `padding-top` (see main-screen.module.css's `*:last-child`
+   rule, fixed 2026-07-31 to stop clobbering it), not from a second
+   border here. *(changed 2026-07-31: removed border-top — it read as two
+   separate rows instead of one group.)* */
 .status {
   display: flex;
   align-items: center;
   padding: var(--space-2) var(--space-2);
   min-height: var(--hit-area);
-  margin-top: var(--space-2);
-  border-top: 1px solid var(--line);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Settings

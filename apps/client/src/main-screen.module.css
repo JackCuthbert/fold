@@ -62,10 +62,17 @@
    *(changed 2026-07-31: decrease the padding between the bottom of the
    menu and the sync status text — the previous bottom inset here echoed
    .navScroll's own space-4/space-6 top padding, which read as too much air
-   below the last, already-tight row.)* */
+   below the last, already-tight row.)*
+   *(changed 2026-07-31: use `padding-inline`/`padding-bottom` instead of
+   the `padding` shorthand — the shorthand was zeroing out `padding-top`,
+   which silently cancelled nav-footer.module.css's own `.footer`
+   padding-top and left Settings sitting flush against the divider above
+   it, with no breathing room at all (docs/specs/ui.md — the nav: Settings
+   needs breathing room above the divider).)* */
 .nav > *:last-child,
 .navOpen > *:last-child {
-  padding: 0 var(--space-4) var(--space-2);
+  padding-inline: var(--space-4);
+  padding-bottom: var(--space-2);
 }
 
 /* docs/specs/ui.md — overlays: the drawer animates in/out and dims the
@@ -165,22 +172,36 @@
    up, without narrowing the header/scroller itself (docs/specs/ui.md — the
    scrollbar sits at the pane's edge, not mid-view: the same
    padding-inside-not-outside fix applies to every scrolling/sticky pane,
-   not just `.mainScroll`). */
+   not just `.mainScroll`).
+   *(changed 2026-07-31: horizontal padding moved off `.header` and onto
+   `.headerRow` — see `.headerRow` below. `.header` keeping its own
+   horizontal padding narrowed the width `.headerRow` centred within,
+   compared to `.mainScrollInner` centring in the full, unpadded
+   `.mainScroll`. The two centred+padded boxes landed at different
+   left edges even though both used the same measure and padding token —
+   one left edge, docs/specs/ui.md — needs one shared width to centre
+   within, not just one padding value.)* */
 .header {
   position: sticky;
   top: 0;
   z-index: 1;
   flex: none;
   background: var(--paper);
-  padding: var(--space-4) var(--space-4) var(--space-4);
+  padding: var(--space-4) 0;
 }
 
+/* Carries the horizontal inset itself now (padding-inline), rather than
+   inheriting it from `.header`, so it centres in the same full pane width
+   `.mainScrollInner` does and its content edge lands in the same place
+   (docs/specs/ui.md — one left edge, including controls). */
 .headerRow {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   max-width: var(--measure);
   margin: 0 auto;
+  padding-inline: var(--space-4);
+  box-sizing: border-box;
 }
 
 /* The scrolling child spans the full pane width so its scrollbar tracks
@@ -220,11 +241,12 @@
 
   .nav > :global(*:last-child),
   .navOpen > :global(*:last-child) {
-    padding: 0 var(--space-4) var(--space-3);
+    padding-inline: var(--space-4);
+    padding-bottom: var(--space-3);
   }
 
   .header {
-    padding: var(--space-6) var(--space-4) 0;
+    padding: var(--space-6) 0 0;
   }
 
   .mainScrollInner {

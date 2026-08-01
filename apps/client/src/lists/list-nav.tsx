@@ -1,6 +1,7 @@
 import type { TodoList } from '@caldav-todo/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { LuPlus } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { applyMutationToLists } from '../sync/optimistic'
@@ -68,12 +69,19 @@ export function ListNav(props: {
         ))}
       </ul>
 
+      {/* docs/specs/ui.md — one left edge, including controls: a literal
+          "+ " prefix is text, so it sat at the label's inset rather than
+          on the icon column every other nav row aligns to. A real icon
+          lines up with Settings' gear. The accessible name keeps the
+          "+ New list" wording the e2e suite matches on. */}
       <button
         type="button"
         className={styles['add']}
+        aria-label="+ New list"
         onClick={() => setCreating(true)}
       >
-        + New list
+        <LuPlus aria-hidden="true" size={16} />
+        New list
       </button>
 
       <ListFormModal
