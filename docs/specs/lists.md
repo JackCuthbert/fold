@@ -24,9 +24,21 @@ Full list management is in scope: discover, create, rename, delete.
 returns collection order, so a newly created list appeared in one position
 and then jumped when the server response landed.)*
 
-**Lists render in the order the server returns them.** We do not re-sort.
-A new list is appended at the end — where the server will also place it —
-so nothing moves once the response arrives.
+**Lists are sorted alphabetically by display name in the client**, on read
+and on optimistic insert alike, so the two always agree and a new list
+never moves once the server responds.
+
+*(settled 2026-08-01, after two wrong attempts. The server's order is not
+something we can match: Radicale returns collections in filesystem order
+of their directory names, which are UUIDs — arbitrary, and unpredictable
+from the client. Verified live: a new list landed at position 0
+optimistically and came back from the server at position 2. Since no
+optimistic guess can reliably match an arbitrary order, the client imposes
+its own stable one instead. This is not "the server sorts alphabetically"
+— an earlier comment claimed that and it was false.)*
+
+User-defined ordering, persisted to the server, is a wanted feature; see
+[backlog](./backlog.md).
 
 Reordering lists on the server is a wanted feature; see
 [backlog](./backlog.md).

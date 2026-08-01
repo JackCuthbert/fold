@@ -79,13 +79,14 @@ describe('applyMutationToTodos', () => {
 describe('applyMutationToLists', () => {
   const lists = [{ id: 'l1', href: '/l1/', displayName: 'One', ctag: 'c' }]
 
-  it('appends createList, renames renameList, removes deleteList', () => {
+  it('inserts createList, renames renameList, removes deleteList', () => {
     const created = applyMutationToLists(lists, {
       id: '00000000-0000-4000-8000-000000000004',
       kind: 'createList',
       listId: 'l2',
       displayName: 'Two',
     })
+    // 'One' then 'Two' — sorted by display name, not insertion order.
     expect(created.map((l) => l.id)).toEqual(['l1', 'l2'])
 
     const renamed = applyMutationToLists(lists, {
@@ -119,7 +120,11 @@ describe('applyMutationToLists', () => {
   // optimistic insert appends the placeholder at the end, matching where
   // the server will place the new list, so nothing moves once the real
   // response lands.
-  it('appends a created list at the end, regardless of name', () => {
+  // The optimistic insert must use the same ordering rule the nav renders
+  // with, or the new row jumps when the server responds. The server's own
+  // order is arbitrary (UUID directory names), so the client sorts
+  // (docs/specs/lists.md — ordering).
+  it('inserts a created list in sorted position, not at the end', () => {
     const existing = [
       { id: 'l1', href: '/l1/', displayName: 'Cherry', ctag: 'c' },
       { id: 'l3', href: '/l3/', displayName: 'Apple', ctag: 'c' },
@@ -131,9 +136,9 @@ describe('applyMutationToLists', () => {
       displayName: 'Banana',
     })
     expect(next.map((l) => l.displayName)).toEqual([
-      'Cherry',
       'Apple',
       'Banana',
+      'Cherry',
     ])
   })
 })

@@ -15,6 +15,7 @@ import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
 import {
   applyMutationToLists,
+  byDisplayName,
   applyMutationToTodos,
   patchTodo,
 } from './optimistic'
@@ -248,11 +249,20 @@ export async function createSyncEngine(options: SyncEngineOptions) {
         .reduce(applyMutationToTodos, fresh),
     /**
      * Same as `reconcileTodos`, for the lists collection.
+     *
+     * Sorted here because the server's own order is unusable: Radicale
+     * returns collections in filesystem order of their directory names,
+     * which are UUIDs — arbitrary, and impossible to predict client-side,
+     * so no optimistic insert can match it and a new list always jumped
+     * when the response landed. Sorting on read *and* on optimistic insert
+     * (applyMutationToLists) means the two always agree
+     * (docs/specs/lists.md — ordering).
      */
     reconcileLists: (fresh: TodoList[]): TodoList[] =>
       outbox
         .entries()
         .filter(isListMutation)
-        .reduce(applyMutationToLists, fresh),
+        .reduce(applyMutationToLists, fresh)
+        .toSorted(byDisplayName),
   }
 }

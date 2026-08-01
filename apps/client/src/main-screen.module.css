@@ -267,20 +267,13 @@
 }
 
 @media (min-width: 768px) {
-  .navTitle {
-    padding: var(--space-2) var(--space-4);
-  }
-
-  .navScroll {
-    padding: var(--space-4) var(--space-4) 0;
-  }
-
-  .nav > :global(*:last-child),
-  .navOpen > :global(*:last-child) {
-    padding-inline: var(--space-4);
-    padding-bottom: var(--space-3);
-  }
-
+  /* The nav's own padding is deliberately NOT overridden here: the drawer
+     and the pinned sidebar are the same panel at two sizes and must feel
+     identical (docs/specs/ui.md — the nav). This block used to restate
+     .navTitle and .navScroll at values equal to the base rules, plus bump
+     the footer's padding-bottom from --space-2 to --space-3 — a 4px
+     difference with no reason behind it, which made desktop read subtly
+     looser than mobile. *(removed 2026-08-01.)* */
   .header {
     padding: var(--space-6) 0 0;
   }

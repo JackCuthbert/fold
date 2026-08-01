@@ -91,6 +91,13 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
 // same order and never re-sorts. The optimistic insert appends the
 // placeholder at the end, matching where the server will place the new
 // list, so nothing moves once the real response lands.
+/**
+ * The one ordering rule for lists, used on read and on optimistic insert
+ * alike so the two can never disagree (docs/specs/lists.md — ordering).
+ */
+export const byDisplayName = (a: TodoList, b: TodoList): number =>
+  a.displayName.localeCompare(b.displayName)
+
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,
@@ -108,7 +115,13 @@ export function applyMutationToLists(
         displayName: mutation.displayName,
         ctag: '',
       }
-      return [...lists, placeholder]
+      // Sorted, matching how the nav renders every list
+      // (engine.ts's reconcileLists) — the server's own order is arbitrary
+      // (UUID directory names in filesystem order), so the client imposes
+      // a stable one and the optimistic insert must use the same rule or
+      // the row jumps when the response lands
+      // (docs/specs/lists.md — ordering).
+      return [...lists, placeholder].toSorted(byDisplayName)
     }
     case 'renameList':
       return lists.map((list) =>
