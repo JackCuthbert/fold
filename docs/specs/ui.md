@@ -314,6 +314,17 @@ over an undimmed background, so they didn't read as modal.)*
 
 *(added 2026-07-31, from design review:)*
 
+- **Hover is a whisper, not a change of state.** *(added 2026-08-01: row
+  and button hovers swapped whole background fills, which read as the
+  element becoming something else.)* The reference is the primary button's
+  `filter: brightness()` — enough to acknowledge the pointer, not enough
+  to redraw the control. Nothing should gain or lose a fill on hover where
+  a slight shift in the existing one will do.
+- **Hover transitions are short** — a brief ease on the colour, so the
+  change lands rather than snapping.
+- **Buttons carry a very slight shadow**, like paper on paper: barely
+  perceptible depth, never a drop-shadow that lifts them off the page.
+
 - **Focus is shown by changing the border *colour* only.** An outline draws
   outside the element's box and gets clipped by sheet and sidebar edges;
   changing the border *width* reflows the element. Border width is

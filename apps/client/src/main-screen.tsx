@@ -180,7 +180,11 @@ export function MainScreen() {
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
               {active ? (
-                <TodoPane listId={active} add={add} />
+                // Keyed by list so switching remounts the pane, replaying
+                // its fade-in (todo-pane.module.css — `.pane`). Without
+                // this React reuses the same element and the animation
+                // only ever runs once, on first render.
+                <TodoPane key={active} listId={active} add={add} />
               ) : (
                 <p className={styles['empty']}>Create a list to get started.</p>
               )}

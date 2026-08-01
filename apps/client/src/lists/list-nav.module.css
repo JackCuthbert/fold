@@ -53,8 +53,12 @@
    hover at all, so the two stay visibly different at every moment (hover
    *on* the active row simply adds its own faint fill on top).
    *(changed 2026-08-01.)* */
+/* docs/specs/ui.md — hover is a whisper: a barely-there wash, not a fill
+   that reads as the row changing state. *(softened 2026-08-01: was 55% of
+   --line, which competed with the active row's own treatment.)* */
 .link:hover {
-  background: color-mix(in srgb, var(--line) 55%, transparent);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  transition: background-color var(--duration-fast) var(--ease);
 }
 
 .linkActive {

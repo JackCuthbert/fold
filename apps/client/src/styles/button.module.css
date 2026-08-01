@@ -45,14 +45,21 @@
   /* Only colours transition — no transform, no width/border change, so
      focus and hover never reflow or clip inside a sheet/panel (docs/specs/
      ui.md — focus changes border colour only; no press-transform). */
+  box-shadow: var(--shadow-button);
   transition:
     background-color var(--duration-fast) var(--ease),
     border-color var(--duration-fast) var(--ease),
-    color var(--duration-fast) var(--ease);
+    color var(--duration-fast) var(--ease),
+    filter var(--duration-fast) var(--ease);
 }
 
+/* docs/specs/ui.md — hover is a whisper: shift the surface rather than
+   swapping in a whole new fill. This used to jump to --line, which read as
+   the button becoming a different control; brightness() matches the
+   primary button's treatment, which is the reference for "the right amount
+   of change and contrast". */
 .action:hover {
-  background: var(--line);
+  filter: brightness(0.97);
 }
 
 .action:focus-visible {

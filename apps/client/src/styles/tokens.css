@@ -64,6 +64,10 @@
   --status-syncing: #b8860b;
   --status-offline: var(--danger);
 
+  /* Buttons carry a very slight shadow — paper on paper, not a drop
+     shadow that lifts them off the page (docs/specs/ui.md — controls). */
+  --shadow-button: 0 1px 1px rgb(0 0 0 / 0.04);
+
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 120ms;
   --duration-base: 200ms;
@@ -89,6 +93,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* A black shadow does nothing on a near-black page; a hairline of
+       light along the top edge reads as the same slight depth. */
+    --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.03);
     --paper: #17150f;
     --surface: #1d1a13;
     --ink: #ece7dd;

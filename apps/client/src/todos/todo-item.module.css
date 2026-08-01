@@ -13,14 +13,11 @@
      shared column edge (docs/specs/ui.md — one left edge). */
   gap: var(--space-1);
   border-bottom: 1px solid var(--line);
-  animation: todo-in var(--duration-slow) var(--ease);
-}
-
-@keyframes todo-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
+  /* No per-row animation: the whole pane fades in together when you switch
+     lists (todo-pane.module.css's `.pane`), so rows don't each animate
+     independently — that read as a stagger of unrelated parts rather than
+     one view arriving. Individual rows still animate on add/remove via
+     their own enter/exit, not this. */
 }
 
 .body {
