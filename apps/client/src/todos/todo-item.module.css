@@ -131,22 +131,27 @@
   text-transform: capitalize;
 }
 
-/* docs/specs/ui.md — todos: priority is colour-coded on the row, all three
+/* docs/specs/todos.md — priority is colour-coded on the row, all three
    levels, not just high — reusing the same semantic status tokens as sync
-   status (docs/specs/ui.md — status display) rather than a second
-   palette: high reads as urgent (red/danger), medium as cautionary
-   (amber/syncing), low as calm (green/synced). The text label stays in
-   all three cases, so meaning never depends on colour alone. */
+   status (docs/specs/ui.md — status display) rather than a second palette.
+   The text label stays in all three cases, so meaning never depends on
+   colour alone.
+
+   The three colours themselves live in styles/priority.module.css, shared
+   with the Priority dropdowns in the detail panel and the add-todo modal,
+   so the option that sets a priority matches the row that displays it.
+   *(changed 2026-08-03: these three rules were declared here and needed by
+   two more modules.)* */
 .prioHigh {
-  color: var(--status-offline);
+  composes: high from '../styles/priority.module.css';
 }
 
 .prioMedium {
-  color: var(--status-syncing);
+  composes: medium from '../styles/priority.module.css';
 }
 
 .prioLow {
-  color: var(--status-synced);
+  composes: low from '../styles/priority.module.css';
 }
 
 .due {

@@ -56,6 +56,17 @@ const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
   { label: 'Low', value: 'low' },
 ]
 
+// docs/specs/todos.md — priority is colour-coded: the option that sets a
+// priority uses the same ink as the row that displays it. Keyed by option
+// value, so 'None' ('') simply finds nothing and stays plain ink — it is
+// the absence of a priority, not a fourth level. The label text is always
+// rendered alongside, so meaning never depends on colour alone.
+const PRIO_CLASS: Record<string, string | undefined> = {
+  high: styles['prioHigh'],
+  medium: styles['prioMedium'],
+  low: styles['prioLow'],
+}
+
 // Detail edit — docs/specs/todos.md. Rendered as a bottom sheet on mobile
 // and, since issue #4, a layout column on desktop (docs/specs/ui.md —
 // layout / the detail panel).
@@ -274,7 +285,9 @@ export function TodoDetail(props: {
                 value={value}
                 onValueChange={onChange}
               >
-                <Select.Trigger className={styles['selectTrigger']}>
+                <Select.Trigger
+                  className={cx(styles['selectTrigger'], PRIO_CLASS[value])}
+                >
                   <Select.Value />
                   <Select.Icon className={styles['selectIcon']}>
                     <LuChevronDown aria-hidden="true" size={14} />
@@ -297,7 +310,10 @@ export function TodoDetail(props: {
                         <Select.Item
                           key={option.value}
                           value={option.value}
-                          className={styles['selectItem']}
+                          className={cx(
+                            styles['selectItem'],
+                            PRIO_CLASS[option.value],
+                          )}
                         >
                           <Select.ItemText>{option.label}</Select.ItemText>
                         </Select.Item>
@@ -387,6 +403,17 @@ export function TodoDetail(props: {
           >
             Close
           </button>
+          {/* Save is disabled until something changes, which leaves the
+              panel looking inert while you are in fact mid-edit. This says
+              why the button is live — and, more usefully, warns that
+              closing now would lose the change. `role="status"` so it is
+              announced rather than only seen. Sits between the buttons and
+              Delete, in space the row already had. *(added 2026-08-03.)* */}
+          {isDirty && (
+            <span className={styles['dirty']} role="status">
+              Unsaved changes
+            </span>
+          )}
           <button
             type="button"
             className={styles['delete']}

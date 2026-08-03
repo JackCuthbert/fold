@@ -39,6 +39,17 @@ const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
   { label: 'Low', value: 'low' },
 ]
 
+// docs/specs/todos.md — priority is colour-coded: the option that sets a
+// priority uses the same ink as the row that displays it. Keyed by option
+// value, so 'None' ('') simply finds nothing and stays plain ink — it is
+// the absence of a priority, not a fourth level. The label text is always
+// rendered alongside, so meaning never depends on colour alone.
+const PRIO_CLASS: Record<string, string | undefined> = {
+  high: styles['prioHigh'],
+  medium: styles['prioMedium'],
+  low: styles['prioLow'],
+}
+
 const EMPTY_VALUES: AddTodoForm = {
   summary: '',
   due: '',
@@ -212,7 +223,12 @@ export function AddTodoModal(props: {
                           value={value}
                           onValueChange={onChange}
                         >
-                          <Select.Trigger className={styles['selectTrigger']}>
+                          <Select.Trigger
+                            className={cx(
+                              styles['selectTrigger'],
+                              PRIO_CLASS[value],
+                            )}
+                          >
                             <Select.Value />
                             <Select.Icon className={styles['selectIcon']}>
                               <LuChevronDown aria-hidden="true" size={14} />
@@ -232,7 +248,10 @@ export function AddTodoModal(props: {
                                   <Select.Item
                                     key={option.value}
                                     value={option.value}
-                                    className={styles['selectItem']}
+                                    className={cx(
+                                      styles['selectItem'],
+                                      PRIO_CLASS[option.value],
+                                    )}
                                   >
                                     <Select.ItemText>
                                       {option.label}

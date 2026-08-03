@@ -169,16 +169,37 @@
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-input);
-  color: var(--ink);
   background: transparent;
   text-align: left;
+}
+
+/* The trigger's default ink is scoped to triggers *without* a priority
+   class — see the fuller note on the equivalent rule in
+   add-todo-modal.module.css. `.selectTrigger` and the composed `.high` are
+   both single-class selectors, so declaring `color` on `.selectTrigger`
+   directly left the winner to source order; `:not()` makes the two rules
+   mutually exclusive instead. The List select has no priority class, so it
+   keeps `--ink` as before.
+   *(added 2026-08-03, with the priority colouring below.)* */
+.selectTrigger:not(.prioHigh, .prioMedium, .prioLow) {
+  color: var(--ink);
 }
 
 /* docs/specs/ui.md — focus changes the border, not an outline: a button
    styled to look like an input (this is Base UI's Select.Trigger) should
    get the same treatment as a real input, especially inside a sheet/panel
-   where an outline would clip against the edge. */
-.selectTrigger:focus-visible {
+   where an outline would clip against the edge.
+
+   `[data-popup-open]` (Base UI's SelectTriggerDataAttributes.popupOpen) is
+   the open state. It is a separate selector rather than a replacement for
+   `:focus-visible`: an open select may be driven by pointer, where the
+   trigger holds focus but not *visible* focus, so `:focus-visible` alone
+   left the trigger looking untouched while its popup was plainly open.
+   Both selectors set the same border, so a trigger that is focused,
+   open, or both reads identically.
+   *(fixed 2026-08-03, issue #18.)* */
+.selectTrigger:focus-visible,
+.selectTrigger[data-popup-open] {
   outline: none;
   border-color: var(--accent);
 }
@@ -223,6 +244,26 @@
   background: var(--line);
 }
 
+/* docs/specs/todos.md — priority is colour-coded: the option that *sets* a
+   priority carries the same ink as the row that displays it, so choosing
+   "High" previews that it will read as urgent. Applied to the trigger's
+   selected value too, so the closed control agrees with the open list.
+   Colours come from the one shared module (styles/priority.module.css);
+   "None" gets no class and stays plain ink, since it is the absence of a
+   priority rather than a fourth level. The label text is always present,
+   so meaning never depends on colour alone. */
+.prioHigh {
+  composes: high from '../styles/priority.module.css';
+}
+
+.prioMedium {
+  composes: medium from '../styles/priority.module.css';
+}
+
+.prioLow {
+  composes: low from '../styles/priority.module.css';
+}
+
 /* .actions is a child of .form (the scroller), which already contributes
    the shared horizontal inset — no horizontal padding here, or the action
    row would sit narrower than the fields above it (docs/specs/ui.md — one
@@ -234,6 +275,26 @@
   gap: var(--space-3);
   margin-top: var(--space-2);
   padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  /* The row can hold four items once "Unsaved changes" appears; on a narrow
+     sheet that is more than fits, so it wraps rather than squeezing the
+     buttons below their hit area. */
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+/* docs/specs/ui.md — status display: a quiet statement of fact, not an
+   alarm. Muted like the metadata footer rather than amber or red — nothing
+   has gone wrong, there is simply a change the user hasn't saved yet, and
+   Save sitting enabled beside it is the actionable part.
+   `margin-left: auto` claims the gap between the primary actions and
+   Delete, which is space the row already had — so nothing shifts when this
+   appears and disappears, and Delete's own `margin-left: auto` still pins
+   it to the trailing edge. *(added 2026-08-03.)* */
+.dirty {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* docs/specs/todos.md — metadata: facts *about* the todo rather than fields

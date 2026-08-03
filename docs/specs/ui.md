@@ -543,6 +543,15 @@ over an undimmed background, so they didn't read as modal.)*
   constant — only the colour changes. Focus must remain clearly visible;
   this changes how, not whether. *(clarified 2026-07-31: the first
   implementation widened the border on focus, causing a 1px layout shift.)*
+- **A control with an open popup shows the same accent border**, whether or
+  not it also has visible focus. A select trigger is a button styled to look
+  like an input, so it gets an input's treatment — and an open dropdown is
+  an active control. Opening by pointer gives the trigger focus but not
+  `:focus-visible`, so the open state must be styled in its own right rather
+  than relying on the focus rule to cover it. *(added 2026-08-03, issue #18:
+  the Priority and List triggers kept their resting `--line` border while
+  their popup was plainly open, so the control that opened it looked
+  untouched.)*
 - **Corner radii are small.** Restrained rounding suits the typography;
   large radii read as soft and generic.
 - **No press-transform anywhere.** *(broadened 2026-07-31: this applied
