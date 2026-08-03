@@ -241,18 +241,32 @@ discover.
 
 ### `ExtensionBadge`
 
-A small `LuInfo` icon in a **Base UI `Tooltip`**
-(`@base-ui/react/tooltip`), generic and reusable, with a co-located CSS
+A small `LuInfo` icon in a **Base UI `Popover`**
+(`@base-ui/react/popover`), generic and reusable, with a co-located CSS
 Module. Placed beside the colour field and the reorder controls.
 
 Content: this feature relies on a server extension outside RFC 4791; most
 servers (including Radicale) support it; a server that does not will ignore
-it rather than break. Links into the help modal.
+it rather than break.
 
-**Touch:** a tooltip is hover/focus-only and hover does not exist on touch,
-so the badge is a real `<button>` and must be tappable. If the tooltip
-proves awkward on touch, tapping opens the help modal directly and the
-tooltip is retained for pointer devices.
+**A popover, not a tooltip** *(changed 2026-08-03, on review: this was
+specced as a tooltip.)* The distinction is an accessibility one:
+
+- A **tooltip**'s content is an accessible *name* for its trigger — short,
+  unfocusable, and not reliably reachable by assistive tech or the
+  keyboard.
+- A **popover** holds content the user is meant to read and navigate. It is
+  focusable, dismissible with Escape, and properly announced.
+
+This badge explains a concept in prose, so it is the second. Base UI's
+Popover supports `openOnHover`, so it still feels like a tooltip to a
+pointer while behaving correctly for everyone else.
+
+**Touch:** hover does not exist on touch, so the trigger is a real
+`<button>` and a tap opens the same popover. The trigger has no second
+click behaviour — a link into the help modal, if wanted, goes *inside* the
+popup as a real link, which is content a popover can hold and a tooltip
+cannot.
 
 ### Help modal
 
