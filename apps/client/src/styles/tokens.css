@@ -70,6 +70,24 @@
   --status-syncing: #b8860b;
   --status-offline: var(--danger);
 
+  /* docs/specs/lists.md — colours: a restrained palette tuned to Fold's
+     warm paper rather than borrowed from Apple. These are a *shortcut*,
+     not a constraint — any hex is valid, and a colour set by another
+     client renders exactly as stored. Deliberately muted: eight options
+     that sit in the page rather than shouting off it.
+     Literal values, not theme-dependent: a list's colour lives on the
+     server and must look the same in both themes. Pinned by
+     test/list-color.test.ts, which asserts all eight survive the contrast
+     guard on both papers. */
+  --list-red: #a8564a;
+  --list-orange: #b3703a;
+  --list-amber: #a8863c;
+  --list-green: #5d7f52;
+  --list-teal: #4a7f78;
+  --list-blue: #4a6f96;
+  --list-violet: #7a5f8f;
+  --list-rose: #9c5c72;
+
   /* Buttons carry a very slight shadow — paper on paper, not a drop
      shadow that lifts them off the page (docs/specs/ui.md — controls). */
   --shadow-button: 0 1px 1px rgb(0 0 0 / 0.04);
