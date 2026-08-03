@@ -41,7 +41,15 @@ export function TodoItem(props: {
   todo: Todo
   now: Date
   onToggle: () => void
-  onOpen: () => void
+  /**
+   * Opens the detail panel. Receives the row's own button so focus can be
+   * returned to it when the panel closes — the panel is a non-modal column
+   * on desktop (docs/specs/ui.md — the detail panel), so nothing restores
+   * focus automatically, and the explicit element is trustworthy where a
+   * heuristic isn't once a re-render reorders the rows (the same reasoning
+   * as `triggerRef` in add-todo-modal.tsx). *(added 2026-08-03, issue #4.)*
+   */
+  onOpen: (trigger: HTMLElement) => void
   /**
    * Optional marker rendered in the meta row, before priority and due.
    * The Today view uses it to name each row's source list, since its rows
@@ -65,7 +73,11 @@ export function TodoItem(props: {
         label={`Mark "${todo.summary}" ${todo.completed ? 'active' : 'done'}`}
         onToggle={props.onToggle}
       />
-      <button type="button" className={styles['body']} onClick={props.onOpen}>
+      <button
+        type="button"
+        className={styles['body']}
+        onClick={(event) => props.onOpen(event.currentTarget)}
+      >
         <span className={styles['titleRow']}>
           <span className={styles['summary']}>{todo.summary}</span>
           <span className={styles['meta']}>

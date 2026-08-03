@@ -18,10 +18,14 @@ import { useTodoActions } from './use-todo-actions'
 // order them (by due instant vs the standard rules), and whether they can
 // create (Today cannot). Threading three flags through TodoPane would make
 // both harder to read than keeping them separate.
-export function TodayPane(props: { lists: readonly TodoList[] }) {
+export function TodayPane(props: {
+  lists: readonly TodoList[]
+  // Selection lives in MainScreen — see TodoPane's `onOpen`
+  // (docs/specs/ui.md — the detail panel; issue #4).
+  onOpen: (todo: Todo, trigger: HTMLElement | null) => void
+}) {
   const { todos } = useTodayTodos(props.lists)
   const { playPop } = useSound()
-  const [openUid, setOpenUid] = useState<string | null>(null)
   // docs/specs/today-view.md — completed: expanded by default here, unlike
   // a list view. Today is a single day's slice, so its completed section is
   // short and is the day's finished work rather than an ever-growing
@@ -42,7 +46,6 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
     ),
   )
   const completed = sortByDueInstant(due.filter((todo) => todo.completed))
-  const open = due.find((todo) => todo.uid === openUid)
 
   const listName = (listId: string): string =>
     props.lists.find((list) => list.id === listId)?.displayName ?? ''
@@ -56,7 +59,7 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
             todo={todo}
             now={now}
             listName={listName(todo.listId)}
-            onOpen={() => setOpenUid(todo.uid)}
+            onOpen={(trigger) => props.onOpen(todo, trigger)}
             onToggled={playPop}
           />
         ))}
@@ -88,7 +91,7 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
                   todo={todo}
                   now={now}
                   listName={listName(todo.listId)}
-                  onOpen={() => setOpenUid(todo.uid)}
+                  onOpen={(trigger) => props.onOpen(todo, trigger)}
                 />
               ))}
             </ul>
@@ -97,14 +100,6 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
                 each. That belongs in the list itself. */}
           </Collapsible.Panel>
         </Collapsible.Root>
-      )}
-
-      {open && (
-        <TodayDetail
-          todo={open}
-          lists={props.lists}
-          onClose={() => setOpenUid(null)}
-        />
       )}
     </div>
   )
@@ -125,7 +120,7 @@ export function TodayRow(props: {
   todo: Todo
   now: Date
   listName: string
-  onOpen: () => void
+  onOpen: (trigger: HTMLElement) => void
   onToggled?: () => void
 }) {
   const actions = useTodoActions(props.todo.listId)
@@ -149,10 +144,23 @@ export function TodayRow(props: {
   )
 }
 
-/** Detail sheet bound to the opened todo's own list. Shared with Summary. */
+/**
+ * The detail panel bound to the opened todo's own list.
+ *
+ * This is the seam that gives the panel its mutation actions from its new
+ * home outside `<main>`: `useTodoActions` is keyed by list, and the panel
+ * is rendered once at the top level for todos that may come from any list,
+ * so the binding has to happen here — where the opened todo's `listId` is
+ * known — rather than in a pane. Used by every view, not just Today and
+ * Summary, now that MainScreen owns selection (issue #4).
+ * *(changed 2026-08-03: was rendered by Today/Summary; now by MainScreen.)*
+ */
 export function TodayDetail(props: {
   todo: Todo
   lists: readonly TodoList[]
+  mode: 'sheet' | 'column'
+  /** Column mode only — see TodoDetail. */
+  focusNonce?: number
   onClose: () => void
 }) {
   const actions = useTodoActions(props.todo.listId)
@@ -160,6 +168,10 @@ export function TodayDetail(props: {
     <TodoDetail
       todo={props.todo}
       lists={props.lists}
+      mode={props.mode}
+      {...(props.focusNonce === undefined
+        ? {}
+        : { focusNonce: props.focusNonce })}
       onSave={(changes) => actions.update(props.todo, changes)}
       onMove={(targetListId) => actions.move(props.todo, targetListId)}
       onDelete={() => {

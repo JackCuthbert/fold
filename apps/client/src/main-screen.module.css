@@ -321,6 +321,53 @@
   font-size: var(--text-sm);
 }
 
+/* docs/specs/ui.md — the detail panel: on desktop it is a layout column
+   rather than an overlay, so it collapses to zero width when nothing is
+   selected exactly as the nav does. Always mounted and animating its own
+   width (never conditionally rendered), for the same reason `.nav` is —
+   otherwise opening/closing is an instant mount with no transition.
+   `.detailInner` holds the open width so the content is clipped rather
+   than reflowing as the column shrinks. *(added 2026-08-03, issue #4.)* */
+/* `flex: none` alone is not enough here, unlike on `.nav`: `.main` sits
+   *before* this column and carries `width: 100%`, so it claims the whole
+   row and the flex algorithm then shrinks whatever follows. `flex-shrink`
+   defaults to 1 via the `flex: none` shorthand's `0 0 auto` only for the
+   *basis* — the overflow still resolves against this box because
+   `min-width: auto` lets it be squeezed below its width. Pinning
+   `flex-shrink: 0` and `min-width: 0` keeps the column at its declared
+   width instead of the ~112px the squeeze produced. */
+.detail {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  flex-shrink: 0;
+  width: min(90vw, 24rem);
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  transition:
+    width var(--duration-base) var(--ease),
+    border-color var(--duration-base) var(--ease);
+}
+
+/* Zero width *and* no border: the 1px border-left would otherwise leave a
+   hairline column permanently down the right edge of the app when nothing
+   is selected. `border-left-color: transparent` alone still occupies the
+   pixel, so the width goes too. */
+.detailCollapsed {
+  width: 0;
+  border-left-width: 0;
+  border-left-color: transparent;
+}
+
+.detailInner {
+  display: flex;
+  flex-direction: column;
+  width: min(90vw, 24rem);
+  height: 100%;
+  flex: none;
+}
+
 @media (min-width: 768px) {
   .mainScrollInner {
     padding: 0 var(--space-4) var(--space-6);

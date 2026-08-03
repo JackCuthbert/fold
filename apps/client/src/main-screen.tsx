@@ -1,5 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { useEffect, useState, type ReactNode } from 'react'
+import type { Todo } from '@fold/schemas'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami } from 'react-icons/lu'
 import { HelpModal } from './help-modal'
 import { ListNav, useLists } from './lists/list-nav'
@@ -15,6 +16,7 @@ import {
   isTodayView,
   TODAY_VIEW,
 } from './todos/today'
+import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
 import { useMediaQuery } from './use-media-query'
@@ -48,6 +50,23 @@ export function MainScreen() {
   // inside the drawer's Dialog on mobile and lose its backdrop too.
   // *(added 2026-08-03.)*
   const [helpOpen, setHelpOpen] = useState(false)
+  // docs/specs/ui.md — the detail panel: on desktop the panel is a layout
+  // column, a sibling of `<main>` rather than a child, so which todo is
+  // open has to live here — a pane inside `<main>` cannot render a column
+  // beside it. Held as `{ uid, listId }` rather than a bare uid because
+  // Today and Summary draw rows from several lists at once, where a uid
+  // alone is ambiguous; the panel resolves the todo and binds that list's
+  // mutation actions itself (TodayDetail). *(added 2026-08-03, issue #4.)*
+  const [openTodo, setOpenTodo] = useState<Todo | null>(null)
+  // Counts opens, so the panel can move focus into itself on every one —
+  // see `openDetail`.
+  const [openCount, setOpenCount] = useState(0)
+  // The row that opened the panel, so focus can go back to it on close.
+  // Explicit rather than inferred: the panel is not modal on desktop, so
+  // nothing restores focus for us, and a heuristic is untrustworthy once a
+  // save re-renders and reorders the list — the same reasoning as
+  // `triggerRef` in add-todo-modal.tsx.
+  const openTrigger = useRef<HTMLElement | null>(null)
   const [navPinned, setNavPinned] = useState<boolean>(
     () => localStorage.getItem(NAV_PINNED_KEY) !== '0',
   )
@@ -107,6 +126,33 @@ export function MainScreen() {
   const selectList = (listId: string): void => {
     setSelected(listId)
     localStorage.setItem(SELECTED_LIST_KEY, listId)
+    // Switching view drops the selection: the open todo may not exist in
+    // the list being switched to, and a panel showing a todo from the view
+    // you just left is worse than no panel.
+    setOpenTodo(null)
+  }
+
+  const openDetail = (todo: Todo, trigger: HTMLElement | null): void => {
+    openTrigger.current = trigger
+    setOpenTodo(todo)
+    // Bumped on every open, including re-clicking the row that is already
+    // showing. The panel keys its focus effect on this rather than on the
+    // todo, because clicking the open row changes neither `openTodo` nor
+    // the `key` — so without it that click would leave focus out on the
+    // row while the panel sits there looking focused, and the next Escape
+    // would go to the row instead of closing the panel.
+    setOpenCount((count) => count + 1)
+  }
+
+  const closeDetail = (): void => {
+    setOpenTodo(null)
+    // Return focus to the row that opened the panel. Deferred a frame so
+    // it lands after the panel has gone: focusing while the panel is still
+    // mounted and about to be made `inert` leaves focus nowhere, which
+    // drops the user back to the top of the document.
+    const trigger = openTrigger.current
+    openTrigger.current = null
+    if (trigger) requestAnimationFrame(() => trigger.focus())
   }
 
   // docs/specs/ui.md — the nav has a title above its list of lists, so the
@@ -261,18 +307,81 @@ export function MainScreen() {
                   React reuses the same element and the animation only ever
                   runs once, on first render. */}
               {showingToday ? (
-                <TodayPane key={active} lists={lists.data ?? []} />
+                <TodayPane
+                  key={active}
+                  lists={lists.data ?? []}
+                  onOpen={openDetail}
+                />
               ) : showingSummary ? (
-                <SummaryPane key={active} lists={lists.data ?? []} />
+                <SummaryPane
+                  key={active}
+                  lists={lists.data ?? []}
+                  onOpen={openDetail}
+                />
               ) : activeList ? (
-                <TodoPane key={active} listId={activeList.id} add={add} />
+                <TodoPane
+                  key={active}
+                  listId={activeList.id}
+                  add={add}
+                  onOpen={openDetail}
+                />
               ) : (
                 <p className={styles['empty']}>Create a list to get started.</p>
               )}
             </div>
           </div>
         </main>
+        {/* docs/specs/ui.md — the detail panel: on desktop it is a third
+            column of the layout, after `<main>`, not an overlay over it.
+            Mirrors the nav's collapse exactly — always mounted so opening
+            and closing is a width transition rather than a mount, and
+            hidden from assistive tech and unreachable by Tab while closed.
+            Deliberately no "select a todo" placeholder: this is a
+            single-user app whose owner knows what the panel is, and a
+            permanent placeholder would spend a third of the screen saying
+            nothing. *(added 2026-08-03, issue #4.)* */}
+        {isDesktop && (
+          <aside
+            className={cx(
+              styles['detail'],
+              !openTodo && styles['detailCollapsed'],
+            )}
+            aria-hidden={!openTodo}
+            inert={!openTodo}
+          >
+            <div className={styles['detailInner']}>
+              {openTodo && (
+                <TodayDetail
+                  // Remount when a different todo is opened: the form's
+                  // defaultValues are built once per mount from the todo,
+                  // so without this, clicking a second row while the panel
+                  // is open would keep showing the first todo's values.
+                  key={openTodo.uid}
+                  todo={openTodo}
+                  lists={lists.data ?? []}
+                  mode="column"
+                  focusNonce={openCount}
+                  onClose={closeDetail}
+                />
+              )}
+            </div>
+          </aside>
+        )}
       </div>
+      {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
+          with its scrim, focus trap and Escape (docs/specs/ui.md —
+          overlays). Rendered outside `.body` since it is an overlay, not a
+          column, and as a sibling of the nav drawer's Dialog rather than
+          inside it — see `settingsOpen` above. */}
+      {!isDesktop && openTodo && (
+        <TodayDetail
+          key={openTodo.uid}
+          todo={openTodo}
+          lists={lists.data ?? []}
+          mode="sheet"
+          onClose={closeDetail}
+        />
+      )}
     </div>
   )
 }
