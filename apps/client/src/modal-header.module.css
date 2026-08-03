@@ -29,10 +29,23 @@
      rather than wrapping under it if a title is ever long. */
   flex: 1 1 auto;
   min-width: 0;
-  /* Holds initial focus in the help modal so its scrolling body opens at
-     the top (see help-modal.tsx). It is a heading, not a control, so it
-     must not draw a focus ring — the app shows focus on real controls
-     only (docs/specs/ui.md — controls & touch targets). */
+  /* Holds initial focus — in the help modal so its scrolling body opens at
+     the top, and in the detail column so opening a todo puts the keyboard
+     inside the panel (see help-modal.tsx, todo-detail.tsx). It is a
+     heading, not a control, so it must not draw a focus ring — the app
+     shows focus on real controls only (docs/specs/ui.md — controls & touch
+     targets).
+
+     The `:focus-visible` selector is needed, not a bare `outline: none`:
+     global.css's fallback ring is itself scoped to `:focus-visible`, so an
+     unscoped rule here loses on specificity and the heading drew a 2px
+     accent outline the moment it took focus.
+     *(fixed 2026-08-03: visible on the detail column, where focus lands on
+     open every time rather than only when the help modal is opened.)* */
+  outline: none;
+}
+
+.title:focus-visible {
   outline: none;
 }
 
