@@ -45,6 +45,7 @@ composes them. No monolithic route files.
 | CalDAV 412 | 412 + fresh todo in body | rebase + retry |
 | CalDAV 404 (no such list/todo) | 404 | drop the mutation; the target is gone, retrying cannot help |
 | CalDAV server unreachable | 502 | "server unreachable" pill, keep queueing |
+| CalDAV server too slow to answer | 502 | as unreachable — see below |
 | Invalid request body | 400 + structured error | toast + error logging |
 
 *(added 2026-07-31: the router previously flattened **every** non-401/412
@@ -61,6 +62,32 @@ originate from an intermediary in front of this API (reverse proxy, load
 balancer, CDN) and is never the client's fault, so it must retry rather
 than drop the mutation; only 4xx is treated as a client-side/fatal error,
 with 401/412 handled specially as above.)*
+
+## A slow server must fail like an unreachable one
+
+*(added 2026-08-04: against a real hosted CalDAV server, every request died
+with `[Bun.serve]: request timed out after 10 seconds` and the client saw
+`socket hang up` / 500. With reads failing, the previously cached data was
+all the UI had to show, which is how the stale-data bug above became
+visible.)*
+
+The runtime's own idle timeout is **not** an acceptable failure path: it
+severs the socket before any handler returns, so the error mapping above
+never runs and the client cannot tell "the server is slow" from "the BFF is
+broken". Therefore:
+
+- The router applies its **own deadline** to every handler, and a handler
+  that exceeds it raises `CaldavUnreachableError` — so the failure travels
+  the documented 502 path and the client keeps queueing, as it does for any
+  other unreachable upstream.
+- That deadline is deliberately **shorter** than the runtime's idle timeout,
+  so the router always answers first. `Bun.serve` caps `idleTimeout` at 255
+  seconds, so the two are 240s and 255s respectively — five minutes is not
+  available.
+- A CalDAV request can **hang** rather than reject, so the deadline is an
+  explicit race, not a `catch`.
+- The dev proxy has its own timeouts, which must not be shorter than the
+  BFF's, or the hang-up reappears in development regardless.
 
 ## Spurious vs. genuine unreachable
 

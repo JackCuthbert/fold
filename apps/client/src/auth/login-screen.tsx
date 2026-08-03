@@ -6,7 +6,12 @@ import { Input } from '@base-ui/react/input'
 import { useMutation } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
 import { ApiError } from '../api/errors'
-import { api, queryClient } from '../providers'
+import { api, persister, queryClient } from '../providers'
+import {
+  readServerIdentity,
+  rememberServerIdentity,
+  serverIdentity,
+} from '../server-identity'
 import styles from './login-screen.module.css'
 
 // docs/specs/authentication.md — login form, react-hook-form + zod.
@@ -40,7 +45,27 @@ export function LoginScreen() {
 
   const login = useMutation({
     mutationFn: api.login,
-    onSuccess: (session) => queryClient.setQueryData(['session'], session),
+    onSuccess: (session) => {
+      // docs/specs/authentication.md — cached data is scoped to its
+      // server. Signing into a *different* server must not inherit the
+      // previous one's lists and todos, so drop the cache in memory and on
+      // disk before recording the new identity. On a reload the persister's
+      // `buster` (providers.tsx) does the same job for the copy that
+      // survives in IndexedDB.
+      const identity = serverIdentity(session)
+      if (readServerIdentity() !== identity) {
+        // Only the *data* queries, never `['session']`: Gate is mounted on
+        // that query, and a blanket `clear()` resets its observer to
+        // pending — the app blanks out until the refetch lands, rather
+        // than going straight to the signed-in shell.
+        queryClient.removeQueries({
+          predicate: (query) => query.queryKey[0] !== 'session',
+        })
+        void persister.removeClient()
+      }
+      rememberServerIdentity(identity)
+      queryClient.setQueryData(['session'], session)
+    },
   })
 
   const submitError =

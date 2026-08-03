@@ -19,6 +19,11 @@ import {
   type SyncEngine,
   type SyncStatus,
 } from './sync/engine'
+import {
+  outboxKeyFor,
+  readServerIdentity,
+  subscribeServerIdentity,
+} from './server-identity'
 import { idbStorage } from './sync/idb-storage'
 import { classifyBlockReason, TaggedFatalError } from './sync/process'
 import { useToast } from './toast'
@@ -103,6 +108,24 @@ export const persister: typeof storagePersister = {
     withDeadline(Promise.resolve(storagePersister.restoreClient()), undefined),
 }
 
+// docs/specs/authentication.md — cached data is scoped to its server.
+// Nothing in the cache records which server it came from, so signing into a
+// different one used to hydrate the previous server's lists and todos from
+// IndexedDB and render them under the new credentials. `buster` is
+// TanStack Query's own mechanism for exactly this: when the string changes,
+// the persisted cache is discarded instead of hydrated.
+//
+// It has to be read synchronously here, before the first render — which is
+// why the identity lives in localStorage rather than being derived from
+// `['session']`, a query that is never persisted and has not resolved yet.
+// That also makes this cover an *expired* session followed by signing in
+// elsewhere, not merely a deliberate sign-out.
+const persistOptions = {
+  persister,
+  dehydrateOptions,
+  buster: readServerIdentity() ?? '',
+}
+
 const EngineContext = createContext<SyncEngine | null>(null)
 
 export function useSyncEngine(): SyncEngine {
@@ -163,6 +186,14 @@ const describeMutation = (mutation: Mutation): string => {
 export function AppProviders({ children }: { children: ReactNode }) {
   const [engine, setEngine] = useState<SyncEngine | null>(null)
   const toast = useToast()
+  // Signing into a different server *without a reload* must rebuild the
+  // engine on that server's queue. Binding the key once at mount would
+  // leave it writing to the previous server's outbox — the same
+  // cross-server leak this scoping exists to prevent, one layer down.
+  const identity = useSyncExternalStore(
+    subscribeServerIdentity,
+    readServerIdentity,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -170,8 +201,16 @@ export function AppProviders({ children }: { children: ReactNode }) {
     void createSyncEngine({
       api,
       queryClient,
+      // Namespaced per server, so queued writes still survive a logout and
+      // replay after re-login (docs/specs/authentication.md) — but only
+      // ever against the server they were made for. Signing into a
+      // different server leaves the first server's queue intact rather
+      // than dropping it: no silent data loss, and no replay onto list ids
+      // that mean something else on the new host.
       storage:
-        typeof indexedDB === 'undefined' ? memoryStorage() : idbStorage(),
+        typeof indexedDB === 'undefined'
+          ? memoryStorage()
+          : idbStorage(outboxKeyFor(identity)),
       onUnauthorized: () => queryClient.setQueryData(['session'], null),
       onStorageProblem: (message: string) => toast(message),
       onDropped: (mutation: Mutation, error: FatalError) => {
@@ -201,7 +240,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         syncEngineForQueryHealth = null
       }
     }
-  }, [toast])
+  }, [toast, identity])
 
   useEffect(() => {
     if (!engine) return undefined
@@ -220,7 +259,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, dehydrateOptions }}
+      persistOptions={persistOptions}
     >
       <EngineContext value={engine}>{children}</EngineContext>
     </PersistQueryClientProvider>
