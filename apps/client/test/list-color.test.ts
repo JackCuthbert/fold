@@ -30,4 +30,37 @@ describe('markerColor', () => {
   it('falls back when there is no colour at all', () => {
     expect(markerColor(undefined, 'light')).toBe('var(--accent)')
   })
+
+  // The case the extremes above miss. Luminance is not perceptually
+  // uniform and the two papers sit at opposite ends of the scale, so a
+  // threshold tuned against near-white paper can reject *every* real
+  // swatch on a dark page — the marker would then never take a list's
+  // colour in dark mode, and no test above would notice.
+  //
+  // These are the eight palette swatches from styles/tokens.css. They must
+  // survive the guard in BOTH themes; that is the whole point of offering
+  // them as the default choices.
+  //
+  // *(added 2026-08-03 with the MIN_DELTA fix: the guard was rejecting all
+  // eight on dark paper.)*
+  describe('the shipped palette survives the guard in both themes', () => {
+    const PALETTE = [
+      '#A8564A',
+      '#B3703A',
+      '#A8863C',
+      '#5D7F52',
+      '#4A7F78',
+      '#4A6F96',
+      '#7A5F8F',
+      '#9C5C72',
+    ]
+
+    it.each(PALETTE)('%s keeps its colour on light paper', (color) => {
+      expect(markerColor(color, 'light')).toBe(color)
+    })
+
+    it.each(PALETTE)('%s keeps its colour on dark paper', (color) => {
+      expect(markerColor(color, 'dark')).toBe(color)
+    })
+  })
 })

@@ -25,11 +25,26 @@ const PAPER_LUMINANCE = {
 export type Theme = keyof typeof PAPER_LUMINANCE
 
 /**
- * Minimum luminance gap from the paper. Chosen so a marker reads as a
- * deliberate mark rather than a smudge; well below a text-contrast
- * threshold, because this is a 4px bar, not a glyph.
+ * Minimum luminance gap from the paper. Well below a text-contrast
+ * threshold, because this is a 4px bar rather than a glyph — it only has
+ * to read as a deliberate mark.
+ *
+ * **This number cannot be tuned against light paper alone.** Luminance is
+ * not perceptually uniform, and the two papers sit at opposite ends of the
+ * scale (0.947 and 0.008), so the same colour's delta differs by an order
+ * of magnitude between themes. Our own palette measures ~0.69–0.80 against
+ * light paper but only ~0.14–0.25 against dark: a threshold picked to look
+ * generous in light mode silently rejects *every* swatch in dark mode, and
+ * the marker would never take a list's colour on a dark page at all.
+ *
+ * The viable window, measured against the real palette and the colours the
+ * tests require to fall back, is 0.044–0.135. This sits mid-window.
+ *
+ * *(fixed 2026-08-03: was 0.28 — above the window, so dark mode always
+ * fell back. Caught by testing the actual palette rather than only the
+ * extreme cases.)*
  */
-const MIN_DELTA = 0.28
+const MIN_DELTA = 0.09
 
 const channel = (hex: string, at: number): number => {
   const value = Number.parseInt(hex.slice(at, at + 2), 16) / 255
