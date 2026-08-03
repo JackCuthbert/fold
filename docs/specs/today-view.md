@@ -9,6 +9,28 @@ It is a **view, not a collection**. Nothing is created on the server, no
 CalDAV request is made on its behalf, and every todo continues to belong to
 the list it was created in ([lists](./lists.md)).
 
+## Appearance in the nav
+
+**A ghost button — link appearance only.** No background, border or shadow,
+in deliberate contrast to everything around it: list rows are segmented
+buttons with real chrome, and "+ New list" carries the shared action
+treatment. Being the one chromeless entry is what marks Today as a
+different kind of thing.
+
+**Separated by space, not a rule.** A wider gap below it than the gap
+between list rows, and no divider. *(changed 2026-08-02: Today originally
+composed the same button chrome as "+ New list" and relied on a divider to
+set itself apart — which made a derived view look like just another button,
+with a line doing the distinguishing. Ghost styling distinguishes it on its
+own, so the divider became redundant.)*
+
+Selected state matches a selected list row exactly — accent ink, medium
+weight, the same leading marker — so "which view am I in" reads identically
+whether it is Today or a list. Hover uses the same faint wash the list rows
+use.
+
+No kebab menu: there is nothing on the server to rename or delete.
+
 ## What it contains
 
 **Overdue and due-today, from every list.** A todo whose due date has passed

@@ -6,30 +6,59 @@
 }
 
 /* docs/specs/today-view.md — Today is pinned above the lists and reads as a
-   different kind of thing: a view, not a collection. It shares the nav's
-   button chrome (`navAction`, same as "+ New list" and Settings) so it sits
-   in the same visual family, and is set apart by an icon plus a divider
-   below it rather than by a louder treatment — restraint, per docs/specs/
-   ui.md. No kebab: there is nothing on the server to rename or delete. */
+   different kind of thing: a view, not a collection. It is a **ghost
+   button** — link appearance only, no background, border or shadow — which
+   is what sets it apart from everything else in the nav: the list rows are
+   segmented buttons with real chrome, and "+ New list" and Save/Create
+   carry the shared `action` treatment. Today borrows neither.
+   *(changed 2026-08-02: it previously composed `action default navAction`,
+   which made a derived view look like just another button; a divider was
+   doing the work of distinguishing it. Ghost styling distinguishes it on
+   its own, so the divider is gone and the gap below is wider instead —
+   separation by space, not by a line.)*
+   No kebab: there is nothing on the server to rename or delete. */
 .today {
-  composes: action default navAction from '../styles/button.module.css';
-  margin-bottom: var(--space-3);
-  /* The divider that separates the view from the collections beneath. It
-     sits outside the button's own border via a margin, so the button keeps
-     its normal shape and the line spans the nav's full width. */
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--hit-area);
+  /* Matches `.link`'s row box below, so the icon and label sit on the same
+     left edge as the list rows (docs/specs/ui.md — one left edge). The
+     leading inset accounts for the transparent marker reserved below. */
+  padding: var(--space-2);
+  font-size: var(--text-base);
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  /* A marker's worth of transparent space, reserved unconditionally so
+     selecting Today doesn't shift the icon (same technique as `.link`). */
+  border-left: var(--space-1) solid transparent;
+  /* Separates the view from the collections beneath by space alone. Larger
+     than the --space-1 gap between list rows, so the grouping is legible
+     without a rule. */
+  margin-bottom: var(--space-4);
+  transition:
+    color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
 }
 
-.today::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  /* Half the gap below, so the line sits centred in the space between
-     Today and the first list rather than hugging either. */
-  bottom: calc(-1 * var(--space-2));
-  height: 1px;
-  background: var(--line);
+/* docs/specs/ui.md — hover is a whisper: the same faint wash the list rows
+   use, so a ghost control still acknowledges the pointer. */
+.today:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+}
+
+/* Focus changes the border colour only, never an outline — an outline
+   would be clipped by the nav's scroll container (docs/specs/ui.md). */
+.today:focus-visible {
+  outline: none;
+  border-left-color: var(--accent);
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
 }
 
 /* Selected state matches a selected list row exactly (see `.linkActive`):
@@ -38,11 +67,7 @@
 .todayActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
-  border-left: var(--space-1) solid var(--accent);
-  /* `.action`'s inline padding is trimmed by navAction to --space-2; the
-     marker adds its own width, so trim again to keep the icon on the same
-     left edge whether or not Today is selected. */
-  padding-inline-start: calc(var(--space-2) - var(--space-1));
+  border-left-color: var(--accent);
 }
 
 /* docs/specs/ui.md — the nav: the row is a segmented button — the name

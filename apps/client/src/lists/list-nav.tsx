@@ -49,10 +49,10 @@ export function ListNav(props: {
   return (
     <nav className={styles['nav']} aria-label="Lists">
       {/* docs/specs/today-view.md — a derived view pinned above the real
-          lists, and visually distinct from them: it carries an icon and no
-          kebab menu, because there is nothing on the server to rename or
-          delete. A divider separates it from the collections below, so it
-          reads as a different kind of thing rather than the first list. */}
+          lists, and visually distinct from them: a ghost button (link
+          appearance only, unlike every other control in the nav), set off
+          by space rather than a divider, with no kebab menu because there
+          is nothing on the server to rename or delete. */}
       <button
         type="button"
         className={cx(
