@@ -51,6 +51,26 @@ Happy paths only:
    bug fixed in `84244ff` — this case exists specifically to close that
    gap.)*
 
+## Reloading in an e2e test
+
+*(added 2026-08-04, issue #8.)*
+
+A reload in a test almost always means **"prove it reached the server"** —
+but a plain `page.reload()` proves no such thing. The query cache is
+persisted to IndexedDB and restored on load, and with `staleTime: 30_000`
+(deliberate, offline-first — [sync-and-offline](./sync-and-offline.md)) the
+restored snapshot isn't refetched for up to 30s. So the assertion after a
+plain reload may be answered by the cache, and it can pass or fail for
+reasons that have nothing to do with what it claims to test.
+
+- Use the `reloadFromServer` helper, which drops the persisted cache first,
+  whenever the point is that a change is really on the server.
+- Use a plain `page.reload()` only when the test is *about* restoring from
+  cache — and say so in a comment, so the difference reads as deliberate.
+- The trap is sharpest for assertions about **absence**: a deleted todo
+  reappearing from a restored snapshot is exactly the flake this rule was
+  written for.
+
 ## Rules
 
 - Don't duplicate tests across layers — if the outbox unit tests cover

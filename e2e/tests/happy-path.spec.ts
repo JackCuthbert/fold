@@ -4,6 +4,7 @@ import {
   createList,
   login,
   openListMenu,
+  reloadFromServer,
   renameList,
   uniqueName,
   waitForSync,
@@ -70,9 +71,12 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await expect(page.getByText('Buy bread')).toBeVisible()
 
   // Survives a reload — it's really on the server, not just the cache.
-  await waitForSync(page)
-  await page.reload()
+  // Via `reloadFromServer`, so the persisted cache can't answer for the
+  // server: this asserted a *deleted* todo was gone, and a restored
+  // pre-delete snapshot would show it (issue #8).
+  await reloadFromServer(page)
   await expect(page.getByText('Buy bread')).toBeVisible()
+  await expect(page.getByText('Buy milk')).toBeHidden()
 })
 
 // docs/specs/ui.md — the nav: per-list Rename/Delete live in a kebab menu,
@@ -151,17 +155,7 @@ test('a list colour persists across a reload', async ({ page }) => {
   // the pre-mutation snapshot without refetching. Dropping the persisted
   // cache first is what makes this assertion about the server rather than
   // about IndexedDB.
-  await waitForSync(page)
-  await page.evaluate(
-    async () =>
-      new Promise<void>((resolve, reject) => {
-        const req = indexedDB.deleteDatabase('keyval-store')
-        req.addEventListener('success', () => resolve())
-        req.addEventListener('error', () => reject(req.error))
-        req.addEventListener('blocked', () => resolve())
-      }),
-  )
-  await page.reload()
+  await reloadFromServer(page)
   await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
 })
 
@@ -213,17 +207,7 @@ test('reordering a list survives a reload', async ({ page }) => {
   // Drop the persisted query cache before reloading, so the assertion is
   // about the server rather than about IndexedDB — same reasoning as the
   // colour test above.
-  await waitForSync(page)
-  await page.evaluate(
-    async () =>
-      new Promise<void>((resolve, reject) => {
-        const req = indexedDB.deleteDatabase('keyval-store')
-        req.addEventListener('success', () => resolve())
-        req.addEventListener('error', () => reject(req.error))
-        req.addEventListener('blocked', () => resolve())
-      }),
-  )
-  await page.reload()
+  await reloadFromServer(page)
   await expect(async () => {
     expect(await pairOrder()).toEqual([second, first])
   }).toPass()
