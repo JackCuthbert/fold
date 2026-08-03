@@ -82,6 +82,37 @@
   margin-bottom: var(--space-1);
 }
 
+/* One sub-heading per server extension, so the section can grow as more are
+   added without becoming a run-on list of caveats. Lighter than `.heading`
+   — it sits *inside* a section rather than starting one — and carries the
+   property name inline, since the name is part of what identifies it. */
+.subheading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+/* Names a control the reader can go and click — "choose Move up" should
+   point at a real thing on screen rather than read as ordinary prose. Ink
+   rather than muted, and medium weight, so it lifts off the paragraph
+   around it; no chip or border, which would be louder than this page wants
+   (docs/specs/ui.md — a restrained palette, hierarchy from weight).
+
+   Deliberately different from `code`: that marks CalDAV property names,
+   which live on the *server* and can never be clicked. Two kinds of
+   emphasis for two genuinely different things. */
+.ui {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
 .section p {
   font-size: var(--text-sm);
   line-height: var(--line-normal);
@@ -111,6 +142,16 @@
   padding: 0 var(--space-1);
   margin: 0 calc(var(--space-1) * -1);
   word-break: break-word;
+}
+
+/* A property name in a sub-heading is a label, not prose: it sits beside
+   the heading text rather than inside a sentence, so it needs neither the
+   negative-margin correction (nothing abuts it) nor the heading's own
+   weight (which would make the whole line shout). */
+.subheading code {
+  margin: 0;
+  font-weight: var(--weight-regular);
+  color: var(--muted);
 }
 
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
