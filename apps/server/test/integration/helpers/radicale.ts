@@ -1,4 +1,26 @@
+import { execFile, execFileSync } from 'node:child_process'
+import { promisify } from 'node:util'
+
 const IMAGE = 'tomsquest/docker-radicale:3.5.4.0'
+
+/**
+ * Docker is driven through `node:child_process` rather than `Bun.spawn`.
+ *
+ * Both runtimes implement it, which is what matters here: `Bun.spawn` only
+ * exists under `bun --bun`, and that flag makes Bun's own resolver run
+ * ahead of vitest's — which resolves zod's `@zod/source` export condition
+ * to raw TypeScript that vitest's transform pipeline cannot load, so every
+ * `z.object(...)` throws "undefined is not an object" at import time.
+ *
+ * Keeping this file runtime-agnostic lets the suite run without `--bun`,
+ * so zod resolves to its built entry like everywhere else.
+ *
+ * *(changed 2026-08-03: was Bun.spawn. The clash was latent until the
+ * CalDAV gateway imported a *value* — not just a type — from
+ * @fold/schemas; before that the schemas package was erased at compile
+ * time and zod was never loaded in this suite at all.)*
+ */
+const run = promisify(execFile)
 
 export interface RadicaleHandle {
   url: string
@@ -7,11 +29,8 @@ export interface RadicaleHandle {
 
 async function dockerAvailable(): Promise<boolean> {
   try {
-    const proc = Bun.spawn(['docker', 'info'], {
-      stdout: 'ignore',
-      stderr: 'ignore',
-    })
-    return (await proc.exited) === 0
+    await run('docker', ['info'])
+    return true
   } catch {
     return false
   }
@@ -39,27 +58,36 @@ export async function startRadicale(): Promise<RadicaleHandle> {
     )
   }
 
-  const run = Bun.spawn(
-    ['docker', 'run', '--rm', '-d', '-p', '127.0.0.1::5232', IMAGE],
-    { stdout: 'pipe', stderr: 'pipe' },
-  )
-  const [runExitCode, stdout, stderr] = await Promise.all([
-    run.exited,
-    new Response(run.stdout).text(),
-    new Response(run.stderr).text(),
-  ])
-  if (runExitCode !== 0) {
+  let containerId: string
+  try {
+    const { stdout } = await run('docker', [
+      'run',
+      '--rm',
+      '-d',
+      '-p',
+      '127.0.0.1::5232',
+      IMAGE,
+    ])
+    containerId = stdout.trim()
+  } catch (error) {
+    const stderr =
+      error instanceof Error && 'stderr' in error
+        ? String((error as { stderr: unknown }).stderr).trim()
+        : String(error)
     throw new Error(
-      `docker run failed (exit ${runExitCode}) — is the ${IMAGE} image ` +
-        `available? stderr: ${stderr.trim()}`,
+      `docker run failed — is the ${IMAGE} image available? ` +
+        `stderr: ${stderr}`,
+      { cause: error },
     )
   }
-  const containerId = stdout.trim()
+
   const stop = (): void => {
-    Bun.spawnSync(['docker', 'rm', '-f', containerId], {
-      stdout: 'ignore',
-      stderr: 'ignore',
-    })
+    try {
+      execFileSync('docker', ['rm', '-f', containerId], { stdio: 'ignore' })
+    } catch {
+      // Best effort: the container may already be gone (`--rm`), and a
+      // failure to clean up must not mask the test's own result.
+    }
   }
 
   try {
@@ -76,16 +104,13 @@ export async function startRadicale(): Promise<RadicaleHandle> {
 async function resolveHostPort(containerId: string): Promise<string> {
   const deadline = Date.now() + 5_000
   while (Date.now() < deadline) {
-    const proc = Bun.spawn(['docker', 'port', containerId, '5232/tcp'], {
-      stdout: 'pipe',
-      stderr: 'ignore',
-    })
-    const [exitCode, stdout] = await Promise.all([
-      proc.exited,
-      new Response(proc.stdout).text(),
-    ])
-    const match = /:(\d+)\s*$/.exec(stdout.trim())
-    if (exitCode === 0 && match?.[1]) return match[1]
+    try {
+      const { stdout } = await run('docker', ['port', containerId, '5232/tcp'])
+      const match = /:(\d+)\s*$/.exec(stdout.trim())
+      if (match?.[1]) return match[1]
+    } catch {
+      // Docker may not have published the port yet; retry until deadline.
+    }
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
   throw new Error(
