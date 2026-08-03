@@ -47,6 +47,9 @@ supersede earlier wording.)*
   so the list stays readable and clickable while a todo is open and another
   todo can be opened without closing this one first. Mobile is unchanged
   and keeps the modal sheet.)*
+  - **On a narrow desktop the nav yields to it**, rather than three fixed
+    columns crushing the list — see "The nav" below for the 1280px
+    threshold and the restore rule. *(added 2026-08-03.)*
   - **Nothing selected collapses to zero width.** The column is always
     mounted and animates its width — the same treatment as the desktop nav
     — and is `aria-hidden` and `inert` while closed, so it is invisible to
@@ -142,6 +145,32 @@ items, the create action, and Settings alike. Specifically:
   to the same comfortable width at both sizes — the desktop panel was
   noticeably narrower than the mobile drawer for no reason.
   *(added 2026-07-31.)*
+- **Below 1280px, opening the detail panel collapses the nav.** *(added
+  2026-08-03: with the detail panel now a third fixed-width column, the
+  nav (20rem) and panel (24rem) together left `<main>` just 96px at a
+  800px viewport and 396px at 1100px — the list became a sliver whenever a
+  todo was open.)* The threshold is derived rather than chosen: `<main>`'s
+  reading column is `--measure` (34rem) plus `--space-4` either side =
+  576px, beyond which it gains no further reading width, so
+  320 + 576 + 384 = **1280px** is the narrowest viewport where all three
+  columns coexist without squeezing the list below its designed measure.
+  Above it nothing changes; below it the nav yields, because it is the
+  column that is one tap away.
+  - **An auto-collapse is temporary and reverses; a manual collapse is
+    permanent and is respected.** These are two different concepts and are
+    kept as two: what the user *wants* (persisted under
+    `fold:nav-pinned`) and what is *currently shown* (that preference,
+    minus any auto-collapse). Closing the todo — or widening past the
+    threshold — restores the nav **only if the user had not collapsed it
+    themselves**.
+  - **An auto-collapse never touches the stored preference.** It is a
+    response to the current viewport, not a decision the user made, so it
+    must not follow them to their next visit at a width where it would
+    make no sense.
+  - **The toggle still works while auto-collapsed**, overriding it so the
+    nav can always be reached on a narrow screen, at the cost of the main
+    column while it is open. The override lasts only as long as the
+    auto-collapse that prompted it.
 - **A newly created list appears in its final position immediately.**
   *(added 2026-07-31: new lists landed at the bottom, then jumped when the
   server's alphabetical order arrived.)* Sort the optimistic entry the same

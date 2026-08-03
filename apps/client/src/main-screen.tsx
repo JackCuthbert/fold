@@ -30,6 +30,20 @@ const NAV_PINNED_KEY = 'fold:nav-pinned'
 // Matches the `min-width: 768px` breakpoint in main-screen.module.css where
 // the nav switches from an overlay drawer to a permanently pinned sidebar.
 const DESKTOP_QUERY = '(min-width: 768px)'
+// docs/specs/ui.md — the nav: below this width, opening the detail panel
+// auto-collapses the nav rather than letting three fixed columns crush the
+// list. Derived, not chosen by eye: `.main`'s reading column is `--measure`
+// (34rem/544px) plus `--space-4` (16px) of padding either side = 576px, the
+// width at which it stops gaining any usable reading space. Add the two
+// fixed columns either side — the nav's 20rem (320px) and the detail
+// panel's 24rem (384px) — and 320 + 576 + 384 = 1280px is the narrowest
+// viewport where all three coexist without `.main` being squeezed below its
+// designed measure. Below it, something has to give, and the nav is the
+// column that is one tap away. *(added 2026-08-03: between 768px and this
+// threshold, `.main` fell to 96px at 800px and 396px at 1100px whenever a
+// todo was open — measured; todo rows begin clipping their summary below
+// roughly 440px.)*
+const THREE_COLUMN_QUERY = '(min-width: 1280px)'
 
 export function MainScreen() {
   const lists = useLists()
@@ -80,13 +94,52 @@ export function MainScreen() {
   // without that wiring, its focus guards can't redirect a Tab that
   // reaches the trigger back into the trap.
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const desktopNavOpen = isDesktop && navPinned
+  const hasRoomForThree = useMediaQuery(THREE_COLUMN_QUERY)
+
+  // docs/specs/ui.md — the nav: two distinct concepts, deliberately not one
+  // boolean. `navPinned` is what the user *wants* and is the only thing
+  // persisted; this is what is *currently shown*. Below the three-column
+  // threshold an open detail panel temporarily overrides the preference,
+  // because the alternative is a 96px-wide list. The override is never
+  // written to localStorage — an auto-collapse is a response to the current
+  // viewport, not a choice the user made, so it must not follow them to
+  // their next visit at a width where it would make no sense. It also
+  // reverses on its own: close the panel (or widen the window past the
+  // threshold) and the nav comes back, unless the user had collapsed it
+  // themselves, in which case `navPinned` is already false and there is
+  // nothing to restore. *(added 2026-08-03.)*
+  const autoCollapsed = !hasRoomForThree && openTodo !== null
+  // `navOverride` lets the ☰ toggle win against an auto-collapse: the user
+  // must always be able to reach the nav, even on a narrow screen with a
+  // todo open, at the cost of the main column while they do. Cleared
+  // whenever the auto-collapse itself lifts, so it never outlives the
+  // situation it was overriding.
+  const [navOverride, setNavOverride] = useState(false)
+  const effectiveOverride = autoCollapsed && navOverride
+  const desktopNavOpen =
+    isDesktop && (effectiveOverride || (navPinned && !autoCollapsed))
 
   const toggleDesktopNav = (): void => {
+    // While auto-collapsed, the toggle drives the temporary override rather
+    // than the stored preference: the user is answering "show me the nav
+    // right now", not "change what I want by default". Their preference is
+    // left exactly as it was, so closing the todo returns to it.
+    if (autoCollapsed) {
+      setNavOverride((open) => !open)
+      return
+    }
     const next = !navPinned
     setNavPinned(next)
     localStorage.setItem(NAV_PINNED_KEY, next ? '1' : '0')
   }
+
+  // Drop a stale override once the auto-collapse that prompted it is gone —
+  // closing the todo, or widening past the threshold. Without this, a user
+  // who overrode on a narrow screen would find the next auto-collapse
+  // already overridden and the nav refusing to yield.
+  useEffect(() => {
+    if (!autoCollapsed && navOverride) setNavOverride(false)
+  }, [autoCollapsed, navOverride])
 
   // The persisted list may no longer exist (deleted here or elsewhere).
   // Only trust it once we've actually seen the list index: assuming it's
