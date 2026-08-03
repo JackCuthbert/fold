@@ -50,6 +50,19 @@ const routes: Route[] = [
     path: '/api/caldav-500',
     handle: () => Promise.reject(new CaldavError(500, 'upstream broke')),
   },
+  {
+    method: 'GET',
+    path: '/api/hangs',
+    handle: () => new Promise<Response>(() => {}),
+  },
+  {
+    method: 'GET',
+    path: '/api/slow',
+    handle: () =>
+      new Promise<Response>((resolve) =>
+        setTimeout(() => resolve(json({ ok: true })), 20),
+      ),
+  },
 ]
 
 const handle = createRouter(routes, testApp())
@@ -115,5 +128,23 @@ describe('router', () => {
   it('still maps a CalDAV 5xx to 502', async () => {
     const res = await handle(new Request('http://x/api/caldav-500'))
     expect(res.status).toBe(502)
+  })
+
+  // A handler that outlives the deadline must fail the same way an
+  // unreachable server does, rather than being killed by Bun's own idle
+  // timeout — which severs the socket before any mapping runs and leaves
+  // the client with a hang-up it cannot classify (docs/specs/api.md).
+  it('answers 502 when a handler exceeds the deadline', async () => {
+    const withDeadline = createRouter(routes, testApp(), { timeoutMs: 10 })
+    const res = await withDeadline(new Request('http://x/api/hangs'))
+    expect(res.status).toBe(502)
+    expect(await res.json()).toMatchObject({ error: 'caldav_unreachable' })
+  })
+
+  it('leaves a handler that finishes inside the deadline alone', async () => {
+    const withDeadline = createRouter(routes, testApp(), { timeoutMs: 200 })
+    const res = await withDeadline(new Request('http://x/api/slow'))
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
   })
 })

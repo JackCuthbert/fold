@@ -3,7 +3,7 @@ import { Toggle } from '@base-ui/react/toggle'
 import type { Session } from '@fold/schemas'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
 import { ModalHeader } from '../modal-header'
-import { api, queryClient } from '../providers'
+import { api, persister, queryClient } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import styles from './settings-modal.module.css'
@@ -60,9 +60,24 @@ export function SettingsModal(props: {
               type="button"
               className={styles['signOut']}
               onClick={() => {
-                // Outbox is preserved; it replays after the next sign-in
-                // (docs/specs/authentication.md).
+                // The outbox is preserved and replays after the next
+                // sign-in (docs/specs/authentication.md). It is now
+                // namespaced per server, so what replays can only ever be
+                // this server's own queued writes.
+                //
+                // The read cache is *not* preserved: leaving it in place
+                // showed the previous server's lists and todos under the
+                // next account's credentials. Clearing here covers the
+                // signed-out window; the persister's `buster`
+                // (providers.tsx) covers a reload.
                 void api.logout().catch(() => {})
+                // Data queries only — `['session']` is set to null just
+                // below, and removing the query Gate is mounted on would
+                // blank the app instead of showing the login screen.
+                queryClient.removeQueries({
+                  predicate: (query) => query.queryKey[0] !== 'session',
+                })
+                void persister.removeClient()
                 queryClient.setQueryData(['session'], null)
               }}
             >

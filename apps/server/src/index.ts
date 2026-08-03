@@ -30,6 +30,16 @@ async function serveStatic(pathname: string): Promise<Response> {
 
 Bun.serve({
   port: config.PORT,
+  // Bun's default is 10 seconds, which a genuinely slow CalDAV server
+  // exceeds routinely — every request died as a socket hang up.
+  //
+  // 255 is Bun's hard maximum (`Bun.serve expects idleTimeout to be 255 or
+  // less`, verified against Bun 1.3.14), so the 5 minutes the issue asked
+  // for is not available here. This is the ceiling, and it is deliberately
+  // *above* the router's own `HANDLER_TIMEOUT_MS`: the router answers first
+  // with a 502 the client understands, and this only catches what escapes
+  // it (docs/specs/api.md — error mapping).
+  idleTimeout: 255,
   fetch: (request) => {
     const { pathname } = new URL(request.url)
     if (pathname.startsWith('/api/')) return handleApi(request)
