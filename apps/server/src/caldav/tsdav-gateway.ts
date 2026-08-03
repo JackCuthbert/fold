@@ -1,5 +1,6 @@
 import {
   type Credentials,
+  formatListColor,
   type NewTodo,
   parseListColor,
   type Todo,
@@ -350,16 +351,32 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
         return calendars.filter(supportsVtodo).map(toList)
       }),
 
-    createList: (id, displayName) =>
+    createList: (id, displayName, props) =>
       translate(async () => {
         await ensureLogin()
         const home = client.account?.homeUrl
         if (!home) throw new CaldavError(500, 'no calendar home')
         const url = new URL(`${id}/`, home).href
-        // tsdav issues a spec-compliant extended MKCOL/MKCALENDAR.
+        // tsdav issues a spec-compliant extended MKCOL/MKCALENDAR, and
+        // already declares the http://apple.com/ns/ical/ namespace — so a
+        // new list can be born with its colour and order rather than
+        // needing a follow-up PROPPATCH (docs/specs/lists.md — a new list
+        // must not jump, which needs its order set at creation).
+        //
+        // `!= null` covers both null and undefined deliberately: MKCALENDAR
+        // creates a fresh collection, so there is nothing for `null` to
+        // clear and omitting the property is the correct handling of both.
         await client.makeCalendar({
           url,
-          props: { displayname: displayName },
+          props: {
+            displayname: displayName,
+            ...(props?.color != null
+              ? { 'ca:calendar-color': formatListColor(props.color) }
+              : {}),
+            ...(props?.order != null
+              ? { 'ca:calendar-order': String(props.order) }
+              : {}),
+          },
         })
         const calendars = await fetchCalendarsWithProps()
         const created = calendars.find(
@@ -386,6 +403,53 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
   </D:prop></D:set>
 </D:propertyupdate>`,
         })
+        assertOk(response)
+      }),
+
+    setListProps: (listId, props) =>
+      translate(async () => {
+        await ensureLogin()
+        const calendar = await findCalendar(listId)
+        // docs/specs/lists.md — colours and ordering. `null` clears a
+        // property (D:remove), a value sets it (D:set), and `undefined`
+        // omits it from the request entirely so it is left alone.
+        const sets: string[] = []
+        const removes: string[] = []
+        if (props.color === null) {
+          removes.push('<CA:calendar-color/>')
+        } else if (props.color !== undefined) {
+          sets.push(
+            `<CA:calendar-color>${escapeXml(
+              formatListColor(props.color),
+            )}</CA:calendar-color>`,
+          )
+        }
+        if (props.order === null) {
+          removes.push('<CA:calendar-order/>')
+        } else if (props.order !== undefined) {
+          sets.push(
+            `<CA:calendar-order>${String(props.order)}</CA:calendar-order>`,
+          )
+        }
+        if (sets.length === 0 && removes.length === 0) return
+        const body = `<?xml version="1.0" encoding="utf-8"?>
+<D:propertyupdate xmlns:D="DAV:" xmlns:CA="http://apple.com/ns/ical/">
+${sets.length > 0 ? `  <D:set><D:prop>${sets.join('')}</D:prop></D:set>` : ''}
+${removes.length > 0 ? `  <D:remove><D:prop>${removes.join('')}</D:prop></D:remove>` : ''}
+</D:propertyupdate>`
+        const response = await fetch(calendar.url, {
+          method: 'PROPPATCH',
+          headers: {
+            ...authHeader(),
+            'content-type': 'application/xml; charset=utf-8',
+          },
+          body,
+        })
+        // A PROPPATCH returns 207 Multi-Status, which `ok` accepts. A
+        // per-property failure inside the body is deliberately NOT treated
+        // as an error: these are optional extension properties, and a
+        // server that refuses them must not break list editing
+        // (docs/specs/caldav-compliance.md).
         assertOk(response)
       }),
 

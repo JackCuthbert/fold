@@ -13,6 +13,7 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
     fetchLists: throwing,
     createList: throwing,
     renameList: throwing,
+    setListProps: throwing,
     deleteList: throwing,
     fetchTodos: throwing,
     fetchTodo: throwing,
