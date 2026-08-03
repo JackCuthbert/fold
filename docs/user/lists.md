@@ -2,10 +2,12 @@
 
 Each list is a real CalDAV collection — other apps see the same lists.
 
-- **Create:** "+ New list", type a name, Create.
-- **Rename:** the ✎ button next to a list's name.
-- **Delete:** the × button. You'll be asked to confirm — deleting a list
-  deletes all its todos from the server.
+- **Create:** **+ New list**, type a name, **Create**.
+- **Rename, delete, and reorder:** open the **⋮** menu at the right of a
+  list. It holds **Move up**, **Move down**, **Edit**, and **Delete**.
+  **Edit** opens the same box as creating a list, with the name filled in.
+  **Delete** asks you to confirm first — deleting a list deletes all its
+  todos from the server.
 - **Switch:** click a list (desktop sidebar) or open ☰ (mobile).
 
 You can also give each list a colour and arrange them in your own order —
