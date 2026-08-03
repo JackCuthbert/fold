@@ -69,12 +69,30 @@
 
 .action:disabled {
   color: var(--muted);
-  cursor: default;
+  /* `not-allowed`, not `default`: the pointer is the only cue that says
+     *why* nothing happens on click. A plain arrow reads as "this should
+     work". */
+  cursor: not-allowed;
   background: var(--surface);
 }
 
+/* A disabled button must not react to the pointer at all.
+ *
+ * `filter: none` is the load-bearing part: `.action:hover` darkens with
+ * `brightness(0.97)` and `.primary:hover` brightens with `1.08`, and
+ * resetting `background` alone left both applying — so hovering a disabled
+ * Save still shifted, which is the same feedback an enabled button gives.
+ *
+ * `revert` rather than a fixed colour: each role's disabled surface differs
+ * (`.primary:disabled` uses `--line`, the others `--surface`), so this
+ * hands the button back to its own `:disabled` rule instead of forcing one
+ * value on all three. Every role's hover sets `background` at the same
+ * specificity as this rule, and this one comes later, so it wins.
+ *
+ * *(fixed 2026-08-03.)* */
 .action:disabled:hover {
-  background: var(--surface);
+  background: revert;
+  filter: none;
 }
 
 /* Primary — the affirmative action (Save, Add, Create, Sign in). */
