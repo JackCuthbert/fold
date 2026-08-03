@@ -28,6 +28,41 @@ correctly, and never destroying data we don't understand.
   retried at the `fetch` layer before surfacing as `caldav_unreachable`
   ([api](./api.md) — "spurious vs. genuine unreachable").
 
+## Extension properties
+
+*(added 2026-08-03, with list colours and ordering.)*
+
+Two collection properties Fold reads and writes are **Apple extensions in
+the `http://apple.com/ns/ical/` namespace, not RFC 4791**:
+
+| Property | Carries | Read | Written |
+|---|---|---|---|
+| `calendar-color` | A list's colour, 8 hex digits with an alpha suffix (`#1D9BF6FF`) | PROPFIND during discovery | MKCALENDAR at creation; PROPPATCH on edit |
+| `calendar-order` | A list's position in the nav, an integer | PROPFIND during discovery | MKCALENDAR at creation; PROPPATCH on reorder |
+
+Fold normalizes the colour to six digits on read and emits eight ending
+`FF` on write, since that is the form other clients expect
+([lists — colours](./lists.md#colours)).
+
+**Degradation rule: neither property may be load-bearing.**
+
+- A **malformed or unparseable value is treated as absent**, never raised.
+  A foreign client writing garbage into either property must not break list
+  discovery.
+- A server that **ignores or rejects** them keeps working: lists render
+  uncoloured and sort alphabetically, which is exactly the behaviour that
+  preceded the feature. Degradation is visible, not silent.
+- A PROPPATCH returns 207 Multi-Status; a **per-property failure inside the
+  body is deliberately not an error**. These are optional properties, and a
+  server that refuses them must not break list editing.
+- Fold never probes for support and never hides the controls. The
+  in-app help modal and an extension badge beside each control say that an
+  extension is in play ([ui](./ui.md#the-extension-badge)).
+
+This is the read side of the same rule as below: **Fold never rewrites what
+it did not set.** A colour written by Apple Reminders renders exactly as
+stored, and renaming a list does not restyle it.
+
 ## Round-trip preservation (cornerstone)
 
 Updates never regenerate a VTODO from our model. The flow, implemented in

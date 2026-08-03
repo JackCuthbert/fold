@@ -100,7 +100,7 @@ supplies an IndexedDB implementation).
 | Spec | Covers |
 |---|---|
 | [authentication](./authentication.md) | Login, sealed-cookie sessions, logout, 401 handling |
-| [lists](./lists.md) | List discovery, create/rename/delete |
+| [lists](./lists.md) | List discovery, create/rename/delete, colours, ordering |
 | [todos](./todos.md) | Todo data model, fields, completed handling |
 | [today-view](./today-view.md) | The derived Today view: scope, ordering, fetching |
 | [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |
