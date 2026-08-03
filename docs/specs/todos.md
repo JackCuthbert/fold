@@ -54,8 +54,52 @@ Rules:
 - Zoned values keep their `TZID` verbatim. We do not resolve the zone to an
   instant, and we do not require the resource's `VTIMEZONE` to be present or
   parseable — an unresolvable `TZID` is still round-tripped intact.
-- Our own UI writes `date` (all-day) or `utc` when the user picks a time;
-  `floating` and `zoned` exist to preserve what other clients wrote.
+- Our own UI writes `date` (all-day) or `zoned` (when the user picks a
+  time); `utc` and `floating` exist to preserve what other clients wrote.
+  *(changed 2026-08-02: was `utc`. A todo due "9am" means 9am where you set
+  it — `zoned` says that directly and keeps saying it after you travel or
+  DST shifts, whereas `utc` fixes an instant whose wall-clock reading drifts.
+  See [Due times](#due-times).)*
+
+### Due times
+
+*(added 2026-08-02: the UI previously offered only a date, so every todo we
+wrote was all-day even though the model already supported times.)*
+
+A todo may be **all-day** or **due at a time**. The time is optional
+everywhere it appears; leaving it empty keeps the todo all-day.
+
+- All-day writes `DUE;VALUE=DATE:20260810` (`kind:'date'`) exactly as before.
+- A time writes `DUE;TZID=<zone>:20260810T090000` (`kind:'zoned'`), where
+  `<zone>` is the viewer's IANA zone from
+  `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- **A time requires a date.** Time-without-date is not expressible in
+  `DUE`, so the form rejects it rather than silently discarding the time.
+- Clearing the time returns the todo to all-day; clearing the date clears
+  `DUE` entirely.
+
+The client emits no `VTIMEZONE` alongside the `TZID`, following the existing
+rule above — we neither require nor generate one. In practice Radicale
+*adds* a matching `VTIMEZONE` to the stored resource itself, so the file on
+disk is fully RFC 5545 compliant without the client generating one. A server
+that doesn't do this still round-trips correctly, since an unresolvable
+`TZID` is preserved intact either way. *(verified 2026-08-02 against
+Radicale.)*
+
+**Deciding whether the due date changed.** The edit form must compare the
+*date and time inputs*, never a `TodoDue` rebuilt from them. The two inputs
+cannot distinguish `floating` from `zoned` — both render as the same date
+and time — so a rebuilt value is always `zoned` and would look like an edit
+even when the user touched nothing, rewriting a foreign client's `DUE` on an
+unrelated change. *(added 2026-08-02: this exact bug shipped briefly and was
+caught by checking the stored `.ics` after a summary-only edit.)*
+
+**Display.** A todo due at a time shows that time next to its date; an
+all-day todo shows only the date. This matters because the ordering rule
+below resolves an all-day `date` to *the end of its local day*, so
+rendering a formatted time for every todo would label all-day items
+"11:59 pm". Formatting must branch on the form, not on the resolved
+instant.
 
 ### Ordering and overdue comparison
 

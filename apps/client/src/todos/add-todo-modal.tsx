@@ -12,13 +12,23 @@ import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { z } from 'zod'
 import { cx } from '../styles/cx'
 import styles from './add-todo-modal.module.css'
+import { fieldsToDue } from './due-fields'
 
-const addTodoSchema = z.object({
-  summary: z.string().min(1),
-  due: z.string(),
-  description: z.string(),
-  priority: z.union([todoPrioritySchema, z.literal('')]),
-})
+// docs/specs/todos.md — due times: a time needs a date, since DUE cannot
+// express one without the other. Caught here so the user sees an error
+// rather than having the time silently dropped.
+const addTodoSchema = z
+  .object({
+    summary: z.string().min(1),
+    due: z.string(),
+    dueTime: z.string(),
+    description: z.string(),
+    priority: z.union([todoPrioritySchema, z.literal('')]),
+  })
+  .refine((values) => values.dueTime === '' || values.due !== '', {
+    path: ['dueTime'],
+    message: 'Pick a date for this time',
+  })
 type AddTodoForm = z.infer<typeof addTodoSchema>
 
 const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
@@ -31,6 +41,7 @@ const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
 const EMPTY_VALUES: AddTodoForm = {
   summary: '',
   due: '',
+  dueTime: '',
   description: '',
   priority: '',
 }
@@ -63,12 +74,14 @@ export function AddTodoModal(props: {
   })
 
   const submit = (values: AddTodoForm): void => {
+    // All-day when no time is given, zoned when there is
+    // (docs/specs/todos.md — due times). `undefined` means the schema's
+    // time-needs-a-date rule already rejected this, so it can't reach here.
+    const due = fieldsToDue({ date: values.due, time: values.dueTime })
     props.onAdd({
       uid: crypto.randomUUID(),
       summary: values.summary,
-      ...(values.due
-        ? { due: { kind: 'date' as const, value: values.due } }
-        : {}),
+      ...(due ? { due } : {}),
       ...(values.description ? { description: values.description } : {}),
       ...(values.priority ? { priority: values.priority } : {}),
     })
@@ -136,24 +149,59 @@ export function AddTodoModal(props: {
                   Advanced
                 </Accordion.Trigger>
                 <Accordion.Panel className={styles['accordionPanel']}>
-                  <Controller
-                    name="due"
-                    control={control}
-                    render={({
-                      field: { ref, name, value, onBlur, onChange },
-                    }) => (
-                      <Field.Root className={styles['field']} name={name}>
-                        <Field.Label>Due</Field.Label>
-                        <Input
-                          ref={ref}
-                          type="date"
-                          value={value}
-                          onBlur={onBlur}
-                          onValueChange={onChange}
-                        />
-                      </Field.Root>
-                    )}
-                  />
+                  {/* docs/specs/todos.md — due times: the time sits beside
+                      the date as one "Due" control, and is optional —
+                      leaving it empty keeps the todo all-day. */}
+                  <div className={styles['dueRow']}>
+                    <Controller
+                      name="due"
+                      control={control}
+                      render={({
+                        field: { ref, name, value, onBlur, onChange },
+                      }) => (
+                        <Field.Root
+                          className={cx(styles['field'], styles['dueDate'])}
+                          name={name}
+                        >
+                          <Field.Label>Due</Field.Label>
+                          <Input
+                            ref={ref}
+                            type="date"
+                            value={value}
+                            onBlur={onBlur}
+                            onValueChange={onChange}
+                          />
+                        </Field.Root>
+                      )}
+                    />
+                    <Controller
+                      name="dueTime"
+                      control={control}
+                      render={({
+                        field: { ref, name, value, onBlur, onChange },
+                        fieldState: { error },
+                      }) => (
+                        <Field.Root
+                          className={cx(styles['field'], styles['dueTime'])}
+                          name={name}
+                        >
+                          <Field.Label>Time</Field.Label>
+                          <Input
+                            ref={ref}
+                            type="time"
+                            value={value}
+                            onBlur={onBlur}
+                            onValueChange={onChange}
+                          />
+                          {error?.message && (
+                            <Field.Error className={styles['error']} match>
+                              {error.message}
+                            </Field.Error>
+                          )}
+                        </Field.Root>
+                      )}
+                    />
+                  </div>
                   <Controller
                     name="priority"
                     control={control}

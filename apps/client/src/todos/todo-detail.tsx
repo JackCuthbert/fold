@@ -9,15 +9,23 @@ import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown } from 'react-icons/lu'
 import { z } from 'zod'
 import { cx } from '../styles/cx'
-import { dueInstant } from './sort'
+import { dueToFields, fieldsToDue } from './due-fields'
 import styles from './todo-detail.module.css'
 
-const detailSchema = z.object({
-  summary: z.string().min(1),
-  due: z.string(), // '' or yyyy-mm-dd from <input type="date">
-  description: z.string(),
-  priority: z.union([todoPrioritySchema, z.literal('')]),
-})
+// docs/specs/todos.md — due times: a time needs a date, since DUE cannot
+// express one without the other.
+const detailSchema = z
+  .object({
+    summary: z.string().min(1),
+    due: z.string(), // '' or yyyy-mm-dd from <input type="date">
+    dueTime: z.string(), // '' or HH:mm from <input type="time">
+    description: z.string(),
+    priority: z.union([todoPrioritySchema, z.literal('')]),
+  })
+  .refine((values) => values.dueTime === '' || values.due !== '', {
+    path: ['dueTime'],
+    message: 'Pick a date for this time',
+  })
 type DetailForm = z.infer<typeof detailSchema>
 
 const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
@@ -27,14 +35,6 @@ const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
   { label: 'Low', value: 'low' },
 ]
 
-/** Local yyyy-mm-dd for <input type="date"> (not UTC — toISOString shifts). */
-const toDateInputValue = (date: Date): string =>
-  [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-')
-
 // Detail edit — docs/specs/todos.md. Rendered as a bottom sheet on mobile
 // and a side panel on desktop (docs/specs/ui.md — layout), using Base UI's
 // Dialog for focus management: focus moves into the surface on open and
@@ -43,11 +43,13 @@ const toDateInputValue = (date: Date): string =>
 // via Controller (docs/specs/ui.md — component library): Base UI supplies
 // the accessible primitive, react-hook-form + zod remain the state/
 // validation layer.
-// The date input shows the local date of whatever form the DUE has. If the
-// user doesn't touch it, we send NO due change at all, so a foreign client's
-// floating/zoned/UTC value survives untouched
-// (docs/specs/caldav-compliance.md). Only an actual edit rewrites it, and
-// then as an all-day 'date' — which is what the date input expresses.
+// The date and time inputs show whatever form the DUE has, read from the
+// stored form rather than a resolved instant (docs/specs/todos.md — due
+// times): an all-day todo must show an empty time, not the 23:59 its
+// ordering instant resolves to. If the user doesn't touch either input we
+// send NO due change at all, so a foreign client's floating/zoned/UTC value
+// survives untouched (docs/specs/caldav-compliance.md). Only an actual edit
+// rewrites it — as an all-day 'date', or as 'zoned' once a time is given.
 export function TodoDetail(props: {
   todo: Todo
   onSave: (changes: TodoChanges) => void
@@ -55,33 +57,34 @@ export function TodoDetail(props: {
   onClose: () => void
 }) {
   const { todo } = props
-  // Local date of the existing due, in the input's yyyy-mm-dd format.
-  const initialDue = todo.due
-    ? toDateInputValue(new Date(dueInstant(todo)))
-    : ''
+  const initialFields = dueToFields(todo.due)
 
   const { control, handleSubmit } = useForm<DetailForm>({
     resolver: zodResolver(detailSchema),
     defaultValues: {
       summary: todo.summary,
-      due: initialDue,
+      due: initialFields.date,
+      dueTime: initialFields.time,
       description: todo.description ?? '',
       priority: todo.priority ?? '',
     },
   })
 
   const submit = (values: DetailForm): void => {
+    // Compare the *inputs*, not the rebuilt TodoDue. The two inputs can't
+    // distinguish a floating value from a zoned one — both render as the
+    // same date and time — so rebuilding an untouched floating DUE would
+    // produce a zoned one and look like an edit. Comparing what the user
+    // actually sees is what leaves a foreign client's floating/UTC value
+    // byte-identical (docs/specs/caldav-compliance.md).
+    const untouched =
+      values.due === initialFields.date && values.dueTime === initialFields.time
+    // `undefined` can't reach here — the schema rejects a time with no date.
+    const nextDue =
+      fieldsToDue({ date: values.due, time: values.dueTime }) ?? undefined
     const changes: TodoChanges = {
       ...(values.summary !== todo.summary ? { summary: values.summary } : {}),
-      // Untouched date input → omit `due` entirely → preserve as stored.
-      ...(values.due === initialDue
-        ? {}
-        : {
-            due:
-              values.due === ''
-                ? null
-                : { kind: 'date' as const, value: values.due },
-          }),
+      ...(untouched ? {} : { due: nextDue ?? null }),
       description: values.description === '' ? null : values.description,
       priority: values.priority === '' ? null : values.priority,
     }
@@ -128,22 +131,57 @@ export function TodoDetail(props: {
                 </Field.Root>
               )}
             />
-            <Controller
-              name="due"
-              control={control}
-              render={({ field: { ref, name, value, onBlur, onChange } }) => (
-                <Field.Root className={styles['field']} name={name}>
-                  <Field.Label>Due</Field.Label>
-                  <Input
-                    ref={ref}
-                    type="date"
-                    value={value}
-                    onBlur={onBlur}
-                    onValueChange={onChange}
-                  />
-                </Field.Root>
-              )}
-            />
+            {/* docs/specs/todos.md — due times: the time sits beside the
+                date as one "Due" control, and is optional — an empty time
+                means the todo is all-day. */}
+            <div className={styles['dueRow']}>
+              <Controller
+                name="due"
+                control={control}
+                render={({ field: { ref, name, value, onBlur, onChange } }) => (
+                  <Field.Root
+                    className={cx(styles['field'], styles['dueDate'])}
+                    name={name}
+                  >
+                    <Field.Label>Due</Field.Label>
+                    <Input
+                      ref={ref}
+                      type="date"
+                      value={value}
+                      onBlur={onBlur}
+                      onValueChange={onChange}
+                    />
+                  </Field.Root>
+                )}
+              />
+              <Controller
+                name="dueTime"
+                control={control}
+                render={({
+                  field: { ref, name, value, onBlur, onChange },
+                  fieldState: { error },
+                }) => (
+                  <Field.Root
+                    className={cx(styles['field'], styles['dueTime'])}
+                    name={name}
+                  >
+                    <Field.Label>Time</Field.Label>
+                    <Input
+                      ref={ref}
+                      type="time"
+                      value={value}
+                      onBlur={onBlur}
+                      onValueChange={onChange}
+                    />
+                    {error?.message && (
+                      <Field.Error className={styles['error']} match>
+                        {error.message}
+                      </Field.Error>
+                    )}
+                  </Field.Root>
+                )}
+              />
+            </div>
             <Controller
               name="priority"
               control={control}

@@ -12,14 +12,28 @@ const PRIO_CLASS: Record<TodoPriority, string> = {
   low: styles['prioLow'] ?? '',
 }
 
-const formatDue = (todo: Todo): string | null => {
-  if (!todo.due) return null
+/** Exported for unit testing — the all-day/timed distinction is subtle. */
+export const formatDue = (todo: Todo): string | null => {
+  const due = todo.due
+  if (!due) return null
   // dueInstant resolves all four forms consistently — see
   // docs/specs/todos.md#ordering-and-overdue-comparison.
-  return new Date(dueInstant(todo)).toLocaleDateString(undefined, {
+  const instant = new Date(dueInstant(todo))
+  const date = instant.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
   })
+  // docs/specs/todos.md — due times: only a timed todo shows a time. An
+  // all-day `date` resolves to 23:59:59 for ordering, so formatting the
+  // instant unconditionally would label every all-day todo "11:59 pm".
+  if (due.kind === 'date') return date
+  // The locale's own short time. No hand-trimming: dropping ":00" reads as
+  // a bare "9" in 24-hour locales, which is ambiguous beside a date.
+  const time = instant.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  return `${date} ${time}`
 }
 
 export function TodoItem(props: {

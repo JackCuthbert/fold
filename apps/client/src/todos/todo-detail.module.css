@@ -122,6 +122,23 @@
   font-size: var(--text-sm);
 }
 
+/* docs/specs/todos.md — due times: the date and its optional time read as
+   one "Due" control, so they share a row rather than stacking as two
+   unrelated fields. Matches the add-todo modal exactly. */
+.dueRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.dueDate {
+  flex: 3 1 0;
+}
+
+.dueTime {
+  flex: 2 1 0;
+}
+
 .selectTrigger {
   display: flex;
   align-items: center;

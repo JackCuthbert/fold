@@ -25,22 +25,11 @@ Open questions:
   the collection `ctag` short-circuit ([caldav-compliance](./caldav-compliance.md))
   should keep it cheap, but this needs measuring.
 
-## 2. Due times, not just due dates
+## ~~2. Due times, not just due dates~~ — done 2026-08-02
 
-Support a time of day on `DUE`, not only an all-day date.
-
-**The spec already allows this** — RFC 5545's `DUE` takes a `DATE-TIME`, and
-[todos](./todos.md#due-dates-and-timezones) already models all four forms
-(`date`, `utc`, `floating`, `zoned`). The codec reads and preserves them
-today; the gap is purely UI: the pickers only offer a date, and our own
-writes always produce all-day values.
-
-So this is mostly interface work:
-- A time field alongside the date, left empty for all-day todos.
-- Decide which form *we* write when a time is given — `utc` is simplest and
-  unambiguous; `zoned` better matches "9am wherever I set it".
-- Display and sorting already resolve all four forms, so little should
-  change there.
+Shipped. A time field sits beside the date in both the add and edit forms,
+empty for all-day todos; a time writes `zoned` (`DUE;TZID=…`) in the
+viewer's timezone. See [todos — due times](./todos.md#due-times).
 
 ## 3. Reordering lists
 
