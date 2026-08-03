@@ -12,6 +12,7 @@ import { TodoItem } from './todo-item'
 import paneStyles from './todo-pane.module.css'
 import { useTodayTodos } from './use-today-todos'
 import { useTodoActions } from './use-todo-actions'
+import type { TodoDetailForm } from './use-todo-detail-form'
 
 // docs/specs/today-view.md. Deliberately *not* a mode inside TodoPane: the
 // two differ in where their todos come from (many lists vs one), how they
@@ -154,10 +155,17 @@ export function TodayRow(props: {
  * known — rather than in a pane. Used by every view, not just Today and
  * Summary, now that MainScreen owns selection (issue #4).
  * *(changed 2026-08-03: was rendered by Today/Summary; now by MainScreen.)*
+ *
+ * Only Delete is bound here now. Save and Move belong to the form, which
+ * lives in MainScreen so it outlives either surface across the breakpoint
+ * (use-todo-detail-form.ts) — binding them here would put them back inside
+ * a component that unmounts at 768px.
+ * *(changed 2026-08-03: was the whole action set.)*
  */
 export function TodayDetail(props: {
   todo: Todo
   lists: readonly TodoList[]
+  form: TodoDetailForm
   mode: 'sheet' | 'column'
   /** Column mode only — see TodoDetail. */
   focusNonce?: number
@@ -168,12 +176,11 @@ export function TodayDetail(props: {
     <TodoDetail
       todo={props.todo}
       lists={props.lists}
+      form={props.form}
       mode={props.mode}
       {...(props.focusNonce === undefined
         ? {}
         : { focusNonce: props.focusNonce })}
-      onSave={(changes) => actions.update(props.todo, changes)}
-      onMove={(targetListId) => actions.move(props.todo, targetListId)}
       onDelete={() => {
         actions.remove(props.todo)
         props.onClose()
