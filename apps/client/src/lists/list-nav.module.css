@@ -5,6 +5,46 @@
   gap: var(--space-1);
 }
 
+/* docs/specs/today-view.md — Today is pinned above the lists and reads as a
+   different kind of thing: a view, not a collection. It shares the nav's
+   button chrome (`navAction`, same as "+ New list" and Settings) so it sits
+   in the same visual family, and is set apart by an icon plus a divider
+   below it rather than by a louder treatment — restraint, per docs/specs/
+   ui.md. No kebab: there is nothing on the server to rename or delete. */
+.today {
+  composes: action default navAction from '../styles/button.module.css';
+  margin-bottom: var(--space-3);
+  /* The divider that separates the view from the collections beneath. It
+     sits outside the button's own border via a margin, so the button keeps
+     its normal shape and the line spans the nav's full width. */
+  position: relative;
+}
+
+.today::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Half the gap below, so the line sits centred in the space between
+     Today and the first list rather than hugging either. */
+  bottom: calc(-1 * var(--space-2));
+  height: 1px;
+  background: var(--line);
+}
+
+/* Selected state matches a selected list row exactly (see `.linkActive`):
+   accent ink, medium weight, and the same leading marker — so "which view
+   am I in" reads identically whether it's Today or a list. */
+.todayActive {
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+  border-left: var(--space-1) solid var(--accent);
+  /* `.action`'s inline padding is trimmed by navAction to --space-2; the
+     marker adds its own width, so trim again to keep the icon on the same
+     left edge whether or not Today is selected. */
+  padding-inline-start: calc(var(--space-2) - var(--space-1));
+}
+
 /* docs/specs/ui.md — the nav: the row is a segmented button — the name
    and the kebab read as one control split into two segments, a shared
    outer shape with a hairline divider between them, not an icon floating

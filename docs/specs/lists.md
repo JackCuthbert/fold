@@ -38,10 +38,10 @@ its own stable one instead. This is not "the server sorts alphabetically"
 — an earlier comment claimed that and it was false.)*
 
 User-defined ordering, persisted to the server, is a wanted feature; see
-[backlog](./backlog.md).
+[backlog](./backlog.md). *(deduplicated 2026-08-02: this was stated twice.)*
 
-Reordering lists on the server is a wanted feature; see
-[backlog](./backlog.md).
+The [Today view](./today-view.md) is pinned above these collections in the
+nav. It is derived, not a collection, so this ordering does not apply to it.
 
 ## Behavior
 

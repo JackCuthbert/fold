@@ -6,6 +6,8 @@ import { NavFooter } from './lists/nav-footer'
 import { SettingsModal } from './lists/settings-modal'
 import styles from './main-screen.module.css'
 import { cx } from './styles/cx'
+import { TodayPane } from './todos/today-pane'
+import { isTodayView, TODAY_VIEW } from './todos/today'
 import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
 import { useMediaQuery } from './use-media-query'
@@ -60,17 +62,27 @@ export function MainScreen() {
   // valid while `lists.data` is undefined made every load fetch todos for
   // a possibly-deleted list, which 404s on every retry
   // (docs/specs/api.md — error mapping).
+  // docs/specs/today-view.md — Today is the default view and the fallback
+  // when a persisted list id no longer exists, so selection never lands on
+  // an arbitrary list.
   const selectedExists =
-    selected !== null && (lists.data?.some((l) => l.id === selected) ?? false)
-  const active =
-    (selectedExists ? selected : null) ?? lists.data?.[0]?.id ?? null
+    selected !== null &&
+    (isTodayView(selected) ||
+      (lists.data?.some((l) => l.id === selected) ?? false))
+  const active = (selectedExists ? selected : null) ?? TODAY_VIEW
+  const showingToday = isTodayView(active)
   const activeList = lists.data?.find((list) => list.id === active)
-  const add = useAddTodo(active ?? '')
+  // Today has no collection to add to, so the add path is bound to '' —
+  // its trigger isn't rendered either way (docs/specs/today-view.md).
+  const add = useAddTodo(showingToday ? '' : (active ?? ''))
 
   // Drop a persisted id the server no longer knows about, so it can't come
   // back on the next load.
   useEffect(() => {
     if (!lists.data || selected === null) return
+    // Today is not a collection, so it is never "missing" from the index
+    // (docs/specs/today-view.md).
+    if (isTodayView(selected)) return
     if (!lists.data.some((list) => list.id === selected)) {
       localStorage.removeItem(SELECTED_LIST_KEY)
       setSelected(null)
@@ -192,19 +204,21 @@ export function MainScreen() {
                 </button>
               )}
               <h1 className={styles['title']}>
-                {activeList?.displayName ?? 'Todos'}
+                {showingToday ? 'Today' : (activeList?.displayName ?? 'Todos')}
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
             </div>
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
-              {active ? (
-                // Keyed by list so switching remounts the pane, replaying
-                // its fade-in (todo-pane.module.css — `.pane`). Without
-                // this React reuses the same element and the animation
-                // only ever runs once, on first render.
-                <TodoPane key={active} listId={active} add={add} />
+              {/* Keyed by view so switching remounts the pane, replaying
+                  its fade-in (todo-pane.module.css — `.pane`). Without this
+                  React reuses the same element and the animation only ever
+                  runs once, on first render. */}
+              {showingToday ? (
+                <TodayPane key={active} lists={lists.data ?? []} />
+              ) : activeList ? (
+                <TodoPane key={active} listId={activeList.id} add={add} />
               ) : (
                 <p className={styles['empty']}>Create a list to get started.</p>
               )}

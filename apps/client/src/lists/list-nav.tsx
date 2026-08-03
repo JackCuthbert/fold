@@ -1,9 +1,11 @@
 import type { TodoList } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { LuPlus } from 'react-icons/lu'
+import { LuPlus, LuSun } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
+import { cx } from '../styles/cx'
+import { isTodayView, TODAY_VIEW } from '../todos/today'
 import { applyMutationToLists } from '../sync/optimistic'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
@@ -46,6 +48,23 @@ export function ListNav(props: {
 
   return (
     <nav className={styles['nav']} aria-label="Lists">
+      {/* docs/specs/today-view.md — a derived view pinned above the real
+          lists, and visually distinct from them: it carries an icon and no
+          kebab menu, because there is nothing on the server to rename or
+          delete. A divider separates it from the collections below, so it
+          reads as a different kind of thing rather than the first list. */}
+      <button
+        type="button"
+        className={cx(
+          styles['today'],
+          isTodayView(props.selected) && styles['todayActive'],
+        )}
+        onClick={() => props.onSelect(TODAY_VIEW)}
+      >
+        <LuSun aria-hidden="true" size={16} />
+        Today
+      </button>
+
       <ul>
         {(lists.data ?? []).map((list) => (
           <li key={list.id} className={styles['item']}>

@@ -6,24 +6,12 @@ shortlist to pick up from next time.
 Each needs its own spec section (and probably a plan) before implementation;
 the notes below capture intent and the open questions worth answering first.
 
-## 1. A "Today" view
+## ~~1. A "Today" view~~ — done 2026-08-02
 
-A dynamic view pinned at the top of the nav, above the real lists, showing
-every todo due today **across all lists**.
-
-- It is a *view*, not a CalDAV collection — nothing is created on the
-  server, and a todo continues to belong to its own list.
-- Rows should make their source list clear, since they come from several.
-- Interactions behave exactly as in a list: complete, open detail, edit.
-
-Open questions:
-- Does "today" mean the viewer's local day? (Probably yes — consistent with
-  the overdue rule in [todos](./todos.md#ordering-and-overdue-comparison).)
-- Should it include overdue items, or only ones due today? Overdue-plus-today
-  is the more useful default.
-- Fetching across every list on each load may be costly with many lists —
-  the collection `ctag` short-circuit ([caldav-compliance](./caldav-compliance.md))
-  should keep it cheap, but this needs measuring.
+Shipped. See [today-view](./today-view.md) for the full spec. The open
+questions were settled as: the viewer's local day; overdue **and** due-today
+(so nothing silently falls out of view); and the fan-out reuses each list's
+existing query, so the `ctag` short-circuit already applies.
 
 ## ~~2. Due times, not just due dates~~ — done 2026-08-02
 

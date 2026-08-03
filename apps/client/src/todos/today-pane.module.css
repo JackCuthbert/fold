@@ -1,0 +1,15 @@
+/* docs/specs/today-view.md — rows come from several lists, so each names
+   its source. It sits in the row's existing meta cluster (todo-item.module
+   .css `.meta`) alongside priority and due, and is deliberately the
+   quietest thing there: --faint rather than --muted, because the list name
+   is context, not status. No border, pill or background — the meta row is
+   plain text elsewhere and a chip here would out-shout the due date. */
+.listBadge {
+  color: var(--faint);
+  /* Truncate rather than squeeze the summary: a long list name must not
+     push the due date off the row (docs/specs/ui.md — vertical rhythm). */
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

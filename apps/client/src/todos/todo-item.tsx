@@ -1,4 +1,5 @@
 import type { Todo, TodoPriority } from '@fold/schemas'
+import type { ReactNode } from 'react'
 import { cx } from '../styles/cx'
 import { Checkbox } from './checkbox'
 import { dueInstant, isOverdue } from './sort'
@@ -41,6 +42,12 @@ export function TodoItem(props: {
   now: Date
   onToggle: () => void
   onOpen: () => void
+  /**
+   * Optional marker rendered in the meta row, before priority and due.
+   * The Today view uses it to name each row's source list, since its rows
+   * come from several (docs/specs/today-view.md). Lists pass nothing.
+   */
+  badge?: ReactNode
 }) {
   const { todo } = props
   const overdue = !todo.completed && isOverdue(todo, props.now)
@@ -62,6 +69,7 @@ export function TodoItem(props: {
         <span className={styles['titleRow']}>
           <span className={styles['summary']}>{todo.summary}</span>
           <span className={styles['meta']}>
+            {props.badge}
             {todo.priority && (
               <span className={cx(styles['prio'], PRIO_CLASS[todo.priority])}>
                 {todo.priority}
