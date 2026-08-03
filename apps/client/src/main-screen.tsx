@@ -98,48 +98,47 @@ export function MainScreen() {
 
   // docs/specs/ui.md — the nav: two distinct concepts, deliberately not one
   // boolean. `navPinned` is what the user *wants* and is the only thing
-  // persisted; this is what is *currently shown*. Below the three-column
-  // threshold an open detail panel temporarily overrides the preference,
-  // because the alternative is a 96px-wide list. The override is never
-  // written to localStorage — an auto-collapse is a response to the current
-  // viewport, not a choice the user made, so it must not follow them to
-  // their next visit at a width where it would make no sense. It also
-  // reverses on its own: close the panel (or widen the window past the
-  // threshold) and the nav comes back, unless the user had collapsed it
+  // persisted; `desktopNavOpen` is what is *currently shown*.
+  //
+  // Below the three-column threshold, an open detail panel collapses the
+  // nav — three fixed columns don't fit, and the alternative measured at
+  // 96px of list. The collapse is never written to localStorage: it is a
+  // response to the current viewport, not a choice the user made, so it
+  // must not follow them to their next visit at a width where it would make
+  // no sense. It reverses on its own — close the panel or widen past the
+  // threshold and the nav returns, unless the user had collapsed it
   // themselves, in which case `navPinned` is already false and there is
   // nothing to restore. *(added 2026-08-03.)*
   const autoCollapsed = !hasRoomForThree && openTodo !== null
-  // `navOverride` lets the ☰ toggle win against an auto-collapse: the user
-  // must always be able to reach the nav, even on a narrow screen with a
-  // todo open, at the cost of the main column while they do. Cleared
-  // whenever the auto-collapse itself lifts, so it never outlives the
-  // situation it was overriding.
-  const [navOverride, setNavOverride] = useState(false)
-  const effectiveOverride = autoCollapsed && navOverride
-  const desktopNavOpen =
-    isDesktop && (effectiveOverride || (navPinned && !autoCollapsed))
+  const desktopNavOpen = isDesktop && navPinned && !autoCollapsed
 
+  // While auto-collapsed the ☰ opens the nav as the **drawer** — the same
+  // overlay used on mobile — rather than re-expanding the pinned column.
+  //
+  // Expanding the column here would defeat the whole point: it would take
+  // its 320px back out of a main column that was already too narrow, which
+  // is the crush this auto-collapse exists to prevent. Measured: forcing
+  // the column open at 1024px with a todo open dropped main to 320px, worse
+  // than the 639px it had while collapsed. An overlay costs main nothing.
+  //
+  // *(fixed 2026-08-03: the override re-expanded the pinned column.)*
+  const navAsDrawer = isDesktop && autoCollapsed
+
+  // Only reachable when the nav is a pinned column — while auto-collapsed
+  // the header renders the drawer's own trigger instead, so opening the nav
+  // there never touches the stored preference.
   const toggleDesktopNav = (): void => {
-    // While auto-collapsed, the toggle drives the temporary override rather
-    // than the stored preference: the user is answering "show me the nav
-    // right now", not "change what I want by default". Their preference is
-    // left exactly as it was, so closing the todo returns to it.
-    if (autoCollapsed) {
-      setNavOverride((open) => !open)
-      return
-    }
     const next = !navPinned
     setNavPinned(next)
     localStorage.setItem(NAV_PINNED_KEY, next ? '1' : '0')
   }
 
-  // Drop a stale override once the auto-collapse that prompted it is gone —
-  // closing the todo, or widening past the threshold. Without this, a user
-  // who overrode on a narrow screen would find the next auto-collapse
-  // already overridden and the nav refusing to yield.
+  // Close the drawer once the auto-collapse that prompted it lifts —
+  // closing the todo, or widening past the threshold — so a drawer opened
+  // for a narrow layout doesn't hang over a layout that no longer needs it.
   useEffect(() => {
-    if (!autoCollapsed && navOverride) setNavOverride(false)
-  }, [autoCollapsed, navOverride])
+    if (!autoCollapsed && drawerOpen && isDesktop) setDrawerOpen(false)
+  }, [autoCollapsed, drawerOpen, isDesktop])
 
   // The persisted list may no longer exist (deleted here or elsewhere).
   // Only trust it once we've actually seen the list index: assuming it's
@@ -177,12 +176,17 @@ export function MainScreen() {
   }, [lists.data, selected])
 
   const selectList = (listId: string): void => {
+    // Clicking the list you are already in is not a switch. Closing the
+    // open todo there loses your place for no reason — the panel is still
+    // showing a todo from the list still on screen.
+    // *(fixed 2026-08-03.)*
+    const switching = listId !== active
     setSelected(listId)
     localStorage.setItem(SELECTED_LIST_KEY, listId)
     // Switching view drops the selection: the open todo may not exist in
     // the list being switched to, and a panel showing a todo from the view
     // you just left is worse than no panel.
-    setOpenTodo(null)
+    if (switching) setOpenTodo(null)
   }
 
   const openDetail = (todo: Todo, trigger: HTMLElement | null): void => {
@@ -259,12 +263,20 @@ export function MainScreen() {
   // "nested" the moment it opens, even with the drawer itself closed, and
   // silently lose its own backdrop. Dialog.Root here wraps only the
   // trigger + its own portal — `<main>` is a sibling, outside the tree.
+  // Rendered on mobile, and on desktop while the nav is auto-collapsed —
+  // there the ☰ opens this overlay instead of re-expanding the pinned
+  // column, which would take back the width the collapse just freed
+  // (see `navAsDrawer`).
+  const drawerAvailable = !isDesktop || navAsDrawer
   const drawer = (
-    <Dialog.Root open={!isDesktop && drawerOpen} onOpenChange={setDrawerOpen}>
+    <Dialog.Root
+      open={drawerAvailable && drawerOpen}
+      onOpenChange={setDrawerOpen}
+    >
       <Dialog.Trigger className={cx(styles['menuTrigger'])} aria-label="Lists">
         <LuMenu aria-hidden="true" size={20} />
       </Dialog.Trigger>
-      {!isDesktop && (
+      {drawerAvailable && (
         <Dialog.Portal>
           <Dialog.Backdrop className={cx(styles['scrim'])} />
           <Dialog.Popup render={<aside />} className={cx(styles['navOpen'])}>
@@ -317,8 +329,13 @@ export function MainScreen() {
               .mainScroll beneath it scrolls. */}
           <div className={styles['header']}>
             <div className={styles['headerRow']}>
-              {!isDesktop && drawer}
-              {isDesktop && (
+              {/* The drawer's own trigger whenever the drawer is the
+                  surface the ☰ opens — on mobile, and on desktop while
+                  auto-collapsed. Base UI needs the trigger inside its
+                  `Dialog.Root` to wire focus restoration, so this is the
+                  same element either way, not a second button. */}
+              {drawerAvailable && drawer}
+              {!drawerAvailable && (
                 <button
                   type="button"
                   className={cx(styles['menuTrigger'])}

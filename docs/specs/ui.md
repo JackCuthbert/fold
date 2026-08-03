@@ -167,10 +167,14 @@ items, the create action, and Settings alike. Specifically:
     response to the current viewport, not a decision the user made, so it
     must not follow them to their next visit at a width where it would
     make no sense.
-  - **The toggle still works while auto-collapsed**, overriding it so the
-    nav can always be reached on a narrow screen, at the cost of the main
-    column while it is open. The override lasts only as long as the
-    auto-collapse that prompted it.
+  - **While auto-collapsed, the ☰ opens the nav as the drawer** — the same
+    overlay used on mobile — rather than re-expanding the pinned column.
+    Re-expanding would take back the width the collapse just freed, which
+    is the crush this rule exists to prevent: measured at 1024px with a
+    todo open, forcing the column dropped the list to 320px, worse than the
+    639px it had while collapsed. An overlay costs the list nothing, and
+    the drawer closes on its own once the auto-collapse lifts.
+    *(fixed 2026-08-03: the toggle re-expanded the column.)*
 - **A newly created list appears in its final position immediately.**
   *(added 2026-07-31: new lists landed at the bottom, then jumped when the
   server's alphabetical order arrived.)* Sort the optimistic entry the same
