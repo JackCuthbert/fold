@@ -1,10 +1,7 @@
-import type { TodoList } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
-import { ConfirmDialog } from '../confirm'
 import { InfoBadge } from '../info-badge'
-import { api, queryClient, useSyncEngine } from '../providers'
+import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import {
   isSummaryView,
@@ -12,15 +9,12 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
 } from '../todos/today'
-import { applyMutationToLists } from '../sync/optimistic'
 import { useTheme } from '../use-theme'
-import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
 import { markerColor } from './list-color'
-import { nextOrder, reorder } from './list-order'
+import { reorder } from './list-order'
+import type { ListFormState } from './use-list-form'
 import styles from './list-nav.module.css'
-
-const slug = (): string => crypto.randomUUID()
 
 export function useLists() {
   const engine = useSyncEngine()
@@ -36,25 +30,21 @@ export function useLists() {
 }
 
 // docs/specs/lists.md — discover/create/rename/delete.
+//
+// Presentational as far as its modals go: the create/edit/delete surfaces
+// are owned by `MainScreen` via `useListForm`, because on mobile this
+// component renders *inside* the drawer's Dialog — where a modal would be
+// nested (losing its backdrop) and would unmount at the breakpoint (losing
+// its state). See `lists/use-list-form.ts`.
+// *(changed 2026-08-04, issues #20 and #21.)*
 export function ListNav(props: {
   selected: string | null
   onSelect: (listId: string) => void
+  form: ListFormState
 }) {
-  const engine = useSyncEngine()
   const lists = useLists()
   const theme = useTheme()
-  const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState<TodoList | null>(null)
-  const [deleting, setDeleting] = useState<TodoList | null>(null)
-
-  const mutate = (
-    mutation: Parameters<typeof applyMutationToLists>[1],
-  ): void => {
-    queryClient.setQueryData<TodoList[]>(['lists'], (current) =>
-      applyMutationToLists(current ?? [], mutation),
-    )
-    void engine.enqueue(mutation)
-  }
+  const { mutate } = props.form
 
   // docs/specs/lists.md — reordering writes only the lists that moved:
   // swapping two adjacent lists swaps two numbers, rather than renumbering
@@ -170,8 +160,8 @@ export function ListNav(props: {
               canMoveDown={index < all.length - 1}
               onMoveUp={() => move(list.id, 'up')}
               onMoveDown={() => move(list.id, 'down')}
-              onEdit={() => setEditing(list)}
-              onDelete={() => setDeleting(list)}
+              onEdit={() => props.form.openEdit(list)}
+              onDelete={() => props.form.openDelete(list)}
             />
           </li>
         ))}
@@ -186,95 +176,15 @@ export function ListNav(props: {
         type="button"
         className={styles['add']}
         aria-label="+ New list"
-        onClick={() => setCreating(true)}
+        onClick={props.form.openCreate}
       >
         <LuPlus aria-hidden="true" size={16} />
         New list
       </button>
 
-      <ListFormModal
-        open={creating}
-        title="New list"
-        submitLabel="Create"
-        onOpenChange={setCreating}
-        onSubmit={(values) => {
-          const listId = slug()
-          mutate({
-            id: crypto.randomUUID(),
-            kind: 'createList',
-            listId,
-            displayName: values.displayName,
-            // docs/specs/lists.md — the client picks the order so the new
-            // list can't jump when the server responds.
-            order: nextOrder(lists.data ?? []),
-            ...(values.color !== undefined ? { color: values.color } : {}),
-          })
-          setCreating(false)
-          props.onSelect(listId)
-        }}
-      />
-
-      <ListFormModal
-        open={editing !== null}
-        title="Edit list"
-        {...(editing
-          ? {
-              initial: {
-                displayName: editing.displayName,
-                ...(editing.color !== undefined
-                  ? { color: editing.color }
-                  : {}),
-              },
-            }
-          : {})}
-        submitLabel="Save"
-        onOpenChange={(open) => {
-          if (!open) setEditing(null)
-        }}
-        // docs/specs/lists.md — colours. One form, but up to two mutations,
-        // and only for what actually changed: a name-only edit must not
-        // cost a PROPPATCH of the colour, or vice versa.
-        onSubmit={(values) => {
-          if (!editing) return
-          if (values.displayName !== editing.displayName) {
-            mutate({
-              id: crypto.randomUUID(),
-              kind: 'renameList',
-              listId: editing.id,
-              displayName: values.displayName,
-            })
-          }
-          if (values.color !== editing.color) {
-            mutate({
-              id: crypto.randomUUID(),
-              kind: 'setListProps',
-              listId: editing.id,
-              // The form uses undefined for "no colour"; the mutation uses
-              // null for "remove the property". Translate at this boundary.
-              color: values.color ?? null,
-            })
-          }
-          setEditing(null)
-        }}
-      />
-
-      <ConfirmDialog
-        open={deleting !== null}
-        title={`Delete "${deleting?.displayName ?? ''}"?`}
-        confirmLabel="Delete list"
-        onCancel={() => setDeleting(null)}
-        onConfirm={() => {
-          if (!deleting) return
-          mutate({
-            id: crypto.randomUUID(),
-            kind: 'deleteList',
-            listId: deleting.id,
-          })
-          setDeleting(null)
-        }}
-      >
-        <p>This deletes the list and all its todos from the server.</p>
-      </ConfirmDialog>
+      {/* No modals here. The create/edit/delete surfaces are rendered by
+          MainScreen as siblings of the drawer — see the note on this
+          component and `lists/use-list-form.ts`. */}
     </nav>
   )
 }

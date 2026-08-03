@@ -426,6 +426,21 @@ over an undimmed background, so they didn't read as modal.)*
     only it came up undimmed and couldn't be dismissed by tapping away.
     Opening it also closes the drawer — otherwise two overlays would stack
     their scrims and focus traps.)*
+    *(recurred 2026-08-04, issue #20: the New list / Edit list modals and
+    the delete-list confirm were still owned by `ListNav`, which is exactly
+    such a subtree on mobile. This rule applies to **every** modal opened
+    from the nav, not only the ones in the footer — when adding one, put it
+    with Settings and Help rather than beside its trigger.)*
+  - **A modal's state must outlive a layout change.** Anything rendered
+    conditionally on viewport width unmounts when the breakpoint is crossed,
+    taking its form state with it. A resize is not a dismissal: a half-typed
+    list or a part-written edit must survive one, so that state belongs in a
+    component mounted at every viewport (`MainScreen`), not in whichever
+    surface happens to be showing. Closing a modal still discards the draft —
+    that *is* a dismissal. *(added 2026-08-04, issue #21: the New list modal
+    vanished outright on a resize, losing the name and colour already
+    entered. Same shape as the todo detail panel, fixed a day earlier — see
+    `todos/use-todo-detail-form.ts` and `lists/use-list-form.ts`.)*
 - **A divider separates a title from its content** in modals and side
   panels, so the heading reads as a header — especially once the body
   scrolls beneath it. *(added 2026-07-31.)* This is for the *title*
