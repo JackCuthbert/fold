@@ -71,3 +71,92 @@ is added to them:
 
 Needs its own spec: all three change the same row, and density and wrapping
 interact directly.
+
+## 7. UI tweaks
+
+*(added 2026-08-03.)*
+
+Two independent items. The first is small; the second is not, and needs its
+own spec before it is built.
+
+- **Disable Save/Create until something changes.** The buttons are always
+  enabled today, so saving an untouched form queues a no-op mutation and a
+  pointless PUT. react-hook-form already tracks this as `formState.isDirty`,
+  so the fix is small — but note the detail panel's fields are populated
+  from a todo, so `isDirty` must be measured against those defaults, not
+  against empty.
+
+- **On desktop, make the detail panel a layout column, not an overlay.**
+  The *right-hand* panel (the todo edit view, `todos/todo-detail.tsx`)
+  should behave like the left-hand list sidebar does today: always part of
+  the layout, no scrim, no dimming of the content behind it. Today it is a
+  Base UI `Dialog` with a `.backdrop` at `z-index: 40`, sliding in from the
+  right edge — an overlay at every viewport.
+
+  *(The left nav already behaves correctly: verified live on 2026-08-03 at
+  1280px — plain `<aside>`, pinned, no scrim, zero dialogs in the DOM. It
+  is the model to copy, not something to fix.)*
+
+  Not a small change — worth its own spec section, because dropping modality
+  has consequences:
+
+  - **Focus and Escape.** As a `Dialog` it traps focus and closes on
+    Escape. A layout column shouldn't trap focus, but Escape-to-close is
+    still wanted — that becomes a plain key handler, not Base UI's.
+  - **The main column narrows** when the panel opens, so the todo list
+    reflows. Worth checking against the sticky header and the scrollbar
+    gutter work.
+  - **"Nothing selected" becomes a real state.** As an overlay the panel
+    simply doesn't exist when closed; as a column it either renders empty
+    or collapses to zero width.
+  - **Mobile keeps the bottom sheet** — this is a desktop-only change, so
+    the component serves two structurally different modes, the same split
+    `main-screen.tsx` already makes for the nav.
+
+## 8. Keyboard shortcuts
+
+*(added 2026-08-03.)*
+
+- `Cmd/Ctrl+N` — new todo modal
+- `Cmd/Ctrl+Shift+N` — new list modal
+- `Cmd/Ctrl+F` — search, overriding the browser's find (see item 9)
+
+Worth settling once, up front, rather than per-shortcut:
+
+- **Where does the handler live?** One app-level listener that owns the
+  whole map is easier to reason about — and to document in the help modal —
+  than listeners scattered across components.
+- **What happens when a modal is already open?** `Cmd+N` inside the detail
+  panel should probably do nothing rather than stacking a second dialog.
+- **Overriding `Cmd+F` is a real cost.** It takes away a browser function
+  users rely on, so our search has to be clearly better than the browser's
+  within the app. It should only bind when the app has focus and no text
+  input is active.
+- **Discoverability**: shortcuts nobody knows about may as well not exist.
+  The help modal should list them.
+
+## 9. Search view
+
+*(added 2026-08-03.)*
+
+A search view in the nav below Summary — a third derived view, so it
+follows the pattern in [today-view](./today-view.md) and
+[summary-view](./summary-view.md), including the `view:` sentinel prefix.
+
+- **Fuzzy text search** across todo summaries (and descriptions?) from
+  every list.
+- **Filter buttons** for due, list, and priority, combinable with the text
+  query.
+
+Open questions worth answering before building:
+
+- **Client-side or server-side?** Client-side over the already-cached
+  todos is far simpler, works offline, and needs no new API — but only
+  searches lists already fetched. Given the derived views already fan out
+  over every list's query, this is probably the right call.
+- **Which fuzzy algorithm, and do we need a dependency?** A small
+  hand-rolled subsequence match may be enough; anything more wants a
+  library rather than a home-grown ranking function.
+- **Does a search have a URL / restorable state?**, or is it transient?
+- **"Project" in the original note is a list** — Fold has no separate
+  project concept, so this filter is by list.
