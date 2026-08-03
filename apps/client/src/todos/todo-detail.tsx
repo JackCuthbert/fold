@@ -15,8 +15,8 @@ import { LuChevronDown } from 'react-icons/lu'
 import { z } from 'zod'
 import { cx } from '../styles/cx'
 import { dueToFields, fieldsToDue } from './due-fields'
-import { punctualityOf, type Punctuality } from './punctuality'
-import { formatCompletedAt } from './summary'
+import { cycleTimeOf, punctualityOf, type Punctuality } from './punctuality'
+import { formatTimestamp } from './summary'
 import styles from './todo-detail.module.css'
 
 // docs/specs/todos.md — due times: a time needs a date, since DUE cannot
@@ -81,7 +81,11 @@ export function TodoDetail(props: {
 }) {
   const { todo } = props
   const initialFields = dueToFields(todo.due)
+  // Captured once so every row in the metadata footer resolves "Today"
+  // against the same instant.
+  const now = new Date()
   const punctuality = punctualityOf(todo)
+  const cycleTime = cycleTimeOf(todo)
   const listOptions = props.lists.map((list) => ({
     label: list.displayName,
     value: list.id,
@@ -357,14 +361,33 @@ export function TodoDetail(props: {
                 there is something to show — an open todo has no completion
                 date, and a completed one written by another client may not
                 carry one either (docs/specs/summary-view.md). */}
-            {todo.completedAt && (
+            {(todo.created || todo.completedAt) && (
               <dl className={styles['meta']}>
-                <div className={styles['metaRow']}>
-                  <dt className={styles['metaLabel']}>Completed</dt>
-                  <dd className={styles['metaValue']}>
-                    {formatCompletedAt(todo.completedAt, new Date())}
-                  </dd>
-                </div>
+                {todo.created && (
+                  <div className={styles['metaRow']}>
+                    <dt className={styles['metaLabel']}>Created</dt>
+                    <dd className={styles['metaValue']}>
+                      {formatTimestamp(todo.created, now)}
+                    </dd>
+                  </div>
+                )}
+                {todo.completedAt && (
+                  <div className={styles['metaRow']}>
+                    <dt className={styles['metaLabel']}>Completed</dt>
+                    <dd className={styles['metaValue']}>
+                      {formatTimestamp(todo.completedAt, now)}
+                    </dd>
+                  </div>
+                )}
+                {/* CREATED to COMPLETED. Uncoloured: unlike punctuality
+                    there is no good or bad duration, so this is context
+                    rather than a verdict. */}
+                {cycleTime && (
+                  <div className={styles['metaRow']}>
+                    <dt className={styles['metaLabel']}>Duration</dt>
+                    <dd className={styles['metaValue']}>{cycleTime}</dd>
+                  </div>
+                )}
                 {/* Derived from COMPLETED against DUE, so it appears only
                     when both exist. Colour-coded with the same semantic
                     status tokens as sync status and priority rather than a

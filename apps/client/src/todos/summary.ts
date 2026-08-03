@@ -73,16 +73,16 @@ export function summariseCompleted(todos: readonly Todo[]): SummaryResult {
 }
 
 /**
- * A completion instant as day plus time — "Today at 12:00 pm", "3 Aug at
- * 9:15 am". Used by the detail view's metadata footer
+ * An instant as day plus time — "Today at 12:00 pm", "3 Aug at 9:15 am".
+ * Used by the detail view's metadata footer for both CREATED and COMPLETED
  * (docs/specs/todos.md — metadata).
  *
- * Shares `dayLabel` with the Summary headings so the same completion reads
- * the same way in both places. The time is included here, where the value
- * is about one todo, but not in a heading that covers a whole day.
+ * Shares `dayLabel` with the Summary headings so the same moment reads the
+ * same way in both places. The time is included here, where the value is
+ * about one todo, but not in a heading that covers a whole day.
  */
-export function formatCompletedAt(completedAt: string, now: Date): string {
-  const instant = new Date(completedAt)
+export function formatTimestamp(timestamp: string, now: Date): string {
+  const instant = new Date(timestamp)
   if (Number.isNaN(instant.getTime())) return ''
   const time = instant.toLocaleTimeString(undefined, {
     hour: 'numeric',

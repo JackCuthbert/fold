@@ -150,13 +150,35 @@ The detail view ends with a read-only footer of facts *about* the todo,
 below the actions and separated by a hairline. It is a footnote, not a set
 of fields: muted, small, and never editable.
 
-It appears **only when there is something to show** — an open todo has no
-completion date, so an open todo's panel looks exactly as it did before.
+Every row appears **only when the data behind it exists**, so the footer
+grows with what is known rather than showing blanks. An open todo typically
+shows Created alone; a completed one with a due date shows all four.
 
 | Row | Shown when | Content |
 |---|---|---|
-| Completed | `completedAt` is present | "Today at 12:00", "3 Aug at 9:15" — the same day wording as [Summary](./summary-view.md)'s headings, plus a time |
+| Created | `created` is present | "Today at 11:36", "2 Aug at 9:15" — the same day wording as [Summary](./summary-view.md)'s headings, plus a time |
+| Completed | `completedAt` is present | As above, for the completion |
+| Duration | both `created` and `completedAt` are present | How long the todo was open — "Open for 3 hours" |
 | Timing | both `completedAt` and `due` are present | Whether it was done early, on time, or late, with a rough margin |
+
+**Everything here is derived from RFC 5545 properties the VTODO already
+carries** — `CREATED`, `COMPLETED`, `DUE`. Nothing needs storage of our own,
+so it works against any compliant server
+([caldav-compliance](./caldav-compliance.md)) and reads correctly for todos
+created by other clients. Facts that would need our own bookkeeping — how
+many times a due date was pushed, for instance — are deliberately out of
+scope for that reason.
+
+### Duration
+
+Uncoloured, unlike Timing: there is no good or bad duration — a todo open
+for a week may be perfectly healthy — so it is context rather than a
+verdict.
+
+Two guards: a completion stamped *before* creation (clock skew, or a
+foreign client's bad data) shows nothing rather than a negative span, and a
+gap under a minute reads as "Open less than a minute" rather than
+overstating the precision of two timestamps seconds apart.
 
 ### Timing
 

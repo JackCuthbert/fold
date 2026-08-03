@@ -243,9 +243,9 @@
 
 .metaLabel {
   color: var(--faint);
-  /* Enough for "Completed"/"Timing" so the two values line up without a
-     grid; they are the only labels this footer has. */
-  min-width: 5rem;
+  /* Enough for the longest label this footer uses ("Completed"), so every
+     value lines up without needing a grid. */
+  min-width: 5.5rem;
 }
 
 .metaValue {

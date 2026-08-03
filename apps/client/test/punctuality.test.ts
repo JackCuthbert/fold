@@ -1,6 +1,6 @@
 import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
-import { punctualityOf } from '../src/todos/punctuality'
+import { cycleTimeOf, punctualityOf } from '../src/todos/punctuality'
 
 const todo = (extra: Partial<Todo>): Todo => ({
   uid: 'u',
@@ -118,5 +118,57 @@ describe('punctualityOf', () => {
       )
       expect(result?.label).toBe('Completed 2 days late')
     })
+  })
+})
+
+// docs/specs/todos.md — metadata: how long the todo was open, CREATED to
+// COMPLETED. Both are plain RFC 5545 properties, so this needs no storage
+// of our own.
+describe('cycleTimeOf', () => {
+  it('reports the gap between creation and completion', () => {
+    const result = cycleTimeOf(
+      todo({
+        created: at(2026, 7, 1, 9),
+        completedAt: at(2026, 7, 3, 9),
+      }),
+    )
+    expect(result).toBe('Open for 2 days')
+  })
+
+  it('uses hours for a same-day todo', () => {
+    expect(
+      cycleTimeOf(
+        todo({ created: at(2026, 7, 3, 9), completedAt: at(2026, 7, 3, 12) }),
+      ),
+    ).toBe('Open for 3 hours')
+  })
+
+  it('reports nothing without both stamps', () => {
+    expect(cycleTimeOf(todo({ created: at(2026, 7, 1, 9) }))).toBeNull()
+    expect(cycleTimeOf(todo({ completedAt: at(2026, 7, 3, 9) }))).toBeNull()
+    expect(cycleTimeOf(todo({}))).toBeNull()
+  })
+
+  it('says nothing when completion precedes creation', () => {
+    // Clock skew, or a foreign client's bad data. "-2 hours" would be worse
+    // than silence.
+    expect(
+      cycleTimeOf(
+        todo({ created: at(2026, 7, 3, 12), completedAt: at(2026, 7, 3, 9) }),
+      ),
+    ).toBeNull()
+  })
+
+  it('reads a near-instant completion as such, not "1 minute"', () => {
+    const created = new Date(2026, 7, 3, 9, 0, 0)
+    const completed = new Date(2026, 7, 3, 9, 0, 20)
+    expect(
+      cycleTimeOf(
+        todo({
+          created: created.toISOString(),
+          completedAt: completed.toISOString(),
+        }),
+      ),
+    ).toBe('Open less than a minute')
   })
 })
