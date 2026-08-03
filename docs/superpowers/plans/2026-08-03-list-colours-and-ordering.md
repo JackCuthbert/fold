@@ -2569,7 +2569,33 @@ that ignores it returns lists with no order, which then sort alphabetically
 — the previous behaviour, visibly rather than silently.
 ```
 
-Add a Colours section covering the palette, the 8-digit round-trip, the contrast guard, and the "never rewrite what we didn't set" rule.
+**Add a `## Colours` section — this is required, not optional.** Ten-plus
+source files already cite `docs/specs/lists.md — colours` in their comments
+(the gateway, the schemas, the contrast guard, the picker, and their
+tests), following the repo convention that code references the spec it
+implements. Until this section exists, every one of those citations is a
+dangling reference.
+
+Verify when done:
+
+```bash
+grep -n "^## " docs/specs/lists.md
+```
+
+Expected: a `## Colours` heading is present. Then confirm nothing still
+points at a section that doesn't exist:
+
+```bash
+grep -rln "lists.md — colours\|lists.md (colours)" --include="*.ts" --include="*.tsx" --include="*.css" apps/ packages/
+```
+
+Every file listed should now resolve to a real section.
+
+Cover: the eight-swatch palette and why it's a shortcut rather than a
+constraint; the 8-digit `#RRGGBBAA` round-trip with other clients; the
+contrast guard and why the marker falls back while the dot never does; the
+unfilled ring for a list with no colour; and the "never rewrite what we
+didn't set" rule.
 
 - [ ] **Step 2: Update `docs/specs/ui.md`**
 
