@@ -44,12 +44,17 @@ export type SyncEngine = Awaited<ReturnType<typeof createSyncEngine>>
 
 type ListMutation = Extract<
   Mutation,
-  { kind: 'createList' | 'renameList' | 'deleteList' }
+  { kind: 'createList' | 'renameList' | 'setListProps' | 'deleteList' }
 >
 
+// Every mutation that changes the lists collection itself. Load-bearing on
+// reconcile as much as on invalidation: a still-queued entry missing from
+// here is replayed over fresh server data by nobody, so the user's change
+// visibly reverts on the next refetch (docs/specs/lists.md).
 const isListMutation = (mutation: Mutation): mutation is ListMutation =>
   mutation.kind === 'createList' ||
   mutation.kind === 'renameList' ||
+  mutation.kind === 'setListProps' ||
   mutation.kind === 'deleteList'
 
 export async function createSyncEngine(options: SyncEngineOptions) {

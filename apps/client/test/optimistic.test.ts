@@ -1,4 +1,4 @@
-import type { Mutation, Todo, TodosResponse } from '@fold/schemas'
+import type { Mutation, Todo, TodoList, TodosResponse } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
 import {
   applyMutationToLists,
@@ -115,11 +115,6 @@ describe('applyMutationToLists', () => {
     expect(next).toEqual(lists)
   })
 
-  // docs/specs/lists.md — Ordering: the server returns lists in collection
-  // (creation) order, not alphabetical, and the client never re-sorts. The
-  // optimistic insert appends the placeholder at the end, matching where
-  // the server will place the new list, so nothing moves once the real
-  // response lands.
   // The optimistic insert must use the same ordering rule the nav renders
   // with, or the new row jumps when the server responds. The server's own
   // order is arbitrary (UUID directory names), so the client sorts
@@ -140,6 +135,69 @@ describe('applyMutationToLists', () => {
       'Banana',
       'Cherry',
     ])
+  })
+})
+
+// docs/specs/lists.md — colours and ordering.
+describe('applyMutationToLists — setListProps', () => {
+  const one: TodoList = {
+    id: 'l1',
+    href: '/l1/',
+    displayName: 'One',
+    ctag: 'c',
+  }
+  const two: TodoList = {
+    id: 'l2',
+    href: '/l2/',
+    displayName: 'Two',
+    ctag: 'c',
+  }
+  const lists = [one, two]
+
+  it('sets a colour on the named list only', () => {
+    const next = applyMutationToLists(lists, {
+      id: '00000000-0000-4000-8000-000000000010',
+      kind: 'setListProps',
+      listId: 'l1',
+      color: '#1D9BF6',
+    })
+    expect(next[0]).toMatchObject({ id: 'l1', color: '#1D9BF6' })
+    expect(next[1]).toEqual(two)
+  })
+
+  it('clears a colour when given null', () => {
+    const painted: TodoList[] = [{ ...one, color: '#1D9BF6' }]
+    const next = applyMutationToLists(painted, {
+      id: '00000000-0000-4000-8000-000000000011',
+      kind: 'setListProps',
+      listId: 'l1',
+      color: null,
+    })
+    expect(next[0]?.color).toBeUndefined()
+  })
+
+  // `undefined` leaves a field alone, so changing one property must never
+  // disturb the other — the bug this guards is a reorder wiping a colour.
+  it('changing the order does not disturb the colour', () => {
+    const painted: TodoList[] = [{ ...one, color: '#1D9BF6', order: 1 }]
+    const next = applyMutationToLists(painted, {
+      id: '00000000-0000-4000-8000-000000000012',
+      kind: 'setListProps',
+      listId: 'l1',
+      order: 5,
+    })
+    expect(next[0]).toMatchObject({ color: '#1D9BF6', order: 5 })
+  })
+
+  it('clears an order when given null', () => {
+    const ordered: TodoList[] = [{ ...one, order: 3 }]
+    const next = applyMutationToLists(ordered, {
+      id: '00000000-0000-4000-8000-000000000013',
+      kind: 'setListProps',
+      listId: 'l1',
+      order: null,
+    })
+    expect(next[0]?.order).toBeUndefined()
   })
 })
 

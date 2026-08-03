@@ -36,7 +36,7 @@ const fakeApi = (overrides: Partial<Api>): Api => ({
   getSession: vi.fn(),
   getLists: vi.fn(),
   createList: vi.fn(),
-  renameList: vi.fn(),
+  patchList: vi.fn(),
   deleteList: vi.fn(),
   getTodos: vi.fn(),
   createTodo: vi.fn(),
@@ -495,6 +495,37 @@ describe('sync engine: moveTodo', () => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['todos', 'l1'] })
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['todos', 'l2'] })
     })
+    engine.stop()
+  })
+})
+
+// docs/specs/lists.md — a still-queued list mutation must survive a
+// refetch, or fresh server data (which does not know about it yet) would
+// visibly undo the user's change until the outbox drains.
+describe('reconcileLists', () => {
+  it('replays a queued colour change over fresh server data', async () => {
+    // Held in flight so the mutation is still queued while reconciling.
+    const held = pending<void>()
+    const engine = await createSyncEngine({
+      api: fakeApi({ patchList: vi.fn().mockReturnValue(held.promise) }),
+      queryClient: new QueryClient(),
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue({
+      id: '00000000-0000-4000-8000-000000000030',
+      kind: 'setListProps',
+      listId: 'l1',
+      color: '#1D9BF6',
+    })
+    const reconciled = engine.reconcileLists([
+      { id: 'l1', href: '/l1/', displayName: 'One', ctag: 'c' },
+    ])
+    expect(reconciled[0]).toMatchObject({ id: 'l1', color: '#1D9BF6' })
+    held.resolve()
     engine.stop()
   })
 })

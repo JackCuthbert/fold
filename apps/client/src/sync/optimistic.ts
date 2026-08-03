@@ -123,11 +123,6 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
   }
 }
 
-// docs/specs/lists.md — Ordering: the server returns lists in collection
-// (creation) order, not alphabetical, so the client renders them in that
-// same order and never re-sorts. The optimistic insert appends the
-// placeholder at the end, matching where the server will place the new
-// list, so nothing moves once the real response lands.
 /**
  * The one ordering rule for lists, used on read and on optimistic insert
  * alike so the two can never disagree (docs/specs/lists.md — ordering).
@@ -166,6 +161,23 @@ export function applyMutationToLists(
           ? { ...list, displayName: mutation.displayName }
           : list,
       )
+    // docs/specs/lists.md — colours and ordering. `null` clears a
+    // property, `undefined` leaves it alone — so each field is applied
+    // independently and changing one never disturbs the other.
+    case 'setListProps':
+      return lists.map((list) => {
+        if (list.id !== mutation.listId) return list
+        const next: TodoList = { ...list }
+        if (mutation.color !== undefined) {
+          if (mutation.color === null) delete next.color
+          else next.color = mutation.color
+        }
+        if (mutation.order !== undefined) {
+          if (mutation.order === null) delete next.order
+          else next.order = mutation.order
+        }
+        return next
+      })
     case 'deleteList':
       return lists.filter((list) => list.id !== mutation.listId)
     default:

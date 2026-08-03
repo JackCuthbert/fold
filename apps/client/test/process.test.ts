@@ -34,7 +34,7 @@ const fakeApi = (overrides: Partial<Api>): Api => ({
   getSession: vi.fn(),
   getLists: vi.fn(),
   createList: vi.fn(),
-  renameList: vi.fn(),
+  patchList: vi.fn(),
   deleteList: vi.fn(),
   getTodos: vi.fn(),
   createTodo: vi.fn(),
@@ -167,6 +167,66 @@ describe('processMutation', () => {
       reason: 'conflict',
     })
     await expect(process(update)).rejects.toBeInstanceOf(TaggedFatalError)
+  })
+})
+
+// docs/specs/lists.md — colours and ordering.
+describe('processMutation: list properties', () => {
+  it('dispatches renameList as a displayName patch', async () => {
+    const patchList = vi.fn().mockResolvedValue(undefined)
+    const process = makeProcessMutation(fakeApi({ patchList }), vi.fn())
+    await process({
+      id: '00000000-0000-4000-8000-000000000020',
+      kind: 'renameList',
+      listId: 'l1',
+      displayName: 'Renamed',
+    })
+    expect(patchList).toHaveBeenCalledWith('l1', { displayName: 'Renamed' })
+  })
+
+  // Regression: setListProps was stubbed with a FatalError, which drops the
+  // mutation permanently instead of ever reaching the server — a colour or
+  // reorder the user saved would silently vanish.
+  it('dispatches setListProps to the api instead of dropping it', async () => {
+    const patchList = vi.fn().mockResolvedValue(undefined)
+    const process = makeProcessMutation(fakeApi({ patchList }), vi.fn())
+    await process({
+      id: '00000000-0000-4000-8000-000000000021',
+      kind: 'setListProps',
+      listId: 'l1',
+      color: '#1D9BF6',
+      order: 3,
+    })
+    expect(patchList).toHaveBeenCalledWith('l1', {
+      color: '#1D9BF6',
+      order: 3,
+    })
+  })
+
+  // `undefined` means "leave alone" — sending it would clear the property
+  // server-side, so only the fields the mutation actually carries go out.
+  it('sends only the properties the mutation carries', async () => {
+    const patchList = vi.fn().mockResolvedValue(undefined)
+    const process = makeProcessMutation(fakeApi({ patchList }), vi.fn())
+    await process({
+      id: '00000000-0000-4000-8000-000000000022',
+      kind: 'setListProps',
+      listId: 'l1',
+      order: 2,
+    })
+    expect(patchList).toHaveBeenCalledWith('l1', { order: 2 })
+  })
+
+  it('sends an explicit null to clear a colour', async () => {
+    const patchList = vi.fn().mockResolvedValue(undefined)
+    const process = makeProcessMutation(fakeApi({ patchList }), vi.fn())
+    await process({
+      id: '00000000-0000-4000-8000-000000000023',
+      kind: 'setListProps',
+      listId: 'l1',
+      color: null,
+    })
+    expect(patchList).toHaveBeenCalledWith('l1', { color: null })
   })
 })
 
