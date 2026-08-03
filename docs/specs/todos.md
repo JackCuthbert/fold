@@ -227,7 +227,8 @@ quarter's worth is not.
 
 A gated bulk action — a heavy confirmation naming what is destroyed, or a
 retention policy that only offers items older than some age — is wanted, but
-needs designing rather than inheriting. See [backlog](./backlog.md).
+needs designing rather than inheriting. See
+[issue #1](https://github.com/JackCuthbert/fold/issues/1).
 
 ## Moving a todo between lists
 

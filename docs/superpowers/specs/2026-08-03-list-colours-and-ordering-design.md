@@ -2,8 +2,13 @@
 
 Date: 2026-08-03
 
-Covers backlog items 4 (reordering lists) and 5 (per-list colours), plus a
-generic extension tooltip and an in-app help modal.
+Covers what were then backlog items 4 (reordering lists) and 5 (per-list
+colours), plus a generic extension badge and an in-app help modal.
+
+*(The backlog moved to GitHub Issues on 2026-08-03, after this shipped —
+those item numbers no longer resolve. The badge is described as a tooltip
+further down and was corrected to a popover during implementation; see
+"§4 — ExtensionBadge".)*
 
 ## Goal
 
