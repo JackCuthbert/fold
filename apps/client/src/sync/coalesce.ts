@@ -1,4 +1,4 @@
-import type { Mutation } from '@fold/schemas'
+import type { Mutation, TodoChanges } from '@fold/schemas'
 
 // Coalescing rules — docs/specs/sync-and-offline.md (sync loop).
 export function coalesceMutations(
@@ -81,6 +81,40 @@ export function coalesceMutations(
     })
     // Never synced? Nothing to delete on the server.
     return hadPendingCreate ? remaining : [...remaining, incoming]
+  }
+
+  // docs/specs/todos.md — moving a todo between lists. A move rewrites the
+  // resource in a new collection, so any edit still queued against the
+  // *source* list would dispatch at a URL that no longer exists. Fold those
+  // pending changes into the move's payload instead — the copy then carries
+  // them, and the stale entries are dropped.
+  if (incoming.kind === 'moveTodo') {
+    const pending = queue.filter(
+      (m) =>
+        m.kind === 'updateTodo' &&
+        m.listId === incoming.listId &&
+        m.uid === incoming.uid,
+    )
+    const changes: TodoChanges = {}
+    for (const m of pending) {
+      if (m.kind === 'updateTodo') Object.assign(changes, m.changes)
+    }
+    const remaining = queue.filter((m) => !pending.includes(m))
+    if (Object.keys(changes).length === 0) return [...remaining, incoming]
+    const { summary, due, description, priority } = changes
+    return [
+      ...remaining,
+      {
+        ...incoming,
+        todo: {
+          ...incoming.todo,
+          ...(summary !== undefined ? { summary } : {}),
+          ...(due != null ? { due } : {}),
+          ...(description != null ? { description } : {}),
+          ...(priority != null ? { priority } : {}),
+        },
+      },
+    ]
   }
 
   if (incoming.kind === 'renameList') {

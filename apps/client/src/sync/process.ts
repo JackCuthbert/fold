@@ -76,6 +76,40 @@ export function makeProcessMutation(
           etagOverride ?? mutation.etag,
         )
         return undefined
+      // docs/specs/todos.md — moving a todo between lists: copy to the
+      // target first, then delete the original. Copy-first is deliberate —
+      // if the copy fails nothing is lost and the todo stays put, whereas
+      // deleting first would risk destroying the only copy.
+      case 'moveTodo': {
+        let created: Todo
+        try {
+          created = await api.createTodo(mutation.targetListId, mutation.todo)
+        } catch (error) {
+          // A retry whose earlier attempt copied successfully but died
+          // before deleting: the target already holds the todo, so the
+          // server reports 412 with it attached. That IS this step's
+          // result, not a failure — swallow it and go on to the delete, or
+          // the move would strand a duplicate forever. Handled here rather
+          // than in the outer catch, which can only abort the whole
+          // dispatch and so would never reach the delete.
+          if (!(error instanceof ApiError) || error.status !== 412) throw error
+          const conflict = conflictResponseSchema.safeParse(error.body)
+          if (!conflict.success) throw error
+          created = conflict.data.todo
+        }
+        try {
+          await api.deleteTodo(
+            mutation.listId,
+            mutation.uid,
+            etagOverride ?? mutation.etag,
+          )
+        } catch (error) {
+          // Already gone (an earlier attempt's delete landed, or another
+          // client removed it) — the move is complete either way.
+          if (!(error instanceof ApiError) || error.status !== 404) throw error
+        }
+        return created
+      }
       case 'createList':
         await api.createList(mutation.listId, mutation.displayName)
         return undefined
@@ -129,7 +163,13 @@ export function makeProcessMutation(
       }
       if (
         error.status === 412 &&
-        (mutation.kind === 'updateTodo' || mutation.kind === 'deleteTodo')
+        (mutation.kind === 'updateTodo' ||
+          mutation.kind === 'deleteTodo' ||
+          // A move's *delete* step 412s whenever the source's etag moved on
+          // since the mutation was queued — which an edit saved alongside
+          // the move does, every time. Without the rebase the delete is
+          // dropped as fatal and the todo is left in both lists.
+          mutation.kind === 'moveTodo')
       ) {
         const etag = freshEtag(error)
         if (etag) {

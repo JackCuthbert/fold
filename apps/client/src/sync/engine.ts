@@ -138,15 +138,37 @@ export async function createSyncEngine(options: SyncEngineOptions) {
   // patched the cache with the real etag (see below), so look up the
   // current one right before dispatch rather than trusting what was
   // captured at enqueue time.
+  // A move carries an etag too — for its delete step — and needs the same
+  // treatment for a sharper reason: saving an edit alongside a move queues
+  // an update *ahead* of it against the same resource, so by dispatch time
+  // the source's etag has always moved on. Without this the delete 412s,
+  // and the todo is left in both lists (docs/specs/todos.md — moving a todo
+  // between lists).
   const withFreshEtag = (mutation: Mutation): Mutation => {
-    if (mutation.kind !== 'updateTodo' && mutation.kind !== 'deleteTodo') {
+    if (
+      mutation.kind !== 'updateTodo' &&
+      mutation.kind !== 'deleteTodo' &&
+      mutation.kind !== 'moveTodo'
+    ) {
       return mutation
     }
-    const cache = queryClient.getQueryData<TodosResponse>([
+    // Read the *raw* server cache, not the reconciled one. A move has
+    // already removed the todo from the reconciled source list
+    // optimistically, so it would never be found there — but the raw cache
+    // still holds the server's last-known copy, etag included. For updates
+    // and deletes the two agree, so this is safe for every kind.
+    const raw = queryClient.getQueryData<TodosResponse>([
+      'todos',
+      mutation.listId,
+      'raw',
+    ])
+    const reconciled = queryClient.getQueryData<TodosResponse>([
       'todos',
       mutation.listId,
     ])
-    const current = cache?.todos.find((todo) => todo.uid === mutation.uid)
+    const current =
+      reconciled?.todos.find((todo) => todo.uid === mutation.uid) ??
+      raw?.todos.find((todo) => todo.uid === mutation.uid)
     if (!current?.etag || current.etag === mutation.etag) return mutation
     return { ...mutation, etag: current.etag }
   }
@@ -245,8 +267,21 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     reconcileTodos: (listId: string, fresh: TodosResponse): TodosResponse =>
       outbox
         .entries()
-        .filter((mutation) => mutation.listId === listId)
-        .reduce(applyMutationToTodos, fresh),
+        // A queued move concerns *two* lists, so matching only `listId`
+        // would skip it when reconciling the target — the moved todo would
+        // disappear from the target on any refetch before the outbox
+        // drained (docs/specs/todos.md — moving a todo between lists).
+        .filter(
+          (mutation) =>
+            mutation.listId === listId ||
+            (mutation.kind === 'moveTodo' && mutation.targetListId === listId),
+        )
+        // Not point-free: `reduce` passes the element index as the third
+        // argument, which would land in `listId`.
+        .reduce(
+          (cache, mutation) => applyMutationToTodos(cache, mutation, listId),
+          fresh,
+        ),
     /**
      * Same as `reconcileTodos`, for the lists collection.
      *

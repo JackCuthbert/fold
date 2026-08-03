@@ -94,7 +94,13 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
         </Collapsible.Root>
       )}
 
-      {open && <TodayDetail todo={open} onClose={() => setOpenUid(null)} />}
+      {open && (
+        <TodayDetail
+          todo={open}
+          lists={props.lists}
+          onClose={() => setOpenUid(null)}
+        />
+      )}
     </div>
   )
 }
@@ -136,12 +142,18 @@ function TodayRow(props: {
 }
 
 /** Detail sheet bound to the opened todo's own list. */
-function TodayDetail(props: { todo: Todo; onClose: () => void }) {
+function TodayDetail(props: {
+  todo: Todo
+  lists: readonly TodoList[]
+  onClose: () => void
+}) {
   const actions = useTodoActions(props.todo.listId)
   return (
     <TodoDetail
       todo={props.todo}
+      lists={props.lists}
       onSave={(changes) => actions.update(props.todo, changes)}
+      onMove={(targetListId) => actions.move(props.todo, targetListId)}
       onDelete={() => {
         actions.remove(props.todo)
         props.onClose()

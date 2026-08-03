@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
+import { useLists } from '../lists/list-nav'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
@@ -19,6 +20,9 @@ export function TodoPane(props: {
   add: ReturnType<typeof useAddTodo>
 }) {
   const engine = useSyncEngine()
+  // Same cached ['lists'] query the nav reads — for the detail view's move
+  // dropdown (docs/specs/todos.md — moving a todo between lists).
+  const lists = useLists()
   const todos = useQuery({
     queryKey: ['todos', props.listId],
     // Pass the ctag from the last *raw server response* — never the
@@ -131,7 +135,9 @@ export function TodoPane(props: {
       {open && (
         <TodoDetail
           todo={open}
+          lists={lists.data ?? []}
           onSave={(changes) => actions.update(open, changes)}
+          onMove={(targetListId) => actions.move(open, targetListId)}
           onDelete={() => {
             actions.remove(open)
             setOpenUid(null)

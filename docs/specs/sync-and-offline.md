@@ -57,6 +57,15 @@ let a value already present at the destination win, so a stale copy can
 never clobber a newer one. The migration runs before the app mounts, since
 the sync loop reads the queue as soon as the tree renders.
 
+**Anything awaited before mount needs a deadline.** An IndexedDB request
+does not only fail — it can simply never settle (for instance while another
+tab's `deleteDatabase` is blocked on this tab's open connection). A `catch`
+covers rejection but not silence, so a wedged database means the app never
+mounts at all: a blank page with no error. Losing a migration is
+recoverable — it re-runs on the next load, and is written to be repeatable
+— whereas losing the whole UI is not, so the render must win the race.
+*(added 2026-08-02, after reproducing exactly that blank page.)*
+
 *(added 2026-08-01: the project rename from `caldav-todo*` to `fold*` moved
 every persisted key — see `apps/client/src/storage-migration.ts`.)*
 

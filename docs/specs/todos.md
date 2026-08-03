@@ -142,10 +142,63 @@ behaviour) sort ahead of those that have one, keeping them in a stable
 block rather than interleaving unpredictably. *(added 2026-08-01: new todos
 visibly re-ordered after being added.)*
 
+## Moving a todo between lists
+
+*(added 2026-08-02.)*
+
+The detail view has a **List** dropdown alongside Priority. Choosing a
+different list and saving moves the todo there; it applies on Save with
+every other edit, not on selection, so nothing commits until the user does.
+
+A move is not a property edit. A todo's list is the *collection its resource
+lives in* ([lists](./lists.md)), so moving it changes the resource's URL —
+unlike `PRIORITY`, which is a field inside the VTODO.
+
+**Mechanism: copy to the target, then delete the original.** WebDAV's `MOVE`
+would be atomic, and Radicale supports it across collections (verified
+2026-08-02: `201`, resource byte-preserved). But cross-collection `MOVE` is
+optional in WebDAV and unevenly supported by CalDAV servers, and this client
+must work with any compliant one ([caldav-compliance](./caldav-compliance.md)).
+Copy-then-delete uses only `PUT` and `DELETE`, which every server supports
+and which the client already implements.
+
+Rules:
+
+- **The move is one mutation, not two.** Queuing `createTodo` and
+  `deleteTodo` separately would let a failure between them strand a
+  duplicate with nothing recording that the two belonged together. A single
+  `moveTodo` entry keeps the pair retryable as a unit
+  ([sync-and-offline](./sync-and-offline.md)).
+- **Order is copy-first.** If the copy fails, nothing is lost and the todo
+  stays where it was. The reverse order risks destroying the only copy.
+- **The UID is preserved**, so the todo keeps its identity across the move
+  and a stale reference still resolves. RFC 5545 requires UID uniqueness
+  within a collection, not globally, so reusing it in the target is valid.
+- **Everything else on the resource is preserved too** — the copy re-sends
+  the managed properties the client knows about, so `CREATED` (and with it
+  the todo's ordering position) survives.
+- **A failed delete leaves a visible duplicate rather than silent loss.**
+  That is the deliberate trade: the copy has already succeeded, so the
+  user's todo exists; the retry will clear the original.
+- **The delete step must rebase onto a fresh ETag.** Saving an edit
+  alongside a move queues an update against the *same* resource ahead of
+  the move, so by the time the move dispatches the source's ETag has always
+  changed. Without the rebase the delete gets a 412, the move is dropped as
+  fatal, and the todo is left in both lists. *(added 2026-08-02: this
+  shipped briefly and was caught by moving and renaming in one save against
+  live Radicale, then reading the stored `.ics` — the copy was correct and
+  the original was still there under its old name.)*
+- **Both steps are idempotent**, so a partially-completed move can retry
+  safely: a create that 412s because the target already holds the todo is
+  treated as that step's success, and a delete that 404s because the
+  original is already gone is treated as complete.
+
 ## Behavior
 
 - **Quick add:** input at the top of the todo pane; Enter adds and keeps
   focus for rapid entry. New todos get a generated UID and `DTSTAMP`.
+- **Move between lists:** a List dropdown in the detail view, applied on
+  Save — see [Moving a todo between lists](#moving-a-todo-between-lists).
 - **Sorting (active):** overdue first, then due date ascending, then
   priority (high → low), then creation order.
 - **Overdue:** items with `due` in the past are visually flagged

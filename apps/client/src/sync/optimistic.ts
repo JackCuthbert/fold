@@ -1,9 +1,17 @@
 import type { Mutation, Todo, TodoList, TodosResponse } from '@fold/schemas'
 
-// Optimistic cache updates — docs/specs/sync-and-offline.md (writes).
+/**
+ * Optimistic cache updates — docs/specs/sync-and-offline.md (writes).
+ *
+ * `listId` names the cache being updated. Every mutation except a move
+ * concerns exactly one list, so it is only load-bearing for `moveTodo`,
+ * which must remove the todo from the source cache and add it to the
+ * target (docs/specs/todos.md — moving a todo between lists).
+ */
 export function applyMutationToTodos(
   cache: TodosResponse,
   mutation: Mutation,
+  listId: string,
 ): TodosResponse {
   switch (mutation.kind) {
     case 'createTodo': {
@@ -57,6 +65,40 @@ export function applyMutationToTodos(
         ...cache,
         todos: cache.todos.filter((todo) => todo.uid !== mutation.uid),
       }
+    // docs/specs/todos.md — moving a todo between lists. This function is
+    // applied to one list's cache at a time, and a move touches two, so
+    // which side we're on decides what happens. `listId` identifies the
+    // cache being updated (the caller passes it), not the mutation's
+    // source.
+    case 'moveTodo': {
+      if (listId === mutation.listId) {
+        // Source: the todo leaves.
+        return {
+          ...cache,
+          todos: cache.todos.filter((todo) => todo.uid !== mutation.uid),
+        }
+      }
+      if (listId === mutation.targetListId) {
+        // Target: it arrives. Idempotent for the same reason createTodo is
+        // — reconciliation can re-apply a queued move after it has already
+        // landed on the server but before the outbox acked it.
+        if (cache.todos.some((todo) => todo.uid === mutation.uid)) return cache
+        return {
+          ...cache,
+          todos: [
+            ...cache.todos,
+            {
+              ...mutation.todo,
+              listId: mutation.targetListId,
+              href: '',
+              etag: '',
+              completed: false,
+            },
+          ],
+        }
+      }
+      return cache
+    }
     default:
       return cache
   }

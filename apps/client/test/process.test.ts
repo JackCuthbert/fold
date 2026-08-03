@@ -193,3 +193,94 @@ describe('classifyBlockReason', () => {
     expect(classifyBlockReason(new Error('boom'))).toBeNull()
   })
 })
+
+// docs/specs/todos.md — moving a todo between lists.
+describe('processMutation: moveTodo', () => {
+  const move: Mutation = {
+    id: '00000000-0000-4000-8000-000000000009',
+    kind: 'moveTodo',
+    listId: 'l1',
+    targetListId: 'l2',
+    uid: 'a',
+    etag: 'e1',
+    todo: { uid: 'a', summary: 'A' },
+  }
+
+  it('copies to the target before deleting the original', async () => {
+    const order: string[] = []
+    const createTodo = vi.fn(async () => {
+      order.push('create')
+      return FRESH
+    })
+    const deleteTodo = vi.fn(async () => {
+      order.push('delete')
+    })
+    const process = makeProcessMutation(
+      fakeApi({ createTodo, deleteTodo }),
+      vi.fn(),
+    )
+    await process(move)
+    // Copy-first: a failed copy must leave the todo where it was, rather
+    // than deleting the only copy.
+    expect(order).toEqual(['create', 'delete'])
+    expect(createTodo).toHaveBeenCalledWith('l2', move.todo)
+    expect(deleteTodo).toHaveBeenCalledWith('l1', 'a', 'e1')
+  })
+
+  it('does not delete the original when the copy fails', async () => {
+    const createTodo = vi.fn().mockRejectedValue(new NetworkError('offline'))
+    const deleteTodo = vi.fn()
+    const process = makeProcessMutation(
+      fakeApi({ createTodo, deleteTodo }),
+      vi.fn(),
+    )
+    await expect(process(move)).rejects.toBeInstanceOf(RetryableError)
+    expect(deleteTodo).not.toHaveBeenCalled()
+  })
+
+  // The bug this guards: saving an edit alongside a move queues an update
+  // ahead of it, so by dispatch time the source's etag has moved on. The
+  // delete then 412s — and without a rebase the move was dropped as fatal,
+  // leaving the todo in BOTH lists. Caught against live Radicale.
+  it('rebases the delete onto a fresh etag rather than stranding a copy', async () => {
+    const createTodo = vi.fn().mockResolvedValue(FRESH)
+    const deleteTodo = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError(412, { todo: { ...FRESH, etag: 'e9' } }),
+      )
+      .mockResolvedValueOnce(undefined)
+    const process = makeProcessMutation(
+      fakeApi({ createTodo, deleteTodo }),
+      vi.fn(),
+    )
+    await process(move)
+    expect(deleteTodo).toHaveBeenLastCalledWith('l1', 'a', 'e9')
+  })
+
+  // A retry whose earlier attempt copied but died before deleting: the
+  // create 412s because the target already holds it. That is this step's
+  // result, not a failure — the move must go on to delete the original.
+  it('treats an already-copied target as success and still deletes', async () => {
+    const createTodo = vi
+      .fn()
+      .mockRejectedValue(new ApiError(412, { todo: FRESH }))
+    const deleteTodo = vi.fn().mockResolvedValue(undefined)
+    const process = makeProcessMutation(
+      fakeApi({ createTodo, deleteTodo }),
+      vi.fn(),
+    )
+    await expect(process(move)).resolves.toEqual(FRESH)
+    expect(deleteTodo).toHaveBeenCalledWith('l1', 'a', 'e1')
+  })
+
+  it('treats an already-deleted original as success', async () => {
+    const createTodo = vi.fn().mockResolvedValue(FRESH)
+    const deleteTodo = vi.fn().mockRejectedValue(new ApiError(404, {}))
+    const process = makeProcessMutation(
+      fakeApi({ createTodo, deleteTodo }),
+      vi.fn(),
+    )
+    await expect(process(move)).resolves.toEqual(FRESH)
+  })
+})

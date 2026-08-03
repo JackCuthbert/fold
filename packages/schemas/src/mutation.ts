@@ -29,6 +29,22 @@ export const mutationSchema = z.discriminatedUnion('kind', [
     uid,
     etag: z.string().min(1),
   }),
+  // docs/specs/todos.md — moving a todo between lists. One entry, not a
+  // createTodo plus a deleteTodo: the copy and the delete must retry as a
+  // unit, or a failure between them strands a duplicate with nothing
+  // recording that the two belonged together. `listId` is the source (so
+  // the field means the same thing in every mutation) and `todo` carries
+  // the full body to re-create, since the source resource is gone by the
+  // time a retry runs.
+  z.object({
+    ...base,
+    kind: z.literal('moveTodo'),
+    listId,
+    targetListId: z.string().min(1),
+    uid,
+    etag: z.string().min(1),
+    todo: newTodoSchema,
+  }),
   z.object({
     ...base,
     kind: z.literal('createList'),

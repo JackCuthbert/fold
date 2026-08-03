@@ -12,10 +12,18 @@ import { applyMutationToTodos } from '../sync/optimistic'
 export function useTodoActions(listId: string) {
   const engine = useSyncEngine()
 
-  const mutate = (mutation: Mutation): void => {
-    queryClient.setQueryData<TodosResponse>(['todos', listId], (cache) =>
-      applyMutationToTodos(cache ?? { ctag: '', todos: [] }, mutation),
-    )
+  // A move touches two caches (source and target); everything else touches
+  // one (docs/specs/todos.md — moving a todo between lists).
+  const mutate = (mutation: Mutation, ...alsoUpdate: string[]): void => {
+    for (const cacheListId of [listId, ...alsoUpdate]) {
+      queryClient.setQueryData<TodosResponse>(['todos', cacheListId], (cache) =>
+        applyMutationToTodos(
+          cache ?? { ctag: '', todos: [] },
+          mutation,
+          cacheListId,
+        ),
+      )
+    }
     void engine.enqueue(mutation)
   }
 
@@ -48,5 +56,35 @@ export function useTodoActions(listId: string) {
         uid: todo.uid,
         etag: todo.etag,
       }),
+    /**
+     * Move a todo to another list — copy to the target, then delete the
+     * original (docs/specs/todos.md — moving a todo between lists).
+     *
+     * The full body travels with the mutation because the source resource
+     * is gone by the time any retry runs; re-reading it then would 404.
+     * `created` is carried over so the todo keeps its position in the
+     * target's ordering rather than jumping to the end
+     * (docs/specs/todos.md — ordering).
+     */
+    move: (todo: Todo, targetListId: string) =>
+      mutate(
+        {
+          id: crypto.randomUUID(),
+          kind: 'moveTodo',
+          listId,
+          targetListId,
+          uid: todo.uid,
+          etag: todo.etag,
+          todo: {
+            uid: todo.uid,
+            summary: todo.summary,
+            ...(todo.due ? { due: todo.due } : {}),
+            ...(todo.description ? { description: todo.description } : {}),
+            ...(todo.priority ? { priority: todo.priority } : {}),
+            ...(todo.created ? { created: todo.created } : {}),
+          },
+        },
+        targetListId,
+      ),
   }
 }

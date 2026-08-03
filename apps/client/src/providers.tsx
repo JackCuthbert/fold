@@ -128,6 +128,8 @@ const describeMutation = (mutation: Mutation): string => {
         : 'a todo change'
     case 'deleteTodo':
       return 'a todo change'
+    case 'moveTodo':
+      return `'${mutation.todo.summary}'`
     case 'createList':
     case 'renameList':
       return `'${mutation.displayName}'`

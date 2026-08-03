@@ -3,7 +3,12 @@ import { Field } from '@base-ui/react/field'
 import { Form } from '@base-ui/react/form'
 import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
-import { todoPrioritySchema, type Todo, type TodoChanges } from '@fold/schemas'
+import {
+  todoPrioritySchema,
+  type Todo,
+  type TodoChanges,
+  type TodoList,
+} from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown } from 'react-icons/lu'
@@ -21,6 +26,9 @@ const detailSchema = z
     dueTime: z.string(), // '' or HH:mm from <input type="time">
     description: z.string(),
     priority: z.union([todoPrioritySchema, z.literal('')]),
+    // The list the todo should end up in. Changing it moves the todo
+    // (docs/specs/todos.md — moving a todo between lists).
+    listId: z.string(),
   })
   .refine((values) => values.dueTime === '' || values.due !== '', {
     path: ['dueTime'],
@@ -52,12 +60,20 @@ const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
 // rewrites it — as an all-day 'date', or as 'zoned' once a time is given.
 export function TodoDetail(props: {
   todo: Todo
+  /** Every list, for the move dropdown (docs/specs/todos.md). */
+  lists: readonly TodoList[]
   onSave: (changes: TodoChanges) => void
+  /** Move the todo to another list. Called before `onSave`. */
+  onMove: (targetListId: string) => void
   onDelete: () => void
   onClose: () => void
 }) {
   const { todo } = props
   const initialFields = dueToFields(todo.due)
+  const listOptions = props.lists.map((list) => ({
+    label: list.displayName,
+    value: list.id,
+  }))
 
   const { control, handleSubmit } = useForm<DetailForm>({
     resolver: zodResolver(detailSchema),
@@ -67,6 +83,7 @@ export function TodoDetail(props: {
       dueTime: initialFields.time,
       description: todo.description ?? '',
       priority: todo.priority ?? '',
+      listId: todo.listId,
     },
   })
 
@@ -88,7 +105,13 @@ export function TodoDetail(props: {
       description: values.description === '' ? null : values.description,
       priority: values.priority === '' ? null : values.priority,
     }
+    // Save first, then move. The outbox folds a pending update into the
+    // move's payload (sync/coalesce.ts), so ordering this way means the
+    // copy written to the target list carries this edit — the reverse
+    // would queue an update against a resource the move has already
+    // deleted (docs/specs/todos.md — moving a todo between lists).
     props.onSave(changes)
+    if (values.listId !== todo.listId) props.onMove(values.listId)
     props.onClose()
   }
 
@@ -228,6 +251,55 @@ export function TodoDetail(props: {
                 </Field.Root>
               )}
             />
+            {/* docs/specs/todos.md — moving a todo between lists: a List
+                dropdown alongside Priority, applied on Save with every
+                other edit. Only rendered when there's somewhere to move
+                to; with a single list the control would be inert. */}
+            {props.lists.length > 1 && (
+              <Controller
+                name="listId"
+                control={control}
+                render={({ field: { name, value, onChange } }) => (
+                  <Field.Root className={styles['field']} name={name}>
+                    <Field.Label>List</Field.Label>
+                    <Select.Root
+                      items={listOptions}
+                      value={value}
+                      onValueChange={onChange}
+                    >
+                      <Select.Trigger className={styles['selectTrigger']}>
+                        <Select.Value />
+                        <Select.Icon className={styles['selectIcon']}>
+                          <LuChevronDown aria-hidden="true" size={14} />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Positioner
+                          className={styles['selectPositioner']}
+                          side="bottom"
+                          sideOffset={4}
+                          alignItemWithTrigger={false}
+                        >
+                          <Select.Popup className={styles['selectPopup']}>
+                            {listOptions.map((option) => (
+                              <Select.Item
+                                key={option.value}
+                                value={option.value}
+                                className={styles['selectItem']}
+                              >
+                                <Select.ItemText>
+                                  {option.label}
+                                </Select.ItemText>
+                              </Select.Item>
+                            ))}
+                          </Select.Popup>
+                        </Select.Positioner>
+                      </Select.Portal>
+                    </Select.Root>
+                  </Field.Root>
+                )}
+              />
+            )}
             <Controller
               name="description"
               control={control}

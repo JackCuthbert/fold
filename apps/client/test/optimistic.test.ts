@@ -29,7 +29,7 @@ describe('applyMutationToTodos', () => {
       listId: 'l1',
       todo: { uid: 'b', summary: 'B' },
     }
-    const next = applyMutationToTodos(CACHE, mutation)
+    const next = applyMutationToTodos(CACHE, mutation, 'l1')
     expect(next.todos.map((t) => t.uid)).toEqual(['a', 'b'])
     expect(next.todos[1]).toMatchObject({ summary: 'B', completed: false })
   })
@@ -43,7 +43,7 @@ describe('applyMutationToTodos', () => {
       etag: 'e1',
       changes: { completed: true, due: null },
     }
-    const next = applyMutationToTodos(CACHE, mutation)
+    const next = applyMutationToTodos(CACHE, mutation, 'l1')
     expect(next.todos[0]).toMatchObject({ completed: true })
     expect(next.todos[0]?.due).toBeUndefined()
   })
@@ -59,7 +59,7 @@ describe('applyMutationToTodos', () => {
       listId: 'l1',
       todo: { uid: 'a', summary: 'A' },
     }
-    const next = applyMutationToTodos(CACHE, mutation)
+    const next = applyMutationToTodos(CACHE, mutation, 'l1')
     expect(next.todos).toHaveLength(1)
     expect(next).toEqual(CACHE)
   })
@@ -72,7 +72,7 @@ describe('applyMutationToTodos', () => {
       uid: 'a',
       etag: 'e1',
     }
-    expect(applyMutationToTodos(CACHE, mutation).todos).toHaveLength(0)
+    expect(applyMutationToTodos(CACHE, mutation, 'l1').todos).toHaveLength(0)
   })
 })
 
