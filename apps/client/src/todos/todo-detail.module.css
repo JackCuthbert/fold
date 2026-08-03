@@ -63,19 +63,12 @@
   }
 }
 
-/* Padding lives on the panel's children, not the popup — see .popup.
-   docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, especially once the body scrolls
-   beneath it — this panel's `.form` does. Modal padding is uniform on all
-   four edges and modest — matched to the gap between action buttons
-   (--space-3) — and the detail panel agrees with every modal on this.
-   *(changed 2026-08-01: was --space-4, inconsistent with the modals.)* */
-.title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
-}
+/* Padding lives on the panel's children, not the popup — see .popup. The
+   title row — its padding, its divider and its ✕ — is shared by every modal
+   and lives in modal-header.module.css; the panel passes size="large" for
+   its own heading size. It is the non-scrolling child above `.form`, which
+   is this panel's scroller. *(changed 2026-08-03: this module carried its
+   own near-identical `.title` rule, one of five.)* */
 
 .form {
   display: flex;

@@ -217,9 +217,14 @@ Duplicating prose in two places guarantees one of them goes stale, so the
 modal says what each thing is and how it behaves, and nothing more.
 
 It is the only modal whose body genuinely scrolls, so initial focus goes to
-the title rather than Base UI's default first tabbable element — which is
+the title rather than Base UI's default first tabbable element — which was
 "Close" at the very bottom, and focusing it scrolled past the first section
 before the user had read a word.
+
+It closes from the header ✕ alone; that footer Close is gone *(changed
+2026-08-03, issue #14 — see overlays)*. Initial focus stays on the title:
+the ✕ no longer drags the body down, but landing on a dismiss control would
+announce "Close" before the modal's own heading.
 
 ## Spacing & rhythm
 
@@ -366,6 +371,27 @@ over an undimmed background, so they didn't read as modal.)*
 - **Modal padding is uniform on all four edges** and modest — matched to
   the gap between action buttons, so the surface feels of a piece rather
   than roomy on one side. *(added 2026-08-01.)*
+- **A modal closes from a ✕ in its header**, at the trailing edge opposite
+  the title — that is where people reach first, before hunting for a button
+  in a footer. *(added 2026-08-03, issue #14.)* Escape and a click outside
+  still work; the ✕ is an addition, not a replacement.
+  - **One shared header, not one per modal.** The title row, its divider,
+    its padding and the ✕ live in a single component
+    (`apps/client/src/modal-header.tsx`). Five modals previously each
+    carried a near-identical `.title` rule, which is how they drifted apart
+    and needed the same padding and divider fixes applied five times.
+  - **The ✕ is quiet.** `--faint` at rest, darkening to `--ink` on hover,
+    so it never competes with the title beside it. The glyph is small but
+    its button is a full `--hit-area` box — never size the target to the
+    glyph (see controls & touch targets below).
+  - **The confirm dialog is the exception — it gets no ✕.** A destructive
+    confirm asks a question and offers two explicit answers; a third
+    dismissal path in the header would compete with its Cancel.
+  - **A modal does not carry both a ✕ and a footer Close.** Two close
+    controls in one modal is one too many. The help modal's footer Close
+    was removed when the ✕ arrived — it sat below the scroll viewport, so
+    it could only be found by scrolling the whole modal, which is what
+    prompted the ✕ in the first place.
 - **Spacing between form controls is uniform.** One gap value between every
   field, accordion trigger and control in a form; and the gap between the
   modal title and the first field matches it. *(added 2026-08-01: the

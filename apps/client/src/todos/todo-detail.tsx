@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown } from 'react-icons/lu'
 import { z } from 'zod'
+import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import { dueToFields, fieldsToDue } from './due-fields'
 import { cycleTimeOf, punctualityOf, type Punctuality } from './punctuality'
@@ -145,7 +146,7 @@ export function TodoDetail(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])}>
-          <Dialog.Title className={cx(styles['title'])}>Edit todo</Dialog.Title>
+          <ModalHeader size="large">Edit todo</ModalHeader>
           <Form className={styles['form']} onSubmit={handleSubmit(submit)}>
             <Controller
               name="summary"

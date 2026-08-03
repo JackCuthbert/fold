@@ -2,6 +2,7 @@ import { Dialog } from '@base-ui/react/dialog'
 import { Toggle } from '@base-ui/react/toggle'
 import type { Session } from '@fold/schemas'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
+import { ModalHeader } from '../modal-header'
 import { api, queryClient } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
@@ -29,7 +30,7 @@ export function SettingsModal(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])}>
-          <Dialog.Title className={cx(styles['title'])}>Settings</Dialog.Title>
+          <ModalHeader>Settings</ModalHeader>
           <div className={styles['body']}>
             {session && (
               <div className={styles['serverUrl']}>

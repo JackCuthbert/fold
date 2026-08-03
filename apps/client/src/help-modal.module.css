@@ -49,21 +49,11 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
-/* docs/specs/ui.md — overlays: a divider separates a title from its content
-   in modals and side panels, so the heading reads as a header. Modal padding
-   is uniform on all four edges and modest. */
-.title {
-  flex: none;
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
-  /* Holds initial focus so the scrolling body opens at the top (see
-     help-modal.tsx). It is a heading, not a control, so it must not draw a
-     focus ring — the app shows focus by border colour on real controls
-     only (docs/specs/ui.md — controls & touch targets). */
-  outline: none;
-}
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css, including the `outline: none`
+   that keeps this modal's focus-holding title from drawing a focus ring.
+   *(changed 2026-08-03: this module carried its own near-identical `.title`
+   rule, one of five.)* */
 
 .body {
   flex: 1 1 auto;
@@ -154,10 +144,6 @@
   color: var(--muted);
 }
 
-/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
-   surface/border/radius/focus/disabled treatment lives in one place
-   (styles/button.module.css). */
-.close {
-  composes: action default from './styles/button.module.css';
-  width: 100%;
-}
+/* No `.close` here. This modal's close control is the header's ✕ — the
+   footer button it replaced sat below the scroll viewport, so it could only
+   be found by scrolling the whole modal. *(removed 2026-08-03.)* */

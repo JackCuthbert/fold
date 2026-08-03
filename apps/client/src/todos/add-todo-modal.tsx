@@ -10,6 +10,7 @@ import type { RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { z } from 'zod'
+import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import styles from './add-todo-modal.module.css'
 import { fieldsToDue } from './due-fields'
@@ -103,9 +104,7 @@ export function AddTodoModal(props: {
           className={cx(styles['popup'])}
           finalFocus={props.triggerRef}
         >
-          <Dialog.Title className={cx(styles['title'])}>
-            Add a todo
-          </Dialog.Title>
+          <ModalHeader>Add a todo</ModalHeader>
           <Form className={styles['form']} onSubmit={handleSubmit(submit)}>
             <Controller
               name="summary"

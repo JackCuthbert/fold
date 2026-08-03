@@ -1,0 +1,88 @@
+/*
+ * docs/specs/ui.md — overlays: a divider separates a title from its content
+ * in modals and side panels, so the heading reads as a header; the divider
+ * spans the full width of the surface, edge to edge; modal padding is
+ * uniform on all four edges and modest (--space-3, matched to the gap
+ * between action buttons).
+ *
+ * This is the one place that treatment lives. Five modals previously
+ * carried a near-identical `.title` rule of their own, which is how they
+ * drifted apart before (see the 2026-08-01 padding fixes). A consuming
+ * module no longer declares a title rule at all.
+ */
+.header {
+  /* A row, so the ✕ can sit at the trailing edge opposite the title
+     (docs/specs/ui.md — overlays: closing a modal). Non-shrinking: the
+     body beneath is the scroller in every modal that has one. */
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  /* Takes the slack so the ✕ is pushed to the trailing edge, and truncates
+     rather than wrapping under it if a title is ever long. */
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Holds initial focus in the help modal so its scrolling body opens at
+     the top (see help-modal.tsx). It is a heading, not a control, so it
+     must not draw a focus ring — the app shows focus on real controls
+     only (docs/specs/ui.md — controls & touch targets). */
+  outline: none;
+}
+
+/* The detail panel's heading is the largest surface title in the app and
+   keeps its own size; everything else shares --text-md. */
+.titleLarge {
+  font-size: var(--text-lg);
+}
+
+/* docs/specs/ui.md — controls & touch targets: a 14px glyph needs a real
+   target, so the button is a full --hit-area box holding a smaller painted
+   shape — the same arrangement `.swatch` (color-picker.module.css) and
+   `.menuTrigger` (main-screen.module.css) use. Never size the button to
+   the glyph.
+
+   The box is pulled back by its own overhang so the *visible* glyph lands
+   on the header's padding edge rather than the hit area's inset
+   (docs/specs/ui.md — one left edge, right edges too). */
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  /* docs/specs/ui.md — hover is a whisper. Faint at rest so it never
+     competes with the title beside it, darkening to --ink on hover to stay
+     discoverable — the same weight `.menuTrigger` was quietened to on
+     2026-08-03. */
+  color: var(--faint);
+  transition: color var(--duration-fast) var(--ease);
+  margin-right: calc((20px - var(--hit-area)) / 2);
+}
+
+.close:hover {
+  color: var(--ink);
+}
+
+/* docs/specs/ui.md — focus changes the border, never an outline: an outline
+   is clipped by the sheet/panel edge this button sits against. A borderless
+   icon button has no border to recolour, so the ring is drawn inside its
+   own box — the same inset box-shadow `.today:focus-visible`
+   (list-nav.module.css) uses for the same reason. */
+.close:focus-visible {
+  outline: none;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
