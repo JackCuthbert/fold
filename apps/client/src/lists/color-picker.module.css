@@ -67,11 +67,24 @@
 }
 
 /* The native wheel, sized to match the hex field's height rather than the
-   browser's default chunky swatch. */
+   browser's default chunky swatch. --hit-area (34px) is shorter than the
+   input's own padded height (42px), so the previous fixed value left the
+   wheel visibly undersized beside the field. The height is stated in the
+   same terms the global input rule builds its own from (--text-input line
+   box, --space-2 top and bottom, plus the border) rather than a magic
+   42px, so the two stay matched if the type scale or spacing changes. It
+   has to be an explicit height: a colour input carries an intrinsic height
+   that beats `align-items: stretch`, and a percentage height resolves
+   against an auto-height row and collapses — both were tried and measured.
+   *(fixed 2026-08-03: verified in the browser once the picker was first
+   mounted in the list form — the two measured 42px vs 34px.)* */
 .wheel {
   flex: none;
   width: var(--hit-area);
-  height: var(--hit-area);
+  height: calc(
+    var(--text-input) * var(--line-normal) + var(--space-2) * 2 +
+      var(--border-width) * 2
+  );
   padding: 0;
   border: var(--border-width) solid var(--line);
   border-radius: var(--radius-sm);

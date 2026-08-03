@@ -14,6 +14,7 @@ import {
 import { applyMutationToLists } from '../sync/optimistic'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
+import { nextOrder } from './list-order'
 import styles from './list-nav.module.css'
 
 const slug = (): string => crypto.randomUUID()
@@ -127,13 +128,17 @@ export function ListNav(props: {
         title="New list"
         submitLabel="Create"
         onOpenChange={setCreating}
-        onSubmit={(displayName) => {
+        onSubmit={(values) => {
           const listId = slug()
           mutate({
             id: crypto.randomUUID(),
             kind: 'createList',
             listId,
-            displayName,
+            displayName: values.displayName,
+            // docs/specs/lists.md — the client picks the order so the new
+            // list can't jump when the server responds.
+            order: nextOrder(lists.data ?? []),
+            ...(values.color !== undefined ? { color: values.color } : {}),
           })
           setCreating(false)
           props.onSelect(listId)
@@ -142,20 +147,44 @@ export function ListNav(props: {
 
       <ListFormModal
         open={renaming !== null}
-        title="Rename list"
-        {...(renaming ? { initial: renaming.displayName } : {})}
-        submitLabel="Rename"
+        title="Edit list"
+        {...(renaming
+          ? {
+              initial: {
+                displayName: renaming.displayName,
+                ...(renaming.color !== undefined
+                  ? { color: renaming.color }
+                  : {}),
+              },
+            }
+          : {})}
+        submitLabel="Save"
         onOpenChange={(open) => {
           if (!open) setRenaming(null)
         }}
-        onSubmit={(displayName) => {
+        // docs/specs/lists.md — colours. One form, but up to two mutations,
+        // and only for what actually changed: a name-only edit must not
+        // cost a PROPPATCH of the colour, or vice versa.
+        onSubmit={(values) => {
           if (!renaming) return
-          mutate({
-            id: crypto.randomUUID(),
-            kind: 'renameList',
-            listId: renaming.id,
-            displayName,
-          })
+          if (values.displayName !== renaming.displayName) {
+            mutate({
+              id: crypto.randomUUID(),
+              kind: 'renameList',
+              listId: renaming.id,
+              displayName: values.displayName,
+            })
+          }
+          if (values.color !== renaming.color) {
+            mutate({
+              id: crypto.randomUUID(),
+              kind: 'setListProps',
+              listId: renaming.id,
+              // The form uses undefined for "no colour"; the mutation uses
+              // null for "remove the property". Translate at this boundary.
+              color: values.color ?? null,
+            })
+          }
           setRenaming(null)
         }}
       />
