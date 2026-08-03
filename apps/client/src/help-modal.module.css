@@ -1,0 +1,163 @@
+/*
+ * docs/specs/ui.md — overlays: same dimmed, animated overlay treatment as
+ * every other modal in the app. Deliberately mirrors
+ * lists/settings-modal.module.css — the two modals open from adjacent
+ * controls in the nav footer and should read as one pair.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 40;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 26rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  /* No padding here — .title and .body own it, so the scrollbar (this
+     modal's body genuinely scrolls) tracks the popup's true edge instead of
+     floating inset with content sliding under it (docs/specs/ui.md —
+     scrollbar gutters sit at the container edge). */
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* docs/specs/ui.md — overlays: a divider separates a title from its content
+   in modals and side panels, so the heading reads as a header. Modal padding
+   is uniform on all four edges and modest. */
+.title {
+  flex: none;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  /* Holds initial focus so the scrolling body opens at the top (see
+     help-modal.tsx). It is a heading, not a control, so it must not draw a
+     focus ring — the app shows focus by border colour on real controls
+     only (docs/specs/ui.md — controls & touch targets). */
+  outline: none;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+.section {
+  margin-bottom: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+/* One sub-heading per server extension, so the section can grow as more are
+   added without becoming a run-on list of caveats. Lighter than `.heading`
+   — it sits *inside* a section rather than starting one — and carries the
+   property name inline, since the name is part of what identifies it. */
+.subheading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+/* Names a control the reader can go and click — "choose Move up" should
+   point at a real thing on screen rather than read as ordinary prose. Ink
+   rather than muted, and medium weight, so it lifts off the paragraph
+   around it; no chip or border, which would be louder than this page wants
+   (docs/specs/ui.md — a restrained palette, hierarchy from weight).
+
+   Deliberately different from `code`: that marks CalDAV property names,
+   which live on the *server* and can never be clicked. Two kinds of
+   emphasis for two genuinely different things. */
+.ui {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.section p {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+/* Consecutive paragraphs in one section need separating; the first sits
+   directly under its heading, which already has its own gap. */
+.section p + p {
+  margin-top: var(--space-2);
+}
+
+/* Property names read as code, not prose. Modest: a monospace face and a
+   faint tint, no border or heavy chip — this is a restrained page
+   (docs/specs/ui.md). No global `code` styling exists to inherit.
+
+   Horizontal padding is applied as a negative-margin pair rather than plain
+   padding: `#1D9BF6FF` sits inside parentheses in the prose, and padding
+   alone pushed the glyph a visible 4px off each paren — "write ( #1D9BF6FF
+   )". The tint still extends past the text; the text itself stays put. */
+.section code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--text-xs);
+  color: var(--ink);
+  background: var(--line);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
+  margin: 0 calc(var(--space-1) * -1);
+  word-break: break-word;
+}
+
+/* A property name in a sub-heading is a label, not prose: it sits beside
+   the heading text rather than inside a sentence, so it needs neither the
+   negative-margin correction (nothing abuts it) nor the heading's own
+   weight (which would make the whole line shout). */
+.subheading code {
+  margin: 0;
+  font-weight: var(--weight-regular);
+  color: var(--muted);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css). */
+.close {
+  composes: action default from './styles/button.module.css';
+  width: 100%;
+}

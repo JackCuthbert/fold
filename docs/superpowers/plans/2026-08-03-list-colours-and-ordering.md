@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give each CalDAV list a colour and a user-chosen position in the nav, both persisted to the server via Apple's `calendar-color` / `calendar-order` extensions, plus an in-app help modal and a reusable "this is a server extension" tooltip.
+**Goal:** Give each CalDAV list a colour and a user-chosen position in the nav, both persisted to the server via Apple's `calendar-color` / `calendar-order` extensions, plus an in-app help modal and a reusable "this is a server extension" popover badge.
 
 **Architecture:** Both properties live in the `http://apple.com/ns/ical/` namespace on a collection, are read during discovery and written by one PROPPATCH — so the plumbing (schema field, gateway read/write, one `setListProps` mutation) is built **once for both**, then colours and ordering become small UI features on top. The server is the source of truth: an existing colour set by Apple Reminders renders exactly as stored and is never snapped to our palette.
 
@@ -54,7 +54,7 @@ Do not re-derive these — they were confirmed live with a throwaway container:
 - `lists/list-nav.tsx` + `.module.css` — the dot, the coloured marker, reorder actions.
 - `lists/list-item-menu.tsx` — "Move up" / "Move down".
 - `lists/list-order.ts` *(new)* — sort rule and `nextOrder`.
-- `extension-badge.tsx` + `.module.css` *(new)* — the reusable tooltip.
+- `extension-badge.tsx` + `.module.css` *(new)* — the reusable popover badge.
 - `help-modal.tsx` + `.module.css` *(new)* — the help dialog.
 - `lists/nav-footer.tsx` — the `?` trigger.
 - `sync/optimistic.ts` — `setListProps` case; delete the stale comment.
@@ -742,6 +742,26 @@ Add to `apps/server/test/integration/gateway.test.ts`:
     expect(plain?.color).toBeUndefined()
     expect(plain?.order).toBeUndefined()
     await gateway.deleteList('plain')
+  })
+
+  // Task 4 replaced tsdav's default PROPFIND props with an explicit
+  // LIST_PROPS list, because passing `props` *replaces* the defaults
+  // rather than extending them. That list is invisible to unit tests: if
+  // someone later trims it, `cs:getctag` vanishes, `ctag` falls back to
+  // '' in toList, the short-circuit in fetchTodos stops firing (it
+  // guards on `ctag !== ''`), and the app silently gets slower with every
+  // test still green. This is the assertion that would catch it.
+  it('still reads the properties tsdav would have asked for by default', async () => {
+    await gateway.createList('props-check', 'Props check')
+    const lists = await gateway.fetchLists()
+    const list = lists.find((entry) => entry.id === 'props-check')
+
+    // ctag drives the cheap-refetch short-circuit.
+    expect(list?.ctag).not.toBe('')
+    // displayname must survive too — losing it would fall back to the id.
+    expect(list?.displayName).toBe('Props check')
+
+    await gateway.deleteList('props-check')
   })
 ```
 
@@ -2280,22 +2300,43 @@ git commit -m "feat(client): move lists up and down in the nav"
 - Create: `apps/client/src/extension-badge.module.css`
 - Modify: `apps/client/src/lists/list-form.tsx`
 
-- [ ] **Step 1: Confirm the Base UI tooltip API**
+**This is a Popover, not a Tooltip.** *(changed 2026-08-03, on review.)*
+Base UI ships both, and the distinction is an accessibility one, not a
+stylistic one:
+
+- A **tooltip** is a short label *describing its trigger* — "Delete", "Sync
+  status". Its content is an accessible name, it is not focusable, and
+  assistive tech and keyboard users cannot reliably reach into it.
+- A **popover** holds real content the user is meant to *read* — a
+  paragraph, a link, anything with structure. It is focusable, dismissible
+  with Escape, and properly announced.
+
+This badge explains a concept in prose and will eventually link to the help
+modal, so it is squarely the second. Base UI's Popover supports
+`openOnHover`, so it still *feels* like a tooltip on a pointer — it just
+behaves correctly for everyone else.
+
+- [ ] **Step 1: Confirm the Base UI popover API**
 
 Check the installed version's exports before writing the component:
 
 ```bash
-ls node_modules/.bun/@base-ui*/node_modules/@base-ui/react/tooltip/ 2>/dev/null || find . -path "*@base-ui/react/tooltip*" -name "*.d.ts" | head
+find . -path "*@base-ui/react/popover*" -name "*.d.ts" | head
 ```
 
-Match the parts to what is actually exported (`Provider`, `Root`, `Trigger`, `Portal`, `Positioner`, `Popup`, `Arrow`). The docs are at https://base-ui.com/react/components/tooltip.
+Match the parts to what is actually exported (`Root`, `Trigger`, `Portal`,
+`Positioner`, `Popup`, `Arrow`, `Title`, `Description`) and confirm that
+`openOnHover` and `delay` are props on `Popover.Root` in this version. The
+docs are at https://base-ui.com/react/components/popover. If `openOnHover`
+does not exist in v1.6.0, drop it — click-to-open is still correct
+behaviour, and a hover affordance is not worth hand-rolling.
 
 - [ ] **Step 2: Write the component**
 
 Create `apps/client/src/extension-badge.tsx`:
 
 ```tsx
-import { Tooltip } from '@base-ui/react/tooltip'
+import { Popover } from '@base-ui/react/popover'
 import { LuInfo } from 'react-icons/lu'
 import styles from './extension-badge.module.css'
 
@@ -2306,47 +2347,53 @@ import styles from './extension-badge.module.css'
  * Generic on purpose: it takes its own text, so any future extension-backed
  * feature can reuse it rather than growing a second version.
  *
- * The trigger is a real button, not a bare icon: a tooltip is hover/focus
- * only, and hover does not exist on touch — so tapping must do something.
- * `onLearnMore` opens the help modal, which is the touch path and also the
- * keyboard path.
+ * **A popover, not a tooltip** — deliberately. A tooltip's content is an
+ * accessible *name* for its trigger: short, unfocusable, and not reliably
+ * reachable by assistive tech or the keyboard. This holds a paragraph the
+ * user is meant to read, so it needs to be focusable, escapable and
+ * announced — which is what a popover is for. `openOnHover` keeps the
+ * pointer experience feeling like a tooltip anyway.
+ *
+ * Hover does not exist on touch, so the trigger is a real button and a tap
+ * opens the same popover — no interaction is pointer-only.
  */
 export function ExtensionBadge(props: {
-  /** What the tooltip says. One or two sentences. */
+  /** The explanation. One or two sentences of prose. */
   children: React.ReactNode
+  /** Accessible name for the trigger, e.g. "About list colours". */
   label: string
-  onLearnMore?: () => void
 }) {
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger
-        className={styles['trigger']}
-        aria-label={props.label}
-        onClick={props.onLearnMore}
-      >
+    <Popover.Root openOnHover delay={200}>
+      <Popover.Trigger className={styles['trigger']} aria-label={props.label}>
         <LuInfo aria-hidden="true" size={14} />
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Positioner className={styles['positioner']} sideOffset={6}>
-          <Tooltip.Popup className={styles['popup']}>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner className={styles['positioner']} sideOffset={6}>
+          <Popover.Popup className={styles['popup']}>
             {props.children}
-          </Tooltip.Popup>
-        </Tooltip.Positioner>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }
 ```
 
-If Base UI requires a `Tooltip.Provider` ancestor, add one in `apps/client/src/providers.tsx` rather than wrapping each badge.
+Note there is no `onLearnMore` click handler: the trigger's job is to open
+the popover, and giving it a second click behaviour would mean a tap on
+touch either opens the popover or navigates away, unpredictably. If a link
+to the help modal is wanted, it goes *inside* the popup as a real link —
+which is exactly the kind of content a popover can hold and a tooltip
+cannot.
 
 - [ ] **Step 3: Write the styles**
 
 Create `apps/client/src/extension-badge.module.css`:
 
 ```css
-/* docs/specs/ui.md — overlays: a tooltip is the quietest surface in the
-   app, so it borrows the popup treatment from the select menu rather than
+/* docs/specs/ui.md — overlays: this is the quietest surface in the app, so
+   it borrows the popup treatment from the select menu rather than
    inventing its own. */
 .trigger {
   display: inline-flex;
@@ -2408,7 +2455,10 @@ In `list-form.tsx`, beside the Colour label:
 bun run fmt && bun run lint && bun run typecheck
 ```
 
-Check in the browser that the tooltip opens on hover and on keyboard focus.
+Check in the browser that the popover opens on hover, opens on click, opens
+from the keyboard (Tab to the badge, then Enter), closes on Escape, and
+that its text can be reached with the keyboard once open — the last two are
+the reason this is a popover rather than a tooltip.
 
 ```bash
 git add apps/client/src
@@ -2519,11 +2569,37 @@ that ignores it returns lists with no order, which then sort alphabetically
 — the previous behaviour, visibly rather than silently.
 ```
 
-Add a Colours section covering the palette, the 8-digit round-trip, the contrast guard, and the "never rewrite what we didn't set" rule.
+**Add a `## Colours` section — this is required, not optional.** Ten-plus
+source files already cite `docs/specs/lists.md — colours` in their comments
+(the gateway, the schemas, the contrast guard, the picker, and their
+tests), following the repo convention that code references the spec it
+implements. Until this section exists, every one of those citations is a
+dangling reference.
+
+Verify when done:
+
+```bash
+grep -n "^## " docs/specs/lists.md
+```
+
+Expected: a `## Colours` heading is present. Then confirm nothing still
+points at a section that doesn't exist:
+
+```bash
+grep -rln "lists.md — colours\|lists.md (colours)" --include="*.ts" --include="*.tsx" --include="*.css" apps/ packages/
+```
+
+Every file listed should now resolve to a real section.
+
+Cover: the eight-swatch palette and why it's a shortcut rather than a
+constraint; the 8-digit `#RRGGBBAA` round-trip with other clients; the
+contrast guard and why the marker falls back while the dot never does; the
+unfilled ring for a list with no colour; and the "never rewrite what we
+didn't set" rule.
 
 - [ ] **Step 2: Update `docs/specs/ui.md`**
 
-Add to the nav section: the dot (filled or ring), and that the selection marker takes the list's colour unless the contrast guard falls back. Note the tooltip and help modal under overlays.
+Add to the nav section: the dot (filled or ring), and that the selection marker takes the list's colour unless the contrast guard falls back. Note the extension popover and help modal under overlays, including why the badge is a popover rather than a tooltip.
 
 - [ ] **Step 3: Update `docs/specs/caldav-compliance.md`**
 

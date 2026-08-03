@@ -1,4 +1,5 @@
 import type { Mutation, Todo, TodoList, TodosResponse } from '@fold/schemas'
+import { byListOrder } from '../lists/list-order'
 
 /**
  * Optimistic cache updates — docs/specs/sync-and-offline.md (writes).
@@ -123,18 +124,6 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
   }
 }
 
-// docs/specs/lists.md — Ordering: the server returns lists in collection
-// (creation) order, not alphabetical, so the client renders them in that
-// same order and never re-sorts. The optimistic insert appends the
-// placeholder at the end, matching where the server will place the new
-// list, so nothing moves once the real response lands.
-/**
- * The one ordering rule for lists, used on read and on optimistic insert
- * alike so the two can never disagree (docs/specs/lists.md — ordering).
- */
-export const byDisplayName = (a: TodoList, b: TodoList): number =>
-  a.displayName.localeCompare(b.displayName)
-
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,
@@ -146,25 +135,57 @@ export function applyMutationToLists(
       if (lists.some((list) => list.id === mutation.listId)) {
         return [...lists]
       }
+      // The mutation carries the order the client chose at creation
+      // (nextOrder), so the placeholder sorts exactly where the server's
+      // copy will once it echoes that same number back — the server never
+      // invents an order of its own to disagree with
+      // (docs/specs/lists.md — ordering).
       const placeholder: TodoList = {
         id: mutation.listId,
         href: '',
         displayName: mutation.displayName,
         ctag: '',
+        ...(mutation.order !== undefined ? { order: mutation.order } : {}),
+        ...(mutation.color !== undefined ? { color: mutation.color } : {}),
       }
       // Sorted, matching how the nav renders every list
-      // (engine.ts's reconcileLists) — the server's own order is arbitrary
-      // (UUID directory names in filesystem order), so the client imposes
-      // a stable one and the optimistic insert must use the same rule or
-      // the row jumps when the response lands
+      // (engine.ts's reconcileLists) — the optimistic insert must use the
+      // same rule or the row jumps when the response lands
       // (docs/specs/lists.md — ordering).
-      return [...lists, placeholder].toSorted(byDisplayName)
+      return [...lists, placeholder].toSorted(byListOrder)
     }
     case 'renameList':
       return lists.map((list) =>
         list.id === mutation.listId
           ? { ...list, displayName: mutation.displayName }
           : list,
+      )
+    // docs/specs/lists.md — colours and ordering. `null` clears a
+    // property, `undefined` leaves it alone — so each field is applied
+    // independently and changing one never disturbs the other.
+    case 'setListProps':
+      return (
+        lists
+          .map((list) => {
+            if (list.id !== mutation.listId) return list
+            const next: TodoList = { ...list }
+            if (mutation.color !== undefined) {
+              if (mutation.color === null) delete next.color
+              else next.color = mutation.color
+            }
+            if (mutation.order !== undefined) {
+              if (mutation.order === null) delete next.order
+              else next.order = mutation.order
+            }
+            return next
+          })
+          // Re-sorted for the same reason createList is: this mutation can
+          // change a list's `order`, and the nav renders this array as it
+          // stands. Without the sort the row's number would change while
+          // the row itself sat still until the next refetch — the user
+          // clicks "Move up" and nothing appears to happen
+          // (docs/specs/lists.md — ordering).
+          .toSorted(byListOrder)
       )
     case 'deleteList':
       return lists.filter((list) => list.id !== mutation.listId)

@@ -12,8 +12,11 @@ import {
   TODAY_VIEW,
 } from '../todos/today'
 import { applyMutationToLists } from '../sync/optimistic'
+import { useTheme } from '../use-theme'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
+import { markerColor } from './list-color'
+import { nextOrder, reorder } from './list-order'
 import styles from './list-nav.module.css'
 
 const slug = (): string => crypto.randomUUID()
@@ -38,6 +41,7 @@ export function ListNav(props: {
 }) {
   const engine = useSyncEngine()
   const lists = useLists()
+  const theme = useTheme()
   const [creating, setCreating] = useState(false)
   const [renaming, setRenaming] = useState<TodoList | null>(null)
   const [deleting, setDeleting] = useState<TodoList | null>(null)
@@ -49,6 +53,23 @@ export function ListNav(props: {
       applyMutationToLists(current ?? [], mutation),
     )
     void engine.enqueue(mutation)
+  }
+
+  // docs/specs/lists.md — reordering writes only the lists that moved:
+  // swapping two adjacent lists swaps two numbers, rather than renumbering
+  // the whole nav. `reorder` reads the *current* cache rather than the
+  // half-updated one, so both changes are computed before either is
+  // applied; each then goes through `mutate`, whose setQueryData callback
+  // reads the latest cache and so builds on its predecessor.
+  const move = (listId: string, direction: 'up' | 'down'): void => {
+    for (const change of reorder(lists.data ?? [], listId, direction)) {
+      mutate({
+        id: crypto.randomUUID(),
+        kind: 'setListProps',
+        listId: change.listId,
+        order: change.order,
+      })
+    }
   }
 
   return (
@@ -85,7 +106,7 @@ export function ListNav(props: {
       </div>
 
       <ul>
-        {(lists.data ?? []).map((list) => (
+        {(lists.data ?? []).map((list, index, all) => (
           <li key={list.id} className={styles['item']}>
             <button
               type="button"
@@ -94,12 +115,39 @@ export function ListNav(props: {
                   ? `${styles['link']} ${styles['linkActive']}`
                   : styles['link']
               }
+              style={
+                list.id === props.selected
+                  ? { borderLeftColor: markerColor(list.color, theme) }
+                  : undefined
+              }
               onClick={() => props.onSelect(list.id)}
             >
+              {/* docs/specs/lists.md — colours: every list gets a dot,
+                  filled or not. An unfilled ring for a list with no colour
+                  keeps every name on the same left edge and the row rhythm
+                  identical down the nav; omitting it would make an
+                  uncoloured list read as a different kind of row and shift
+                  its name the moment a colour was assigned. */}
+              <span
+                className={cx(
+                  styles['dot'],
+                  list.color === undefined && styles['dotEmpty'],
+                )}
+                style={
+                  list.color !== undefined
+                    ? { background: list.color }
+                    : undefined
+                }
+                aria-hidden="true"
+              />
               {list.displayName}
             </button>
             <ListItemMenu
               displayName={list.displayName}
+              canMoveUp={index > 0}
+              canMoveDown={index < all.length - 1}
+              onMoveUp={() => move(list.id, 'up')}
+              onMoveDown={() => move(list.id, 'down')}
               onRename={() => setRenaming(list)}
               onDelete={() => setDeleting(list)}
             />
@@ -127,13 +175,17 @@ export function ListNav(props: {
         title="New list"
         submitLabel="Create"
         onOpenChange={setCreating}
-        onSubmit={(displayName) => {
+        onSubmit={(values) => {
           const listId = slug()
           mutate({
             id: crypto.randomUUID(),
             kind: 'createList',
             listId,
-            displayName,
+            displayName: values.displayName,
+            // docs/specs/lists.md — the client picks the order so the new
+            // list can't jump when the server responds.
+            order: nextOrder(lists.data ?? []),
+            ...(values.color !== undefined ? { color: values.color } : {}),
           })
           setCreating(false)
           props.onSelect(listId)
@@ -142,20 +194,44 @@ export function ListNav(props: {
 
       <ListFormModal
         open={renaming !== null}
-        title="Rename list"
-        {...(renaming ? { initial: renaming.displayName } : {})}
-        submitLabel="Rename"
+        title="Edit list"
+        {...(renaming
+          ? {
+              initial: {
+                displayName: renaming.displayName,
+                ...(renaming.color !== undefined
+                  ? { color: renaming.color }
+                  : {}),
+              },
+            }
+          : {})}
+        submitLabel="Save"
         onOpenChange={(open) => {
           if (!open) setRenaming(null)
         }}
-        onSubmit={(displayName) => {
+        // docs/specs/lists.md — colours. One form, but up to two mutations,
+        // and only for what actually changed: a name-only edit must not
+        // cost a PROPPATCH of the colour, or vice versa.
+        onSubmit={(values) => {
           if (!renaming) return
-          mutate({
-            id: crypto.randomUUID(),
-            kind: 'renameList',
-            listId: renaming.id,
-            displayName,
-          })
+          if (values.displayName !== renaming.displayName) {
+            mutate({
+              id: crypto.randomUUID(),
+              kind: 'renameList',
+              listId: renaming.id,
+              displayName: values.displayName,
+            })
+          }
+          if (values.color !== renaming.color) {
+            mutate({
+              id: crypto.randomUUID(),
+              kind: 'setListProps',
+              listId: renaming.id,
+              // The form uses undefined for "no colour"; the mutation uses
+              // null for "remove the property". Translate at this boundary.
+              color: values.color ?? null,
+            })
+          }
           setRenaming(null)
         }}
       />

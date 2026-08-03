@@ -1,0 +1,53 @@
+/* docs/specs/ui.md — overlays: this is the quietest surface in the app, so
+   it borrows the popup treatment from the select menu rather than
+   inventing its own. */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--faint);
+  background: none;
+  border: none;
+  padding: var(--space-1);
+  cursor: help;
+  border-radius: var(--radius-full);
+}
+
+.trigger:hover {
+  color: var(--muted);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  color: var(--accent);
+  box-shadow: 0 0 0 var(--border-width) var(--accent);
+}
+
+/* Above the dialog it opens inside: modals are 40 (backdrop) / 41 (popup)
+   and their nested popups 42, the toast 50 (docs/specs/ui.md — overlays). */
+.positioner {
+  z-index: 60;
+}
+
+/* Opening from the keyboard moves focus onto the popup so its prose is
+   announced — that is the whole point of a popover over a tooltip. But the
+   popup is a passive reading surface, not a control, so the global
+   focus-visible ring (global.css) would be an accent-coloured 2px outline
+   around a paragraph the user did not "navigate to" in any actionable
+   sense. Its own border already delimits it, which is the treatment
+   docs/specs/ui.md asks for anyway — focus by border, never an outline. */
+.popup:focus-visible {
+  outline: none;
+}
+
+.popup {
+  max-width: 18rem;
+  background: var(--surface);
+  color: var(--muted);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}

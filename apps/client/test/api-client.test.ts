@@ -46,7 +46,7 @@ describe('api client', () => {
         ),
     )
     const error = await createApi()
-      .renameList('a', 'B')
+      .patchList('a', { displayName: 'B' })
       .catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(ApiError)
     if (error instanceof ApiError) {

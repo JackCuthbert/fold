@@ -116,6 +116,29 @@ items, the create action, and Settings alike. Specifically:
   *(added 2026-07-31: new lists landed at the bottom, then jumped when the
   server's alphabetical order arrived.)* Sort the optimistic entry the same
   way the server will, so nothing moves once the response lands.
+  *(strengthened 2026-08-03: the client now picks the new list's order
+  itself, so there is no server ordering left to guess at — see
+  [lists — a new list must not jump](./lists.md#a-new-list-must-not-jump).)*
+- **Every list row carries a colour dot.** *(added 2026-08-03.)* An 8px dot
+  sits before the name in every state, reusing the status-dot vocabulary
+  rather than introducing a new visual concept.
+  - **A list with no colour gets an unfilled ring** — a hairline circle, no
+    fill — not a blank space. Every name then shares one left edge, the row
+    rhythm is identical down the nav, and assigning a colour never shifts
+    the row sideways. Omitting the dot would make an uncoloured list read as
+    a different *kind* of row.
+  - **The selected row's leading marker takes the list's colour** instead of
+    `--accent`. The dot says which list a row is; the marker says which one
+    you are in.
+  - **A contrast guard protects the marker.** A colour too close to the
+    current theme's paper would make the selected row read as unselected, so
+    the marker falls back to `--accent` in that case. The dot always shows
+    the true colour, and nothing stored is changed — see
+    [lists — the contrast guard](./lists.md#the-contrast-guard).
+- **Reordering is Move up / Move down in the kebab menu**, alongside Rename
+  and Delete. *(added 2026-08-03: no drag-and-drop — buttons are keyboard
+  accessible, work on touch without a long-press, and don't flake in e2e.)*
+  Each is disabled at the end of the nav it cannot move past.
 
 ## Component library
 
@@ -144,6 +167,59 @@ is the correct choice per Base UI's own guidance, not a shortcut.)*
   correctly, and `body { position: relative }` for iOS Safari.
 - Hand-rolling an element that Base UI provides is a defect, not a
   shortcut.
+
+### The extension badge
+
+*(added 2026-08-03.)*
+
+A small `LuInfo` button marking a feature that relies on a CalDAV
+**extension** rather than RFC 4791 — currently beside the colour field in
+the list form ([lists](./lists.md)). It is generic: it takes its own text,
+so a future extension-backed feature reuses it rather than growing a second
+version. *(The reorder controls carry no badge: they live in a kebab menu,
+where an info popover inside an open menu would fight the menu's own focus
+and dismissal. The help modal covers ordering's extension instead.)*
+
+**It is a Base UI `Popover`, not a `Tooltip` — deliberately, and this is an
+accessibility decision rather than a stylistic one.**
+
+- A **tooltip**'s content is an accessible *name* for its trigger: short,
+  unfocusable, and not reliably reachable by assistive technology or the
+  keyboard.
+- A **popover** holds content the user is meant to read and navigate. It is
+  focusable, dismissible with Escape, and properly announced.
+
+This badge explains a concept in prose, so it must be the second. Base UI's
+Popover supports `openOnHover`, so it still feels like a tooltip to a
+pointer while behaving correctly for everyone else. Hover does not exist on
+touch, so the trigger is a real `<button>` and a tap opens the same popover
+— no part of it is pointer-only. A link, if ever wanted, goes *inside* the
+popup, which is content a popover can hold and a tooltip cannot.
+
+### The help modal
+
+*(added 2026-08-03.)*
+
+A `?` control sits beside Settings in the nav footer, opening a Base UI
+`Dialog` styled exactly like the settings modal — same backdrop, popup and
+animation treatment, under the overlay rules above. Like Settings it is
+rendered as a **sibling** of the nav drawer rather than inside it, or Base
+UI would suppress its backdrop on mobile.
+
+Sections, all short: the derived views; todos; lists; colours and ordering;
+working offline; and server extensions, which names `calendar-color` and
+`calendar-order` and says what happens on a server that ignores them.
+
+**The modal is deliberately a summary.** `docs/user/` remains the source of
+truth for depth — see
+[docs/user/colours-and-ordering.md](../user/colours-and-ordering.md).
+Duplicating prose in two places guarantees one of them goes stale, so the
+modal says what each thing is and how it behaves, and nothing more.
+
+It is the only modal whose body genuinely scrolls, so initial focus goes to
+the title rather than Base UI's default first tabbable element — which is
+"Close" at the very bottom, and focusing it scrolled past the first section
+before the user had read a word.
 
 ## Spacing & rhythm
 

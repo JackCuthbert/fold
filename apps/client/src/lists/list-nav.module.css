@@ -113,6 +113,8 @@
   min-height: var(--hit-area);
   display: flex;
   align-items: center;
+  /* Space between the colour dot and the name (see `.dot`). */
+  gap: var(--space-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -143,7 +145,32 @@
 .linkActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
+  /* The default marker. A list with a colour overrides this inline with
+     `markerColor` (lists/list-color.ts) — the contrast guard hands back
+     this same token when the colour would vanish against the paper. */
   border-left-color: var(--accent);
+}
+
+/* docs/specs/lists.md — colours: an 8px dot before the name, in every
+   state. Reuses the status dot's vocabulary (status-dot.module.css) so
+   this costs no new visual concept. The dot answers "which list is
+   this?"; the left marker answers "which one am I in?" — two questions,
+   two signals, deliberately kept apart.
+   `flex: none` keeps `.link`'s `overflow: hidden` (for long names) from
+   squashing the dot — the name ellipsises, the dot never shrinks. */
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  flex: none;
+}
+
+/* No colour set: an unfilled ring, not an absence. Same footprint as a
+   filled dot, so names stay on one left edge whether or not a list has a
+   colour, and assigning one never shifts the row. */
+.dotEmpty {
+  background: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an

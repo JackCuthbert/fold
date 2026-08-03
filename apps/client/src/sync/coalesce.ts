@@ -131,6 +131,27 @@ export function coalesceMutations(
     return [...queue, incoming]
   }
 
+  // docs/specs/lists.md — colours and ordering. Nudging a list up three
+  // positions offline must queue one PROPPATCH, not three. The merge is
+  // field-wise rather than last-entry-wins: a field the later entry leaves
+  // `undefined` means "unchanged", so it must not erase a value the
+  // earlier one set — otherwise a reorder would drop a pending colour.
+  if (incoming.kind === 'setListProps') {
+    const index = queue.findIndex(
+      (m) => m.kind === 'setListProps' && m.listId === incoming.listId,
+    )
+    const target = index === -1 ? undefined : queue[index]
+    if (target?.kind === 'setListProps') {
+      const merged: Mutation = {
+        ...target,
+        ...(incoming.color !== undefined ? { color: incoming.color } : {}),
+        ...(incoming.order !== undefined ? { order: incoming.order } : {}),
+      }
+      return queue.map((m, i) => (i === index ? merged : m))
+    }
+    return [...queue, incoming]
+  }
+
   if (incoming.kind === 'deleteList') {
     const hadPendingCreate = queue.some(
       (m) => m.kind === 'createList' && m.listId === incoming.listId,

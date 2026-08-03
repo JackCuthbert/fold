@@ -33,10 +33,28 @@
   min-height: var(--hit-area);
 }
 
-/* docs/specs/ui.md — the nav: Settings is a ghost icon button — no
-   background or border until hover, unlike the app's other action buttons
-   (Save, Create, "+ New list"), which all carry real chrome. It sits on
-   the sync status's row rather than stacked above it, so opening Settings
+/* The footer's controls (help, Settings) as one group. `flex: none` here —
+   not on each button — is what keeps the row from overlapping when the
+   status label is long: the group never shrinks, and `.status`'s
+   `min-width: 0` lets the label truncate instead (the 2026-07-31 overlap
+   fix, preserved now that there are two buttons rather than one).
+   *(added 2026-08-03 for the help control.)* */
+.controls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  /* Pulls the group back so the *visible* 16px glyph of the last button
+     lands closer to the footer's own right inset rather than sitting inside
+     the full hit area's extra padding (docs/specs/ui.md — one left edge,
+     including controls; same technique main-screen.module.css's
+     `.menuTrigger` uses for its own icon). */
+  margin-right: calc((16px - var(--hit-area)) / 2);
+}
+
+/* docs/specs/ui.md — the nav: these are ghost icon buttons — no background
+   or border until hover, unlike the app's other action buttons (Save,
+   Create, "+ New list"), which all carry real chrome. They sit on the sync
+   status's row rather than stacked above it, so opening help or Settings
    reads as a quiet, secondary affordance rather than a heavy full-width
    action. *(changed 2026-08-01: previously composed the shared `action`/
    `navAction` button chrome, which made it look like a heavier action than
@@ -44,7 +62,7 @@
    docs/specs/ui.md — controls & touch targets: hit area is pointer-aware
    (34px fine / 44px coarse) like every other icon-only control; no
    press-transform, focus shown by border colour only. */
-.settings {
+.control {
   flex: none;
   display: flex;
   align-items: center;
@@ -55,25 +73,19 @@
   background: transparent;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
-  /* Pulls the hit area back so the *visible* 16px gear glyph lands closer
-     to the footer's own right inset rather than sitting inside the full
-     hit area's extra padding (docs/specs/ui.md — one left edge, including
-     controls; same technique main-screen.module.css's `.menuTrigger`
-     uses for its own icon). */
-  margin-right: calc((16px - var(--hit-area)) / 2);
   transition:
     background-color var(--duration-fast) var(--ease),
     border-color var(--duration-fast) var(--ease),
     color var(--duration-fast) var(--ease);
 }
 
-.settings:hover {
+.control:hover {
   background: var(--line);
   border-color: var(--line);
   color: var(--ink);
 }
 
-.settings:focus-visible {
+.control:focus-visible {
   outline: none;
   border-color: var(--accent);
 }

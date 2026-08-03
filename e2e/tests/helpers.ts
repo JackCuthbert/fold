@@ -52,7 +52,10 @@ export async function renameList(
   await page.getByRole('menuitem', { name: 'Rename' }).click()
   const input = page.getByPlaceholder('List name')
   await input.fill(to)
-  await page.getByRole('button', { name: 'Rename', exact: true }).click()
+  // docs/specs/lists.md — colours: the modal now edits name *and* colour,
+  // so it submits with "Save" rather than "Rename". The kebab menu item is
+  // still "Rename" — that entry point is unchanged.
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
 }
 
 // docs/specs/ui.md — adding a todo opens a modal (added 2026-07-31): the

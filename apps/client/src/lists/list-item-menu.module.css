@@ -87,6 +87,17 @@
   background: var(--line);
 }
 
+/* docs/specs/lists.md — ordering: the top list has nothing to move up
+   past and the bottom nothing to move down past, so those items are
+   disabled rather than absent — a menu whose entries appear and vanish by
+   row position is harder to learn than one whose shape is constant. Muted
+   ink and the default cursor say "not now" without removing it; Base UI
+   already blocks activation and skips it in arrow-key navigation. */
+.item[data-disabled] {
+  color: var(--muted);
+  cursor: default;
+}
+
 /* docs/specs/ui.md — accessibility: destructive controls need a focus
    state at least as legible as any other. Base UI's Menu.Item has no
    native :focus-visible of its own — the popup keeps DOM focus and marks

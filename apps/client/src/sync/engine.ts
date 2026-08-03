@@ -13,9 +13,9 @@ import {
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
+import { byListOrder } from '../lists/list-order'
 import {
   applyMutationToLists,
-  byDisplayName,
   applyMutationToTodos,
   patchTodo,
 } from './optimistic'
@@ -44,12 +44,17 @@ export type SyncEngine = Awaited<ReturnType<typeof createSyncEngine>>
 
 type ListMutation = Extract<
   Mutation,
-  { kind: 'createList' | 'renameList' | 'deleteList' }
+  { kind: 'createList' | 'renameList' | 'setListProps' | 'deleteList' }
 >
 
+// Every mutation that changes the lists collection itself. Load-bearing on
+// reconcile as much as on invalidation: a still-queued entry missing from
+// here is replayed over fresh server data by nobody, so the user's change
+// visibly reverts on the next refetch (docs/specs/lists.md).
 const isListMutation = (mutation: Mutation): mutation is ListMutation =>
   mutation.kind === 'createList' ||
   mutation.kind === 'renameList' ||
+  mutation.kind === 'setListProps' ||
   mutation.kind === 'deleteList'
 
 export async function createSyncEngine(options: SyncEngineOptions) {
@@ -312,14 +317,14 @@ export async function createSyncEngine(options: SyncEngineOptions) {
      * which are UUIDs — arbitrary, and impossible to predict client-side,
      * so no optimistic insert can match it and a new list always jumped
      * when the response landed. Sorting on read *and* on optimistic insert
-     * (applyMutationToLists) means the two always agree
-     * (docs/specs/lists.md — ordering).
+     * (applyMutationToLists) with the *same* rule means the two always
+     * agree (docs/specs/lists.md — ordering).
      */
     reconcileLists: (fresh: TodoList[]): TodoList[] =>
       outbox
         .entries()
         .filter(isListMutation)
         .reduce(applyMutationToLists, fresh)
-        .toSorted(byDisplayName),
+        .toSorted(byListOrder),
   }
 }

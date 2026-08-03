@@ -39,18 +39,31 @@ The open questions:
   CalDAV collections are the only store. A dedicated "Archive" collection
   is possible but adds a concept.
 
-## 4. Reordering lists — designed 2026-08-03, not yet built
+## ~~4. Reordering lists~~ — done 2026-08-03
 
-## 5. Per-list colours — designed 2026-08-03, not yet built
+## ~~5. Per-list colours~~ — done 2026-08-03
 
-Items 4 and 5 were designed together, since both hang off an Apple
-extension in the `http://apple.com/ns/ical/` namespace (`calendar-order`
-and `calendar-color`) written by the same PROPPATCH. The open questions in
-both — where the order lives, how a restrained palette coexists with
-colours set by other clients — are settled there.
+Shipped together, since both hang off an Apple extension in the
+`http://apple.com/ns/ical/` namespace (`calendar-order` and
+`calendar-color`) written by the same PROPPATCH. The open questions were
+settled as: the order lives on the server and the client picks a new list's
+value as `max + 1`, so the two cannot disagree about where it goes; and the
+palette is a shortcut rather than a constraint, so a colour set by another
+client renders exactly as stored. Reordering is Move up / Move down in the
+kebab menu — no drag-and-drop.
 
-See [the design](../superpowers/specs/2026-08-03-list-colours-and-ordering-design.md).
-It also covers a generic extension tooltip and an in-app help modal.
+See [lists — colours](./lists.md#colours) and
+[lists — ordering](./lists.md#ordering) for the specs,
+[caldav-compliance](./caldav-compliance.md#extension-properties) for the
+extension handling, and
+[docs/user/colours-and-ordering.md](../user/colours-and-ordering.md) for the
+user guide.
+
+The work also produced a generic extension badge and an in-app help modal
+([ui](./ui.md#the-extension-badge)).
+
+See [the design](../superpowers/specs/2026-08-03-list-colours-and-ordering-design.md)
+for the alternatives that were considered and rejected.
 
 ## 6. Derived-view todo rows
 

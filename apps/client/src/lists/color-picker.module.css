@@ -1,0 +1,93 @@
+/*
+ * docs/specs/lists.md — colours. A restrained palette as the default
+ * path, with a hex field and a native wheel underneath for anything else.
+ */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Round, so a swatch never reads as a button to be pressed — it reads as
+   a colour to be chosen (docs/specs/ui.md — controls). */
+.swatch {
+  width: var(--hit-area);
+  height: var(--hit-area);
+  border-radius: var(--radius-full);
+  border: var(--border-width) solid
+    color-mix(in srgb, var(--ink) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--border-width) var(--accent);
+}
+
+/* "No colour" — an empty ring, the same shape the nav uses for a list
+   with no colour set, so the two read as the same idea. */
+.none {
+  background: transparent;
+  color: var(--faint);
+  border-style: dashed;
+}
+
+.custom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hexLabel {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.hex {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+/* The native wheel, sized to match the hex field's height rather than the
+   browser's default chunky swatch. --hit-area (34px) is shorter than the
+   input's own padded height (42px), so the previous fixed value left the
+   wheel visibly undersized beside the field. The height is stated in the
+   same terms the global input rule builds its own from (--text-input line
+   box, --space-2 top and bottom, plus the border) rather than a magic
+   42px, so the two stay matched if the type scale or spacing changes. It
+   has to be an explicit height: a colour input carries an intrinsic height
+   that beats `align-items: stretch`, and a percentage height resolves
+   against an auto-height row and collapses — both were tried and measured.
+   *(fixed 2026-08-03: verified in the browser once the picker was first
+   mounted in the list form — the two measured 42px vs 34px.)* */
+.wheel {
+  flex: none;
+  width: var(--hit-area);
+  height: calc(
+    var(--text-input) * var(--line-normal) + var(--space-2) * 2 +
+      var(--border-width) * 2
+  );
+  padding: 0;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}

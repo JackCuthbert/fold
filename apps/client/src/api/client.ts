@@ -61,12 +61,24 @@ export function createApi() {
     },
     getLists: async (): Promise<TodoList[]> =>
       listsResponseSchema.parse(await call('/api/lists', 'GET')),
-    createList: async (id: string, displayName: string): Promise<TodoList> =>
+    createList: async (
+      id: string,
+      displayName: string,
+      props?: { color?: string; order?: number },
+    ): Promise<TodoList> =>
       todoListSchema.parse(
-        await call('/api/lists', 'POST', { id, displayName }),
+        await call('/api/lists', 'POST', { id, displayName, ...props }),
       ),
-    renameList: async (id: string, displayName: string): Promise<void> => {
-      await call(`/api/lists/${enc(id)}`, 'PATCH', { displayName })
+    /** docs/specs/lists.md — any subset of a list's mutable properties. */
+    patchList: async (
+      id: string,
+      changes: {
+        displayName?: string
+        color?: string | null
+        order?: number | null
+      },
+    ): Promise<void> => {
+      await call(`/api/lists/${enc(id)}`, 'PATCH', changes)
     },
     deleteList: async (id: string): Promise<void> => {
       await call(`/api/lists/${enc(id)}`, 'DELETE')

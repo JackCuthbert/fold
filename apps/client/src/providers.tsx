@@ -134,6 +134,7 @@ const describeMutation = (mutation: Mutation): string => {
     case 'renameList':
       return `'${mutation.displayName}'`
     case 'deleteList':
+    case 'setListProps':
       return 'a change'
     default:
       return mutation satisfies never

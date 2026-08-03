@@ -2,7 +2,7 @@ import type { Route } from './route'
 import { createList } from './lists/create'
 import { listLists } from './lists/list'
 import { removeList } from './lists/remove'
-import { renameList } from './lists/rename'
+import { patchList } from './lists/patch'
 import { createSession } from './session/create'
 import { destroySession } from './session/destroy'
 import { getSession } from './session/get'
@@ -17,7 +17,7 @@ export const routes: Route[] = [
   getSession,
   listLists,
   createList,
-  renameList,
+  patchList,
   removeList,
   listTodos,
   createTodo,

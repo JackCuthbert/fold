@@ -178,4 +178,61 @@ describe('coalesceMutations', () => {
     expect(queue).toHaveLength(1)
     expect(queue[0]).toMatchObject({ kind: 'createList', displayName: 'New' })
   })
+
+  // docs/specs/lists.md — nudging a list up three positions offline must
+  // queue one PROPPATCH, not three; and a colour change followed by a move
+  // must not lose the colour.
+  it('merges consecutive setListProps for the same list, field-wise', () => {
+    const setColor: Mutation = {
+      id: id(),
+      kind: 'setListProps',
+      listId: 'a',
+      color: '#1D9BF6',
+    }
+    const afterFirstMove = run([setColor], {
+      id: id(),
+      kind: 'setListProps',
+      listId: 'a',
+      order: 2,
+    })
+    const merged = coalesceMutations(afterFirstMove, {
+      id: id(),
+      kind: 'setListProps',
+      listId: 'a',
+      order: 3,
+    })
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({
+      kind: 'setListProps',
+      listId: 'a',
+      color: '#1D9BF6',
+      order: 3,
+    })
+  })
+
+  it('does not merge setListProps across different lists', () => {
+    const merged = run(
+      [{ id: id(), kind: 'setListProps', listId: 'a', order: 1 }],
+      { id: id(), kind: 'setListProps', listId: 'b', order: 2 },
+    )
+    expect(merged).toHaveLength(2)
+  })
+
+  it('a later setListProps clearing a colour wins over an earlier set', () => {
+    const merged = run(
+      [{ id: id(), kind: 'setListProps', listId: 'a', color: '#1D9BF6' }],
+      { id: id(), kind: 'setListProps', listId: 'a', color: null },
+    )
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({ kind: 'setListProps', color: null })
+  })
+
+  it('deleteList cancels queued setListProps for that list', () => {
+    const merged = run(
+      [{ id: id(), kind: 'setListProps', listId: 'l1', color: '#1D9BF6' }],
+      { id: id(), kind: 'deleteList', listId: 'l1' },
+    )
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({ kind: 'deleteList' })
+  })
 })

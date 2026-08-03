@@ -11,8 +11,8 @@ talks to; all CalDAV happens server-side
 | `POST /api/session` | Login | principal discovery ([authentication](./authentication.md)) |
 | `DELETE /api/session` | Logout | — |
 | `GET /api/lists` | Discover todo lists | PROPFIND ([lists](./lists.md)) |
-| `POST /api/lists` | Create list | MKCALENDAR (fallback: extended MKCOL) |
-| `PATCH /api/lists/:listId` | Rename list | PROPPATCH `displayname` |
+| `POST /api/lists` | Create list | MKCALENDAR with name, colour and order (fallback: extended MKCOL) |
+| `PATCH /api/lists/:listId` | Update list — any subset of name, colour, order | PROPPATCH `displayname`, and a second PROPPATCH for `calendar-color` / `calendar-order` |
 | `DELETE /api/lists/:listId` | Delete list | DELETE on collection |
 | `GET /api/lists/:listId/todos` | Todos + ETags + ctag | calendar-query REPORT (`VTODO` filter) |
 | `POST /api/lists/:listId/todos` | Create todo | PUT with `If-None-Match: *` |
@@ -20,6 +20,11 @@ talks to; all CalDAV happens server-side
 | `DELETE /api/lists/:listId/todos/:uid` | Delete todo | DELETE with `If-Match` |
 
 - Identifiers in URLs are derived from CalDAV hrefs/UIDs, URL-encoded.
+- `PATCH /api/lists/:listId` is **one API call but up to two CalDAV
+  requests** — to the user a name and a colour are a single edit, while
+  `displayname` and the Apple extension properties are different properties
+  on the server. *(added 2026-08-03: was rename-only. See
+  [lists — operations](./lists.md#operations).)*
 - Request and response bodies use the schemas in `packages/schemas`
   ([todos](./todos.md), [lists](./lists.md)) and are zod-validated at the
   boundary in both directions. Invalid input → 400 with a structured error

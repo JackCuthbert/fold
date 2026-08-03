@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { useEffect, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami } from 'react-icons/lu'
+import { HelpModal } from './help-modal'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import { SettingsModal } from './lists/settings-modal'
@@ -42,6 +43,11 @@ export function MainScreen() {
   // sibling of the drawer, it's a top-level dialog at every viewport.
   // *(fixed 2026-08-01.)*
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Help lives here for exactly the reason Settings does — see above. It is
+  // opened from the same nav footer, so a modal owned there would be nested
+  // inside the drawer's Dialog on mobile and lose its backdrop too.
+  // *(added 2026-08-03.)*
+  const [helpOpen, setHelpOpen] = useState(false)
   const [navPinned, setNavPinned] = useState<boolean>(
     () => localStorage.getItem(NAV_PINNED_KEY) !== '0',
   )
@@ -130,6 +136,10 @@ export function MainScreen() {
         />
       </div>
       <NavFooter
+        onOpenHelp={() => {
+          setDrawerOpen(false)
+          setHelpOpen(true)
+        }}
         onOpenSettings={() => {
           // Close the drawer first: on mobile it's an overlay in its own
           // right, and leaving it open behind Settings would stack two
@@ -168,8 +178,9 @@ export function MainScreen() {
 
   return (
     <div className={styles['layout']}>
-      {/* Sibling of `drawer`, never inside it — see `settingsOpen` above. */}
+      {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
       <div className={styles['body']}>
         {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both

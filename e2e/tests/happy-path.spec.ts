@@ -67,13 +67,20 @@ test('rename and delete a list via its kebab menu', async ({ page }) => {
   await expect(page.getByRole('heading', { name: original })).toBeVisible()
   await waitForSync(page)
 
-  // Keyboard: open the trigger, arrow down to Rename, activate with Enter.
+  // Keyboard: open the trigger, then walk to the bottom of the menu with
+  // the arrow keys. Delete is last, so End reaches it regardless of how
+  // many items sit above — the menu gained "Move up"/"Move down" above
+  // Rename (docs/specs/lists.md — ordering), and whether those are enabled
+  // depends on where this list sorts, which isn't this test's subject.
+  // *(changed 2026-08-03: asserted Rename was the first item, which the
+  // reordering items displaced.)*
   const trigger = page.getByRole('button', { name: `Actions for ${original}` })
   await trigger.focus()
   await trigger.press('Enter')
-  await expect(page.getByRole('menuitem', { name: 'Rename' })).toBeFocused()
-  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('End')
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeFocused()
+  await page.keyboard.press('ArrowUp')
+  await expect(page.getByRole('menuitem', { name: 'Rename' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeHidden()
 
@@ -91,4 +98,115 @@ test('rename and delete a list via its kebab menu', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: renamed, exact: true }),
   ).toBeHidden()
+})
+
+// docs/specs/lists.md — colours: the nav row's dot carries the list's
+// colour. Assigning one via the palette must survive a reload, which is
+// what proves it reached the server rather than only the local cache.
+test('a list colour persists across a reload', async ({ page }) => {
+  await login(page)
+
+  const listName = uniqueName('coloured')
+  await createList(page, listName)
+  await waitForSync(page)
+
+  // A palette swatch rather than a typed hex: the hex field's parsing is
+  // already unit-tested, and duplicating it here would test the same
+  // behaviour at two layers.
+  await openListMenu(page, listName)
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  await page.getByRole('button', { name: 'Blue' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+  // The dot is aria-hidden (decorative — the row's name is the label), so
+  // it's reached through the row rather than by role. Playwright reports
+  // computed colours as rgb(), never as the source hex #4A6F96.
+  const dot = page
+    .getByRole('button', { name: listName, exact: true })
+    .locator('span[aria-hidden="true"]')
+  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+
+  // Reload from the *server*, not the local cache. `waitForSync` proves the
+  // colour reached the server, but the query cache is persisted to IndexedDB
+  // and restored on reload with `staleTime: 30_000` (offline-first, by
+  // design — docs/specs/sync-and-offline.md), so a plain reload can re-render
+  // the pre-mutation snapshot without refetching. Dropping the persisted
+  // cache first is what makes this assertion about the server rather than
+  // about IndexedDB.
+  await waitForSync(page)
+  await page.evaluate(
+    async () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.deleteDatabase('keyval-store')
+        req.addEventListener('success', () => resolve())
+        req.addEventListener('error', () => reject(req.error))
+        req.addEventListener('blocked', () => resolve())
+      }),
+  )
+  await page.reload()
+  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+})
+
+// docs/specs/lists.md — ordering: the kebab's Move up/Move down are the
+// only way to reorder (buttons, not drag-and-drop — keyboard-operable and
+// touch-friendly for free). Surviving a reload is what proves the new
+// order reached the server rather than only the local cache.
+test('reordering a list survives a reload', async ({ page }) => {
+  await login(page)
+
+  // Named so that alphabetical order would put "alpha" first — the move
+  // below has to beat the name tiebreak, not coincide with it.
+  const first = uniqueName('alpha')
+  const second = uniqueName('beta')
+  await createList(page, first)
+  await createList(page, second)
+  await waitForSync(page)
+
+  // Only *these two* rows, in nav order. The suite shares one Radicale, so
+  // lists other tests created are also in the nav — an assertion on the
+  // whole nav would depend on what else has run.
+  const pairOrder = async (): Promise<string[]> =>
+    (
+      await page
+        .getByRole('navigation', { name: 'Lists' })
+        .getByRole('listitem')
+        .allInnerTexts()
+    )
+      .map((text) => text.trim().split('\n')[0] ?? '')
+      .filter((name) => name === first || name === second)
+
+  // Created in this order, so `nextOrder` gives them ascending orders.
+  await expect(async () => {
+    expect(await pairOrder()).toEqual([first, second])
+  }).toPass()
+
+  await openListMenu(page, second)
+  await page.getByRole('menuitem', { name: 'Move up' }).click()
+  await expect(async () => {
+    expect(await pairOrder()).toEqual([second, first])
+  }).toPass()
+
+  // The last row has no neighbour below it, so "Move down" is disabled —
+  // `second` was created last, so it is still the bottom of the nav.
+  await openListMenu(page, first)
+  await expect(page.getByRole('menuitem', { name: 'Move down' })).toBeDisabled()
+  await page.keyboard.press('Escape')
+
+  // Drop the persisted query cache before reloading, so the assertion is
+  // about the server rather than about IndexedDB — same reasoning as the
+  // colour test above.
+  await waitForSync(page)
+  await page.evaluate(
+    async () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.deleteDatabase('keyval-store')
+        req.addEventListener('success', () => resolve())
+        req.addEventListener('error', () => reject(req.error))
+        req.addEventListener('blocked', () => resolve())
+      }),
+  )
+  await page.reload()
+  await expect(async () => {
+    expect(await pairOrder()).toEqual([second, first])
+  }).toPass()
 })

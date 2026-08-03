@@ -20,9 +20,25 @@
   gap: var(--space-1);
 }
 
-.field :global(input) {
+/* Direct children only: the colour field nests ColorPicker, which sizes
+   its own hex field and wheel (see color-picker.module.css). A descendant
+   selector here would stretch the wheel to the full row and undo that —
+   the name Input is a direct child of its Field.Root, so it still matches. */
+.field > :global(input) {
   width: 100%;
   box-sizing: border-box;
+}
+
+/* docs/specs/ui.md — field labels are small and muted, matching the
+   established pattern in todo-detail.module.css's .field. inline-flex so
+   the extension badge's icon centres on the label's text rather than
+   sitting on the baseline (docs/specs/lists.md — colours). */
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
 }
 
 .actions {

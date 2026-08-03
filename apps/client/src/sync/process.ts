@@ -110,14 +110,32 @@ export function makeProcessMutation(
         }
         return created
       }
+      // docs/specs/lists.md — the client picks the new list's order, so
+      // it must be sent with the create: the server never invents one,
+      // and the optimistic row is already sitting at that position.
       case 'createList':
-        await api.createList(mutation.listId, mutation.displayName)
+        await api.createList(mutation.listId, mutation.displayName, {
+          ...(mutation.color !== undefined ? { color: mutation.color } : {}),
+          ...(mutation.order !== undefined ? { order: mutation.order } : {}),
+        })
         return undefined
       case 'renameList':
-        await api.renameList(mutation.listId, mutation.displayName)
+        await api.patchList(mutation.listId, {
+          displayName: mutation.displayName,
+        })
         return undefined
       case 'deleteList':
         await api.deleteList(mutation.listId)
+        return undefined
+      // docs/specs/lists.md — colours and ordering. Only the fields the
+      // mutation actually carries are sent: `undefined` means "leave this
+      // property alone", and sending it would instead clear the property
+      // on the server.
+      case 'setListProps':
+        await api.patchList(mutation.listId, {
+          ...(mutation.color !== undefined ? { color: mutation.color } : {}),
+          ...(mutation.order !== undefined ? { order: mutation.order } : {}),
+        })
         return undefined
       default:
         return mutation satisfies never
