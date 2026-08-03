@@ -191,3 +191,38 @@ export async function waitForPersistedCompleted(
     }
   }).toPass({ timeout: 15_000 })
 }
+
+/**
+ * Reload so the assertions that follow are about the **server**, not about
+ * IndexedDB.
+ *
+ * `waitForSync` proves a change reached the server. It says nothing about
+ * the persisted query cache, which is restored on reload and — with
+ * `staleTime: 30_000`, deliberately, for offline-first use
+ * (docs/specs/sync-and-offline.md) — is not refetched for up to 30s. So a
+ * plain reload can re-render the pre-mutation snapshot and the assertion
+ * passes or fails for the wrong reason.
+ *
+ * Dropping the persisted cache first removes that variable entirely.
+ * Prefer this over `page.reload()` in any test whose point is "it really
+ * reached the server". A test that means to exercise *restore-from-cache*
+ * should reload plainly instead — and say so.
+ *
+ * *(extracted 2026-08-04, issue #8: the same block was inline in two
+ * tests, and a third that needed it didn't have it.)*
+ */
+export async function reloadFromServer(page: Page): Promise<void> {
+  await waitForSync(page)
+  await page.evaluate(
+    async () =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase('keyval-store')
+        request.addEventListener('success', () => resolve())
+        request.addEventListener('error', () => reject(request.error))
+        // Another connection is still open; the delete will complete when
+        // it closes. The reload closes it, so carrying on is correct.
+        request.addEventListener('blocked', () => resolve())
+      }),
+  )
+  await page.reload()
+}
