@@ -58,7 +58,7 @@
    the button becoming a different control; brightness() matches the
    primary button's treatment, which is the reference for "the right amount
    of change and contrast". */
-.action:hover {
+.action:hover:not(:disabled) {
   filter: brightness(0.97);
 }
 
@@ -67,32 +67,29 @@
   border-color: var(--accent);
 }
 
+/* A disabled button must not react to the pointer at all — no darkening,
+ * no background shift, and a cursor that says why.
+ *
+ * The suppression lives on each hover rule as `:hover:not(:disabled)`
+ * rather than as a reset here, because each role's disabled surface differs
+ * (`.primary:disabled` uses `--line`, the others inherit `--surface` from
+ * this rule) and no single override could name them all. Excluded from
+ * hover, a disabled button simply keeps whatever its resting declaration
+ * set — which is right by construction.
+ *
+ * `background: revert` in an override was tried first and is wrong twice
+ * over: it reverts past this stylesheet to the UA default, so a disabled
+ * primary jumped from --line to the browser's grey on hover — a bigger
+ * change than the one it was meant to prevent.
+ *
+ * *(fixed 2026-08-03: `:disabled:hover` reset `background` but not the
+ * `filter` doing the darkening, so disabled buttons still responded.)* */
 .action:disabled {
   color: var(--muted);
-  /* `not-allowed`, not `default`: the pointer is the only cue that says
-     *why* nothing happens on click. A plain arrow reads as "this should
-     work". */
+  /* The pointer is the only cue that says *why* nothing happens on click.
+     A plain arrow reads as "this should work". */
   cursor: not-allowed;
   background: var(--surface);
-}
-
-/* A disabled button must not react to the pointer at all.
- *
- * `filter: none` is the load-bearing part: `.action:hover` darkens with
- * `brightness(0.97)` and `.primary:hover` brightens with `1.08`, and
- * resetting `background` alone left both applying — so hovering a disabled
- * Save still shifted, which is the same feedback an enabled button gives.
- *
- * `revert` rather than a fixed colour: each role's disabled surface differs
- * (`.primary:disabled` uses `--line`, the others `--surface`), so this
- * hands the button back to its own `:disabled` rule instead of forcing one
- * value on all three. Every role's hover sets `background` at the same
- * specificity as this rule, and this one comes later, so it wins.
- *
- * *(fixed 2026-08-03.)* */
-.action:disabled:hover {
-  background: revert;
-  filter: none;
 }
 
 /* Primary — the affirmative action (Save, Add, Create, Sign in). */
@@ -102,7 +99,7 @@
   color: var(--surface);
 }
 
-.primary:hover {
+.primary:hover:not(:disabled) {
   background: var(--accent);
   filter: brightness(1.08);
 }
@@ -125,7 +122,7 @@
   color: var(--muted);
 }
 
-.default:hover {
+.default:hover:not(:disabled) {
   color: var(--ink);
 }
 
@@ -164,7 +161,7 @@
    least wanted. A faint tint of the same red matches the weight of every
    other hover while still reading unmistakably as destructive; the border
    and ink already carry that meaning at rest. */
-.destructive:hover {
+.destructive:hover:not(:disabled) {
   background: color-mix(in srgb, var(--danger) 8%, var(--surface));
 }
 
