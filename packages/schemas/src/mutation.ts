@@ -50,6 +50,13 @@ export const mutationSchema = z.discriminatedUnion('kind', [
     kind: z.literal('createList'),
     listId,
     displayName: z.string().min(1),
+    // docs/specs/lists.md — chosen by the client at creation so the new
+    // list never jumps when the server responds.
+    order: z.int().optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9A-F]{6}$/)
+      .optional(),
   }),
   z.object({
     ...base,

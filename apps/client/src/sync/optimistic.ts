@@ -1,4 +1,5 @@
 import type { Mutation, Todo, TodoList, TodosResponse } from '@fold/schemas'
+import { byListOrder } from '../lists/list-order'
 
 /**
  * Optimistic cache updates — docs/specs/sync-and-offline.md (writes).
@@ -123,13 +124,6 @@ export function patchTodo(cache: TodosResponse, todo: Todo): TodosResponse {
   }
 }
 
-/**
- * The one ordering rule for lists, used on read and on optimistic insert
- * alike so the two can never disagree (docs/specs/lists.md — ordering).
- */
-export const byDisplayName = (a: TodoList, b: TodoList): number =>
-  a.displayName.localeCompare(b.displayName)
-
 export function applyMutationToLists(
   lists: readonly TodoList[],
   mutation: Mutation,
@@ -141,19 +135,24 @@ export function applyMutationToLists(
       if (lists.some((list) => list.id === mutation.listId)) {
         return [...lists]
       }
+      // The mutation carries the order the client chose at creation
+      // (nextOrder), so the placeholder sorts exactly where the server's
+      // copy will once it echoes that same number back — the server never
+      // invents an order of its own to disagree with
+      // (docs/specs/lists.md — ordering).
       const placeholder: TodoList = {
         id: mutation.listId,
         href: '',
         displayName: mutation.displayName,
         ctag: '',
+        ...(mutation.order !== undefined ? { order: mutation.order } : {}),
+        ...(mutation.color !== undefined ? { color: mutation.color } : {}),
       }
       // Sorted, matching how the nav renders every list
-      // (engine.ts's reconcileLists) — the server's own order is arbitrary
-      // (UUID directory names in filesystem order), so the client imposes
-      // a stable one and the optimistic insert must use the same rule or
-      // the row jumps when the response lands
+      // (engine.ts's reconcileLists) — the optimistic insert must use the
+      // same rule or the row jumps when the response lands
       // (docs/specs/lists.md — ordering).
-      return [...lists, placeholder].toSorted(byDisplayName)
+      return [...lists, placeholder].toSorted(byListOrder)
     }
     case 'renameList':
       return lists.map((list) =>

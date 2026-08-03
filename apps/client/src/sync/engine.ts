@@ -13,9 +13,9 @@ import {
 import type { QueryClient } from '@tanstack/react-query'
 import type { Api } from '../api/client'
 import { coalesceMutations } from './coalesce'
+import { byListOrder } from '../lists/list-order'
 import {
   applyMutationToLists,
-  byDisplayName,
   applyMutationToTodos,
   patchTodo,
 } from './optimistic'
@@ -317,14 +317,14 @@ export async function createSyncEngine(options: SyncEngineOptions) {
      * which are UUIDs — arbitrary, and impossible to predict client-side,
      * so no optimistic insert can match it and a new list always jumped
      * when the response landed. Sorting on read *and* on optimistic insert
-     * (applyMutationToLists) means the two always agree
-     * (docs/specs/lists.md — ordering).
+     * (applyMutationToLists) with the *same* rule means the two always
+     * agree (docs/specs/lists.md — ordering).
      */
     reconcileLists: (fresh: TodoList[]): TodoList[] =>
       outbox
         .entries()
         .filter(isListMutation)
         .reduce(applyMutationToLists, fresh)
-        .toSorted(byDisplayName),
+        .toSorted(byListOrder),
   }
 }

@@ -116,10 +116,33 @@ describe('applyMutationToLists', () => {
   })
 
   // The optimistic insert must use the same ordering rule the nav renders
-  // with, or the new row jumps when the server responds. The server's own
-  // order is arbitrary (UUID directory names), so the client sorts
-  // (docs/specs/lists.md — ordering).
-  it('inserts a created list in sorted position, not at the end', () => {
+  // with, or the new row jumps when the server responds. The client picks
+  // the new list's order itself, so the server has nothing to disagree
+  // with (docs/specs/lists.md — ordering).
+  it('places a created list by the order the client chose for it', () => {
+    const existing = [
+      { id: 'l1', href: '/l1/', displayName: 'Cherry', ctag: 'c', order: 1 },
+      { id: 'l3', href: '/l3/', displayName: 'Apple', ctag: 'c', order: 2 },
+    ]
+    const next = applyMutationToLists(existing, {
+      id: '00000000-0000-4000-8000-000000000008',
+      kind: 'createList',
+      listId: 'l2',
+      displayName: 'Banana',
+      order: 3,
+    })
+    expect(next.map((l) => l.displayName)).toEqual([
+      'Cherry',
+      'Apple',
+      'Banana',
+    ])
+  })
+
+  // Graceful degradation: a nav whose lists carry no order at all — a
+  // server that ignores `calendar-order`, or lists made by another client
+  // — still sorts alphabetically, exactly as it did before ordering
+  // existed (docs/specs/lists.md — ordering).
+  it('falls back to alphabetical when nothing carries an order', () => {
     const existing = [
       { id: 'l1', href: '/l1/', displayName: 'Cherry', ctag: 'c' },
       { id: 'l3', href: '/l3/', displayName: 'Apple', ctag: 'c' },

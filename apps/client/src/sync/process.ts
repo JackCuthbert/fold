@@ -110,8 +110,14 @@ export function makeProcessMutation(
         }
         return created
       }
+      // docs/specs/lists.md — the client picks the new list's order, so
+      // it must be sent with the create: the server never invents one,
+      // and the optimistic row is already sitting at that position.
       case 'createList':
-        await api.createList(mutation.listId, mutation.displayName)
+        await api.createList(mutation.listId, mutation.displayName, {
+          ...(mutation.color !== undefined ? { color: mutation.color } : {}),
+          ...(mutation.order !== undefined ? { order: mutation.order } : {}),
+        })
         return undefined
       case 'renameList':
         await api.patchList(mutation.listId, {
