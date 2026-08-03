@@ -257,15 +257,13 @@
    status and priority — green succeeded, amber caution, red missed —
    rather than a third palette. The label states the verdict in words, so
    meaning never depends on colour alone. */
-.metaEarly {
-  color: var(--status-synced);
-}
-
-/* Amber, not green: met the deadline, but only just. "On the day" and "with
-   a week to spare" are different stories and read better as different
-   colours. */
+/* Early and on time are both successes — meeting the deadline is meeting
+   the deadline, and shading "on the day" as a caution nagged at something
+   that went fine. Only a miss gets a warning colour.
+   *(changed 2026-08-02: on time was amber.)* */
+.metaEarly,
 .metaOnTime {
-  color: var(--status-syncing);
+  color: var(--status-synced);
 }
 
 .metaLate {

@@ -94,8 +94,12 @@ items, the create action, and Settings alike. Specifically:
   action than it is.)* No background or border until hover; it sits on the
   same line as the status dot and label rather than stacked above them,
   so the footer is a single quiet row.
-- **The "Lists" heading is compact** — it labels the panel, so it should
-  not claim as much vertical space as the rows beneath it.
+- **The nav is headed by the app's mark** — an origami icon plus "Fold", in
+  semibold. *(changed 2026-08-02: was the text "Lists". With Today, Summary
+  and the collections all below it, "Lists" described only part of what
+  follows; the app's own name identifies the panel instead. Origami for the
+  folded paper the name means.)* It stays compact — it heads the panel, so
+  it should not claim as much vertical space as the rows beneath it.
   *(added 2026-08-01.)*
 - **Selecting a list looks like selection, not hover.** *(added
   2026-08-01: the active row used a hover-ish fill that read as a stuck

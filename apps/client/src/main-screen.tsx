@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { useEffect, useState, type ReactNode } from 'react'
-import { LuMenu } from 'react-icons/lu'
+import { LuMenu, LuOrigami } from 'react-icons/lu'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import { SettingsModal } from './lists/settings-modal'
@@ -112,7 +112,14 @@ export function MainScreen() {
   // `.navScroll` is the only child that overflows.
   const navContent: ReactNode = (
     <>
-      <h2 className={styles['navTitle']}>Lists</h2>
+      {/* docs/specs/ui.md — the nav is headed by the app's own mark rather
+          than a section label: with Today, Summary and the lists all below
+          it, "Lists" only described part of what follows. Origami for the
+          folded paper the name means. *(changed 2026-08-02.)* */}
+      <h2 className={styles['navTitle']}>
+        <LuOrigami aria-hidden="true" size={18} />
+        Fold
+      </h2>
       <div className={styles['navScroll']}>
         <ListNav
           selected={active}

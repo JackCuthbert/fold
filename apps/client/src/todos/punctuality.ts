@@ -10,10 +10,12 @@ import { dueInstant } from './sort'
  * (docs/specs/ui.md — status display):
  *
  * - `early`  — comfortably ahead of the deadline (green)
- * - `onTime` — met it, but only just (amber): the work landed, and it was
- *   close. Worth a different colour from `early` because "on the day" and
- *   "with a week to spare" are not the same story.
+ * - `onTime` — met it (green): meeting a deadline is meeting it, so this
+ *   reads as a success rather than a caution.
  * - `late`   — missed it (red)
+ *
+ * The three kinds stay distinct even though two share a colour: the label
+ * still says which, and a future view may want to tell them apart.
  */
 export type Punctuality = 'early' | 'onTime' | 'late'
 

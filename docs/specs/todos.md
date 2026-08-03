@@ -167,8 +167,9 @@ is spelled out in words, so meaning never depends on colour alone
 ([ui](./ui.md) — status display):
 
 - **Early** (green) — comfortably ahead of the deadline.
-- **On time** (amber) — met it, but only just. Distinct from early because
-  "on the day" and "with a week to spare" are different stories.
+- **On time** (green) — met it. *(changed 2026-08-02: was amber. Meeting a
+  deadline is meeting it; shading it as a caution nagged at something that
+  went fine. Only a miss warrants a warning colour.)*
 - **Late** (red) — missed it.
 
 Rules:

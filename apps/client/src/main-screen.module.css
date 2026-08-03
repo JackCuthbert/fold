@@ -62,22 +62,29 @@
   flex: none;
 }
 
-/* docs/specs/ui.md — the nav has a title above its list of lists, so the
-   panel is labelled rather than starting abruptly. Shares the list rows'
-   left edge/height rhythm via the same horizontal inset as `.navScroll`
+/* docs/specs/ui.md — the nav is headed by the app's mark, so the panel is
+   identified rather than starting abruptly. Shares the list rows' left
+   edge/height rhythm via the same horizontal inset as `.navScroll`
    beneath it.
    docs/specs/ui.md — overlays: a divider separates a title from its
    content in modals and side panels, especially once the body scrolls
    beneath it — the border-bottom here is that divider.
-   docs/specs/ui.md — the nav: the "Lists" heading is compact — it labels
-   the panel, so it shouldn't claim as much vertical space as the rows
-   beneath it. *(changed 2026-08-01: was --space-4/--space-3 top/bottom,
-   as roomy as a modal title; reduced to --space-2/--space-2.)* */
+   docs/specs/ui.md — the nav: the heading is compact — it labels the
+   panel, so it shouldn't claim as much vertical space as the rows beneath
+   it. *(changed 2026-08-01: was --space-4/--space-3 top/bottom, as roomy
+   as a modal title; reduced to --space-2/--space-2.)*
+   *(changed 2026-08-02: was the text "Lists"; now the app's mark — icon
+   plus "Fold" — since Today and Summary sit below it too.)* */
 .navTitle {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-md);
-  font-weight: var(--weight-medium);
+  /* Semibold: this is the app's mark, so it carries more weight than the
+     medium used for a selected list row. */
+  font-weight: var(--weight-semibold);
   border-bottom: 1px solid var(--line);
 }
 
