@@ -1,6 +1,11 @@
 import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
-import { dayLabel, localDayOf, summariseCompleted } from '../src/todos/summary'
+import {
+  dayLabel,
+  formatCompletedAt,
+  localDayOf,
+  summariseCompleted,
+} from '../src/todos/summary'
 
 const done = (uid: string, completedAt?: string): Todo => ({
   uid,
@@ -74,6 +79,29 @@ describe('summariseCompleted', () => {
 
   it('is empty when nothing is completed', () => {
     expect(summariseCompleted([open('a')])).toEqual({ days: [], undated: 0 })
+  })
+})
+
+// docs/specs/todos.md — metadata footer in the detail view.
+describe('formatCompletedAt', () => {
+  const now = new Date(2026, 7, 4, 12, 0)
+
+  it('reads as a day plus a time', () => {
+    const at = new Date(2026, 7, 4, 9, 15)
+    const label = formatCompletedAt(at.toISOString(), now)
+    expect(label).toContain('Today')
+    expect(label).toMatch(/9:15/)
+  })
+
+  it('shares its day wording with the Summary headings', () => {
+    const at = new Date(2026, 7, 3, 16, 0)
+    expect(formatCompletedAt(at.toISOString(), now)).toContain(
+      dayLabel('2026-08-03', now),
+    )
+  })
+
+  it('is empty for a malformed stamp rather than showing "Invalid Date"', () => {
+    expect(formatCompletedAt('not-a-date', now)).toBe('')
   })
 })
 

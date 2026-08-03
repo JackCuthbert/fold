@@ -219,6 +219,59 @@
   padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
 }
 
+/* docs/specs/todos.md — metadata: facts *about* the todo rather than fields
+   on it, so it reads as a footnote below the actions — muted, small, and
+   separated by a hairline. It sits inside `.form`, which already owns the
+   panel's padding, so it needs only the rule above it and the space around
+   that; a horizontal inset here would double the form's own. */
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* One fact per row: label, then value. A fixed label column would align the
+   values but cost more width than two short rows need. */
+.metaRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.metaLabel {
+  color: var(--faint);
+  /* Enough for "Completed"/"Timing" so the two values line up without a
+     grid; they are the only labels this footer has. */
+  min-width: 5rem;
+}
+
+.metaValue {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* docs/specs/ui.md — status display: the same semantic tokens as sync
+   status and priority — green succeeded, amber caution, red missed —
+   rather than a third palette. The label states the verdict in words, so
+   meaning never depends on colour alone. */
+.metaEarly {
+  color: var(--status-synced);
+}
+
+/* Amber, not green: met the deadline, but only just. "On the day" and "with
+   a week to spare" are different stories and read better as different
+   colours. */
+.metaOnTime {
+  color: var(--status-syncing);
+}
+
+.metaLate {
+  color: var(--status-offline);
+}
+
 /* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
    surface/border/radius/focus/disabled treatment lives in one place
    (styles/button.module.css); each button composes the shared `action`

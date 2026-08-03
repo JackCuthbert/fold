@@ -142,6 +142,51 @@ behaviour) sort ahead of those that have one, keeping them in a stable
 block rather than interleaving unpredictably. *(added 2026-08-01: new todos
 visibly re-ordered after being added.)*
 
+## Metadata (detail view)
+
+*(added 2026-08-02.)*
+
+The detail view ends with a read-only footer of facts *about* the todo,
+below the actions and separated by a hairline. It is a footnote, not a set
+of fields: muted, small, and never editable.
+
+It appears **only when there is something to show** — an open todo has no
+completion date, so an open todo's panel looks exactly as it did before.
+
+| Row | Shown when | Content |
+|---|---|---|
+| Completed | `completedAt` is present | "Today at 12:00", "3 Aug at 9:15" — the same day wording as [Summary](./summary-view.md)'s headings, plus a time |
+| Timing | both `completedAt` and `due` are present | Whether it was done early, on time, or late, with a rough margin |
+
+### Timing
+
+Derived by comparing `COMPLETED` against `DUE`, so it costs no extra
+storage. Three outcomes, coloured with the **same semantic status tokens**
+as sync status and priority rather than a third palette — and the verdict
+is spelled out in words, so meaning never depends on colour alone
+([ui](./ui.md) — status display):
+
+- **Early** (green) — comfortably ahead of the deadline.
+- **On time** (amber) — met it, but only just. Distinct from early because
+  "on the day" and "with a week to spare" are different stories.
+- **Late** (red) — missed it.
+
+Rules:
+
+- **All-day todos are judged by the day, not the instant.** `dueInstant`
+  resolves `DUE;VALUE=DATE` to 23:59:59 local so an all-day todo isn't
+  flagged overdue until its day is out ([ordering](#ordering-and-overdue-comparison));
+  comparing against that literally would report a 3pm finish as "9 hours
+  early", which is not what finishing something on its due date means.
+  Completing it any time that day is on time. This keeps the footer
+  consistent with the overdue flag on rows.
+- **Near-misses are on time.** For a timed todo, within five minutes either
+  way counts as on time — 09:01 against a 09:00 deadline was not late in
+  any sense that matters.
+- **Margins are rough**, in the largest useful unit ("2 hours early",
+  "1 day late"). Nobody measured the gap to the minute, and exact figures
+  would be precision theatre.
+
 ## Clearing completed todos
 
 *(added 2026-08-02.)*

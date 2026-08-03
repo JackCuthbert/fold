@@ -15,6 +15,8 @@ import { LuChevronDown } from 'react-icons/lu'
 import { z } from 'zod'
 import { cx } from '../styles/cx'
 import { dueToFields, fieldsToDue } from './due-fields'
+import { punctualityOf, type Punctuality } from './punctuality'
+import { formatCompletedAt } from './summary'
 import styles from './todo-detail.module.css'
 
 // docs/specs/todos.md — due times: a time needs a date, since DUE cannot
@@ -35,6 +37,15 @@ const detailSchema = z
     message: 'Pick a date for this time',
   })
 type DetailForm = z.infer<typeof detailSchema>
+
+// docs/specs/ui.md — status display: reuse the semantic status tokens
+// (green succeeded, amber caution, red missed) rather than inventing a
+// palette. The label carries the meaning; colour only reinforces it.
+const PUNCTUALITY_CLASS: Record<Punctuality, string> = {
+  early: styles['metaEarly'] ?? '',
+  onTime: styles['metaOnTime'] ?? '',
+  late: styles['metaLate'] ?? '',
+}
 
 const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
   { label: 'None', value: '' },
@@ -70,6 +81,7 @@ export function TodoDetail(props: {
 }) {
   const { todo } = props
   const initialFields = dueToFields(todo.due)
+  const punctuality = punctualityOf(todo)
   const listOptions = props.lists.map((list) => ({
     label: list.displayName,
     value: list.id,
@@ -335,6 +347,45 @@ export function TodoDetail(props: {
                 Delete
               </button>
             </div>
+
+            {/* docs/specs/todos.md — metadata: facts *about* the todo rather
+                than fields on it, so it reads as a footnote below the
+                actions. Inside the form (which is the panel's scroller)
+                rather than after it: as a sibling it would be pinned to the
+                panel's bottom edge, stranded far below the buttons whenever
+                the panel is taller than its content. Only rendered when
+                there is something to show — an open todo has no completion
+                date, and a completed one written by another client may not
+                carry one either (docs/specs/summary-view.md). */}
+            {todo.completedAt && (
+              <dl className={styles['meta']}>
+                <div className={styles['metaRow']}>
+                  <dt className={styles['metaLabel']}>Completed</dt>
+                  <dd className={styles['metaValue']}>
+                    {formatCompletedAt(todo.completedAt, new Date())}
+                  </dd>
+                </div>
+                {/* Derived from COMPLETED against DUE, so it appears only
+                    when both exist. Colour-coded with the same semantic
+                    status tokens as sync status and priority rather than a
+                    third palette, and the verdict is spelled out in words
+                    so meaning never depends on colour alone
+                    (docs/specs/ui.md — status display). */}
+                {punctuality && (
+                  <div className={styles['metaRow']}>
+                    <dt className={styles['metaLabel']}>Timing</dt>
+                    <dd
+                      className={cx(
+                        styles['metaValue'],
+                        PUNCTUALITY_CLASS[punctuality.kind],
+                      )}
+                    >
+                      {punctuality.label}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
           </Form>
         </Dialog.Popup>
       </Dialog.Portal>

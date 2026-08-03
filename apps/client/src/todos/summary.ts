@@ -73,6 +73,25 @@ export function summariseCompleted(todos: readonly Todo[]): SummaryResult {
 }
 
 /**
+ * A completion instant as day plus time — "Today at 12:00 pm", "3 Aug at
+ * 9:15 am". Used by the detail view's metadata footer
+ * (docs/specs/todos.md — metadata).
+ *
+ * Shares `dayLabel` with the Summary headings so the same completion reads
+ * the same way in both places. The time is included here, where the value
+ * is about one todo, but not in a heading that covers a whole day.
+ */
+export function formatCompletedAt(completedAt: string, now: Date): string {
+  const instant = new Date(completedAt)
+  if (Number.isNaN(instant.getTime())) return ''
+  const time = instant.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  return `${dayLabel(localDayOf(instant), now)} at ${time}`
+}
+
+/**
  * Human label for a day heading: "Today" / "Yesterday" for the two most
  * recent, an absolute date beyond that. Relative labels are what someone
  * preparing a standup actually says, but only stay honest for a day or two.
