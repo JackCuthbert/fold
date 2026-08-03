@@ -119,6 +119,13 @@ export async function createSyncEngine(options: SyncEngineOptions) {
     void queryClient.invalidateQueries({
       queryKey: ['todos', mutation.listId],
     })
+    // A dropped move leaves both lists suspect — the copy may have landed
+    // even though the delete didn't.
+    if (mutation.kind === 'moveTodo') {
+      void queryClient.invalidateQueries({
+        queryKey: ['todos', mutation.targetListId],
+      })
+    }
     if (isListMutation(mutation)) {
       void queryClient.invalidateQueries({ queryKey: ['lists'] })
     }
@@ -190,16 +197,31 @@ export async function createSyncEngine(options: SyncEngineOptions) {
           // the meantime (e.g. completing a todo the instant after
           // creating it) would carry a stale/invalid etag and get
           // rejected by the server as an unrecoverable error.
-          const rawKey = ['todos', mutation.listId, 'raw'] as const
-          queryClient.setQueryData<TodosResponse>(rawKey, (cache) =>
-            cache ? patchTodo(cache, serverTodo) : cache,
+          //
+          // For a move, the returned todo is the copy in the *target*, so
+          // it must be patched there. Patching it into `listId` (the
+          // source) would re-insert the todo into the list it just left —
+          // `patchTodo` appends when the uid is absent — making it blink
+          // back into the source list until the refetch removed it again.
+          // *(fixed 2026-08-02.)*
+          const patchListId =
+            mutation.kind === 'moveTodo'
+              ? mutation.targetListId
+              : mutation.listId
+          queryClient.setQueryData<TodosResponse>(
+            ['todos', patchListId, 'raw'],
+            (cache) => (cache ? patchTodo(cache, serverTodo) : cache),
           )
           queryClient.setQueryData<TodosResponse>(
-            ['todos', mutation.listId],
+            ['todos', patchListId],
             (cache) => (cache ? patchTodo(cache, serverTodo) : cache),
           )
         }
         touchedListIds.add(mutation.listId)
+        // A move changes two lists, so both need refetching.
+        if (mutation.kind === 'moveTodo') {
+          touchedListIds.add(mutation.targetListId)
+        }
         if (isListMutation(mutation)) touchedLists = true
         if (outbox.size() === 1) {
           // The head mutation we just processed is about to be ack()'d by

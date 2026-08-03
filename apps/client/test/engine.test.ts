@@ -417,3 +417,84 @@ describe('sync engine', () => {
     engine.stop()
   })
 })
+
+// docs/specs/todos.md — moving a todo between lists.
+describe('sync engine: moveTodo', () => {
+  const move: Mutation = {
+    id: '00000000-0000-4000-8000-00000000000a',
+    kind: 'moveTodo',
+    listId: 'l1',
+    targetListId: 'l2',
+    uid: 'a',
+    etag: 'e1',
+    todo: { uid: 'a', summary: 'A' },
+  }
+
+  // The flicker this guards: the server copy returned by a move belongs to
+  // the *target*, but it used to be patched into the source's cache.
+  // `patchTodo` appends when the uid is absent, so the todo blinked back
+  // into the list it had just left until the refetch removed it again.
+  it('patches the server copy into the target list, not the source', async () => {
+    const serverTodo = {
+      uid: 'a',
+      listId: 'l2',
+      href: '/l2/a',
+      etag: 'real',
+      summary: 'A',
+      completed: false,
+    }
+    const queryClient = new QueryClient()
+    queryClient.setQueryData<TodosResponse>(['todos', 'l1'], {
+      ctag: 'c1',
+      todos: [],
+    })
+    queryClient.setQueryData<TodosResponse>(['todos', 'l2'], {
+      ctag: 'c2',
+      todos: [],
+    })
+    const engine = await createSyncEngine({
+      api: fakeApi({
+        createTodo: vi.fn().mockResolvedValue(serverTodo),
+        deleteTodo: vi.fn().mockResolvedValue(undefined),
+      }),
+      queryClient,
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(move)
+    await vi.waitFor(() => {
+      const target = queryClient.getQueryData<TodosResponse>(['todos', 'l2'])
+      expect(target?.todos.map((t) => t.uid)).toEqual(['a'])
+    })
+    // The source must NOT have gained it back.
+    const source = queryClient.getQueryData<TodosResponse>(['todos', 'l1'])
+    expect(source?.todos).toEqual([])
+    engine.stop()
+  })
+
+  it('invalidates both lists once the queue drains', async () => {
+    const queryClient = new QueryClient()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const engine = await createSyncEngine({
+      api: fakeApi({
+        createTodo: vi.fn().mockResolvedValue(undefined),
+        deleteTodo: vi.fn().mockResolvedValue(undefined),
+      }),
+      queryClient,
+      storage: memoryStorage(),
+      onUnauthorized: vi.fn(),
+      onDropped: vi.fn(),
+      onStorageProblem: vi.fn(),
+    })
+    engine.start()
+    await engine.enqueue(move)
+    await vi.waitFor(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['todos', 'l1'] })
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['todos', 'l2'] })
+    })
+    engine.stop()
+  })
+})
