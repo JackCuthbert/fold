@@ -19,7 +19,27 @@ Shipped. A time field sits beside the date in both the add and edit forms,
 empty for all-day todos; a time writes `zoned` (`DUE;TZID=…`) in the
 viewer's timezone. See [todos — due times](./todos.md#due-times).
 
-## 3. Reordering lists
+## 3. Bulk-clearing completed todos, safely
+
+"Clear completed" was removed on 2026-08-02, the day `COMPLETED` capture
+landed: it deleted the very records the [Summary](./summary-view.md) view is
+built from, one click behind a single confirm. Individual deletion from the
+detail sheet remains.
+
+Something should replace it eventually, since completed sections do grow.
+The open questions:
+
+- **A heavy confirmation**, naming exactly what is destroyed (count, date
+  range, "this removes them from Summary permanently")? Honest, but still
+  one dialog between the user and months of history.
+- **A retention rule** — only offer clearing for items completed more than
+  N days ago, so recent history is never bulk-deletable. Needs a default N,
+  and a way to show which items qualify.
+- **Archive instead of delete**? There is nowhere to archive *to* — the
+  CalDAV collections are the only store. A dedicated "Archive" collection
+  is possible but adds a concept.
+
+## 4. Reordering lists
 
 Let the user arrange lists in the nav, persisted to the server so the order
 follows them to other devices and clients.
@@ -35,7 +55,7 @@ ordering property for collections. Apple uses `calendar-order` (the same
 supports — that's the most interoperable option, but it's an extension, so
 it must degrade gracefully on a server that ignores it.
 
-## 4. Per-list colours
+## 5. Per-list colours
 
 A colour on each list, chosen from a picker in the list's edit menu, used
 as a subtle accent in the nav and possibly on todo rows.

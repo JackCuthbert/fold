@@ -9,9 +9,7 @@ import {
   waitForSync,
 } from './helpers'
 
-test('login → create list → add → complete → clear completed', async ({
-  page,
-}) => {
+test('login → create list → add → complete → delete', async ({ page }) => {
   await login(page)
 
   const listName = uniqueName('groceries')
@@ -43,9 +41,13 @@ test('login → create list → add → complete → clear completed', async ({
     page.getByRole('button', { name: 'Completed (1)' }),
   ).toBeVisible()
 
+  // docs/specs/todos.md — clearing completed todos: there is no bulk
+  // delete; a completed todo is the only record that the work was done.
+  // Deleting one goes through its detail sheet, one at a time.
+  // *(changed 2026-08-02: was "Clear completed" + "Delete 1".)*
   await page.getByRole('button', { name: 'Completed (1)' }).click()
-  await page.getByRole('button', { name: 'Clear completed' }).click()
-  await page.getByRole('button', { name: 'Delete 1' }).click()
+  await page.getByText('Buy milk').click()
+  await page.getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText('Buy milk')).toBeHidden()
   await expect(page.getByText('Buy bread')).toBeVisible()
 

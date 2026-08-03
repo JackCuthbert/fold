@@ -117,8 +117,11 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
  * (use-todo-actions.ts), so each row resolves its own writer rather than
  * sharing one — otherwise completing a todo would write to the wrong
  * list's cache (docs/specs/today-view.md — fetching).
+ *
+ * Shared with the Summary view (docs/specs/summary-view.md), which has the
+ * same cross-list problem.
  */
-function TodayRow(props: {
+export function TodayRow(props: {
   todo: Todo
   now: Date
   listName: string
@@ -146,8 +149,8 @@ function TodayRow(props: {
   )
 }
 
-/** Detail sheet bound to the opened todo's own list. */
-function TodayDetail(props: {
+/** Detail sheet bound to the opened todo's own list. Shared with Summary. */
+export function TodayDetail(props: {
   todo: Todo
   lists: readonly TodoList[]
   onClose: () => void

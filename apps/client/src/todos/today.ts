@@ -12,9 +12,18 @@ import { dueInstant } from './sort'
 // have shadowed. A colon cannot appear unescaped in a path segment, so this
 // value can never collide with a real list id.
 export const TODAY_VIEW = 'view:today' as const
+/** docs/specs/summary-view.md — finished work, grouped by day. */
+export const SUMMARY_VIEW = 'view:summary' as const
 export type ViewId = string
 
 export const isTodayView = (view: ViewId | null): boolean => view === TODAY_VIEW
+
+export const isSummaryView = (view: ViewId | null): boolean =>
+  view === SUMMARY_VIEW
+
+/** True for any derived view — i.e. anything that is not a real list. */
+export const isDerivedView = (view: ViewId | null): boolean =>
+  isTodayView(view) || isSummaryView(view)
 
 /** Last millisecond of `now`'s local day — the cutoff for "due today". */
 export function endOfLocalDay(now: Date): number {

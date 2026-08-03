@@ -142,6 +142,25 @@ behaviour) sort ahead of those that have one, keeping them in a stable
 block rather than interleaving unpredictably. *(added 2026-08-01: new todos
 visibly re-ordered after being added.)*
 
+## Clearing completed todos
+
+*(added 2026-08-02.)*
+
+**There is no bulk "clear completed".** It was removed the day `COMPLETED`
+started being captured, because the two cannot coexist safely: a completed
+todo carries the only record that the work was ever done, and the
+[Summary](./summary-view.md) view is built entirely from those records.
+Deleting a list's completed section is therefore destroying history, not
+tidying up — and it was a single click behind one confirm dialog.
+
+Individual todos can still be deleted from the detail sheet, one at a time.
+That is deliberate friction: losing one todo is a small mistake, losing a
+quarter's worth is not.
+
+A gated bulk action — a heavy confirmation naming what is destroyed, or a
+retention policy that only offers items older than some age — is wanted, but
+needs designing rather than inheriting. See [backlog](./backlog.md).
+
 ## Moving a todo between lists
 
 *(added 2026-08-02.)*
@@ -212,7 +231,8 @@ Rules:
 - **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
   for summary, due date, notes, and priority.
 - **Completed handling:** completed items move to a collapsible "Completed"
-  section per list with a count. "Clear completed" deletes them from the
-  server after confirmation.
+  section per list with a count — see
+  [Clearing completed todos](#clearing-completed-todos) for why there is no
+  bulk delete.
 - All mutations are optimistic and queue through the outbox
   ([sync-and-offline](./sync-and-offline.md)).

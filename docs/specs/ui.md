@@ -36,8 +36,8 @@ supersede earlier wording.)*
 - **Main content is centred** with a comfortable measure (max ~34rem) so it
   reads well at any window width.
 - **Todo pane:** quick-add at top; active todos per [todos](./todos.md);
-  completed in a collapsible section with a count and "Clear completed"
-  (confirm required).
+  completed in a collapsible section with a count. No bulk delete —
+  see [todos](./todos.md#clearing-completed-todos). *(changed 2026-08-02.)*
 - **Detail view:** tapping a todo opens a **bottom sheet on mobile** and a
   **side panel on desktop** — never an inline expansion that shifts the list.
 - **Adding a todo opens a modal.** *(added 2026-07-31: an inline field made

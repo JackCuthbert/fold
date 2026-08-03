@@ -1,11 +1,16 @@
 import type { TodoList } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { LuPlus, LuSun } from 'react-icons/lu'
+import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
-import { isTodayView, TODAY_VIEW } from '../todos/today'
+import {
+  isSummaryView,
+  isTodayView,
+  SUMMARY_VIEW,
+  TODAY_VIEW,
+} from '../todos/today'
 import { applyMutationToLists } from '../sync/optimistic'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
@@ -48,22 +53,36 @@ export function ListNav(props: {
 
   return (
     <nav className={styles['nav']} aria-label="Lists">
-      {/* docs/specs/today-view.md — a derived view pinned above the real
-          lists, and visually distinct from them: a ghost button (link
-          appearance only, unlike every other control in the nav), set off
-          by space rather than a divider, with no kebab menu because there
-          is nothing on the server to rename or delete. */}
-      <button
-        type="button"
-        className={cx(
-          styles['today'],
-          isTodayView(props.selected) && styles['todayActive'],
-        )}
-        onClick={() => props.onSelect(TODAY_VIEW)}
-      >
-        <LuSun aria-hidden="true" size={16} />
-        Today
-      </button>
+      {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
+          views pinned above the real lists, and visually distinct from
+          them: ghost buttons (link appearance only, unlike every other
+          control in the nav), set off as a group by space rather than a
+          divider, with no kebab menu because there is nothing on the
+          server to rename or delete. */}
+      <div className={styles['views']}>
+        <button
+          type="button"
+          className={cx(
+            styles['today'],
+            isTodayView(props.selected) && styles['todayActive'],
+          )}
+          onClick={() => props.onSelect(TODAY_VIEW)}
+        >
+          <LuSun aria-hidden="true" size={16} />
+          Today
+        </button>
+        <button
+          type="button"
+          className={cx(
+            styles['today'],
+            isSummaryView(props.selected) && styles['todayActive'],
+          )}
+          onClick={() => props.onSelect(SUMMARY_VIEW)}
+        >
+          <LuHistory aria-hidden="true" size={16} />
+          Summary
+        </button>
+      </div>
 
       <ul>
         {(lists.data ?? []).map((list) => (

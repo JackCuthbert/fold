@@ -1,0 +1,49 @@
+/* docs/specs/summary-view.md — finished work, grouped by day. */
+
+.day {
+  /* Groups need more air between them than rows do within one, so the day
+     boundaries are legible while scanning. */
+  margin-bottom: var(--space-6);
+}
+
+.day:last-child {
+  margin-bottom: 0;
+}
+
+/* The date is what this view is scanned for, so it leads — but stays in the
+   app's restrained register: small caps-free serif at the base size, not a
+   heavier display treatment (docs/specs/ui.md). */
+.dayHeading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  /* Aligns the heading with the todo summaries beneath it: rows carry the
+     checkbox column, so the text starts one hit-area plus the row gap in.
+     Matching that keeps one left edge for the reading column
+     (docs/specs/ui.md). */
+  padding-inline-start: calc(var(--hit-area) + var(--space-1));
+  padding-block: var(--space-2);
+}
+
+/* A count, not a badge — the quiet meta treatment rows already use for
+   priority and due, so it reads as annotation rather than a chip. */
+.dayCount {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--faint);
+}
+
+.empty,
+.undated {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  padding-block: var(--space-2);
+}
+
+.undated {
+  margin-top: var(--space-6);
+  color: var(--faint);
+}

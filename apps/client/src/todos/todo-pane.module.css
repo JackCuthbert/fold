@@ -55,10 +55,3 @@
 .completedList {
   opacity: 0.75;
 }
-
-.clear {
-  color: var(--muted);
-  font-size: var(--text-sm);
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-1);
-}

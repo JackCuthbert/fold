@@ -5,18 +5,27 @@
   gap: var(--space-1);
 }
 
-/* docs/specs/today-view.md — Today is pinned above the lists and reads as a
-   different kind of thing: a view, not a collection. It is a **ghost
-   button** — link appearance only, no background, border or shadow — which
-   is what sets it apart from everything else in the nav: the list rows are
-   segmented buttons with real chrome, and "+ New list" and Save/Create
-   carry the shared `action` treatment. Today borrows neither.
-   *(changed 2026-08-02: it previously composed `action default navAction`,
-   which made a derived view look like just another button; a divider was
-   doing the work of distinguishing it. Ghost styling distinguishes it on
-   its own, so the divider is gone and the gap below is wider instead —
+/* The derived views (Today, Summary) as one group above the collections.
+   Separated by space alone — larger than the --space-1 gap between list
+   rows, so the grouping is legible without a rule. */
+.views {
+  margin-bottom: var(--space-4);
+}
+
+/* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
+   reads as a different kind of thing from a list: a view, not a collection.
+   Each is a **ghost button** — link appearance only, no background, border
+   or shadow — which is what sets them apart from everything else in the
+   nav: list rows are segmented buttons with real chrome, and "+ New list"
+   and Save/Create carry the shared `action` treatment. These borrow
+   neither.
+   *(changed 2026-08-02: Today previously composed `action default
+   navAction`, which made a derived view look like just another button, with
+   a divider doing the work of distinguishing it. Ghost styling distinguishes
+   it on its own, so the divider is gone and the gap below is wider instead —
    separation by space, not by a line.)*
-   No kebab: there is nothing on the server to rename or delete. */
+   No kebab: there is nothing on the server to rename or delete.
+   Shared by both views; the class name predates Summary. */
 .today {
   display: flex;
   align-items: center;
@@ -36,10 +45,6 @@
   /* A marker's worth of transparent space, reserved unconditionally so
      selecting Today doesn't shift the icon (same technique as `.link`). */
   border-left: var(--space-1) solid transparent;
-  /* Separates the view from the collections beneath by space alone. Larger
-     than the --space-1 gap between list rows, so the grouping is legible
-     without a rule. */
-  margin-bottom: var(--space-4);
   transition:
     color var(--duration-fast) var(--ease),
     background-color var(--duration-fast) var(--ease),

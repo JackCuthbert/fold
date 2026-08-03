@@ -103,6 +103,7 @@ supplies an IndexedDB implementation).
 | [lists](./lists.md) | List discovery, create/rename/delete |
 | [todos](./todos.md) | Todo data model, fields, completed handling |
 | [today-view](./today-view.md) | The derived Today view: scope, ordering, fetching |
+| [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |
 | [sync-and-offline](./sync-and-offline.md) | Outbox, sync loop, conflicts, offline UX |
 | [api](./api.md) | JSON API surface, handler convention, error mapping |
 | [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |

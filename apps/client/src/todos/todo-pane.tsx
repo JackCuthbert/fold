@@ -3,7 +3,6 @@ import type { Todo, TodosResponse } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
-import { ConfirmDialog } from '../confirm'
 import { useLists } from '../lists/list-nav'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
@@ -50,7 +49,6 @@ export function TodoPane(props: {
   const { playPop } = useSound()
   const [openUid, setOpenUid] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
-  const [confirmClear, setConfirmClear] = useState(false)
 
   // docs/specs/todos.md — ordering: sorting happens here, on read, so the
   // list is always in sorted order — including the moment a todo is created.
@@ -121,13 +119,13 @@ export function TodoPane(props: {
                 />
               ))}
             </ul>
-            <button
-              type="button"
-              className={styles['clear']}
-              onClick={() => setConfirmClear(true)}
-            >
-              Clear completed
-            </button>
+            {/* docs/specs/todos.md — clearing completed todos: there is no
+                bulk delete. A completed todo carries the only record that
+                the work was done (its COMPLETED stamp, which the Summary
+                view groups by day), so wiping a list's completed section
+                destroys history rather than tidying it. Individual todos
+                can still be deleted from the detail sheet.
+                *(removed 2026-08-02.)* */}
           </Collapsible.Panel>
         </Collapsible.Root>
       )}
@@ -145,19 +143,6 @@ export function TodoPane(props: {
           onClose={() => setOpenUid(null)}
         />
       )}
-
-      <ConfirmDialog
-        open={confirmClear}
-        title="Clear completed?"
-        confirmLabel={`Delete ${completed.length}`}
-        onCancel={() => setConfirmClear(false)}
-        onConfirm={() => {
-          for (const todo of completed) actions.remove(todo)
-          setConfirmClear(false)
-        }}
-      >
-        <p>Deletes {completed.length} completed todos from the server.</p>
-      </ConfirmDialog>
     </div>
   )
 }
