@@ -13,6 +13,13 @@ export type TodosResponse = z.infer<typeof todosResponseSchema>
 export const createListRequestSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/)
+    .optional(),
+  // docs/specs/lists.md — a new list's order is chosen by the client, so
+  // the client and server can never disagree about where it goes.
+  order: z.int().optional(),
 })
 // docs/specs/lists.md — PATCH carries any subset of a list's mutable
 // properties. `displayName` is optional now that colour and order can be
@@ -34,9 +41,6 @@ export const patchListRequestSchema = z
       value.order !== undefined,
     { message: 'PATCH must change at least one property' },
   )
-
-/** @deprecated use patchListRequestSchema — kept until callers migrate. */
-export const renameListRequestSchema = patchListRequestSchema
 
 export const createTodoRequestSchema = newTodoSchema
 export const updateTodoRequestSchema = z.object({
