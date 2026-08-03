@@ -92,3 +92,50 @@ test('rename and delete a list via its kebab menu', async ({ page }) => {
     page.getByRole('button', { name: renamed, exact: true }),
   ).toBeHidden()
 })
+
+// docs/specs/lists.md — colours: the nav row's dot carries the list's
+// colour. Assigning one via the palette must survive a reload, which is
+// what proves it reached the server rather than only the local cache.
+test('a list colour persists across a reload', async ({ page }) => {
+  await login(page)
+
+  const listName = uniqueName('coloured')
+  await createList(page, listName)
+  await waitForSync(page)
+
+  // A palette swatch rather than a typed hex: the hex field's parsing is
+  // already unit-tested, and duplicating it here would test the same
+  // behaviour at two layers.
+  await openListMenu(page, listName)
+  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  await page.getByRole('button', { name: 'Blue' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+  // The dot is aria-hidden (decorative — the row's name is the label), so
+  // it's reached through the row rather than by role. Playwright reports
+  // computed colours as rgb(), never as the source hex #4A6F96.
+  const dot = page
+    .getByRole('button', { name: listName, exact: true })
+    .locator('span[aria-hidden="true"]')
+  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+
+  // Reload from the *server*, not the local cache. `waitForSync` proves the
+  // colour reached the server, but the query cache is persisted to IndexedDB
+  // and restored on reload with `staleTime: 30_000` (offline-first, by
+  // design — docs/specs/sync-and-offline.md), so a plain reload can re-render
+  // the pre-mutation snapshot without refetching. Dropping the persisted
+  // cache first is what makes this assertion about the server rather than
+  // about IndexedDB.
+  await waitForSync(page)
+  await page.evaluate(
+    async () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.deleteDatabase('keyval-store')
+        req.addEventListener('success', () => resolve())
+        req.addEventListener('error', () => reject(req.error))
+        req.addEventListener('blocked', () => resolve())
+      }),
+  )
+  await page.reload()
+  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+})

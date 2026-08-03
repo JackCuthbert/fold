@@ -12,8 +12,10 @@ import {
   TODAY_VIEW,
 } from '../todos/today'
 import { applyMutationToLists } from '../sync/optimistic'
+import { useTheme } from '../use-theme'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
+import { markerColor } from './list-color'
 import { nextOrder } from './list-order'
 import styles from './list-nav.module.css'
 
@@ -39,6 +41,7 @@ export function ListNav(props: {
 }) {
   const engine = useSyncEngine()
   const lists = useLists()
+  const theme = useTheme()
   const [creating, setCreating] = useState(false)
   const [renaming, setRenaming] = useState<TodoList | null>(null)
   const [deleting, setDeleting] = useState<TodoList | null>(null)
@@ -95,8 +98,31 @@ export function ListNav(props: {
                   ? `${styles['link']} ${styles['linkActive']}`
                   : styles['link']
               }
+              style={
+                list.id === props.selected
+                  ? { borderLeftColor: markerColor(list.color, theme) }
+                  : undefined
+              }
               onClick={() => props.onSelect(list.id)}
             >
+              {/* docs/specs/lists.md — colours: every list gets a dot,
+                  filled or not. An unfilled ring for a list with no colour
+                  keeps every name on the same left edge and the row rhythm
+                  identical down the nav; omitting it would make an
+                  uncoloured list read as a different kind of row and shift
+                  its name the moment a colour was assigned. */}
+              <span
+                className={cx(
+                  styles['dot'],
+                  list.color === undefined && styles['dotEmpty'],
+                )}
+                style={
+                  list.color !== undefined
+                    ? { background: list.color }
+                    : undefined
+                }
+                aria-hidden="true"
+              />
               {list.displayName}
             </button>
             <ListItemMenu
