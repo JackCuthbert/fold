@@ -275,6 +275,26 @@
   gap: var(--space-3);
   margin-top: var(--space-2);
   padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  /* The row can hold four items once "Unsaved changes" appears; on a narrow
+     sheet that is more than fits, so it wraps rather than squeezing the
+     buttons below their hit area. */
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+/* docs/specs/ui.md — status display: a quiet statement of fact, not an
+   alarm. Muted like the metadata footer rather than amber or red — nothing
+   has gone wrong, there is simply a change the user hasn't saved yet, and
+   Save sitting enabled beside it is the actionable part.
+   `margin-left: auto` claims the gap between the primary actions and
+   Delete, which is space the row already had — so nothing shifts when this
+   appears and disappears, and Delete's own `margin-left: auto` still pins
+   it to the trailing edge. *(added 2026-08-03.)* */
+.dirty {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* docs/specs/todos.md — metadata: facts *about* the todo rather than fields

@@ -403,6 +403,17 @@ export function TodoDetail(props: {
           >
             Close
           </button>
+          {/* Save is disabled until something changes, which leaves the
+              panel looking inert while you are in fact mid-edit. This says
+              why the button is live — and, more usefully, warns that
+              closing now would lose the change. `role="status"` so it is
+              announced rather than only seen. Sits between the buttons and
+              Delete, in space the row already had. *(added 2026-08-03.)* */}
+          {isDirty && (
+            <span className={styles['dirty']} role="status">
+              Unsaved changes
+            </span>
+          )}
           <button
             type="button"
             className={styles['delete']}
