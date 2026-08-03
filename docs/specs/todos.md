@@ -221,14 +221,41 @@ todo carries the only record that the work was ever done, and the
 Deleting a list's completed section is therefore destroying history, not
 tidying up — and it was a single click behind one confirm dialog.
 
-Individual todos can still be deleted from the detail sheet, one at a time.
-That is deliberate friction: losing one todo is a small mistake, losing a
-quarter's worth is not.
+Individual todos can still be deleted from the detail sheet, one at a time,
+and each one asks first (see below). That is deliberate friction: losing one
+todo is a small mistake, losing a quarter's worth is not.
 
 A gated bulk action — a heavy confirmation naming what is destroyed, or a
 retention policy that only offers items older than some age — is wanted, but
 needs designing rather than inheriting. See
 [issue #1](https://github.com/JackCuthbert/fold/issues/1).
+
+## Deleting a todo asks first
+
+*(added 2026-08-04: Delete in the detail panel destroyed the todo on the
+first click. A real todo — with a due date and notes — was lost to it, and
+there is nothing to recover: the server hard-deletes the resource.)*
+
+Deleting is **not** a heavier version of completing. Completing keeps the
+todo and is the record that the work was done; deleting removes the resource
+outright, with no undo and no trace. A control with that consequence cannot
+be one click.
+
+- Delete opens a confirmation. It is an **alert dialog**, not an ordinary
+  one: it interrupts to ask about something irreversible, and it does not
+  close on an outside click, so a stray click beside the question cannot
+  dismiss it. Escape still cancels.
+- The **body names the todo**, not the title. Summaries run long — a title
+  would wrap badly or truncate exactly the text that tells you what you are
+  about to destroy.
+- **A completed todo is confirmed the same way.** Being finished is not
+  permission to delete it silently; it is the only record the work happened.
+- **No undo.** Undo is a different feature with its own design; a
+  confirmation is what stops the accident today.
+- The confirmation renders as a **sibling** of the detail panel, never
+  inside it. On mobile the panel is itself a dialog, and a nested dialog
+  gets no backdrop of its own — the confirm would float on the panel's
+  scrim with nothing dimming the panel behind it.
 
 ## Moving a todo between lists
 

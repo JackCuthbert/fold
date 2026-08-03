@@ -2,6 +2,7 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import type { Todo, TodoList } from '@fold/schemas'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
+import { ConfirmDialog } from '../confirm'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { sortActiveTodos } from './sort'
@@ -172,20 +173,47 @@ export function TodayDetail(props: {
   onClose: () => void
 }) {
   const actions = useTodoActions(props.todo.listId)
+  // docs/specs/todos.md — deleting a todo asks first. A delete is
+  // unrecoverable: the resource is removed from the server outright and
+  // there is no undo, so the one-click version destroyed real work
+  // (issue #19).
+  const [confirming, setConfirming] = useState(false)
   return (
-    <TodoDetail
-      todo={props.todo}
-      lists={props.lists}
-      form={props.form}
-      mode={props.mode}
-      {...(props.focusNonce === undefined
-        ? {}
-        : { focusNonce: props.focusNonce })}
-      onDelete={() => {
-        actions.remove(props.todo)
-        props.onClose()
-      }}
-      onClose={props.onClose}
-    />
+    <>
+      <TodoDetail
+        todo={props.todo}
+        lists={props.lists}
+        form={props.form}
+        mode={props.mode}
+        {...(props.focusNonce === undefined
+          ? {}
+          : { focusNonce: props.focusNonce })}
+        onDelete={() => setConfirming(true)}
+        onClose={props.onClose}
+      />
+      {/* A *sibling* of TodoDetail, never a child. In `sheet` mode the
+          detail is itself a Dialog, and Base UI gives a nested dialog no
+          backdrop of its own — the confirm would appear to float on the
+          sheet's scrim with nothing dimming the sheet behind it. Rendering
+          it here keeps both overlays top-level. */}
+      <ConfirmDialog
+        open={confirming}
+        title="Delete this todo?"
+        confirmLabel="Delete todo"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false)
+          actions.remove(props.todo)
+          props.onClose()
+        }}
+      >
+        {/* The summary goes in the body, not the title: summaries run long
+            and would wrap a heading badly (issue #19). */}
+        <p>
+          <strong>{props.todo.summary}</strong> will be deleted from the server.
+          This can't be undone.
+        </p>
+      </ConfirmDialog>
+    </>
   )
 }

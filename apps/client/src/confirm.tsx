@@ -1,19 +1,24 @@
-import { Dialog } from '@base-ui/react/dialog'
+import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { ReactNode } from 'react'
 import { cx } from './styles/cx'
 import styles from './confirm.module.css'
 
-// Base UI's Dialog handles focus trapping, scroll locking, Escape-to-close
-// and focus restoration to the trigger — docs/specs/ui.md: prefer it over
-// hand-rolling focus management (previously a native <dialog> driven
-// imperatively by showModal()/close()).
+// Base UI's AlertDialog handles focus trapping, scroll locking,
+// Escape-to-close and focus restoration to the trigger — docs/specs/ui.md:
+// prefer it over hand-rolling focus management.
+//
+// AlertDialog rather than Dialog: this interrupts to ask about something
+// irreversible, which is exactly what `role="alertdialog"` means — screen
+// readers announce it assertively rather than as an ordinary dialog. It
+// also declines to close on an outside click, so a stray click next to a
+// destructive question cannot dismiss it. Escape still cancels.
+// *(changed 2026-08-04, issue #19.)*
 //
 // Deliberately NOT using ModalHeader: this is the one dialog with no ✕
 // (docs/specs/ui.md — overlays: closing a modal). A destructive confirm
 // asks a question and offers two answers; a third dismissal path in the
 // header would compete with the explicit Cancel beside the destructive
-// action. Escape and a click outside remain, as on every dialog.
-// *(decided 2026-08-03, issue #14.)*
+// action.
 export function ConfirmDialog(props: {
   open: boolean
   title: string
@@ -23,18 +28,18 @@ export function ConfirmDialog(props: {
   onCancel: () => void
 }) {
   return (
-    <Dialog.Root
+    <AlertDialog.Root
       open={props.open}
       onOpenChange={(open) => {
         if (!open) props.onCancel()
       }}
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className={cx(styles['backdrop'])} />
-        <Dialog.Popup className={cx(styles['confirm'])}>
-          <Dialog.Title className={cx(styles['title'])}>
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop className={cx(styles['backdrop'])} />
+        <AlertDialog.Popup className={cx(styles['confirm'])}>
+          <AlertDialog.Title className={cx(styles['title'])}>
             {props.title}
-          </Dialog.Title>
+          </AlertDialog.Title>
           <div className={styles['body']}>{props.children}</div>
           <div className={styles['actions']}>
             <button
@@ -52,8 +57,8 @@ export function ConfirmDialog(props: {
               {props.confirmLabel}
             </button>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   )
 }

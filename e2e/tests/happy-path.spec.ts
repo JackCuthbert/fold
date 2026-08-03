@@ -45,9 +45,27 @@ test('login → create list → add → complete → delete', async ({ page }) =
   // delete; a completed todo is the only record that the work was done.
   // Deleting one goes through its detail sheet, one at a time.
   // *(changed 2026-08-02: was "Clear completed" + "Delete 1".)*
+  // Deleting asks first: it is unrecoverable, and completing is not a
+  // lesser version of it (docs/specs/todos.md — deleting a todo, issue
+  // #19). A completed todo is confirmed just like an active one.
   await page.getByRole('button', { name: 'Completed (1)' }).click()
   await page.getByText('Buy milk').click()
   await page.getByRole('button', { name: 'Delete' }).click()
+  const confirm = page.getByRole('alertdialog')
+  await expect(confirm).toBeVisible()
+  // The body names the todo, so you can see what you're about to destroy
+  // (the title can't — summaries run long).
+  await expect(confirm.getByText('Buy milk')).toBeVisible()
+
+  // Cancelling keeps the todo. Checked before the destructive path, since
+  // a confirm that deletes on *either* answer would still pass the
+  // delete-succeeds assertion below.
+  await confirm.getByRole('button', { name: 'Cancel' }).click()
+  await expect(confirm).toBeHidden()
+  await expect(page.getByText('Buy milk')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Delete' }).click()
+  await page.getByRole('button', { name: 'Delete todo' }).click()
   await expect(page.getByText('Buy milk')).toBeHidden()
   await expect(page.getByText('Buy bread')).toBeVisible()
 
