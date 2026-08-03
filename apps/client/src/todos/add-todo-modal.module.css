@@ -184,15 +184,32 @@
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-input);
-  color: var(--ink);
   background: transparent;
   text-align: left;
 }
 
+/* The trigger's default ink is scoped to triggers *without* a priority
+   class rather than declared on `.selectTrigger` itself. Both are
+   single-class selectors, so they carry equal specificity and the winner
+   would otherwise be decided by source order — and `composes:` hoists the
+   shared `.high`/`.medium`/`.low` rule to the top of the emitted
+   stylesheet, so `.selectTrigger`'s own `color` always came later and won,
+   leaving the selected value in plain ink. `:not()` takes the trigger out
+   of that race entirely: exactly one of the two rules can ever match.
+   *(added 2026-08-03, with the priority colouring below.)* */
+.selectTrigger:not(.prioHigh, .prioMedium, .prioLow) {
+  color: var(--ink);
+}
+
 /* docs/specs/ui.md — focus changes the border, not an outline: this button
    is styled to look like an input (Base UI's Select.Trigger), so it gets
-   the same treatment inside this modal. */
-.selectTrigger:focus-visible {
+   the same treatment inside this modal.
+
+   `[data-popup-open]` is Base UI's open state — see the fuller note on the
+   equivalent rule in todo-detail.module.css.
+   *(fixed 2026-08-03, issue #18.)* */
+.selectTrigger:focus-visible,
+.selectTrigger[data-popup-open] {
   outline: none;
   border-color: var(--accent);
 }
@@ -235,6 +252,23 @@
 
 .selectItem[data-highlighted] {
   background: var(--line);
+}
+
+/* docs/specs/todos.md — priority is colour-coded: the option that sets a
+   priority carries the same ink as the row that displays it, and so does
+   the trigger's selected value. Colours come from the one shared module
+   (styles/priority.module.css); "None" stays plain ink. See the fuller
+   note on the equivalent rules in todo-detail.module.css. */
+.prioHigh {
+  composes: high from '../styles/priority.module.css';
+}
+
+.prioMedium {
+  composes: medium from '../styles/priority.module.css';
+}
+
+.prioLow {
+  composes: low from '../styles/priority.module.css';
 }
 
 /* No margin-top — `.form`'s own `gap` already separates this row from the

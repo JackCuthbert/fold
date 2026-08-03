@@ -297,6 +297,14 @@ Rules:
   status colours rather than inventing a second palette, keep them muted
   enough for the restrained aesthetic, and keep the label as text so
   meaning never depends on colour alone.
+  **The same colours apply wherever a priority is *set*, not only where it
+  is displayed** — the options in the Priority dropdown, and the trigger's
+  selected value once chosen — so picking "High" previews the red it will
+  be on the row. **"None" stays unstyled**: it is the absence of a priority,
+  not a fourth level. Because three places now share these three colours,
+  they are declared once (`apps/client/src/styles/priority.module.css`) and
+  composed, not copied. *(added 2026-08-03: the dropdown options rendered in
+  plain ink, giving no hint what choosing them would look like.)*
 - **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
   for summary, due date, notes, and priority.
 - **Completed handling:** completed items move to a collapsible "Completed"

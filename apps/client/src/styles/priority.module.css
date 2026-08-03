@@ -1,0 +1,44 @@
+/*
+ * Shared priority ink — docs/specs/todos.md "Priority is colour-coded on
+ * the row, all three levels", and docs/specs/ui.md "Status display" for the
+ * tokens themselves.
+ *
+ * This is the one place priority colour is defined. High reads as urgent
+ * (red/offline), medium as cautionary (amber/syncing), low as calm
+ * (green/synced) — the same semantic status tokens the sync dot and the
+ * punctuality footer use, never a second palette.
+ *
+ * It lives here rather than in todo-item.module.css because three places
+ * now need it: the todo row, the detail panel's Priority dropdown, and the
+ * add-todo modal's. Copying three rules into three modules is exactly the
+ * drift that produced styles/button.module.css.
+ *
+ * There is deliberately **no `.none` class**: "None" is the absence of a
+ * priority, not a fourth level, so it renders in plain ink.
+ *
+ * Colour is never the only signal — every consumer keeps the text label
+ * ("High", "Medium", "Low") alongside it (docs/specs/ui.md —
+ * accessibility).
+ *
+ * Usage (in a consuming .module.css):
+ *
+ *   .prioHigh {
+ *     composes: high from '../styles/priority.module.css';
+ *   }
+ *
+ * *(added 2026-08-03: the dropdown options that *set* a priority rendered
+ * in plain ink, so choosing "High" gave no hint it would appear red on the
+ * row.)*
+ */
+
+.high {
+  color: var(--status-offline);
+}
+
+.medium {
+  color: var(--status-syncing);
+}
+
+.low {
+  color: var(--status-synced);
+}
