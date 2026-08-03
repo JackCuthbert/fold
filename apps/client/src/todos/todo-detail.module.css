@@ -107,13 +107,23 @@
   min-width: 0;
 }
 
+/* The muted ink here is for the field's *label*, but `global.css` gives
+   inputs `color: inherit` — so every input in this panel inherited it and
+   rendered its value in --muted, noticeably lighter than the identical
+   inputs in every other modal (which sit under a `.field` that sets no
+   colour at all). The label carries the colour explicitly now, and inputs
+   keep the --ink they get from global.css.
+   *(fixed 2026-08-03: the panel's values read as placeholder text.)* */
 .field {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   font-size: var(--text-sm);
-  color: var(--muted);
   min-width: 0;
+}
+
+.field :global(label) {
+  color: var(--muted);
 }
 
 .field :global(input),
