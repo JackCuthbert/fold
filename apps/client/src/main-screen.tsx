@@ -2,10 +2,13 @@ import { Dialog } from '@base-ui/react/dialog'
 import type { Todo } from '@fold/schemas'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami } from 'react-icons/lu'
+import { ConfirmDialog } from './confirm'
 import { HelpModal } from './help-modal'
+import { ListFormModal } from './lists/list-form-modal'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import { SettingsModal } from './lists/settings-modal'
+import { useListForm } from './lists/use-list-form'
 import styles from './main-screen.module.css'
 import { cx } from './styles/cx'
 import { SummaryPane } from './todos/summary-pane'
@@ -66,6 +69,12 @@ export function MainScreen() {
   // inside the drawer's Dialog on mobile and lose its backdrop too.
   // *(added 2026-08-03.)*
   const [helpOpen, setHelpOpen] = useState(false)
+  // The list create/edit/delete surfaces live here for the same reason
+  // again, plus one more: ListNav is rendered by two different trees either
+  // side of the breakpoint, so a modal owned there also *unmounted* on a
+  // resize, losing a half-typed list. MainScreen is mounted at every
+  // viewport. *(added 2026-08-04, issues #20 and #21.)*
+  const listForm = useListForm(lists.data ?? [])
   // docs/specs/ui.md — the detail panel: on desktop the panel is a layout
   // column, a sibling of `<main>` rather than a child, so which todo is
   // open has to live here — a pane inside `<main>` cannot render a column
@@ -259,6 +268,7 @@ export function MainScreen() {
       <div className={styles['navScroll']}>
         <ListNav
           selected={active}
+          form={listForm}
           onSelect={(listId) => {
             selectList(listId)
             setDrawerOpen(false)
@@ -319,6 +329,55 @@ export function MainScreen() {
       {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      {/* The list surfaces, here for the same reason and for one more —
+          see `listForm` above (issues #20 and #21). Opening one closes the
+          drawer: on mobile it's an overlay in its own right, and leaving it
+          open behind the modal would stack two scrims and two focus traps,
+          exactly as Settings does. */}
+      <ListFormModal
+        open={listForm.creating}
+        title="New list"
+        submitLabel="Create"
+        onOpenChange={listForm.setCreating}
+        onSubmit={(values) => {
+          selectList(listForm.submitCreate(values))
+          setDrawerOpen(false)
+        }}
+      />
+      <ListFormModal
+        open={listForm.editing !== null}
+        title="Edit list"
+        {...(listForm.editing
+          ? {
+              initial: {
+                displayName: listForm.editing.displayName,
+                ...(listForm.editing.color !== undefined
+                  ? { color: listForm.editing.color }
+                  : {}),
+              },
+            }
+          : {})}
+        submitLabel="Save"
+        onOpenChange={(open) => {
+          if (!open) listForm.closeEdit()
+        }}
+        onSubmit={(values) => {
+          listForm.submitEdit(values)
+          setDrawerOpen(false)
+        }}
+      />
+      <ConfirmDialog
+        open={listForm.deleting !== null}
+        title={`Delete "${listForm.deleting?.displayName ?? ''}"?`}
+        confirmLabel="Delete list"
+        onCancel={listForm.closeDelete}
+        onConfirm={() => {
+          listForm.confirmDelete()
+          setDrawerOpen(false)
+        }}
+      >
+        <p>This deletes the list and all its todos from the server.</p>
+      </ConfirmDialog>
       <div className={styles['body']}>
         {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both
