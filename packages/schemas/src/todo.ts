@@ -40,6 +40,12 @@ export const todoSchema = z.object({
   // stable ordering tie-break (docs/specs/todos.md — ordering), so a new
   // todo lands where the server copy will and never jumps.
   created: z.iso.datetime().optional(),
+  // RFC 5545 COMPLETED, ISO-8601 UTC — when the todo was finished. Absent
+  // while a todo is open, and possibly absent even on a completed one,
+  // since another client may set STATUS without it. Written by the server
+  // when `completed` is set; surfaced here so the Summary view can group
+  // finished work by day (docs/specs/summary-view.md).
+  completedAt: z.iso.datetime().optional(),
 })
 export type Todo = z.infer<typeof todoSchema>
 
