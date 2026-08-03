@@ -40,8 +40,12 @@ leaves the view the next day and is only findable by visiting its own list.
 - "Today" means the **viewer's local day**, consistent with the overdue rule
   in [todos](./todos.md#ordering-and-overdue-comparison).
 - A todo with no due date is never in Today.
-- Completed todos due today appear in the same collapsed "Completed (n)"
-  accordion every list has, so the view behaves like the rest of the app.
+- Completed todos due today appear in the same "Completed (n)" accordion
+  every list has — but **expanded by default here**, where a list view
+  starts collapsed. Today is one day's slice, so the section is short and
+  holds the day's finished work rather than an ever-growing archive, which
+  is worth seeing at a glance. It stays collapsible; only the initial state
+  differs. *(changed 2026-08-02.)*
 
 ## Ordering
 

@@ -22,7 +22,12 @@ export function TodayPane(props: { lists: readonly TodoList[] }) {
   const { todos } = useTodayTodos(props.lists)
   const { playPop } = useSound()
   const [openUid, setOpenUid] = useState<string | null>(null)
-  const [showCompleted, setShowCompleted] = useState(false)
+  // docs/specs/today-view.md — completed: expanded by default here, unlike
+  // a list view. Today is a single day's slice, so its completed section is
+  // short and is the day's finished work rather than an ever-growing
+  // archive — worth seeing at a glance. Still collapsible; this is only the
+  // initial state.
+  const [showCompleted, setShowCompleted] = useState(true)
 
   const now = new Date()
   const due = selectToday(todos, now)
