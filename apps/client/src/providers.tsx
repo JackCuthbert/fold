@@ -24,7 +24,7 @@ import {
   readServerIdentity,
   subscribeServerIdentity,
 } from './server-identity'
-import { idbStorage } from './sync/idb-storage'
+import { openOutboxStorage } from './sync/idb-storage'
 import { classifyBlockReason, TaggedFatalError } from './sync/process'
 import { useToast } from './toast'
 
@@ -198,41 +198,61 @@ export function AppProviders({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
     let created: SyncEngine | null = null
-    void createSyncEngine({
-      api,
-      queryClient,
-      // Namespaced per server, so queued writes still survive a logout and
-      // replay after re-login (docs/specs/authentication.md) — but only
-      // ever against the server they were made for. Signing into a
-      // different server leaves the first server's queue intact rather
-      // than dropping it: no silent data loss, and no replay onto list ids
-      // that mean something else on the new host.
-      storage:
+    // The outbox's own storage is opened first, and with a deadline: a
+    // wedged IndexedDB hangs rather than fails, and everything below waits
+    // on it, so without this the app never mounts (issue #17; see
+    // openOutboxStorage). A timeout degrades to a store that refuses to
+    // write, never to an empty one — the queue is still on disk and
+    // overwriting it would destroy queued work.
+    const boot = async (): Promise<void> => {
+      const { storage, degraded } =
         typeof indexedDB === 'undefined'
-          ? memoryStorage()
-          : idbStorage(outboxKeyFor(identity)),
-      onUnauthorized: () => queryClient.setQueryData(['session'], null),
-      onStorageProblem: (message: string) => toast(message),
-      onDropped: (mutation: Mutation, error: FatalError) => {
-        const what = describeMutation(mutation)
-        // Only a genuine 412-after-rebase is a real conflict — say so.
-        // Any other fatal drop (docs/specs/sync-and-offline.md) didn't
-        // change on the server; saying it did would be false.
-        const isConflict =
-          error instanceof TaggedFatalError && error.reason === 'conflict'
-        toast(
-          isConflict
-            ? `Couldn't save ${what} — it changed on the server`
-            : `Couldn't save ${what}`,
-        )
-      },
-    }).then((instance) => {
+          ? { storage: memoryStorage(), degraded: false }
+          : // Namespaced per server, so queued writes still survive a
+            // logout and replay after re-login
+            // (docs/specs/authentication.md) — but only ever against the
+            // server they were made for.
+            await openOutboxStorage(outboxKeyFor(identity))
       if (cancelled) return
+      if (degraded) {
+        // The queue on disk couldn't be read, so writes are being refused
+        // to avoid overwriting it. Say so plainly: the work is live in
+        // this tab and still syncs, but it isn't written down.
+        toast(
+          "Couldn't read your saved changes — new ones will sync but " +
+            "won't survive a reload.",
+        )
+      }
+      const instance = await createSyncEngine({
+        api,
+        queryClient,
+        storage,
+        onUnauthorized: () => queryClient.setQueryData(['session'], null),
+        onStorageProblem: (message: string) => toast(message),
+        onDropped: (mutation: Mutation, error: FatalError) => {
+          const what = describeMutation(mutation)
+          // Only a genuine 412-after-rebase is a real conflict — say so.
+          // Any other fatal drop (docs/specs/sync-and-offline.md) didn't
+          // change on the server; saying it did would be false.
+          const isConflict =
+            error instanceof TaggedFatalError && error.reason === 'conflict'
+          toast(
+            isConflict
+              ? `Couldn't save ${what} — it changed on the server`
+              : `Couldn't save ${what}`,
+          )
+        },
+      })
+      if (cancelled) {
+        instance.stop()
+        return
+      }
       created = instance
       syncEngineForQueryHealth = instance
       instance.start()
       setEngine(instance)
-    })
+    }
+    void boot()
     return () => {
       cancelled = true
       created?.stop()
