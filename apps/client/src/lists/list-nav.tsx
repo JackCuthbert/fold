@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
+import { InfoBadge } from '../info-badge'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import {
@@ -80,29 +81,50 @@ export function ListNav(props: {
           control in the nav), set off as a group by space rather than a
           divider, with no kebab menu because there is nothing on the
           server to rename or delete. */}
+      {/* Each view is a row, not just a button: the badge is a control in
+          its own right (a popover trigger) and must not be nested inside
+          the button that selects the view — a button inside a button is
+          invalid, and a tap meant for the badge would also switch views.
+          The row wrapper puts them side by side instead, with the button
+          taking the width so the icon and label keep the nav's shared left
+          edge (docs/specs/ui.md — one left edge). *(added 2026-08-03.)* */}
       <div className={styles['views']}>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isTodayView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(TODAY_VIEW)}
-        >
-          <LuSun aria-hidden="true" size={16} />
-          Today
-        </button>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isSummaryView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(SUMMARY_VIEW)}
-        >
-          <LuHistory aria-hidden="true" size={16} />
-          Summary
-        </button>
+        <div className={styles['viewRow']}>
+          <button
+            type="button"
+            className={cx(
+              styles['today'],
+              isTodayView(props.selected) && styles['todayActive'],
+            )}
+            onClick={() => props.onSelect(TODAY_VIEW)}
+          >
+            <LuSun aria-hidden="true" size={16} />
+            Today
+          </button>
+          {/* Shorter than the help modal's wording on purpose, and saying
+              the same thing — help-modal.tsx, "Today and Summary". */}
+          <InfoBadge label="About Today">
+            Everything due today or already overdue, gathered from all your
+            lists. A view, not a list you can add to.
+          </InfoBadge>
+        </div>
+        <div className={styles['viewRow']}>
+          <button
+            type="button"
+            className={cx(
+              styles['today'],
+              isSummaryView(props.selected) && styles['todayActive'],
+            )}
+            onClick={() => props.onSelect(SUMMARY_VIEW)}
+          >
+            <LuHistory aria-hidden="true" size={16} />
+            Summary
+          </button>
+          <InfoBadge label="About Summary">
+            What you&rsquo;ve finished, grouped by day — handy for a standup. A
+            view, not a list you can add to.
+          </InfoBadge>
+        </div>
       </div>
 
       <ul>

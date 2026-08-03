@@ -1,14 +1,26 @@
 /* docs/specs/ui.md — overlays: this is the quietest surface in the app, so
    it borrows the popup treatment from the select menu rather than
    inventing its own. */
+/* A real hit area around a deliberately small glyph — 44x44 under
+   `pointer: coarse`, the non-negotiable floor in docs/specs/ui.md
+   (controls & touch targets). The icon stays 14px: this is the quietest
+   control in the app and must not grow to match its target. Same
+   small-glyph-in-a-full-target arrangement as `.menuTrigger`
+   (main-screen.module.css) and the colour swatches.
+   *(added 2026-08-03: was padding alone, giving a 22px square. It sat
+   inside a dialog then; it now also sits in the nav beside Today and
+   Summary, where it is a primary touch target.)* */
 .trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
   color: var(--faint);
   background: none;
   border: none;
-  padding: var(--space-1);
+  padding: 0;
   cursor: help;
   border-radius: var(--radius-full);
 }

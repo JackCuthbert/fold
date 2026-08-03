@@ -1,0 +1,30 @@
+/*
+ * docs/specs/lists.md — colours: a list's colour dot, in one place.
+ *
+ * Shared because the same dot now appears in two: before the name in every
+ * nav row (list-nav.module.css) and beside the list title in the main pane
+ * (main-screen.module.css). Both compose from here rather than each
+ * declaring its own circle, so the two can never drift — the nav's dot and
+ * the title's are the same idea at two sizes, not two similar treatments.
+ *
+ * Size is a custom property rather than a fixed value: the nav's rows are
+ * --text-base, the title is larger, so the title's dot scales with its type
+ * instead of matching the nav's 8px exactly. Callers set --dot-size; the
+ * 8px default is the nav's, which is where the dot started.
+ */
+.dot {
+  width: var(--dot-size, var(--space-2));
+  height: var(--dot-size, var(--space-2));
+  border-radius: var(--radius-full);
+  /* Never squashed by a flex parent's `overflow: hidden` (long list names
+     ellipsise in the nav) — the name gives way, the dot does not. */
+  flex: none;
+}
+
+/* No colour set: an unfilled ring, not an absence. Same footprint as a
+   filled dot, so names stay on one left edge whether or not a list has a
+   colour, and assigning one never shifts the row. */
+.dotEmpty {
+  background: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
+}

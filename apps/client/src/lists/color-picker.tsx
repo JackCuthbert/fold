@@ -70,29 +70,37 @@ export function ColorPicker(props: {
   return (
     <div className={styles['picker']}>
       <div className={styles['swatches']} role="group" aria-label="List colour">
+        {/* Two elements, not one: the button is the 44px touch target (a
+            usability floor — docs/specs/ui.md, controls & touch targets)
+            and the span inside it is the smaller painted circle, so the
+            palette fits one line without shrinking the target.
+            *(split 2026-08-03.)* */}
         {PALETTE.map((entry) => (
           <button
             key={entry.value}
             type="button"
             className={styles['swatch']}
-            style={{ background: entry.value }}
             aria-label={entry.name}
             aria-pressed={props.value === entry.value}
             onClick={() => select(entry.value)}
           >
-            {props.value === entry.value && (
-              <LuCheck aria-hidden="true" size={14} />
-            )}
+            <span className={styles['dot']} style={{ background: entry.value }}>
+              {props.value === entry.value && (
+                <LuCheck aria-hidden="true" size={12} />
+              )}
+            </span>
           </button>
         ))}
         <button
           type="button"
-          className={cx(styles['swatch'], styles['none'])}
+          className={styles['swatch']}
           aria-label="No colour"
           aria-pressed={props.value === undefined}
           onClick={() => select(undefined)}
         >
-          <LuX aria-hidden="true" size={14} />
+          <span className={cx(styles['dot'], styles['none'])}>
+            <LuX aria-hidden="true" size={12} />
+          </span>
         </button>
       </div>
 

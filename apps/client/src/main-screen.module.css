@@ -74,11 +74,16 @@
    it. *(changed 2026-08-01: was --space-4/--space-3 top/bottom, as roomy
    as a modal title; reduced to --space-2/--space-2.)*
    *(changed 2026-08-02: was the text "Lists"; now the app's mark — icon
-   plus "Fold" — since Today and Summary sit below it too.)* */
+   plus "Fold" — since Today and Summary sit below it too.)*
+   *(changed 2026-08-03: centred. The mark is the brand, not a nav row, so
+   it is deliberately the one thing in the panel that does NOT sit on the
+   rows' shared left edge — docs/specs/ui.md's "one left edge" governs the
+   rows, and setting the mark apart from them is the point.)* */
 .navTitle {
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-md);
@@ -176,11 +181,34 @@
   min-width: 0;
 }
 
+/* Flex rather than `text-align: center` now that the title can carry a
+   colour dot: the dot and the name centre as one unit, so a coloured list
+   and an uncoloured one both sit optically centred rather than the name
+   shifting by the dot's width. */
 .title {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
   text-align: center;
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
+}
+
+/* docs/specs/lists.md — colours: the list's colour follows it into the
+   main pane's title, so the colour doesn't disappear exactly when you are
+   looking at that list. Same dot as the nav's (list-dot.module.css), one
+   step larger: the title is bigger type than a nav row, so the dot scales
+   with it rather than matching the nav's 8px and reading as a speck.
+   Derived views get no dot at all — not even the nav's empty ring. The
+   ring exists in the nav to keep every row's name on one left edge; a
+   centred title has no such constraint, so an empty ring here would be a
+   mark that means nothing. *(added 2026-08-03 — issue #12.)* */
+.titleDot {
+  composes: dot from './lists/list-dot.module.css';
+  --dot-size: 10px;
 }
 
 /* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,

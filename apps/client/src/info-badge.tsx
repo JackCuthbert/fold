@@ -1,14 +1,21 @@
 import { Popover } from '@base-ui/react/popover'
 import type { ReactNode } from 'react'
 import { LuInfo } from 'react-icons/lu'
-import styles from './extension-badge.module.css'
+import styles from './info-badge.module.css'
 
 /**
- * Marks a feature that relies on a CalDAV **extension** rather than RFC
- * 4791 — docs/specs/lists.md (colours and ordering).
+ * A small "what is this?" marker: an info glyph that opens a sentence or
+ * two of prose explaining the thing it sits beside.
  *
- * Generic on purpose: it takes its own text, so any future extension-backed
- * feature can reuse it rather than growing a second version.
+ * Generic on purpose — it takes its own text. Two uses so far: a feature
+ * that relies on a CalDAV **extension** rather than RFC 4791 (docs/specs/
+ * lists.md — colours and ordering), and the derived views in the nav
+ * (docs/specs/today-view.md, docs/specs/summary-view.md), which are views
+ * over your todos rather than lists on the server.
+ *
+ * *(renamed 2026-08-03: was `ExtensionBadge`. The name described its first
+ * use rather than what it is, and read oddly the moment it explained
+ * something that is not an extension at all.)*
  *
  * **A popover, not a tooltip** — deliberately. A tooltip's content is an
  * accessible *name* for its trigger: short, unfocusable, and not reliably
@@ -20,7 +27,7 @@ import styles from './extension-badge.module.css'
  * Hover does not exist on touch, so the trigger is a real button and a tap
  * opens the same popover — no interaction is pointer-only.
  */
-export function ExtensionBadge(props: {
+export function InfoBadge(props: {
   /** The explanation. One or two sentences of prose. */
   children: ReactNode
   /** Accessible name for the trigger, e.g. "About list colours". */
