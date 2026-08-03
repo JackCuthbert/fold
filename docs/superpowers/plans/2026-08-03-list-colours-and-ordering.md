@@ -743,6 +743,26 @@ Add to `apps/server/test/integration/gateway.test.ts`:
     expect(plain?.order).toBeUndefined()
     await gateway.deleteList('plain')
   })
+
+  // Task 4 replaced tsdav's default PROPFIND props with an explicit
+  // LIST_PROPS list, because passing `props` *replaces* the defaults
+  // rather than extending them. That list is invisible to unit tests: if
+  // someone later trims it, `cs:getctag` vanishes, `ctag` falls back to
+  // '' in toList, the short-circuit in fetchTodos stops firing (it
+  // guards on `ctag !== ''`), and the app silently gets slower with every
+  // test still green. This is the assertion that would catch it.
+  it('still reads the properties tsdav would have asked for by default', async () => {
+    await gateway.createList('props-check', 'Props check')
+    const lists = await gateway.fetchLists()
+    const list = lists.find((entry) => entry.id === 'props-check')
+
+    // ctag drives the cheap-refetch short-circuit.
+    expect(list?.ctag).not.toBe('')
+    // displayname must survive too — losing it would fall back to the id.
+    expect(list?.displayName).toBe('Props check')
+
+    await gateway.deleteList('props-check')
+  })
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
