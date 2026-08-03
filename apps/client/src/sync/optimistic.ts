@@ -164,19 +164,29 @@ export function applyMutationToLists(
     // property, `undefined` leaves it alone — so each field is applied
     // independently and changing one never disturbs the other.
     case 'setListProps':
-      return lists.map((list) => {
-        if (list.id !== mutation.listId) return list
-        const next: TodoList = { ...list }
-        if (mutation.color !== undefined) {
-          if (mutation.color === null) delete next.color
-          else next.color = mutation.color
-        }
-        if (mutation.order !== undefined) {
-          if (mutation.order === null) delete next.order
-          else next.order = mutation.order
-        }
-        return next
-      })
+      return (
+        lists
+          .map((list) => {
+            if (list.id !== mutation.listId) return list
+            const next: TodoList = { ...list }
+            if (mutation.color !== undefined) {
+              if (mutation.color === null) delete next.color
+              else next.color = mutation.color
+            }
+            if (mutation.order !== undefined) {
+              if (mutation.order === null) delete next.order
+              else next.order = mutation.order
+            }
+            return next
+          })
+          // Re-sorted for the same reason createList is: this mutation can
+          // change a list's `order`, and the nav renders this array as it
+          // stands. Without the sort the row's number would change while
+          // the row itself sat still until the next refetch — the user
+          // clicks "Move up" and nothing appears to happen
+          // (docs/specs/lists.md — ordering).
+          .toSorted(byListOrder)
+      )
     case 'deleteList':
       return lists.filter((list) => list.id !== mutation.listId)
     default:

@@ -16,7 +16,7 @@ import { useTheme } from '../use-theme'
 import { ListFormModal } from './list-form-modal'
 import { ListItemMenu } from './list-item-menu'
 import { markerColor } from './list-color'
-import { nextOrder } from './list-order'
+import { nextOrder, reorder } from './list-order'
 import styles from './list-nav.module.css'
 
 const slug = (): string => crypto.randomUUID()
@@ -55,6 +55,23 @@ export function ListNav(props: {
     void engine.enqueue(mutation)
   }
 
+  // docs/specs/lists.md — reordering writes only the lists that moved:
+  // swapping two adjacent lists swaps two numbers, rather than renumbering
+  // the whole nav. `reorder` reads the *current* cache rather than the
+  // half-updated one, so both changes are computed before either is
+  // applied; each then goes through `mutate`, whose setQueryData callback
+  // reads the latest cache and so builds on its predecessor.
+  const move = (listId: string, direction: 'up' | 'down'): void => {
+    for (const change of reorder(lists.data ?? [], listId, direction)) {
+      mutate({
+        id: crypto.randomUUID(),
+        kind: 'setListProps',
+        listId: change.listId,
+        order: change.order,
+      })
+    }
+  }
+
   return (
     <nav className={styles['nav']} aria-label="Lists">
       {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
@@ -89,7 +106,7 @@ export function ListNav(props: {
       </div>
 
       <ul>
-        {(lists.data ?? []).map((list) => (
+        {(lists.data ?? []).map((list, index, all) => (
           <li key={list.id} className={styles['item']}>
             <button
               type="button"
@@ -127,6 +144,10 @@ export function ListNav(props: {
             </button>
             <ListItemMenu
               displayName={list.displayName}
+              canMoveUp={index > 0}
+              canMoveDown={index < all.length - 1}
+              onMoveUp={() => move(list.id, 'up')}
+              onMoveDown={() => move(list.id, 'down')}
               onRename={() => setRenaming(list)}
               onDelete={() => setDeleting(list)}
             />

@@ -212,6 +212,23 @@ describe('applyMutationToLists — setListProps', () => {
     expect(next[0]).toMatchObject({ color: '#1D9BF6', order: 5 })
   })
 
+  // The nav renders this array as it stands, so an order change that
+  // didn't move the row would look like the click did nothing until the
+  // next refetch (docs/specs/lists.md — ordering).
+  it('moves the list to its new position straight away', () => {
+    const ordered: TodoList[] = [
+      { ...one, order: 1 },
+      { ...two, order: 2 },
+    ]
+    const next = applyMutationToLists(ordered, {
+      id: '00000000-0000-4000-8000-000000000014',
+      kind: 'setListProps',
+      listId: 'l1',
+      order: 3,
+    })
+    expect(next.map((list) => list.id)).toEqual(['l2', 'l1'])
+  })
+
   it('clears an order when given null', () => {
     const ordered: TodoList[] = [{ ...one, order: 3 }]
     const next = applyMutationToLists(ordered, {

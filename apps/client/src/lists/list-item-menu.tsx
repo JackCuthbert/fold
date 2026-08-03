@@ -1,5 +1,5 @@
 import { Menu } from '@base-ui/react/menu'
-import { LuPencil, LuTrash2 } from 'react-icons/lu'
+import { LuArrowDown, LuArrowUp, LuPencil, LuTrash2 } from 'react-icons/lu'
 import { cx } from '../styles/cx'
 import styles from './list-item-menu.module.css'
 
@@ -10,6 +10,10 @@ import styles from './list-item-menu.module.css'
 // Escape, focus restoration to the trigger) rather than hand-rolling it.
 export function ListItemMenu(props: {
   displayName: string
+  canMoveUp: boolean
+  canMoveDown: boolean
+  onMoveUp: () => void
+  onMoveDown: () => void
   onRename: () => void
   onDelete: () => void
 }) {
@@ -29,6 +33,28 @@ export function ListItemMenu(props: {
           sideOffset={4}
         >
           <Menu.Popup className={cx(styles['popup'])}>
+            {/* docs/specs/lists.md — ordering: buttons rather than
+                drag-and-drop. Reordering lists is rare, and buttons are
+                keyboard-operable for free, work on touch without a
+                long-press gesture, and are testable without flake.
+                Disabled at either end, where there is no neighbour to
+                swap with. */}
+            <Menu.Item
+              className={cx(styles['item'])}
+              disabled={!props.canMoveUp}
+              onClick={props.onMoveUp}
+            >
+              <LuArrowUp aria-hidden="true" size={14} />
+              Move up
+            </Menu.Item>
+            <Menu.Item
+              className={cx(styles['item'])}
+              disabled={!props.canMoveDown}
+              onClick={props.onMoveDown}
+            >
+              <LuArrowDown aria-hidden="true" size={14} />
+              Move down
+            </Menu.Item>
             <Menu.Item className={cx(styles['item'])} onClick={props.onRename}>
               <LuPencil aria-hidden="true" size={14} />
               Rename
