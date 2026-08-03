@@ -66,6 +66,33 @@ recoverable — it re-runs on the next load, and is written to be repeatable
 — whereas losing the whole UI is not, so the render must win the race.
 *(added 2026-08-02, after reproducing exactly that blank page.)*
 
+This applies to **every** pre-mount path, not just the one that was found
+first. There are three, and each was a separate blank page: the storage-key
+migration, the persisted query cache's `restoreClient`, and the **outbox's
+own `load()`** — `Outbox.open` awaits it, `createSyncEngine` awaits that,
+and the provider renders nothing until the engine exists.
+*(added 2026-08-04, issue #17.)*
+
+### A queue that can't be read must not be overwritten
+
+The outbox is not the query cache, and the same fallback is not safe for
+both. Losing a cached read costs a slower first paint; the queue holds
+**writes the user believes are saved**.
+
+So when the queue can't be read — a hang that outlives the deadline, or an
+outright rejection — the fallback is a store that **refuses every write**,
+never an empty writable one:
+
+- The entries are still on disk, unread. An ordinary empty store would let
+  the next `save()` overwrite them with the empty queue, turning
+  "temporarily unreadable" into "permanently destroyed".
+- Each refused write reaches `onPersistError`, so the failure is visible
+  rather than silent — the user is told their changes aren't being written
+  down. A silent fallback that looks like it worked is the worst outcome.
+- The in-memory queue still works, so the sync loop drains it to the server
+  as usual. That — not the local copy — is what actually saves the work.
+  What is lost is only durability across a reload, and the user is told so.
+
 *(added 2026-08-01: the project rename from `caldav-todo*` to `fold*` moved
 every persisted key — see `apps/client/src/storage-migration.ts`.)*
 
