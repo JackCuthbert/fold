@@ -4,6 +4,7 @@ import { Input } from '@base-ui/react/input'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { ExtensionBadge } from '../extension-badge'
 import { ColorPicker } from './color-picker'
 import styles from './list-form.module.css'
 
@@ -63,7 +64,14 @@ export function ListForm(props: {
         control={control}
         render={({ field: { value, onChange } }) => (
           <div className={styles['field']}>
-            <span className={styles['label']}>Colour</span>
+            <span className={styles['label']}>
+              Colour
+              <ExtensionBadge label="About list colours">
+                Colours use a CalDAV extension, not the core standard. Most
+                servers support it; one that doesn&rsquo;t will ignore the
+                colour rather than fail.
+              </ExtensionBadge>
+            </span>
             <ColorPicker value={value} onChange={onChange} />
           </div>
         )}

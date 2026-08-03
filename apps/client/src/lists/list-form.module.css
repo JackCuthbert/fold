@@ -30,8 +30,13 @@
 }
 
 /* docs/specs/ui.md — field labels are small and muted, matching the
-   established pattern in todo-detail.module.css's .field. */
+   established pattern in todo-detail.module.css's .field. inline-flex so
+   the extension badge's icon centres on the label's text rather than
+   sitting on the baseline (docs/specs/lists.md — colours). */
 .label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: var(--text-sm);
   color: var(--muted);
 }
