@@ -68,13 +68,10 @@ export function SettingsModal(props: {
             >
               Sign out
             </button>
-            <button
-              type="button"
-              className={styles['close']}
-              onClick={() => props.onOpenChange(false)}
-            >
-              Close
-            </button>
+            {/* No footer Close. The header's ✕ is the close control, as in
+                the help modal — no modal in the app carries two of them
+                (docs/specs/ui.md — overlays: closing a modal).
+                *(removed 2026-08-03.)* */}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
