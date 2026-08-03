@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import type { ReactNode } from 'react'
 import { useRef } from 'react'
+import { ModalHeader } from './modal-header'
 import { cx } from './styles/cx'
 import styles from './help-modal.module.css'
 
@@ -35,11 +36,16 @@ export function HelpModal(props: {
   onOpenChange: (open: boolean) => void
 }) {
   // This is the only modal in the app whose body genuinely scrolls, and Base
-  // UI's default initial focus is the first tabbable element — here "Close",
-  // at the very bottom. Focusing it scrolled the body ~120px on open, past
-  // the first section, before the user had read a word. Focus the title
-  // instead so the modal opens at the top. (`initialFocus` alone, without a
-  // target, did not move focus off the button — it needs the ref.)
+  // UI's default initial focus is the first tabbable element — which was
+  // "Close", at the very bottom. Focusing it scrolled the body ~120px on
+  // open, past the first section, before the user had read a word. Focus the
+  // title instead so the modal opens at the top. (`initialFocus` alone,
+  // without a target, did not move focus off the button — it needs the ref.)
+  //
+  // Kept after the header's ✕ replaced that footer Close *(2026-08-03)*:
+  // the ✕ is above the scroller rather than below it, so it no longer drags
+  // the body down, but focus still belongs on the title — landing on a
+  // dismiss control announces "Close" before the modal's own heading.
   const titleRef = useRef<HTMLHeadingElement>(null)
 
   return (
@@ -47,13 +53,7 @@ export function HelpModal(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])} initialFocus={titleRef}>
-          <Dialog.Title
-            ref={titleRef}
-            tabIndex={-1}
-            className={cx(styles['title'])}
-          >
-            About Fold
-          </Dialog.Title>
+          <ModalHeader titleRef={titleRef}>About Fold</ModalHeader>
           <div className={styles['body']}>
             {/* docs/specs/today-view.md, docs/specs/summary-view.md */}
             <section className={styles['section']}>
@@ -150,13 +150,11 @@ export function HelpModal(props: {
                 to alphabetical.
               </p>
             </section>
-            <button
-              type="button"
-              className={styles['close']}
-              onClick={() => props.onOpenChange(false)}
-            >
-              Close
-            </button>
+            {/* No footer Close. The header's ✕ is the close control — this
+                button sat below the scroll viewport, so you had to scroll
+                the whole modal to find it. *(removed 2026-08-03: it is what
+                prompted the ✕ in the first place; two close controls in one
+                modal is one too many.)* */}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

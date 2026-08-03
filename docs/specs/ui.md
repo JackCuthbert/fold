@@ -39,7 +39,37 @@ supersede earlier wording.)*
   completed in a collapsible section with a count. No bulk delete —
   see [todos](./todos.md#clearing-completed-todos). *(changed 2026-08-02.)*
 - **Detail view:** tapping a todo opens a **bottom sheet on mobile** and a
-  **side panel on desktop** — never an inline expansion that shifts the list.
+  **layout column on desktop** — never an inline expansion that shifts the
+  list. *(changed 2026-08-03, issue #4: the desktop panel was a modal side
+  panel — a dialog with a scrim, dimming the list behind it, at every
+  viewport. On desktop it is now part of the layout exactly as the left nav
+  is: a third flex column after `<main>`, with no scrim and nothing dimmed,
+  so the list stays readable and clickable while a todo is open and another
+  todo can be opened without closing this one first. Mobile is unchanged
+  and keeps the modal sheet.)*
+  - **Nothing selected collapses to zero width.** The column is always
+    mounted and animates its width — the same treatment as the desktop nav
+    — and is `aria-hidden` and `inert` while closed, so it is invisible to
+    assistive tech and unreachable by Tab. Deliberately **not** an
+    empty-state placeholder: this is a single-user app whose owner knows
+    what the panel is, and a permanent "select a todo" panel would spend a
+    third of the screen saying nothing.
+  - **It is not modal, and must not pretend to be.** No focus trap — the
+    user must be able to Tab out into the list, which is the point of
+    dropping modality. It is a labelled `region`, never `role="dialog"`:
+    claiming dialog semantics would tell a screen reader the rest of the
+    page is inert when it is not.
+  - **Escape still closes it**, as a plain key handler scoped to the panel
+    rather than Base UI's. Scoped deliberately: Escape pressed out in the
+    list belongs to whatever has focus there, not to this panel.
+  - **Focus moves into the panel on open and returns to the row on close.**
+    Without that a keyboard user loses their place. The heading takes focus
+    rather than the first field, so a stray keystroke can't edit the todo.
+    The returning target is the row element captured explicitly when it was
+    clicked — the same reason the add-todo modal passes an explicit
+    `triggerRef` rather than trusting a heuristic that a re-render can
+    invalidate. Re-clicking the row that is already open pulls focus back
+    in too, since that click remounts nothing.
 - **Adding a todo opens a modal.** *(added 2026-07-31: an inline field made
   adding feel incidental and gave no room for detail.)* Clicking "Add a
   todo" opens a dimmed modal containing a form that is fully keyboard
@@ -217,9 +247,14 @@ Duplicating prose in two places guarantees one of them goes stale, so the
 modal says what each thing is and how it behaves, and nothing more.
 
 It is the only modal whose body genuinely scrolls, so initial focus goes to
-the title rather than Base UI's default first tabbable element — which is
+the title rather than Base UI's default first tabbable element — which was
 "Close" at the very bottom, and focusing it scrolled past the first section
 before the user had read a word.
+
+It closes from the header ✕ alone; that footer Close is gone *(changed
+2026-08-03, issue #14 — see overlays)*. Initial focus stays on the title:
+the ✕ no longer drags the body down, but landing on a dismiss control would
+announce "Close" before the modal's own heading.
 
 ## Spacing & rhythm
 
@@ -339,9 +374,14 @@ at and can act on it without scrolling back up.
 *(added 2026-07-31: the delete-list confirm and the mobile sheet appeared
 over an undimmed background, so they didn't read as modal.)*
 
-- **Every overlay dims the background** — nav drawer, bottom sheet, side
-  panel, confirm dialogs, the add-todo modal, settings. Without exception:
-  a modal surface over undimmed content reads as a rendering glitch.
+- **Every overlay dims the background** — nav drawer, bottom sheet, confirm
+  dialogs, the add-todo modal, settings. Without exception: a modal surface
+  over undimmed content reads as a rendering glitch. *(changed 2026-08-03,
+  issue #4: "side panel" was in this list. The desktop detail panel is no
+  longer an overlay at all — it is a layout column (see Layout above), so
+  it has nothing to dim and is outside this rule. The rule is unchanged for
+  everything that is still an overlay, including the mobile detail sheet.
+  What makes a surface subject to it is being modal, not being a panel.)*
   - **A modal must never be rendered inside another dialog's subtree**, even
     when the control that opens it lives there. Base UI deliberately
     suppresses a *nested* dialog's backdrop, and with no backdrop there is
@@ -366,6 +406,36 @@ over an undimmed background, so they didn't read as modal.)*
 - **Modal padding is uniform on all four edges** and modest — matched to
   the gap between action buttons, so the surface feels of a piece rather
   than roomy on one side. *(added 2026-08-01.)*
+- **A modal closes from a ✕ in its header**, at the trailing edge opposite
+  the title — that is where people reach first, before hunting for a button
+  in a footer. *(added 2026-08-03, issue #14.)* Escape and a click outside
+  still work; the ✕ is an addition, not a replacement.
+  - **One shared header, not one per modal.** The title row, its divider,
+    its padding and the ✕ live in a single component
+    (`apps/client/src/modal-header.tsx`). Five modals previously each
+    carried a near-identical `.title` rule, which is how they drifted apart
+    and needed the same padding and divider fixes applied five times.
+    - The header is also used by the **desktop detail column**, which is
+      not a dialog and so cannot render Base UI's `Dialog.Title`/
+      `Dialog.Close`. Callers may substitute those two *elements*; the
+      padding, divider and ✕ styling — the reason the component exists —
+      stay owned by it. A `render` escape hatch rather than an `isDialog`
+      boolean, which would only have invited a second boolean next time.
+      A ✕ still closes the column: it is no longer modal, but a ✕ is still
+      the right control to dismiss the panel. *(added 2026-08-03,
+      issue #4.)*
+  - **The ✕ is quiet.** `--faint` at rest, darkening to `--ink` on hover,
+    so it never competes with the title beside it. The glyph is small but
+    its button is a full `--hit-area` box — never size the target to the
+    glyph (see controls & touch targets below).
+  - **The confirm dialog is the exception — it gets no ✕.** A destructive
+    confirm asks a question and offers two explicit answers; a third
+    dismissal path in the header would compete with its Cancel.
+  - **A modal does not carry both a ✕ and a footer Close.** Two close
+    controls in one modal is one too many. The help modal's footer Close
+    was removed when the ✕ arrived — it sat below the scroll viewport, so
+    it could only be found by scrolling the whole modal, which is what
+    prompted the ✕ in the first place.
 - **Spacing between form controls is uniform.** One gap value between every
   field, accordion trigger and control in a form; and the gap between the
   modal title and the first field matches it. *(added 2026-08-01: the

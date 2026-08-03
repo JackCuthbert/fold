@@ -3,13 +3,11 @@ import type { Todo, TodosResponse } from '@fold/schemas'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
-import { useLists } from '../lists/list-nav'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { AddTodoTrigger } from './add-todo-trigger'
 import { sortActiveTodos } from './sort'
-import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
 import styles from './todo-pane.module.css'
 import type { useAddTodo } from './use-add-todo'
@@ -17,11 +15,15 @@ import type { useAddTodo } from './use-add-todo'
 export function TodoPane(props: {
   listId: string
   add: ReturnType<typeof useAddTodo>
+  // docs/specs/ui.md — the detail panel: selection lives in MainScreen so
+  // the panel can render as a layout column beside `<main>` rather than
+  // inside it. This pane only reports which todo was opened, and from
+  // which row, so focus can return there on close (issue #4).
+  // *(changed 2026-08-03: was local `openUid` state plus a TodoDetail
+  // rendered here.)*
+  onOpen: (todo: Todo, trigger: HTMLElement | null) => void
 }) {
   const engine = useSyncEngine()
-  // Same cached ['lists'] query the nav reads — for the detail view's move
-  // dropdown (docs/specs/todos.md — moving a todo between lists).
-  const lists = useLists()
   const todos = useQuery({
     queryKey: ['todos', props.listId],
     // Pass the ctag from the last *raw server response* — never the
@@ -47,7 +49,6 @@ export function TodoPane(props: {
   })
   const { actions } = props.add
   const { playPop } = useSound()
-  const [openUid, setOpenUid] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
 
   // docs/specs/todos.md — ordering: sorting happens here, on read, so the
@@ -64,7 +65,6 @@ export function TodoPane(props: {
     now,
   )
   const completed = all.filter((todo) => todo.completed)
-  const open = all.find((todo) => todo.uid === openUid)
 
   const toggle = (todo: Todo): void => {
     actions.update(todo, { completed: !todo.completed })
@@ -82,7 +82,7 @@ export function TodoPane(props: {
             todo={todo}
             now={now}
             onToggle={() => toggle(todo)}
-            onOpen={() => setOpenUid(todo.uid)}
+            onOpen={(trigger) => props.onOpen(todo, trigger)}
           />
         ))}
         <AddTodoTrigger {...props.add} />
@@ -115,7 +115,7 @@ export function TodoPane(props: {
                   todo={todo}
                   now={now}
                   onToggle={() => toggle(todo)}
-                  onOpen={() => setOpenUid(todo.uid)}
+                  onOpen={(trigger) => props.onOpen(todo, trigger)}
                 />
               ))}
             </ul>
@@ -128,20 +128,6 @@ export function TodoPane(props: {
                 *(removed 2026-08-02.)* */}
           </Collapsible.Panel>
         </Collapsible.Root>
-      )}
-
-      {open && (
-        <TodoDetail
-          todo={open}
-          lists={lists.data ?? []}
-          onSave={(changes) => actions.update(open, changes)}
-          onMove={(targetListId) => actions.move(open, targetListId)}
-          onDelete={() => {
-            actions.remove(open)
-            setOpenUid(null)
-          }}
-          onClose={() => setOpenUid(null)}
-        />
       )}
     </div>
   )

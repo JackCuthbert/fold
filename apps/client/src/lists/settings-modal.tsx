@@ -2,6 +2,7 @@ import { Dialog } from '@base-ui/react/dialog'
 import { Toggle } from '@base-ui/react/toggle'
 import type { Session } from '@fold/schemas'
 import { LuVolume2, LuVolumeOff } from 'react-icons/lu'
+import { ModalHeader } from '../modal-header'
 import { api, queryClient } from '../providers'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
@@ -29,7 +30,7 @@ export function SettingsModal(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])}>
-          <Dialog.Title className={cx(styles['title'])}>Settings</Dialog.Title>
+          <ModalHeader>Settings</ModalHeader>
           <div className={styles['body']}>
             {session && (
               <div className={styles['serverUrl']}>
@@ -67,13 +68,10 @@ export function SettingsModal(props: {
             >
               Sign out
             </button>
-            <button
-              type="button"
-              className={styles['close']}
-              onClick={() => props.onOpenChange(false)}
-            >
-              Close
-            </button>
+            {/* No footer Close. The header's ✕ is the close control, as in
+                the help modal — no modal in the app carries two of them
+                (docs/specs/ui.md — overlays: closing a modal).
+                *(removed 2026-08-03.)* */}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

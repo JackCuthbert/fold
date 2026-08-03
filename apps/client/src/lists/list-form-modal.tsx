@@ -1,4 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
+import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import { ListForm, type ListFormValues } from './list-form'
 import styles from './list-form-modal.module.css'
@@ -24,9 +25,7 @@ export function ListFormModal(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])}>
-          <Dialog.Title className={cx(styles['title'])}>
-            {props.title}
-          </Dialog.Title>
+          <ModalHeader>{props.title}</ModalHeader>
           {/* Keyed by the target's current values rather than `open`, so
               reopening this same dialog (e.g. Escape then Edit again on
               the same list) never resets mid close-animation — it only

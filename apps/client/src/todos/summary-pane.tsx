@@ -1,8 +1,7 @@
-import type { TodoList } from '@fold/schemas'
-import { useState } from 'react'
+import type { Todo, TodoList } from '@fold/schemas'
 import { dayLabel, summariseCompleted } from './summary'
 import styles from './summary-pane.module.css'
-import { TodayDetail, TodayRow } from './today-pane'
+import { TodayRow } from './today-pane'
 import paneStyles from './todo-pane.module.css'
 import { useTodayTodos } from './use-today-todos'
 
@@ -12,13 +11,16 @@ import { useTodayTodos } from './use-today-todos'
 //
 // Reuses TodayRow/TodayDetail: both views draw todos from several lists at
 // once, so both need each row bound to its *own* list's actions.
-export function SummaryPane(props: { lists: readonly TodoList[] }) {
+export function SummaryPane(props: {
+  lists: readonly TodoList[]
+  // Selection lives in MainScreen — see TodoPane's `onOpen`
+  // (docs/specs/ui.md — the detail panel; issue #4).
+  onOpen: (todo: Todo, trigger: HTMLElement | null) => void
+}) {
   const { todos } = useTodayTodos(props.lists)
-  const [openUid, setOpenUid] = useState<string | null>(null)
 
   const now = new Date()
   const { days, undated } = summariseCompleted(todos)
-  const open = todos.find((todo) => todo.uid === openUid)
 
   const listName = (listId: string): string =>
     props.lists.find((list) => list.id === listId)?.displayName ?? ''
@@ -48,7 +50,7 @@ export function SummaryPane(props: { lists: readonly TodoList[] }) {
                 todo={todo}
                 now={now}
                 listName={listName(todo.listId)}
-                onOpen={() => setOpenUid(todo.uid)}
+                onOpen={(trigger) => props.onOpen(todo, trigger)}
               />
             ))}
           </ul>
@@ -64,14 +66,6 @@ export function SummaryPane(props: { lists: readonly TodoList[] }) {
           completion date, so {undated === 1 ? "it isn't" : "they aren't"} shown
           above.
         </p>
-      )}
-
-      {open && (
-        <TodayDetail
-          todo={open}
-          lists={props.lists}
-          onClose={() => setOpenUid(null)}
-        />
       )}
     </div>
   )

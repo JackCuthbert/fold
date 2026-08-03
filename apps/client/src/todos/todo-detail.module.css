@@ -1,9 +1,17 @@
 /*
- * docs/specs/ui.md — detail view: bottom sheet on mobile, side panel on
- * desktop. Positioning differs by viewport; the dialog content is shared.
+ * docs/specs/ui.md — the detail panel: a modal bottom sheet on mobile, a
+ * layout column on desktop. The form inside is shared; only the surface
+ * around it differs.
  * docs/specs/ui.md — overlays: every overlay dims the background and
- * animates in/out — sheets and panels slide from their edge, the scrim
- * fades with them. Disabled under prefers-reduced-motion (global.css).
+ * animates in/out — the sheet slides from its edge, the scrim fades with
+ * it. Disabled under prefers-reduced-motion (global.css).
+ *
+ * *(changed 2026-08-03, issue #4: `.popup` used to be `position: fixed`
+ * with `inset: 0 0 0 auto` at ≥768px, i.e. an overlay pinned to the right
+ * edge at every viewport, with `.backdrop` dimming the list behind it. On
+ * desktop that is now `.column` below — in flow, no scrim, no dimming. The
+ * mobile sheet rules are untouched, and no longer need a media query to
+ * undo, since the column never renders at mobile widths.)*
  */
 .backdrop {
   position: fixed;
@@ -46,36 +54,35 @@
   transform: translateY(100%);
 }
 
-@media (min-width: 768px) {
-  .popup {
-    /* Desktop: side panel, sliding in from the right edge. */
-    inset: 0 0 0 auto;
-    max-height: none;
-    width: min(24rem, 90vw);
-    border-radius: 0;
-    border-top: none;
-    border-left: 1px solid var(--line);
-  }
+/* Desktop: the panel is a column in `.body`'s flex row (main-screen's
+   `.detail` owns the width, the border and the collapse animation), so it
+   is emphatically NOT positioned — it takes its place in flow. A fixed
+   element here would sit over the list again, which is the whole thing
+   issue #4 removed.
 
-  .popup[data-starting-style],
-  .popup[data-ending-style] {
-    transform: translateX(100%);
-  }
+   Full height of its column, and a flex chain down to `.form`: `.form` is
+   the only scrolling child (see below), and it can only be bounded if
+   every ancestor is. `min-height: 0` lets it shrink below its content's
+   natural height rather than growing the column. */
+.column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--paper);
+  /* No outline even though the heading takes focus on open: it is a
+     heading, not a control, and the app draws focus on real controls only
+     (docs/specs/ui.md — controls & touch targets). Same treatment as
+     `.title` in modal-header.module.css. */
+  outline: none;
 }
 
-/* Padding lives on the panel's children, not the popup — see .popup.
-   docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, especially once the body scrolls
-   beneath it — this panel's `.form` does. Modal padding is uniform on all
-   four edges and modest — matched to the gap between action buttons
-   (--space-3) — and the detail panel agrees with every modal on this.
-   *(changed 2026-08-01: was --space-4, inconsistent with the modals.)* */
-.title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
-}
+/* Padding lives on the panel's children, not the popup — see .popup. The
+   title row — its padding, its divider and its ✕ — is shared by every modal
+   and lives in modal-header.module.css; the panel passes size="large" for
+   its own heading size. It is the non-scrolling child above `.form`, which
+   is this panel's scroller. *(changed 2026-08-03: this module carried its
+   own near-identical `.title` rule, one of five.)* */
 
 .form {
   display: flex;

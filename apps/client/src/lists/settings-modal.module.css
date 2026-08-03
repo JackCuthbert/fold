@@ -49,19 +49,9 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
-/* docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, so the heading reads as a header.
-   docs/specs/ui.md — overlays: modal padding is uniform on all four edges
-   and modest — matched to the gap between action buttons (--space-3).
-   *(changed 2026-08-01: was --space-6/--space-4, roomier than the other
-   modals.)* */
-.title {
-  flex: none;
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
-}
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css. *(changed 2026-08-03: this
+   module carried its own near-identical `.title` rule, one of five.)* */
 
 .body {
   flex: 1 1 auto;
@@ -72,7 +62,7 @@
 
 /* docs/specs/ui.md — one left edge, left and right edges both: rows in a
    panel — including the settings modal — align on both sides with the
-   modal's other content (the title, signOut/close buttons below). This row
+   modal's other content (the title and the Sign out button below). This row
    previously carried its own --space-2 horizontal padding on top of
    `.body`'s inset, narrowing it 8px inside its neighbours on both edges —
    removed here; `.body`'s own padding is the only horizontal inset now.
@@ -99,7 +89,7 @@
    from its divider before margin-bottom adds the gap to the next row.)*
    docs/specs/ui.md — one left edge, left and right edges both: dropped the
    row's own horizontal padding (--space-2 each side) — it made this row 8px
-   narrower than the title and signOut/close buttons on both edges, all of
+   narrower than the title and Sign out button on both edges, all of
    which rely solely on `.body`'s padding for their inset.
    *(changed 2026-07-31.)* */
 .row {
@@ -143,14 +133,11 @@
    surface/border/radius/focus/disabled treatment lives in one place
    (styles/button.module.css); each button composes the shared `action`
    shape plus exactly one role. */
+/* The only button in the footer now that the header's ✕ owns closing
+   (settings-modal.tsx). *(changed 2026-08-03: `.close` sat below this and
+   has gone with it.)* */
 .signOut {
   composes: action destructive from '../styles/button.module.css';
-  width: 100%;
-  margin-top: var(--space-2);
-}
-
-.close {
-  composes: action default from '../styles/button.module.css';
   width: 100%;
   margin-top: var(--space-2);
 }

@@ -53,16 +53,6 @@
   transform: translate(-50%, -50%) translateY(4px);
 }
 
-/* docs/specs/ui.md — overlays: a divider separates a title from its
-   content in modals and side panels, so the heading reads as a header.
-   The divider spans the full width of the surface, edge to edge — no
-   horizontal inset — so .title carries the shared --space-3 padding on
-   all sides instead of the popup, and the border-bottom sits flush with
-   the popup's own left/right edges. */
-.title {
-  flex: none;
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
-}
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css. *(changed 2026-08-03: this
+   module carried its own near-identical `.title` rule, one of five.)* */

@@ -7,6 +7,13 @@ import styles from './confirm.module.css'
 // and focus restoration to the trigger — docs/specs/ui.md: prefer it over
 // hand-rolling focus management (previously a native <dialog> driven
 // imperatively by showModal()/close()).
+//
+// Deliberately NOT using ModalHeader: this is the one dialog with no ✕
+// (docs/specs/ui.md — overlays: closing a modal). A destructive confirm
+// asks a question and offers two answers; a third dismissal path in the
+// header would compete with the explicit Cancel beside the destructive
+// action. Escape and a click outside remain, as on every dialog.
+// *(decided 2026-08-03, issue #14.)*
 export function ConfirmDialog(props: {
   open: boolean
   title: string
