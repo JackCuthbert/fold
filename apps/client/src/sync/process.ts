@@ -119,6 +119,10 @@ export function makeProcessMutation(
       case 'deleteList':
         await api.deleteList(mutation.listId)
         return undefined
+      case 'setListProps':
+        // docs/specs/lists.md — schema added in Task 3; nothing dispatches
+        // this yet. Task 7 wires the API client call in here.
+        throw new FatalError('setListProps is not yet wired to the API')
       default:
         return mutation satisfies never
     }

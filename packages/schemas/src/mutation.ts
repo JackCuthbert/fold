@@ -57,6 +57,29 @@ export const mutationSchema = z.discriminatedUnion('kind', [
     listId,
     displayName: z.string().min(1),
   }),
+  // docs/specs/lists.md — colours and ordering. One kind rather than two:
+  // both properties are written by the same PROPPATCH to the same
+  // namespace, and splitting them would duplicate a near-identical branch
+  // in applyMutationToLists, the outbox, coalescing and process.ts.
+  //
+  // `null` clears a property; `undefined` leaves it alone — the same
+  // distinction todoChangesSchema makes. At least one must be present, or
+  // the mutation is a no-op that would still cost a request.
+  z
+    .object({
+      ...base,
+      kind: z.literal('setListProps'),
+      listId,
+      color: z
+        .string()
+        .regex(/^#[0-9A-F]{6}$/)
+        .nullable()
+        .optional(),
+      order: z.int().nullable().optional(),
+    })
+    .refine((value) => value.color !== undefined || value.order !== undefined, {
+      message: 'setListProps must change at least one property',
+    }),
   z.object({ ...base, kind: z.literal('deleteList'), listId }),
 ])
 export type Mutation = z.infer<typeof mutationSchema>
