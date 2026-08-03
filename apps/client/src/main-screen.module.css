@@ -142,6 +142,12 @@
   opacity: 0;
 }
 
+/* docs/specs/ui.md — the nav: this toggles the sidebar. It sits beside the
+   list title, which is the header's actual subject, so it reads as a
+   control *next to* the content rather than as content itself.
+   *(quietened 2026-08-03: was --ink, the strongest ink in the palette,
+   which made a secondary control the loudest thing in the header. --muted
+   matches the kebab trigger's weight, so the two nav affordances agree.)* */
 .menuTrigger {
   display: flex;
   align-items: center;
@@ -149,13 +155,20 @@
   width: var(--hit-area);
   height: var(--hit-area);
   flex: none;
-  color: var(--ink);
+  color: var(--muted);
+  transition: color var(--duration-fast) var(--ease);
   /* Pull the 44px hit area back so the *visible* icon lands on the
      column's shared left edge rather than the hit area's own inset
      (docs/specs/ui.md — one left edge; same technique as the checkbox in
      checkbox.module.css). Icon glyphs are visually smaller than their
      24px box within the button, roughly matching the checkbox's ratio. */
   margin-left: calc((20px - var(--hit-area)) / 2);
+}
+
+/* docs/specs/ui.md — hover is a whisper. Darkening to --ink on hover keeps
+   the control discoverable without it shouting at rest. */
+.menuTrigger:hover {
+  color: var(--ink);
 }
 
 /* Mirrors the trigger's width on the opposite side so the title —
