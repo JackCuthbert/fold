@@ -4,17 +4,17 @@ import { cx } from '../styles/cx'
 import styles from './list-item-menu.module.css'
 
 // docs/specs/ui.md — the nav: per-list actions live in a kebab menu at the
-// row's right edge, holding Rename and Delete, rather than two inline icon
-// buttons squeezing the row's name. Base UI's Menu supplies the keyboard
-// and focus behaviour (open/close, arrow-key navigation, typeahead,
-// Escape, focus restoration to the trigger) rather than hand-rolling it.
+// row's right edge, rather than inline icon buttons squeezing the row's
+// name. Base UI's Menu supplies the keyboard and focus behaviour
+// (open/close, arrow-key navigation, typeahead, Escape, focus restoration
+// to the trigger) rather than hand-rolling it.
 export function ListItemMenu(props: {
   displayName: string
   canMoveUp: boolean
   canMoveDown: boolean
   onMoveUp: () => void
   onMoveDown: () => void
-  onRename: () => void
+  onEdit: () => void
   onDelete: () => void
 }) {
   return (
@@ -55,9 +55,12 @@ export function ListItemMenu(props: {
               <LuArrowDown aria-hidden="true" size={14} />
               Move down
             </Menu.Item>
-            <Menu.Item className={cx(styles['item'])} onClick={props.onRename}>
+            {/* "Edit", not "Rename": this opens a dialog titled "Edit list"
+                that changes the name *and* the colour, so the narrower word
+                undersold it. *(changed 2026-08-03.)* */}
+            <Menu.Item className={cx(styles['item'])} onClick={props.onEdit}>
               <LuPencil aria-hidden="true" size={14} />
-              Rename
+              Edit
             </Menu.Item>
             <Menu.Item
               className={cx(styles['item'], styles['destructive'])}

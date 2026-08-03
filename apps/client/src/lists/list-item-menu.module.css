@@ -13,12 +13,18 @@
  * ui.md — controls are always visible, never hover-revealed; applies to
  * per-row menus in particular). Kept visually small (a fixed hit-area
  * width, not flex: 1) so the name segment still gets nearly the full row.
- * Muted-by-default (not full ink) keeps it quiet at rest while still
+ * Faint-by-default (not full ink) keeps it quiet at rest while still
  * discoverable without hovering; hover/focus darken it to signal
  * interactivity.
+ *
+ * *(quietened 2026-08-03: was --muted at opacity 0.6, which still read
+ * louder than a secondary control should. Now --faint at full opacity —
+ * one signal for "quiet" rather than two compounding ones. Dimming --faint
+ * by a further 0.6 would have taken it near-invisible on both papers,
+ * which is why the opacity goes rather than the colour staying.)*
  */
 .trigger {
-  color: var(--muted);
+  color: var(--faint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,7 +33,6 @@
   border-left: var(--border-width) solid var(--line);
   font-size: var(--text-md);
   line-height: 1;
-  opacity: 0.6;
 }
 
 /* The kebab is the other half of the same segmented control as the list
@@ -38,11 +43,9 @@
 .trigger[data-popup-open] {
   color: var(--ink);
   background: color-mix(in srgb, var(--line) 28%, transparent);
-  opacity: 1;
   transition:
     background-color var(--duration-fast) var(--ease),
-    color var(--duration-fast) var(--ease),
-    opacity var(--duration-fast) var(--ease);
+    color var(--duration-fast) var(--ease);
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an
@@ -52,7 +55,7 @@
    border without adding layout width, same treatment as `.link` beside
    it. */
 .trigger:focus-visible {
-  opacity: 1;
+  color: var(--ink);
   outline: none;
   box-shadow: inset 0 0 0 var(--border-width) var(--accent);
 }

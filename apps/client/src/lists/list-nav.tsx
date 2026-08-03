@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
+import { InfoBadge } from '../info-badge'
 import { api, queryClient, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import {
@@ -43,7 +44,7 @@ export function ListNav(props: {
   const lists = useLists()
   const theme = useTheme()
   const [creating, setCreating] = useState(false)
-  const [renaming, setRenaming] = useState<TodoList | null>(null)
+  const [editing, setEditing] = useState<TodoList | null>(null)
   const [deleting, setDeleting] = useState<TodoList | null>(null)
 
   const mutate = (
@@ -80,29 +81,50 @@ export function ListNav(props: {
           control in the nav), set off as a group by space rather than a
           divider, with no kebab menu because there is nothing on the
           server to rename or delete. */}
+      {/* Each view is a row, not just a button: the badge is a control in
+          its own right (a popover trigger) and must not be nested inside
+          the button that selects the view — a button inside a button is
+          invalid, and a tap meant for the badge would also switch views.
+          The row wrapper puts them side by side instead, with the button
+          taking the width so the icon and label keep the nav's shared left
+          edge (docs/specs/ui.md — one left edge). *(added 2026-08-03.)* */}
       <div className={styles['views']}>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isTodayView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(TODAY_VIEW)}
-        >
-          <LuSun aria-hidden="true" size={16} />
-          Today
-        </button>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isSummaryView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(SUMMARY_VIEW)}
-        >
-          <LuHistory aria-hidden="true" size={16} />
-          Summary
-        </button>
+        <div className={styles['viewRow']}>
+          <button
+            type="button"
+            className={cx(
+              styles['today'],
+              isTodayView(props.selected) && styles['todayActive'],
+            )}
+            onClick={() => props.onSelect(TODAY_VIEW)}
+          >
+            <LuSun aria-hidden="true" size={16} />
+            Today
+          </button>
+          {/* Shorter than the help modal's wording on purpose, and saying
+              the same thing — help-modal.tsx, "Today and Summary". */}
+          <InfoBadge label="About Today">
+            Everything due today or already overdue, gathered from all your
+            lists. A view, not a list you can add to.
+          </InfoBadge>
+        </div>
+        <div className={styles['viewRow']}>
+          <button
+            type="button"
+            className={cx(
+              styles['today'],
+              isSummaryView(props.selected) && styles['todayActive'],
+            )}
+            onClick={() => props.onSelect(SUMMARY_VIEW)}
+          >
+            <LuHistory aria-hidden="true" size={16} />
+            Summary
+          </button>
+          <InfoBadge label="About Summary">
+            What you&rsquo;ve finished, grouped by day — handy for a standup. A
+            view, not a list you can add to.
+          </InfoBadge>
+        </div>
       </div>
 
       <ul>
@@ -148,7 +170,7 @@ export function ListNav(props: {
               canMoveDown={index < all.length - 1}
               onMoveUp={() => move(list.id, 'up')}
               onMoveDown={() => move(list.id, 'down')}
-              onRename={() => setRenaming(list)}
+              onEdit={() => setEditing(list)}
               onDelete={() => setDeleting(list)}
             />
           </li>
@@ -193,46 +215,46 @@ export function ListNav(props: {
       />
 
       <ListFormModal
-        open={renaming !== null}
+        open={editing !== null}
         title="Edit list"
-        {...(renaming
+        {...(editing
           ? {
               initial: {
-                displayName: renaming.displayName,
-                ...(renaming.color !== undefined
-                  ? { color: renaming.color }
+                displayName: editing.displayName,
+                ...(editing.color !== undefined
+                  ? { color: editing.color }
                   : {}),
               },
             }
           : {})}
         submitLabel="Save"
         onOpenChange={(open) => {
-          if (!open) setRenaming(null)
+          if (!open) setEditing(null)
         }}
         // docs/specs/lists.md — colours. One form, but up to two mutations,
         // and only for what actually changed: a name-only edit must not
         // cost a PROPPATCH of the colour, or vice versa.
         onSubmit={(values) => {
-          if (!renaming) return
-          if (values.displayName !== renaming.displayName) {
+          if (!editing) return
+          if (values.displayName !== editing.displayName) {
             mutate({
               id: crypto.randomUUID(),
               kind: 'renameList',
-              listId: renaming.id,
+              listId: editing.id,
               displayName: values.displayName,
             })
           }
-          if (values.color !== renaming.color) {
+          if (values.color !== editing.color) {
             mutate({
               id: crypto.randomUUID(),
               kind: 'setListProps',
-              listId: renaming.id,
+              listId: editing.id,
               // The form uses undefined for "no colour"; the mutation uses
               // null for "remove the property". Translate at this boundary.
               color: values.color ?? null,
             })
           }
-          setRenaming(null)
+          setEditing(null)
         }}
       />
 

@@ -231,6 +231,20 @@ export function MainScreen() {
                 </button>
               )}
               <h1 className={styles['title']}>
+                {/* docs/specs/lists.md — colours: the list's dot travels
+                    with its title, so the colour is still there while you
+                    are looking at the list (issue #12). Only for a real
+                    list, and only when it has a colour — a derived view is
+                    not a collection and has none, and an uncoloured list
+                    gets nothing rather than the nav's empty ring (see
+                    `.titleDot`). */}
+                {activeList?.color !== undefined && (
+                  <span
+                    className={styles['titleDot']}
+                    style={{ background: activeList.color }}
+                    aria-hidden="true"
+                  />
+                )}
                 {showingToday
                   ? 'Today'
                   : showingSummary

@@ -37,8 +37,9 @@ The interesting part of this app is what happens when the server goes away
 docker compose stop     # server disappears
 ```
 
-Keep using the app — add todos, tick things off. The status dot next to
-Settings turns red and pulses; the pill still shows the queued count
+Keep using the app — add todos, tick things off. The status dot at the
+bottom of the sidebar, next to **Settings**, turns red and pulses; the
+banner at the bottom of the screen still shows the queued count
 (`Syncing N changes`). Then:
 
 ```bash
@@ -49,7 +50,8 @@ Queued changes replay automatically. Radicale's web interface will show
 them.
 
 To simulate losing the *network* rather than the server, use your browser
-devtools' offline mode instead — the header distinguishes the two.
+devtools' offline mode instead — the app distinguishes the two ([offline
+behaviour](./offline.md) explains how).
 
 ## Resetting
 

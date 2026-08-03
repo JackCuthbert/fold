@@ -6,10 +6,10 @@ they follow you to your other devices — and to your other apps.
 
 ## Giving a list a colour
 
-Open the menu at the right of a list and choose **Rename**. The **Edit
-list** box that opens has a colour picker under the name field. The same
-picker is on the **New list** box, so you can give a list its colour as you
-create it.
+Open the menu at the right of a list and choose **Edit**. The **Edit list**
+box that opens has a colour picker under the name field. The same picker is
+on the **New list** box, so you can give a list its colour as you create
+it.
 
 - **Eight swatches** to pick from, if one of them suits.
 - **A hex box**, if none of them do. Type any colour you like —

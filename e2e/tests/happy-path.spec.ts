@@ -80,7 +80,7 @@ test('rename and delete a list via its kebab menu', async ({ page }) => {
   await page.keyboard.press('End')
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeFocused()
   await page.keyboard.press('ArrowUp')
-  await expect(page.getByRole('menuitem', { name: 'Rename' })).toBeFocused()
+  await expect(page.getByRole('menuitem', { name: 'Edit' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeHidden()
 
@@ -114,7 +114,7 @@ test('a list colour persists across a reload', async ({ page }) => {
   // already unit-tested, and duplicating it here would test the same
   // behaviour at two layers.
   await openListMenu(page, listName)
-  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
   await page.getByRole('button', { name: 'Blue' }).click()
   await page.getByRole('button', { name: 'Save', exact: true }).click()
 

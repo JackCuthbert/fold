@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createApi, type Api } from './api/client'
+import { withDeadline } from './deadline'
 import {
   createSyncEngine,
   type SyncEngine,
@@ -76,13 +77,31 @@ const dehydrateOptions = {
     query.queryKey[0] !== 'session',
 }
 
-const persister = createAsyncStoragePersister({
+const storagePersister = createAsyncStoragePersister({
   storage: {
     getItem: async (key) => (await get<string>(key)) ?? null,
     setItem: (key, value) => set(key, value),
     removeItem: (key) => del(key),
   },
 })
+
+// `PersistQueryClientProvider` renders nothing until `restoreClient()`
+// settles, and that read goes to IndexedDB — which can hang forever rather
+// than reject (docs/specs/sync-and-offline.md — "anything awaited before
+// mount needs a deadline"). Without this the whole app is a blank page for
+// as long as the database stays wedged.
+//
+// `undefined` is the persister's own "nothing was persisted" answer, so on
+// timeout hydration is simply skipped and we mount with an empty cache.
+// That's safe here and nowhere near as costly as it sounds: the client is
+// offline-first and refetches on mount, so the only loss is a slower first
+// paint, never data. Queued mutations are the outbox's business, not this
+// cache's.
+export const persister: typeof storagePersister = {
+  ...storagePersister,
+  restoreClient: () =>
+    withDeadline(Promise.resolve(storagePersister.restoreClient()), undefined),
+}
 
 const EngineContext = createContext<SyncEngine | null>(null)
 

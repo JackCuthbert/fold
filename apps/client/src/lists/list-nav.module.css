@@ -7,9 +7,30 @@
 
 /* The derived views (Today, Summary) as one group above the collections.
    Separated by space alone — larger than the --space-1 gap between list
-   rows, so the grouping is legible without a rule. */
+   rows, so the grouping is legible without a rule.
+   The two views sit apart from each other as well: they are ghost buttons
+   with no chrome of their own, so flush rows read as one block of text
+   rather than two controls. --space-2 is deliberately smaller than the
+   --space-4 below the group, so the pair still reads as one group set off
+   from the lists. *(added 2026-08-03: the two buttons were flush.)* */
 .views {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin-bottom: var(--space-4);
+}
+
+/* One derived view: the ghost button that selects it, plus the info badge
+   that explains it (info-badge.tsx). Two sibling controls rather than one
+   nested in the other — see list-nav.tsx.
+   The button below is `width: 100%`, so it takes the row and the badge
+   sits at the trailing edge; the icon and label keep the same left edge as
+   every other nav row (docs/specs/ui.md — one left edge), and the badge
+   appearing can't push them right.
+   *(added 2026-08-03.)* */
+.viewRow {
+  display: flex;
+  align-items: center;
 }
 
 /* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
@@ -156,21 +177,15 @@
    this costs no new visual concept. The dot answers "which list is
    this?"; the left marker answers "which one am I in?" — two questions,
    two signals, deliberately kept apart.
-   `flex: none` keeps `.link`'s `overflow: hidden` (for long names) from
-   squashing the dot — the name ellipsises, the dot never shrinks. */
+   The circle itself lives in list-dot.module.css, shared with the list
+   title in the main pane so the two can't drift. This keeps the nav's own
+   8px default (--dot-size unset). *(extracted 2026-08-03.)* */
 .dot {
-  width: var(--space-2);
-  height: var(--space-2);
-  border-radius: var(--radius-full);
-  flex: none;
+  composes: dot from './list-dot.module.css';
 }
 
-/* No colour set: an unfilled ring, not an absence. Same footprint as a
-   filled dot, so names stay on one left edge whether or not a list has a
-   colour, and assigning one never shifts the row. */
 .dotEmpty {
-  background: none;
-  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
+  composes: dotEmpty from './list-dot.module.css';
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an

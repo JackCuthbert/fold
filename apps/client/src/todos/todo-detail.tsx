@@ -91,7 +91,11 @@ export function TodoDetail(props: {
     value: list.id,
   }))
 
-  const { control, handleSubmit } = useForm<DetailForm>({
+  const {
+    control,
+    handleSubmit,
+    formState: { isDirty },
+  } = useForm<DetailForm>({
     resolver: zodResolver(detailSchema),
     defaultValues: {
       summary: todo.summary,
@@ -333,7 +337,15 @@ export function TodoDetail(props: {
               )}
             />
             <div className={styles['actions']}>
-              <button type="submit" className={styles['save']}>
+              {/* Nothing to save until something changes. `isDirty` compares
+                  against the `defaultValues` built from this todo above, so
+                  opening a todo and closing it costs no PUT — and no
+                  SEQUENCE bump on the server. *(added 2026-08-03.)* */}
+              <button
+                type="submit"
+                className={styles['save']}
+                disabled={!isDirty}
+              >
                 Save
               </button>
               <button
