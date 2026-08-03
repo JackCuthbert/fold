@@ -19,6 +19,8 @@ import {
 import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
+import { useTodoActions } from './todos/use-todo-actions'
+import { useTodoDetailForm } from './todos/use-todo-detail-form'
 import { useMediaQuery } from './use-media-query'
 
 const SELECTED_LIST_KEY = 'fold:selected-list'
@@ -69,8 +71,9 @@ export function MainScreen() {
   // open has to live here — a pane inside `<main>` cannot render a column
   // beside it. Held as `{ uid, listId }` rather than a bare uid because
   // Today and Summary draw rows from several lists at once, where a uid
-  // alone is ambiguous; the panel resolves the todo and binds that list's
-  // mutation actions itself (TodayDetail). *(added 2026-08-03, issue #4.)*
+  // alone is ambiguous; that list's mutation actions are bound from it
+  // below (`detailActions`) and by TodayDetail.
+  // *(added 2026-08-03, issue #4.)*
   const [openTodo, setOpenTodo] = useState<Todo | null>(null)
   // Counts opens, so the panel can move focus into itself on every one —
   // see `openDetail`.
@@ -211,6 +214,30 @@ export function MainScreen() {
     openTrigger.current = null
     if (trigger) requestAnimationFrame(() => trigger.focus())
   }
+
+  // The detail form lives here, not in the panel, because *this* component
+  // is the only one mounted at every viewport. The panel is two different
+  // components either side of 768px — an inline column and a portalled
+  // sheet — so a form owned by them is destroyed when the layout changes,
+  // taking any unsaved edit with it. Called unconditionally (with `null`
+  // when nothing is open) to obey the rules of hooks.
+  // *(fixed 2026-08-03: an unsaved edit was lost on crossing the
+  // breakpoint — see use-todo-detail-form.ts.)*
+  //
+  // `useTodoActions` is keyed by list, so it binds to the open todo's own
+  // list — todos here may come from any of them (Today and Summary draw
+  // from several at once). Delete stays with TodayDetail; only Save and
+  // Move are needed by the form.
+  const detailActions = useTodoActions(openTodo?.listId ?? '')
+  const detailForm = useTodoDetailForm(openTodo, {
+    onSave: (changes) => {
+      if (openTodo) detailActions.update(openTodo, changes)
+    },
+    onMove: (targetListId) => {
+      if (openTodo) detailActions.move(openTodo, targetListId)
+    },
+    onClose: closeDetail,
+  })
 
   // docs/specs/ui.md — the nav has a title above its list of lists, so the
   // panel is labelled rather than starting abruptly. docs/specs/ui.md —
@@ -421,14 +448,18 @@ export function MainScreen() {
           >
             <div className={styles['detailInner']}>
               {openTodo && (
+                // Deliberately *no* `key={openTodo.uid}` here or on the
+                // sheet below. It used to force a remount when a different
+                // todo was opened, because the form's defaultValues were
+                // built once per mount — but the form no longer lives in
+                // this component, so a remount would no longer re-seed it,
+                // and the surfaces are now cheap to keep. Re-seeding on a
+                // new uid is the hook's job instead
+                // (use-todo-detail-form.ts).
                 <TodayDetail
-                  // Remount when a different todo is opened: the form's
-                  // defaultValues are built once per mount from the todo,
-                  // so without this, clicking a second row while the panel
-                  // is open would keep showing the first todo's values.
-                  key={openTodo.uid}
                   todo={openTodo}
                   lists={lists.data ?? []}
+                  form={detailForm}
                   mode="column"
                   focusNonce={openCount}
                   onClose={closeDetail}
@@ -445,9 +476,9 @@ export function MainScreen() {
           inside it — see `settingsOpen` above. */}
       {!isDesktop && openTodo && (
         <TodayDetail
-          key={openTodo.uid}
           todo={openTodo}
           lists={lists.data ?? []}
+          form={detailForm}
           mode="sheet"
           onClose={closeDetail}
         />

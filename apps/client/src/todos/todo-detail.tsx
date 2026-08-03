@@ -3,42 +3,16 @@ import { Field } from '@base-ui/react/field'
 import { Form } from '@base-ui/react/form'
 import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
-import {
-  todoPrioritySchema,
-  type Todo,
-  type TodoChanges,
-  type TodoList,
-} from '@fold/schemas'
-import { zodResolver } from '@hookform/resolvers/zod'
+import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller } from 'react-hook-form'
 import { LuChevronDown } from 'react-icons/lu'
-import { z } from 'zod'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
-import { dueToFields, fieldsToDue } from './due-fields'
 import { cycleTimeOf, punctualityOf, type Punctuality } from './punctuality'
 import { formatTimestamp } from './summary'
 import styles from './todo-detail.module.css'
-
-// docs/specs/todos.md — due times: a time needs a date, since DUE cannot
-// express one without the other.
-const detailSchema = z
-  .object({
-    summary: z.string().min(1),
-    due: z.string(), // '' or yyyy-mm-dd from <input type="date">
-    dueTime: z.string(), // '' or HH:mm from <input type="time">
-    description: z.string(),
-    priority: z.union([todoPrioritySchema, z.literal('')]),
-    // The list the todo should end up in. Changing it moves the todo
-    // (docs/specs/todos.md — moving a todo between lists).
-    listId: z.string(),
-  })
-  .refine((values) => values.dueTime === '' || values.due !== '', {
-    path: ['dueTime'],
-    message: 'Pick a date for this time',
-  })
-type DetailForm = z.infer<typeof detailSchema>
+import type { TodoDetailForm } from './use-todo-detail-form'
 
 // docs/specs/ui.md — status display: reuse the semantic status tokens
 // (green succeeded, amber caution, red missed) rather than inventing a
@@ -82,6 +56,12 @@ const PRIO_CLASS: Record<string, string | undefined> = {
 // duplicate it or need a shared inner component anyway — which is this,
 // with extra steps. Only the surface around the form differs.
 //
+// Presentational: the form itself belongs to the caller
+// (use-todo-detail-form.ts), which is what lets an unsaved edit survive the
+// breakpoint — see that file. Everything here reads from `props.form`.
+// *(changed 2026-08-03: `useForm` and `submit` lived here, so crossing the
+// breakpoint discarded the edit along with the component.)*
+//
 // Every field uses Base UI's Field/Input/Select, wired to react-hook-form
 // via Controller (docs/specs/ui.md — component library): Base UI supplies
 // the accessible primitive, react-hook-form + zod remain the state/
@@ -97,6 +77,8 @@ export function TodoDetail(props: {
   todo: Todo
   /** Every list, for the move dropdown (docs/specs/todos.md). */
   lists: readonly TodoList[]
+  /** The hoisted form — see use-todo-detail-form.ts. */
+  form: TodoDetailForm
   /**
    * Which surface to render. `'sheet'` is the mobile modal bottom sheet
    * (Base UI Dialog, scrim, focus trap); `'column'` is the desktop layout
@@ -112,14 +94,11 @@ export function TodoDetail(props: {
    * gets focus management from Base UI's Dialog.
    */
   focusNonce?: number
-  onSave: (changes: TodoChanges) => void
-  /** Move the todo to another list. Called before `onSave`. */
-  onMove: (targetListId: string) => void
   onDelete: () => void
   onClose: () => void
 }) {
   const { todo } = props
-  const initialFields = dueToFields(todo.due)
+  const { control, isDirty, onSubmit } = props.form
   // Captured once so every row in the metadata footer resolves "Today"
   // against the same instant.
   const now = new Date()
@@ -129,50 +108,6 @@ export function TodoDetail(props: {
     label: list.displayName,
     value: list.id,
   }))
-
-  const {
-    control,
-    handleSubmit,
-    formState: { isDirty },
-  } = useForm<DetailForm>({
-    resolver: zodResolver(detailSchema),
-    defaultValues: {
-      summary: todo.summary,
-      due: initialFields.date,
-      dueTime: initialFields.time,
-      description: todo.description ?? '',
-      priority: todo.priority ?? '',
-      listId: todo.listId,
-    },
-  })
-
-  const submit = (values: DetailForm): void => {
-    // Compare the *inputs*, not the rebuilt TodoDue. The two inputs can't
-    // distinguish a floating value from a zoned one — both render as the
-    // same date and time — so rebuilding an untouched floating DUE would
-    // produce a zoned one and look like an edit. Comparing what the user
-    // actually sees is what leaves a foreign client's floating/UTC value
-    // byte-identical (docs/specs/caldav-compliance.md).
-    const untouched =
-      values.due === initialFields.date && values.dueTime === initialFields.time
-    // `undefined` can't reach here — the schema rejects a time with no date.
-    const nextDue =
-      fieldsToDue({ date: values.due, time: values.dueTime }) ?? undefined
-    const changes: TodoChanges = {
-      ...(values.summary !== todo.summary ? { summary: values.summary } : {}),
-      ...(untouched ? {} : { due: nextDue ?? null }),
-      description: values.description === '' ? null : values.description,
-      priority: values.priority === '' ? null : values.priority,
-    }
-    // Save first, then move. The outbox folds a pending update into the
-    // move's payload (sync/coalesce.ts), so ordering this way means the
-    // copy written to the target list carries this edit — the reverse
-    // would queue an update against a resource the move has already
-    // deleted (docs/specs/todos.md — moving a todo between lists).
-    props.onSave(changes)
-    if (values.listId !== todo.listId) props.onMove(values.listId)
-    props.onClose()
-  }
 
   const body = (
     <>
@@ -195,7 +130,7 @@ export function TodoDetail(props: {
       >
         Edit todo
       </ModalHeader>
-      <Form className={styles['form']} onSubmit={handleSubmit(submit)}>
+      <Form className={styles['form']} onSubmit={onSubmit}>
         <Controller
           name="summary"
           control={control}
@@ -390,9 +325,10 @@ export function TodoDetail(props: {
         />
         <div className={styles['actions']}>
           {/* Nothing to save until something changes. `isDirty` compares
-                  against the `defaultValues` built from this todo above, so
-                  opening a todo and closing it costs no PUT — and no
-                  SEQUENCE bump on the server. *(added 2026-08-03.)* */}
+                  against the todo's *stored* values, seeded when this todo
+                  was opened (use-todo-detail-form.ts), so opening a todo and
+                  closing it costs no PUT — and no SEQUENCE bump on the
+                  server. *(added 2026-08-03.)* */}
           <button type="submit" className={styles['save']} disabled={!isDirty}>
             Save
           </button>
