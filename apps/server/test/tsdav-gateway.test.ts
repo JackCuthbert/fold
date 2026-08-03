@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CaldavError } from '../src/caldav/errors'
-import { makeFetchWithRetry, toTodo } from '../src/caldav/tsdav-gateway'
+import { makeFetchWithRetry, toList, toTodo } from '../src/caldav/tsdav-gateway'
 
 const ICS = [
   'BEGIN:VCALENDAR',
@@ -45,6 +45,55 @@ describe('toTodo', () => {
         data: ICS,
       }),
     ).toThrowError(CaldavError)
+  })
+})
+
+// docs/specs/lists.md — colours and ordering are read from an Apple
+// extension, so a collection may carry neither and a foreign client may
+// have written something we can't read. Neither case may break discovery.
+describe('toList', () => {
+  const base = { url: 'https://dav.example/cal/work/', ctag: 'c1' }
+
+  it('reads the 8-digit colour Apple writes', () => {
+    const list = toList({ ...base, calendarColor: '#1D9BF6FF' })
+    expect(list.color).toBe('#1D9BF6')
+  })
+
+  it('reads an order returned as a number', () => {
+    // Radicale returns a JS number here — verified live 2026-08-03.
+    const list = toList({
+      ...base,
+      projectedProps: { calendarOrder: 7 },
+    })
+    expect(list.order).toBe(7)
+  })
+
+  it('reads an order returned as a string', () => {
+    // Another server may serialize it as text; XML has no number type.
+    const list = toList({
+      ...base,
+      projectedProps: { calendarOrder: '7' },
+    })
+    expect(list.order).toBe(7)
+  })
+
+  it('omits both when the collection has neither', () => {
+    const list = toList(base)
+    expect(list.color).toBeUndefined()
+    expect(list.order).toBeUndefined()
+  })
+
+  it('treats an unreadable colour as absent rather than failing', () => {
+    const list = toList({ ...base, calendarColor: 'chartreuse' })
+    expect(list.color).toBeUndefined()
+  })
+
+  it('treats an unreadable order as absent rather than failing', () => {
+    const list = toList({
+      ...base,
+      projectedProps: { calendarOrder: 'seventh' },
+    })
+    expect(list.order).toBeUndefined()
   })
 })
 

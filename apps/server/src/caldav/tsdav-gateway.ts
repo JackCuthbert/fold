@@ -1,10 +1,11 @@
-import type {
-  Credentials,
-  NewTodo,
-  Todo,
-  TodoChanges,
-  TodoList,
-  TodosResponse,
+import {
+  type Credentials,
+  type NewTodo,
+  parseListColor,
+  type Todo,
+  type TodoChanges,
+  type TodoList,
+  type TodosResponse,
 } from '@fold/schemas'
 import { applyChanges, createTodoIcs, readTodo } from '@fold/vtodo'
 import { DAVClient } from 'tsdav'
@@ -20,11 +21,48 @@ const VTODO_FILTER = [
   },
 ]
 
+// docs/specs/lists.md — ordering. tsdav's default PROPFIND already asks
+// for `ca:calendar-color` but not `ca:calendar-order`, and passing `props`
+// *replaces* the defaults rather than extending them — so every property
+// the gateway relies on has to be listed here, not just the new one.
+const LIST_PROPS = {
+  'c:calendar-description': {},
+  'c:calendar-timezone': {},
+  'd:displayname': {},
+  'ca:calendar-color': {},
+  'ca:calendar-order': {},
+  'cs:getctag': {},
+  'd:resourcetype': {},
+  'c:supported-calendar-component-set': {},
+  'd:sync-token': {},
+}
+
+// tsdav only surfaces a non-default property under `projectedProps` when
+// it is named here.
+const LIST_PROJECTED = { calendarColor: true, calendarOrder: true }
+
 const listIdFromHref = (href: string): string =>
   href.replace(/\/+$/, '').split('/').at(-1) ?? href
 
 const escapeXml = (text: string): string =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+
+/**
+ * `calendar-order` → an integer, or `null` when missing or unreadable.
+ *
+ * Radicale returns a JS number; XML has no number type, so another server
+ * may well return a string. Both are accepted, and anything else is
+ * treated as absent rather than raised — the same "degrade, don't fail"
+ * rule the colour parser follows (docs/specs/caldav-compliance.md).
+ */
+const parseListOrder = (raw: unknown): number | null => {
+  if (typeof raw === 'number') return Number.isInteger(raw) ? raw : null
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!/^-?\d+$/.test(trimmed)) return null
+  const value = Number(trimmed)
+  return Number.isSafeInteger(value) ? value : null
+}
 
 // Bun's fetch drops an idle/reused connection out from under an in-flight
 // request under concurrent load and throws this plain Error — verified by
@@ -168,6 +206,13 @@ interface RawCalendar {
   displayName?: string | Record<string, unknown>
   ctag?: string
   components?: string[]
+  // docs/specs/lists.md — colours: tsdav requests `ca:calendar-color` by
+  // default and surfaces it here (verified against Radicale 3.5.4.0).
+  calendarColor?: string
+  // `calendar-order` is *not* a tsdav default — it arrives here only
+  // because fetchCalendars is called with explicit props plus
+  // `projectedProps` below.
+  projectedProps?: Record<string, unknown>
 }
 
 interface RawObject {
@@ -212,6 +257,27 @@ export function toTodo(listId: string, object: RawObject): Todo | null {
   return { ...data, listId, href: object.url, etag: object.etag }
 }
 
+// Exported for unit testing, same as `toTodo` above: this is PROPFIND →
+// TodoList mapping that needs no live server (docs/specs/testing.md).
+export function toList(calendar: RawCalendar): TodoList {
+  const color = parseListColor(calendar.calendarColor)
+  const order = parseListOrder(calendar.projectedProps?.['calendarOrder'])
+  return {
+    id: listIdFromHref(calendar.url),
+    href: calendar.url,
+    displayName:
+      typeof calendar.displayName === 'string' && calendar.displayName !== ''
+        ? calendar.displayName
+        : listIdFromHref(calendar.url),
+    ctag: calendar.ctag ?? '',
+    // Omitted entirely when absent, never set to undefined —
+    // exactOptionalPropertyTypes keeps "no colour" distinct from
+    // "colour explicitly unset".
+    ...(color !== null ? { color } : {}),
+    ...(order !== null ? { order } : {}),
+  }
+}
+
 export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
   const client = new DAVClient({
     serverUrl: credentials.serverUrl,
@@ -236,24 +302,20 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
     ).toString('base64')}`,
   })
 
+  const fetchCalendarsWithProps = (): Promise<RawCalendar[]> =>
+    client.fetchCalendars({
+      props: LIST_PROPS,
+      projectedProps: LIST_PROJECTED,
+    })
+
   const findCalendar = async (listId: string): Promise<RawCalendar> => {
-    const calendars = await client.fetchCalendars()
+    const calendars = await fetchCalendarsWithProps()
     const calendar = calendars.find(
       (entry) => listIdFromHref(entry.url) === listId,
     )
     if (!calendar) throw new CaldavError(404, `no such list: ${listId}`)
     return calendar
   }
-
-  const toList = (calendar: RawCalendar): TodoList => ({
-    id: listIdFromHref(calendar.url),
-    href: calendar.url,
-    displayName:
-      typeof calendar.displayName === 'string' && calendar.displayName !== ''
-        ? calendar.displayName
-        : listIdFromHref(calendar.url),
-    ctag: calendar.ctag ?? '',
-  })
 
   const fetchRawTodos = async (
     listId: string,
@@ -284,7 +346,7 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
     fetchLists: () =>
       translate(async () => {
         await ensureLogin()
-        const calendars = await client.fetchCalendars()
+        const calendars = await fetchCalendarsWithProps()
         return calendars.filter(supportsVtodo).map(toList)
       }),
 
@@ -299,7 +361,7 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
           url,
           props: { displayname: displayName },
         })
-        const calendars = await client.fetchCalendars()
+        const calendars = await fetchCalendarsWithProps()
         const created = calendars.find(
           (entry) => listIdFromHref(entry.url) === id,
         )
