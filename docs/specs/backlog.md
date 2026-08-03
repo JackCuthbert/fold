@@ -39,36 +39,35 @@ The open questions:
   CalDAV collections are the only store. A dedicated "Archive" collection
   is possible but adds a concept.
 
-## 4. Reordering lists
+## 4. Reordering lists — designed 2026-08-03, not yet built
 
-Let the user arrange lists in the nav, persisted to the server so the order
-follows them to other devices and clients.
+## 5. Per-list colours — designed 2026-08-03, not yet built
 
-- Lists currently render in whatever order the server returns
-  ([lists](./lists.md#ordering)), which is effectively creation order and
-  can't be changed from the app.
-- Drag-to-reorder in the nav is the obvious interaction.
+Items 4 and 5 were designed together, since both hang off an Apple
+extension in the `http://apple.com/ns/ical/` namespace (`calendar-order`
+and `calendar-color`) written by the same PROPPATCH. The open questions in
+both — where the order lives, how a restrained palette coexists with
+colours set by other clients — are settled there.
 
-Open question: **where does the order live?** CalDAV has no standard
-ordering property for collections. Apple uses `calendar-order` (the same
-`http://apple.com/ns/ical/` namespace as `calendar-color`), which Radicale
-supports — that's the most interoperable option, but it's an extension, so
-it must degrade gracefully on a server that ignores it.
+See [the design](../superpowers/specs/2026-08-03-list-colours-and-ordering-design.md).
+It also covers a generic extension tooltip and an in-app help modal.
 
-## 5. Per-list colours
+## 6. Derived-view todo rows
 
-A colour on each list, chosen from a picker in the list's edit menu, used
-as a subtle accent in the nav and possibly on todo rows.
+*(added 2026-08-03, deferred out of the colours/ordering design.)*
 
-**The spec allows this too**: Apple's `calendar-color` (in the
-`http://apple.com/ns/ical/` namespace) is the de-facto property, widely
-supported including by Radicale, though it is an extension rather than part
-of RFC 4791.
+The [Today](./today-view.md) and [Summary](./summary-view.md) views draw
+todos from every list at once, and their rows need design work before more
+is added to them:
 
-- Read it during list discovery; write it via `PROPPATCH` alongside
-  `displayname` ([lists](./lists.md)).
-- Treat it as **optional** — a server that rejects or ignores the property
-  must not break list editing, in keeping with our "works with any
-  compliant server" rule.
-- Keep the palette restrained so it fits the minimal aesthetic: a small set
-  of muted swatches rather than a free colour wheel.
+- **Show which list a todo came from**, using that list's colour. This is
+  the natural home for list colours beyond the nav, and the reason colours
+  stop at the nav in the design above — adding a colour to rows that are
+  about to change would mean designing them twice.
+- **Lower the density on mobile.** The rows are tighter than they should
+  be on a small screen.
+- **Let a todo wrap over more than one line** instead of truncating, so a
+  long summary is readable.
+
+Needs its own spec: all three change the same row, and density and wrapping
+interact directly.

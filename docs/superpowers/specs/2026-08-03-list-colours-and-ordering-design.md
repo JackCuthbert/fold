@@ -106,12 +106,21 @@ its true value. Nothing is ever snapped, rounded, or silently rewritten.
   visual concept.
 - The **active row's left marker** takes the list's colour instead of
   `--accent`.
-- A list with **no colour** gets no dot and an `--accent` marker — exactly
-  today's appearance, so uncoloured lists are not second-class.
+- A list with **no colour** still gets a dot, drawn as an **unfilled
+  circle** — a hairline ring in `--faint`, no fill — and keeps the
+  `--accent` marker when active.
 
 The dot answers *which list is this*; the marker answers *which one am I
 in*. Keeping the dot in every state means the identity signal never
 disappears.
+
+**Every list gets a dot, filled or not.** An uncoloured list reserving the
+same space as a coloured one keeps every name on the same left edge
+([ui](../../specs/ui.md) — one left edge) and keeps the row rhythm
+identical down the nav. Omitting the dot entirely would make an uncoloured
+list read as a different *kind* of row, and would shift its name
+horizontally the moment a colour was assigned. The empty ring also reads as
+"no colour set yet" rather than as an absence, which is the honest state.
 
 ### The contrast guard
 
@@ -131,9 +140,11 @@ unit-tested with light and dark paper values.
 Discussed and mocked up on 2026-08-03. It reads well with well-behaved
 hues, but the blend depends entirely on the user's hex — saturated Apple
 colours misbehave, hover and selected states both have to be re-expressed
-in the list's colour rather than the app's, an uncoloured list reads as a
-different kind of row, and the mix percentage needs a per-theme token. Too
-much variance for too little gain.)*
+in the list's colour rather than the app's, and the mix percentage needs a
+per-theme token. An uncoloured list also reads as a different kind of row —
+a problem the outline dot solves for the chosen treatment but a wash cannot,
+since there is no "empty" version of a background tint. Too much variance
+for too little gain.)*
 
 ### Where it is set
 
@@ -141,12 +152,24 @@ The list edit modal (`lists/list-form.tsx`), beneath the name field — the
 same form that already handles rename, so a name and colour change save
 together as one mutation rather than two.
 
-### Reach — nav only, for now
+### Reach — nav only in this piece of work
 
-Colours do not appear on todo rows. In the [Today](../../specs/today-view.md)
-and [Summary](../../specs/summary-view.md) views todos come from every list
-at once, where a colour would be genuinely useful — but that is a separate
-question about row density, and the nav ships first.
+Colours do not appear on todo rows here. In the
+[Today](../../specs/today-view.md) and
+[Summary](../../specs/summary-view.md) views todos come from every list at
+once, so a colour marking which list a todo belongs to is genuinely useful
+there — but it cannot be bolted onto the current rows.
+
+**Deferred to a follow-up, to be specced separately**, because those rows
+need design work of their own first:
+
+- Showing which list a todo came from, using its colour
+- **Lower density on mobile** — the rows are tighter than they should be
+- **Wrapping a todo over more than one line**, rather than truncating
+
+Adding a colour to a row that is about to be redesigned would mean
+designing it twice. The nav ships first; the derived-view rows get their
+own spec.
 
 ---
 
