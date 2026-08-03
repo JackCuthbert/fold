@@ -7,3 +7,6 @@ playwright-report/
 
 # local manual-testing CalDAV data (see compose.yml)
 radicale-data/
+
+# Visual brainstorming companion (superpowers)
+.superpowers/
