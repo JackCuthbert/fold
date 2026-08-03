@@ -49,12 +49,12 @@ export async function renameList(
   to: string,
 ): Promise<void> {
   await openListMenu(page, from)
-  await page.getByRole('menuitem', { name: 'Rename' }).click()
+  // docs/specs/lists.md — colours: the menu item and the dialog both say
+  // "Edit" now, because this edits a list's name *and* its colour.
+  // *(changed 2026-08-03: was "Rename".)*
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
   const input = page.getByPlaceholder('List name')
   await input.fill(to)
-  // docs/specs/lists.md — colours: the modal now edits name *and* colour,
-  // so it submits with "Save" rather than "Rename". The kebab menu item is
-  // still "Rename" — that entry point is unchanged.
   await page.getByRole('button', { name: 'Save', exact: true }).click()
 }
 

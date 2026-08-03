@@ -67,6 +67,16 @@ textarea {
   width: 100%;
 }
 
+/* A textarea grows vertically, never horizontally. The browser default is
+   `resize: both`, which lets the notes field escape the panel that contains
+   it and breaks the layout around it — the field is already `width: 100%`,
+   so there is nothing a horizontal drag can usefully do. Vertical stays,
+   because a long note genuinely benefits from more room.
+   *(added 2026-08-03.)* */
+textarea {
+  resize: vertical;
+}
+
 /* docs/specs/ui.md — no press-transform anywhere: motion belongs to
    elements that are moving (entering, leaving, expanding), not to
    acknowledging a press. Scaling on `:active` distracts without informing. */

@@ -26,7 +26,11 @@ export function ListForm(props: {
   onSubmit: (values: ListFormValues) => void
   onCancel: () => void
 }) {
-  const { control, handleSubmit } = useForm<ListFormValues>({
+  const {
+    control,
+    handleSubmit,
+    formState: { isDirty },
+  } = useForm<ListFormValues>({
     resolver: zodResolver(listFormSchema),
     defaultValues: {
       displayName: props.initial?.displayName ?? '',
@@ -77,7 +81,12 @@ export function ListForm(props: {
         )}
       />
       <div className={styles['actions']}>
-        <button type="submit" className={styles['submit']}>
+        {/* Nothing to save until something changes: an untouched form would
+            otherwise queue a mutation and cost a PROPPATCH that writes the
+            values already on the server. `isDirty` compares against
+            `defaultValues` above, so an edited list starts clean and only
+            goes dirty on a real change. *(added 2026-08-03.)* */}
+        <button type="submit" className={styles['submit']} disabled={!isDirty}>
           {props.submitLabel}
         </button>
         <button
