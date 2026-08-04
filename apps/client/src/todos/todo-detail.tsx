@@ -6,7 +6,9 @@ import { Select } from '@base-ui/react/select'
 import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Controller } from 'react-hook-form'
-import { LuChevronDown } from 'react-icons/lu'
+import { LuChevronDown, LuCopy } from 'react-icons/lu'
+import { IconButton } from '../icon-button'
+import { InfoBadge } from '../info-badge'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import { cycleTimeOf, punctualityOf, type Punctuality } from './punctuality'
@@ -95,10 +97,12 @@ export function TodoDetail(props: {
    */
   focusNonce?: number
   onDelete: () => void
+  /** Create a copy of this todo as new, active work (issue #25). */
+  onDuplicate: () => void
   onClose: () => void
 }) {
   const { todo } = props
-  const { control, isDirty, onSubmit } = props.form
+  const { control, isDirty, onSubmit, locked } = props.form
   // Captured once so every row in the metadata footer resolves "Today"
   // against the same instant.
   const now = new Date()
@@ -108,6 +112,56 @@ export function TodoDetail(props: {
     label: list.displayName,
     value: list.id,
   }))
+
+  // The two things the header can say about this panel, and they cannot
+  // co-occur: a locked form has nothing to save, and a dirty form is
+  // unlocked by definition.
+  //
+  // "Completed" explains why every field is inert — without it the panel
+  // just looks broken. "Unsaved changes" says why Save is live and, more
+  // usefully, warns that closing now would lose the edit.
+  //
+  // Both live in the header rather than the actions row: that row is the
+  // panel's widest, most variable strip, so a right-aligned note drifted
+  // into the middle of a wide panel — far from anything it referred to —
+  // and wrapped on a narrow one. The header is a fixed row at a fixed
+  // height, and stays visible when a long todo scrolls the actions out of
+  // view, which is where a warning matters most.
+  // *(moved 2026-08-04; locked notice added the same day, issue #25.)*
+  const headerStatus = locked
+    ? {
+        status: (
+          // The badge is a *sibling* of the pill, not inside it. Its
+          // trigger is a full --hit-area box (34px) and the pill is a
+          // 21px chip — nesting them made the glyph overflow the pill by
+          // 13px and sit 8px proud of the text. Side by side, the badge
+          // keeps its touch target and the pill keeps its shape, and the
+          // two still read as one unit.
+          <span className={styles['lockStatus']}>
+            <span className={styles['lockNote']}>Completed</span>
+            {/* A popover, not a bare label: "Completed" alone says what
+                the todo is, not why the form is inert or what to do about
+                it. InfoBadge is the app's existing pattern for a sentence
+                of prose attached to a control, and is a popover rather
+                than a tooltip for the accessibility reasons in
+                info-badge.tsx. */}
+            <InfoBadge label="About editing a completed todo">
+              This todo is finished, so its fields are locked — a completed todo
+              is the only record that the work was done, and the Summary view is
+              built from those records.
+              <br />
+              <br />
+              Completed it by mistake? Untick it in the list. Scope changed?
+              <strong> Duplicate</strong> it into fresh work. Really need to
+              correct the record? <strong>Edit anyway</strong> unlocks the
+              fields until you close the panel.
+            </InfoBadge>
+          </span>
+        ),
+      }
+    : isDirty
+      ? { status: <span role="status">Unsaved changes</span> }
+      : {}
 
   const body = (
     <>
@@ -127,25 +181,7 @@ export function TodoDetail(props: {
               },
             }
           : {})}
-        {...(isDirty
-          ? {
-              // Save is disabled until something changes, which leaves the
-              // panel looking inert while you are in fact mid-edit. This
-              // says why the button is live — and, more usefully, warns
-              // that closing now would lose the change. `role="status"` so
-              // it is announced rather than only seen.
-              //
-              // In the header rather than the actions row: that row is the
-              // panel's widest, most variable strip, so a right-aligned
-              // note drifted into the middle of a wide panel — far from
-              // anything it referred to — and wrapped on a narrow one. The
-              // header is a fixed row at a fixed height, and stays visible
-              // when a long todo scrolls the actions out of view, which is
-              // where the warning matters most.
-              // *(moved 2026-08-04: was beside the buttons.)*
-              status: <span role="status">Unsaved changes</span>,
-            }
-          : {})}
+        {...headerStatus}
       >
         Edit todo
       </ModalHeader>
@@ -161,6 +197,7 @@ export function TodoDetail(props: {
               className={styles['field']}
               name={name}
               invalid={invalid}
+              disabled={locked}
             >
               <Field.Label>Summary</Field.Label>
               <Input
@@ -188,6 +225,7 @@ export function TodoDetail(props: {
               <Field.Root
                 className={cx(styles['field'], styles['dueDate'])}
                 name={name}
+                disabled={locked}
               >
                 <Field.Label>Due</Field.Label>
                 <Input
@@ -210,6 +248,7 @@ export function TodoDetail(props: {
               <Field.Root
                 className={cx(styles['field'], styles['dueTime'])}
                 name={name}
+                disabled={locked}
               >
                 <Field.Label>Time</Field.Label>
                 <Input
@@ -232,7 +271,11 @@ export function TodoDetail(props: {
           name="priority"
           control={control}
           render={({ field: { name, value, onChange } }) => (
-            <Field.Root className={styles['field']} name={name}>
+            <Field.Root
+              className={styles['field']}
+              name={name}
+              disabled={locked}
+            >
               <Field.Label>Priority</Field.Label>
               <Select.Root
                 items={PRIORITY_OPTIONS}
@@ -288,7 +331,11 @@ export function TodoDetail(props: {
             name="listId"
             control={control}
             render={({ field: { name, value, onChange } }) => (
-              <Field.Root className={styles['field']} name={name}>
+              <Field.Root
+                className={styles['field']}
+                name={name}
+                disabled={locked}
+              >
                 <Field.Label>List</Field.Label>
                 <Select.Root
                   items={listOptions}
@@ -330,7 +377,11 @@ export function TodoDetail(props: {
           name="description"
           control={control}
           render={({ field: { ref, name, value, onBlur, onChange } }) => (
-            <Field.Root className={styles['field']} name={name}>
+            <Field.Root
+              className={styles['field']}
+              name={name}
+              disabled={locked}
+            >
               <Field.Label>Notes</Field.Label>
               <Field.Control
                 ref={ref}
@@ -343,28 +394,71 @@ export function TodoDetail(props: {
           )}
         />
         <div className={styles['actions']}>
-          {/* Nothing to save until something changes. `isDirty` compares
-                  against the todo's *stored* values, seeded when this todo
-                  was opened (use-todo-detail-form.ts), so opening a todo and
-                  closing it costs no PUT — and no SEQUENCE bump on the
-                  server. *(added 2026-08-03.)* */}
-          <button type="submit" className={styles['save']} disabled={!isDirty}>
-            Save
-          </button>
-          {/* Reset, not a second Close: the header's ✕ is the close
+          {/* docs/specs/todos.md — a completed todo is read-only until
+              unlocked. While locked, Save and Reset are replaced by the
+              two things that *are* reasonable to do with a finished
+              record: deliberately edit it (it was completed by mistake),
+              or copy it into new work (the scope changed). Swapping the
+              controls rather than disabling them keeps the row honest —
+              a disabled Save beside locked fields says nothing about how
+              to proceed. *(added 2026-08-04, issue #25.)* */}
+          {locked ? (
+            <button
+              type="button"
+              className={styles['unlock']}
+              onClick={props.form.unlock}
+            >
+              Edit anyway
+            </button>
+          ) : (
+            <>
+              {/* Nothing to save until something changes. `isDirty`
+                  compares against the todo's *stored* values, seeded when
+                  this todo was opened (use-todo-detail-form.ts), so
+                  opening a todo and closing it costs no PUT — and no
+                  SEQUENCE bump on the server. *(added 2026-08-03.)* */}
+              <button
+                type="submit"
+                className={styles['save']}
+                disabled={!isDirty}
+              >
+                Save
+              </button>
+              {/* Reset, not a second Close: the header's ✕ is the close
               control (docs/specs/ui.md — overlays: one close control per
               surface), so a footer Close only duplicated it. Reverting an
               edit had no control at all — it meant closing the panel and
               reopening it. Disabled when there is nothing to undo, the
               same rule Save follows. *(changed 2026-08-04.)* */}
-          <button
-            type="button"
-            className={styles['reset']}
-            onClick={props.form.revert}
-            disabled={!isDirty}
-          >
-            Reset
-          </button>
+              <button
+                type="button"
+                className={styles['reset']}
+                onClick={props.form.revert}
+                disabled={!isDirty}
+              >
+                Reset
+              </button>
+            </>
+          )}
+          {/* Always available, locked or not: copying a todo is what the
+              lock exists to point you towards, and it is never
+              destructive. The copy is born active and gets a fresh
+              `created` (duplicate-todo.ts).
+
+              Icon-only, named by a tooltip: the row already carries up to
+              four controls, and this is the one whose meaning a single
+              familiar glyph carries completely. The name is on the button
+              itself too, not only in the tooltip — see icon-button.tsx. */}
+          <IconButton
+            label="Duplicate"
+            icon={<LuCopy aria-hidden="true" size={16} />}
+            className={styles['duplicate']}
+            onClick={props.onDuplicate}
+          />
+          {/* Live while locked too: Delete has its own confirmation
+              (issue #19), and locking it would mean unlocking to edit
+              before you could remove a completed todo, which is
+              backwards. */}
           <button
             type="button"
             className={styles['delete']}

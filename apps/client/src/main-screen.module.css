@@ -75,18 +75,30 @@
    as a modal title; reduced to --space-2/--space-2.)*
    *(changed 2026-08-02: was the text "Lists"; now the app's mark — icon
    plus "Fold" — since Today and Summary sit below it too.)*
-   *(changed 2026-08-03: centred. The mark is the brand, not a nav row, so
-   it is deliberately the one thing in the panel that does NOT sit on the
-   rows' shared left edge — docs/specs/ui.md's "one left edge" governs the
-   rows, and setting the mark apart from them is the point.)* */
+   *(changed 2026-08-03: centred, on the reasoning that the mark is the
+   brand rather than a nav row and should sit apart from the rows' shared
+   left edge.)*
+   *(reverted 2026-08-04: left-aligned again. "One left edge"
+   (docs/specs/ui.md) reads better applied to the whole column than with
+   the heading exempted from it — the centred mark looked like an
+   oversight rather than a deliberate exception. Padding now matches the
+   detail panel's header too, so the two columns line up.)* */
 .navTitle {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-md);
+  /* Same uniform padding as the detail panel's header
+     (modal-header.module.css — `.header`), so the two column headers sit
+     at the same height and inset as each other.
+     *(changed 2026-08-04: was --space-2/--space-4.)* */
+  padding: var(--space-3);
+  /* Matches the detail panel's heading (modal-header.module.css —
+     `.titleLarge`). Both are the title of a full-height column, so they
+     should read at the same level; at --text-md the nav's mark sat a step
+     below the panel beside it and the two columns looked mismatched.
+     *(changed 2026-08-04: was --text-md.)* */
+  font-size: var(--text-lg);
   /* Semibold: this is the app's mark, so it carries more weight than the
      medium used for a selected list row. */
   font-weight: var(--weight-semibold);

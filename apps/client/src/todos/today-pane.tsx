@@ -3,6 +3,7 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
+import { duplicateTodo } from './duplicate-todo'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { sortActiveTodos } from './sort'
@@ -170,6 +171,11 @@ export function TodayDetail(props: {
   mode: 'sheet' | 'column'
   /** Column mode only — see TodoDetail. */
   focusNonce?: number
+  /**
+   * A copy was created — open it. Optional so a surface that doesn't own
+   * selection can omit it (issue #25).
+   */
+  onDuplicated?: (copy: Todo) => void
   onClose: () => void
 }) {
   const actions = useTodoActions(props.todo.listId)
@@ -189,6 +195,24 @@ export function TodayDetail(props: {
           ? {}
           : { focusNonce: props.focusNonce })}
         onDelete={() => setConfirming(true)}
+        onDuplicate={() => {
+          // The copy lands in the *source's* list, so `actions` (bound to
+          // that list) is the right writer. Opening the copy is what makes
+          // this one click rather than two: the next thing you do is
+          // almost always edit it (issue #25).
+          const copy = duplicateTodo(props.todo, crypto.randomUUID())
+          actions.add(copy)
+          // The same shape `applyMutationToTodos` gives the optimistic
+          // placeholder (sync/optimistic.ts) — so the panel can switch to
+          // the copy immediately rather than waiting for a round trip.
+          props.onDuplicated?.({
+            ...copy,
+            listId: props.todo.listId,
+            href: '',
+            etag: '',
+            completed: false,
+          })
+        }}
         onClose={props.onClose}
       />
       {/* A *sibling* of TodoDetail, never a child. In `sheet` mode the

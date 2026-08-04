@@ -248,3 +248,41 @@ test('Reset discards an edit and restores the stored values', async ({
   await expect(page.getByText('Unsaved changes')).toBeHidden()
   await expect(reset).toBeDisabled()
 })
+
+// docs/specs/todos.md — a completed todo is read-only until unlocked, and
+// Duplicate is the "the scope changed" answer that makes the lock a choice
+// rather than an obstacle (issue #25).
+test('a completed todo locks, unlocks deliberately, and duplicates active', async ({
+  page,
+}) => {
+  await login(page)
+  await createList(page, uniqueName('locking'))
+  await addTodo(page, 'Finished work')
+  await waitForSync(page)
+
+  await page
+    .getByRole('checkbox', { name: 'Mark "Finished work" done' })
+    .click()
+  await page.getByRole('button', { name: 'Completed (1)' }).click()
+  await page.getByText('Finished work').click()
+
+  // Locked: the fields are inert and the panel says why.
+  const summary = page.getByRole('textbox', { name: 'Summary' })
+  await expect(summary).toBeDisabled()
+  await expect(page.getByText('Completed', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save' })).toBeHidden()
+
+  // Duplicate is offered while locked, and opens the copy — which is
+  // active, so its fields are editable.
+  await page.getByRole('button', { name: 'Duplicate', exact: true }).click()
+  await expect(summary).toHaveValue('Finished work (copy)')
+  await expect(summary).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()
+
+  // The source is still there and still completed — duplicating copies,
+  // it never moves or reopens the original.
+  await page.getByRole('button', { name: 'Close', exact: true }).first().click()
+  await expect(
+    page.getByRole('checkbox', { name: 'Mark "Finished work" active' }),
+  ).toBeVisible()
+})

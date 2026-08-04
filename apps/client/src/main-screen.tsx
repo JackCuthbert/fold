@@ -228,6 +228,15 @@ export function MainScreen() {
     setOpenCount((count) => count + 1)
   }
 
+  // Switch the panel to a freshly duplicated todo. The next action after
+  // duplicating is almost always editing the copy, so landing on it saves
+  // hunting for it in the list — the panel's contents changing under you
+  // is unusual for this app, but it is the direct result of a click you
+  // just made (issue #25).
+  const openCopy = (copy: Todo): void => {
+    openDetail(copy, openTrigger.current)
+  }
+
   const closeDetail = (): void => {
     setOpenTodo(null)
     // Return focus to the row that opened the panel. Deferred a frame so
@@ -553,6 +562,7 @@ export function MainScreen() {
                   form={detailForm}
                   mode="column"
                   focusNonce={openCount}
+                  onDuplicated={openCopy}
                   onClose={closeDetail}
                 />
               )}
@@ -571,6 +581,7 @@ export function MainScreen() {
           lists={lists.data ?? []}
           form={detailForm}
           mode="sheet"
+          onDuplicated={openCopy}
           onClose={closeDetail}
         />
       )}

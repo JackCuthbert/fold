@@ -227,3 +227,38 @@
   background: none;
   color: var(--faint);
 }
+
+/* Warning — an action that is allowed but should give you pause: the
+   detail panel's "Edit anyway", which unlocks a completed todo's fields
+   for editing. *(added 2026-08-04, issue #25.)*
+
+   Not `destructive`: nothing is lost by unlocking, and reserving red for
+   actions that actually destroy something keeps that signal meaningful.
+   Not `ghost` either, which was the first attempt — receding was wrong for
+   a control whose whole job is to say "are you sure you want to rewrite a
+   finished record?".
+
+   Amber matches the "Completed" notice this button answers
+   (todo-detail.module.css — `.lockNote`), so the warning and its escape
+   hatch read as one idea. `--status-syncing` is the app's existing
+   attention-without-alarm colour. */
+.warning {
+  border-color: var(--status-syncing);
+  color: var(--status-syncing);
+}
+
+/* docs/specs/ui.md — hover is a whisper: a faint tint of the button's own
+   colour, the same treatment `.destructive` uses, rather than flooding it. */
+.warning:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-syncing) 10%, var(--surface));
+}
+
+/* The resting border is already --status-syncing, so repeating it on focus
+   would be invisible. --ink gives the same high-contrast swap
+   `.destructive:focus-visible` uses against its own resting colour, without
+   changing border width or adding an outline that would clip inside a
+   sheet (docs/specs/ui.md — focus changes border colour only). */
+.warning:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--status-syncing) 14%, var(--surface));
+}
