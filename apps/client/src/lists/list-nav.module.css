@@ -12,6 +12,23 @@
      row type is worse than one that is uniformly a little further in.
      *(added 2026-08-04.)* */
   --nav-inset: var(--space-3);
+  /* The mirror of --nav-inset on the trailing edge, where the shortcut
+     hints sit. The create buttons carry `.action`'s --space-4 padding
+     there, so their keycaps stopped 16px short while the views' stopped
+     8px short — visibly ragged down the right of the nav once every row
+     had a hint.
+
+     Two definitions of "aligned" conflict here and only one can hold: a
+     create button's 1px border means its painted edge sits 1px inside the
+     views', so caps cannot both end at the same x *and* keep the same gap
+     from the visible edge. This picks the same x — a column of keycaps is
+     what the eye actually follows down the nav, and a 1px difference in
+     the gap behind them is invisible by comparison.
+
+     So the views take --space-4 plus that border's width, matching where
+     a create button's cap lands rather than its padding value.
+     *(added 2026-08-04.)* */
+  --nav-inset-end: calc(var(--space-4) + var(--border-width));
   /* One height for every row in the nav — create buttons, derived views
      and list rows alike. They were 38.2, 38.5 and 40.5px, close enough to
      look like a mistake rather than a rhythm.
@@ -86,7 +103,7 @@
      left edge as the list rows (docs/specs/ui.md — one left edge). The
      leading value comes from --nav-inset, less this row's own transparent
      hairline. */
-  padding: var(--space-2) var(--space-2) var(--space-2)
+  padding: var(--space-2) var(--nav-inset-end) var(--space-2)
     calc(var(--nav-inset) - var(--border-width));
   font-size: var(--text-base);
   color: var(--muted);
