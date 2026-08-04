@@ -108,11 +108,28 @@
      *(changed 2026-08-04: was `border-left-width: var(--space-1)`.)* */
   border: var(--border-width) solid var(--line);
   border-radius: var(--radius-sm);
-  /* Also clips the marker to the row's rounded corners. */
-  overflow: hidden;
   box-shadow: var(--shadow-button);
   /* The marker is positioned against this box. */
   position: relative;
+  /* Reserves the marker's width so the dot and name sit on the same left
+     edge as Today's and Summary's icons, which carry an equivalent
+     transparent border (`.today`). Without it a list row's content sat
+     3px left of the views above it — measured, not eyeballed.
+     Transparent padding rather than a border: the marker is drawn over
+     this space by `::before`, and a real border would sit *outside* it.
+
+     The row's own 1px border already contributes to that inset, so this
+     reserves the marker's width *minus* the border — 4px of padding on
+     top of it would land the content 1px right of the views.
+     *(added 2026-08-04.)* */
+  padding-left: calc(var(--space-1) - var(--border-width));
+  /* `overflow: hidden` used to clip the segmented button's backgrounds to
+     the outer radius — but it also clipped the marker, which is offset
+     outward by the border width, back inside the hairline. That is the
+     inset this whole change removes. `clip-path` to the border box keeps
+     the corners honest without cropping anything drawn on the border
+     itself. *(changed 2026-08-04.)* */
+  clip-path: inset(0 round var(--radius-sm));
 }
 
 /* docs/specs/ui.md — the nav: selecting a list looks like selection, not
@@ -137,6 +154,13 @@
      *(fixed 2026-08-04.)* */
   inset-block: calc(var(--border-width) * -1);
   inset-inline-start: calc(var(--border-width) * -1);
+  /* Exactly --space-1, the same 4px the derived views' own left border
+     draws (`.today`), so a selected list and a selected view carry an
+     identical marker. It starts 1px outside the padding box (see the
+     insets above), which puts it over the row's border rather than inside
+     it — the row's reserved padding is 1px narrower to match, so the
+     content still lands on the shared left edge.
+     *(fixed 2026-08-04: was 5px, border width plus the reserved space.)* */
   width: var(--space-1);
   background: var(--marker, var(--accent));
   /* Above the row's own background, below its content. */
