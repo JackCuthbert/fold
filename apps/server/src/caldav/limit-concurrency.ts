@@ -1,21 +1,24 @@
 /**
  * How many CalDAV requests may be in flight at once.
  *
- * Six, because Bun's `fetch` stalls hard above roughly seven concurrent
- * requests to one host: measured against a local Radicale, seven
- * concurrent PROPFINDs completed in 11ms and eight took 1068ms — a clean
- * step, not a curve, with a ~1000ms penalty that looks like a pool limit
- * plus a retry timer. The same eight requests issued by `curl` took 44ms,
- * so it is the client, not the server.
+ * Six, because a wide burst is expensive against a server that won't hold
+ * connections open. Radicale's built-in server speaks **HTTP/1.0**
+ * (Python's `wsgiref.simple_server`, which never sets
+ * `protocol_version`), so every request costs a fresh TCP connection and
+ * a pool has nothing to reuse. Twelve concurrent requests measured
+ * ~1050ms there versus 14ms against an HTTP/1.1 keep-alive server on the
+ * same runtime.
  *
- * The effect is dramatic because tsdav's calendar discovery issues one
- * PROPFIND *per collection*: with 20 lists, one `fetchLists` fires 23
- * requests at once and pays the stall every time. Batching the identical
- * work six at a time took it from 1042ms to 49ms.
+ * *(corrected 2026-08-04: first attributed to a Bun `fetch` pooling bug.
+ * Node 24 shows the same ~1089ms, so it is not runtime-specific — the
+ * pool is being denied, not failing. A production Radicale behind
+ * uWSGI/Gunicorn speaks HTTP/1.1 and would not show this.)*
  *
- * Six rather than seven to leave headroom — the ceiling is empirical, and
- * a Bun upgrade could move it. Sequential requests cost ~2ms each, so a
- * queue of six is nowhere near a bottleneck at any realistic list count.
+ * Worth keeping regardless of what the server speaks: the cost is
+ * per-connection, an arbitrary CalDAV server's HTTP version is not
+ * something we can know, and this also bounds the fan-out inside tsdav
+ * that we don't own. Sequential requests cost ~2ms each, so a queue of
+ * six is nowhere near a bottleneck at any realistic list count.
  *
  * *(added 2026-08-04, issue #24.)*
  */
