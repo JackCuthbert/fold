@@ -326,10 +326,17 @@ So:
 - **The panel switches to the copy.** The next action is almost always
   editing it, and leaving you on the source means hunting for it.
 - Available whether the source is locked or not — it is never destructive,
-  and it is what the lock exists to point you towards. Rendered as an
-  icon-only button with a tooltip: the actions row already carries several
-  controls, and a copy glyph carries this meaning completely
-  ([ui](./ui.md) — icon-only buttons).
+  and it is what the lock exists to point you towards.
+- **It sits on its own row below the actions, styled as a link** — muted
+  text that underlines on hover, not button chrome. Duplicating is rare:
+  reach for it when a finished todo's scope has changed, not on an ordinary
+  edit, and a button would claim the same standing weight as Save and
+  Delete for something wanted a fraction as often. Its own row also keeps
+  it clear of the panel header, which already carries the "Completed" pill
+  and its explainer on exactly the todos where duplicating is the point.
+  *(changed 2026-08-04: was an icon-only button with a tooltip in the
+  actions row, where it was the only unlabelled control and read as an
+  afterthought between Reset and Delete.)*
 
 ## Moving a todo between lists
 

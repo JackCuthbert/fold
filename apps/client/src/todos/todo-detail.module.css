@@ -419,14 +419,66 @@
   composes: action warning from '../styles/button.module.css';
 }
 
-/* Copy this todo into new work. Neutral chrome rather than ghost: unlike
-   Reset it is available at all times and is a real, primary-ish action —
-   the answer to "the scope changed" (issue #25). */
-.duplicate {
-  composes: action default from '../styles/button.module.css';
-}
-
 .delete {
   composes: action destructive from '../styles/button.module.css';
   margin-left: auto;
+}
+
+/* The row Duplicate sits on, between the actions and the metadata
+   footnote. Its own row rather than a fourth control in `.actions`: as an
+   icon button there it was the only unlabelled thing in the row and read
+   as an afterthought (see todo-detail.tsx).
+
+   Only the top margin — `.actions` already contributes the bottom padding
+   below it, and `.meta` owns the rule and spacing that follow.
+   *(added 2026-08-04.)* */
+.secondaryActions {
+  display: flex;
+  margin-top: calc(var(--space-1) * -1);
+  margin-bottom: var(--space-3);
+}
+
+/* Copy this todo into new work (issue #25).
+
+   Styled as a link, not a button: this is a rare action — for when a
+   finished todo's scope has changed — and button chrome would give it the
+   same standing weight as Save and Delete. Muted until hover, where the
+   underline confirms it is interactive.
+
+   `--hit-area` is deliberately *not* enforced here (docs/specs/ui.md —
+   controls & touch targets). That floor exists for controls you aim at in
+   a row of targets; this is a text link on its own line with nothing
+   adjacent to mis-tap, and padding it to 44px would reintroduce exactly
+   the button-sized presence this change removes. The generous vertical
+   padding below still gives it a comfortable target.
+   *(changed 2026-08-04: was a neutral icon button in the actions row.)* */
+.duplicate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  transition:
+    color var(--duration-fast) var(--ease),
+    text-decoration-color var(--duration-fast) var(--ease);
+}
+
+.duplicate:hover {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+/* Keyboard users get the underline too — hover is not available to them,
+   and the focus ring alone leaves it looking like static text. */
+.duplicate:focus-visible {
+  color: var(--ink);
+  text-decoration-color: currentColor;
 }
