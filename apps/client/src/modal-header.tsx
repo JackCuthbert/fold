@@ -59,6 +59,17 @@ export function ModalHeader(props: {
     title: ReactElement
     close: ReactElement
   }
+  /**
+   * A short status about the surface, shown after the title and before the
+   * ✕ — the todo panel's "Unsaved changes".
+   *
+   * Here rather than beside the surface's buttons because the header is a
+   * fixed row at a fixed place: the actions row is the panel's widest,
+   * most variable strip, where a right-aligned note drifted far from
+   * anything it referred to on a wide panel, and wrapped on a narrow one.
+   * *(added 2026-08-04.)*
+   */
+  status?: ReactNode
 }) {
   const title = props.render?.title ?? <Dialog.Title />
   const close = props.render?.close ?? <Dialog.Close />
@@ -73,6 +84,9 @@ export function ModalHeader(props: {
         ),
         children: props.children,
       })}
+      {props.status !== undefined && props.status !== false && (
+        <span className={styles['status']}>{props.status}</span>
+      )}
       {cloneElement(close, {
         className: styles['close'],
         'aria-label': 'Close',

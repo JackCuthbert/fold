@@ -55,6 +55,25 @@
   font-size: var(--text-lg);
 }
 
+/* An optional status about the surface — the todo panel's "Unsaved
+   changes" — between the title and the ✕.
+
+   `.title` takes the row's slack, so this lands hard against the ✕ at the
+   trailing edge, at a fixed vertical position no matter how wide the
+   surface is. That is the whole point of moving it here: in the actions
+   row it drifted into the middle of a wide panel, nowhere near what it
+   referred to. *(added 2026-08-04.)*
+
+   Muted and small: it annotates the title and must not compete with it.
+   `flex: none` + `nowrap` so it never wraps or squeezes the ✕ below its
+   hit area on a narrow sheet. */
+.status {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 /* docs/specs/ui.md — controls & touch targets: a 14px glyph needs a real
    target, so the button is a full --hit-area box holding a smaller painted
    shape — the same arrangement `.swatch` (color-picker.module.css) and

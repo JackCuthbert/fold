@@ -178,3 +178,52 @@
   border-color: var(--ink);
   background: color-mix(in srgb, var(--danger) 12%, var(--surface));
 }
+
+/* Ghost — a real action that should recede until wanted: the detail
+   panel's Reset, which matters only while an edit is in progress and would
+   otherwise sit beside Save with equal weight at all times.
+   *(added 2026-08-04.)*
+
+   Drops the chrome `.action` supplies rather than tinting it, so it reads
+   as text at rest — but keeps `.action`'s box, hit area and transitions, so
+   it still aligns with the real buttons beside it (docs/specs/ui.md —
+   controls & touch targets: never size a control to its label).
+
+   Deliberately *not* the ghost treatment the derived-view nav rows use:
+   those are navigation. This is an action, so it gains a surface on hover
+   rather than only changing colour — enough to read as pressable once the
+   pointer is on it (docs/specs/ui.md — hover is a whisper). */
+.ghost {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.ghost:hover:not(:disabled) {
+  /* Same weight as the nav row hover, which is the app's reference for a
+     surface appearing under the pointer. `filter` is inherited from
+     `.action` and would do nothing against a transparent background. */
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  color: var(--ink);
+  filter: none;
+}
+
+/* The border is transparent at rest, so recolouring it is the same
+   one-property focus change every other button makes — no outline to clip
+   inside the sheet, no layout shift (docs/specs/ui.md — focus changes
+   border colour only). */
+.ghost:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* Disabled is the resting state most of the time here — Reset is live only
+   while the form is dirty — so it must be quiet rather than looking
+   broken: no border, no fill, just faint text and the not-allowed cursor
+   `.action:disabled` already sets. */
+.ghost:disabled {
+  border-color: transparent;
+  background: none;
+  color: var(--faint);
+}

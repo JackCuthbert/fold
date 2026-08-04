@@ -402,6 +402,48 @@ at and can act on it without scrolling back up.
   so measure it once at startup and publish it as a custom property rather
   than hard-coding a guess.
 
+### How much is in this view
+
+*(added 2026-08-04.)*
+
+Under the title, a muted line says what the view holds: **"12 todos · 5
+done"**, or **"No todos"** when it is empty.
+
+- **The headline counts what is left**, not the total. A number that never
+  moves as work is finished is noise; one that falls when you tick
+  something is feedback. The completed half only appears once there is
+  some. When *everything* is done the count drops to just "6 done": "No
+  todos" would erase the work, but "0 todos · 6 done" reads as a bug rather
+  than a state, and the done count alone already says the view isn't
+  empty.
+- **Under the title, not beside it.** The title is centred by balancing the
+  ☰ against an equal-width spacer, so a count of changing width alongside
+  it would shift the title sideways every time a todo was ticked. It sits
+  directly beneath with no gap — the two read as one unit rather than as
+  two header rows.
+- **It costs no request.** The line is derived from the todos the visible
+  view has already loaded, read from the same query rather than a fetch of
+  its own. A list view therefore stays a single-list fetch: the count must
+  never be the reason the app fans out across every list, which is what
+  keeps it free on a slow server (see issue #24).
+- **A skeleton while unknown, words when empty.** Before the todos arrive
+  the line shows a placeholder bar of exactly the text's height, never
+  "No todos" — announcing an empty view and then contradicting it a moment
+  later is worse than showing nothing legible. The line is always present
+  so the list below it never shifts down when the count appears.
+  - "Not loaded yet" and "loaded and empty" must be genuinely
+    distinguishable. The signal is whether the pane that owns the query has
+    put a response in the cache — an empty list settles with `todos: []`,
+    which is different from having no entry at all. Query *status* flags
+    are not a safe substitute here: the count observes the cache rather
+    than owning a query, so flags like `isFetching`/`isSuccess` describe a
+    request that never runs. *(added 2026-08-04, after three separate bugs
+    from exactly that: a false "No todos" on every cold load, a real empty
+    list showing no line, and a new list stuck on the skeleton.)*
+  - The lists are the other half: on a cold load they arrive after first
+    paint, so an empty list collection means "not loaded" as often as it
+    means "none".
+
 ## Overlays
 
 *(added 2026-07-31: the delete-list confirm and the mobile sheet appeared
@@ -479,6 +521,19 @@ over an undimmed background, so they didn't read as modal.)*
   - **The confirm dialog is the exception — it gets no ✕.** A destructive
     confirm asks a question and offers two explicit answers; a third
     dismissal path in the header would compete with its Cancel.
+  - **One close control per surface.** The todo panel's footer carried a
+    "Close" beside the header's ✕, which was two controls for one action.
+    That button is now **Reset** — discard the edit and restore the stored
+    values — which had no control at all before: undoing an edit meant
+    closing the panel and reopening it. It is disabled when the form is
+    clean, the same rule Save follows. *(changed 2026-08-04.)*
+  - **A surface's status belongs in its header**, not beside its buttons.
+    The todo panel's "Unsaved changes" sat in the actions row, which is the
+    panel's widest and most variable strip: right-aligned there, it drifted
+    into the middle of a wide panel — far from anything it referred to —
+    and wrapped on a narrow one. The header is a fixed row at a fixed
+    height, so the note stays put at every width, and stays visible when a
+    long todo scrolls the actions out of view. *(moved 2026-08-04.)*
   - **A modal does not carry both a ✕ and a footer Close.** Two close
     controls in one modal is one too many. The help modal's footer Close
     was removed when the ✕ arrived — it sat below the scroll viewport, so

@@ -86,6 +86,12 @@ export interface TodoDetailForm {
   isDirty: boolean
   /** Wraps react-hook-form's `handleSubmit` — pass straight to `onSubmit`. */
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+  /**
+   * Discard the edit in progress and restore the todo's stored values.
+   * Backs the footer's Reset — see the implementation for why that button
+   * is no longer a second Close.
+   */
+  revert: () => void
 }
 
 /**
@@ -171,5 +177,27 @@ export function useTodoDetailForm(
     handlers.onClose()
   }
 
-  return { control, isDirty, onSubmit: handleSubmit(submit) }
+  return {
+    control,
+    isDirty,
+    onSubmit: handleSubmit(submit),
+    /**
+     * Throw away the edit in progress and go back to what is stored.
+     *
+     * The footer's second "Close" became this: closing is the header's ✕
+     * (docs/specs/ui.md — overlays: one close control), which left the
+     * footer button duplicating it. Reverting is the thing that had no
+     * control at all — before, undoing an edit meant closing the panel and
+     * reopening it. *(changed 2026-08-04.)*
+     *
+     * Re-seeds from the same values `defaultsFor` produced on open, so
+     * `isDirty` returns to false and the DUE fields go back to the form
+     * the todo actually carries rather than a re-derived guess.
+     */
+    revert: (): void => {
+      if (!todo) return
+      initialFields.current = dueToFields(todo.due)
+      reset(defaultsFor(todo, initialFields.current))
+    },
+  }
 }

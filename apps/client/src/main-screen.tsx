@@ -24,6 +24,7 @@ import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
 import { useTodoActions } from './todos/use-todo-actions'
 import { useTodoDetailForm } from './todos/use-todo-detail-form'
+import { useViewCount } from './todos/use-view-count'
 import { useMediaQuery } from './use-media-query'
 
 const SELECTED_LIST_KEY = 'fold:selected-list'
@@ -169,6 +170,20 @@ export function MainScreen() {
   const showingSummary = isSummaryView(active)
   const showingDerived = isDerivedView(active)
   const activeList = lists.data?.find((list) => list.id === active)
+  // docs/specs/ui.md — the header: the count line, read from the same
+  // queries the visible pane already populates, so it costs no request of
+  // its own. *(added 2026-08-04.)*
+  const viewCount = useViewCount({
+    lists: lists.data ?? [],
+    // `lists.data !== undefined`, not `isSuccess`: the persisted cache can
+    // hydrate the query as successful before the lists themselves are
+    // there, and an empty array then reads as "no lists" rather than "not
+    // loaded yet" — which is how the header briefly announced "No todos"
+    // on every cold load. *(fixed 2026-08-04.)*
+    listsLoaded: lists.data !== undefined,
+    listId: activeList?.id ?? null,
+    view: showingToday ? 'today' : showingSummary ? 'summary' : 'list',
+  })
   // A derived view has no collection to add to, so the add path is bound
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
   // docs/specs/summary-view.md).
@@ -455,6 +470,23 @@ export function MainScreen() {
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
             </div>
+            {/* docs/specs/ui.md — the header: how much is in this view,
+                under the title rather than beside it. Beside would break
+                the title's centring, which balances the ☰ against
+                `.headerSpacer` — a count of changing width ("3 todos" vs
+                "128 todos") would shift the title sideways every time a
+                todo was ticked. `role="status"` so the change is announced
+                rather than only seen. *(added 2026-08-04.)* */}
+            {/* Always rendered, so the header's height is the same before
+                and after the todos arrive — a conditional line pushed the
+                whole list down the moment it appeared. While the count is
+                unknown this is a skeleton bar of the same height, and the
+                text replaces it in place. *(added 2026-08-04.)* */}
+            <p className={styles['count']} role="status">
+              {viewCount ?? (
+                <span className={styles['countSkeleton']} aria-hidden="true" />
+              )}
+            </p>
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>

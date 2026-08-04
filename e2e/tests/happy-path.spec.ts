@@ -17,6 +17,12 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await createList(page, listName)
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 
+  // docs/specs/ui.md — the header: an empty list says so in words rather
+  // than showing a bare zero or nothing at all. A moment of skeleton comes
+  // first — the list is new, so its todos genuinely aren't known yet — so
+  // this waits for the settled state rather than the first frame.
+  await expect(page.getByText('No todos')).toBeVisible({ timeout: 10_000 })
+
   await addTodo(page, 'Buy milk')
   await expect(page.getByText('Buy milk')).toBeVisible()
   // docs/specs/ui.md — accessibility: focus must not land somewhere
@@ -41,6 +47,9 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await expect(
     page.getByRole('button', { name: 'Completed (1)' }),
   ).toBeVisible()
+  // The count tracks what's *left*, so completing one moves it — and the
+  // done half only appears once there is some.
+  await expect(page.getByText('1 todo · 1 done')).toBeVisible()
 
   // docs/specs/todos.md — clearing completed todos: there is no bulk
   // delete; a completed todo is the only record that the work was done.
@@ -211,4 +220,31 @@ test('reordering a list survives a reload', async ({ page }) => {
   await expect(async () => {
     expect(await pairOrder()).toEqual([second, first])
   }).toPass()
+})
+
+// docs/specs/ui.md — overlays: the footer's second "Close" became Reset,
+// since the header's ✕ already closes the panel. Reverting had no control
+// at all before — it meant closing and reopening.
+test('Reset discards an edit and restores the stored values', async ({
+  page,
+}) => {
+  await login(page)
+  await createList(page, uniqueName('revert-check'))
+  await addTodo(page, 'Original summary')
+  await waitForSync(page)
+
+  await page.getByText('Original summary').click()
+  const summary = page.getByRole('textbox', { name: 'Summary' })
+  const reset = page.getByRole('button', { name: 'Reset', exact: true })
+  // Nothing to undo yet, so it is disabled — the same rule Save follows.
+  await expect(reset).toBeDisabled()
+
+  await summary.fill('Edited but not saved')
+  await expect(page.getByText('Unsaved changes')).toBeVisible()
+  await expect(reset).toBeEnabled()
+
+  await reset.click()
+  await expect(summary).toHaveValue('Original summary')
+  await expect(page.getByText('Unsaved changes')).toBeHidden()
+  await expect(reset).toBeDisabled()
 })
