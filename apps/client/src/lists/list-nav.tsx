@@ -41,7 +41,12 @@ export function useLists() {
  * action is ever unbound, which renders nothing rather than a lie.
  */
 /**
- * The inline style carrying a selected list's marker colour.
+ * An inline style carrying a list's colour as `--marker`.
+ *
+ * Used twice, for the two things a list's colour paints: the selection
+ * marker on the row's left edge, and the dot before its name. Both are
+ * drawn by pseudo-elements, so neither can take the colour as a plain
+ * `background` on the element itself.
  *
  * A custom property in a plain record rather than a cast to
  * `CSSProperties`: React accepts `--*` keys at runtime but its types do
@@ -49,7 +54,7 @@ export function useLists() {
  * what type-aware lint objects to (CLAUDE.md — fix findings, don't
  * suppress them).
  */
-function markerStyle(color: string): Record<string, string> {
+function colourVar(color: string): Record<string, string> {
   return { '--marker': color }
 }
 
@@ -217,6 +222,12 @@ export function ListNav(props: {
         </button>
       </div>
 
+      {/* The one real division in the nav: views of your todos above, the
+          lists they live in below. A short centred rule rather than space
+          alone, since the gap between groups was doing the same job as
+          the gap between rows. *(added 2026-08-04.)* */}
+      <hr className={styles['separator']} />
+
       <ul>
         {(lists.data ?? []).map((list, index, all) => (
           <li
@@ -233,7 +244,7 @@ export function ListNav(props: {
             // *(changed 2026-08-04.)*
             style={
               list.id === props.selected
-                ? markerStyle(markerColor(list.color, theme))
+                ? colourVar(markerColor(list.color, theme))
                 : undefined
             }
           >
@@ -256,10 +267,13 @@ export function ListNav(props: {
                   styles['dot'],
                   list.color === undefined && styles['dotEmpty'],
                 )}
+                // The colour goes to a custom property, not `background`:
+                // the dot is painted by `.dot::after` at 8px inside a
+                // 16px footprint, and a background on this box would fill
+                // the whole footprint instead.
+                // *(changed 2026-08-04.)*
                 style={
-                  list.color !== undefined
-                    ? { background: list.color }
-                    : undefined
+                  list.color !== undefined ? colourVar(list.color) : undefined
                 }
                 aria-hidden="true"
               />

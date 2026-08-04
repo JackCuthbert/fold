@@ -145,8 +145,13 @@
      so a nav action's icon sat well right of the list rows it stacks with.
      Trim the leading padding to the row's own inset so the *visible* glyph
      lands on the shared edge; the box, hover fill and hit area are
-     unchanged. */
-  padding-inline-start: var(--space-2);
+     unchanged.
+
+     `--nav-inset` so the nav can set that shared edge once for every row
+     it contains (lists/list-nav.module.css) — a local override here loses
+     to `composes`, which places this rule last. The fallback keeps any
+     other caller behaving as before. *(changed 2026-08-04.)* */
+  padding-inline-start: var(--nav-inset, var(--space-2));
 }
 
 /* Destructive — Delete, and the confirm dialog's destructive action. */

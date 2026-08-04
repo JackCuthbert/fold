@@ -150,12 +150,23 @@ test('a list colour persists across a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Save', exact: true }).click()
 
   // The dot is aria-hidden (decorative — the row's name is the label), so
-  // it's reached through the row rather than by role. Playwright reports
-  // computed colours as rgb(), never as the source hex #4A6F96.
+  // it's reached through the row rather than by role.
+  //
+  // Asserted on the *painted* circle — `.dot::after` — rather than on the
+  // element's own background: the dot is 8px inside a 16px footprint that
+  // aligns it with the icons on every other nav row, so the colour lands
+  // on a pseudo-element and the box itself is transparent. Playwright
+  // can't locate a pseudo-element, hence the evaluate. Computed colours
+  // come back as rgb(), never as the source hex #4A6F96.
+  // *(changed 2026-08-04.)*
   const dot = page
     .getByRole('button', { name: listName, exact: true })
     .locator('span[aria-hidden="true"]')
-  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+  await expect
+    .poll(() =>
+      dot.evaluate((el) => getComputedStyle(el, '::after').backgroundColor),
+    )
+    .toBe('rgb(74, 111, 150)')
 
   // Reload from the *server*, not the local cache. `waitForSync` proves the
   // colour reached the server, but the query cache is persisted to IndexedDB
@@ -165,7 +176,13 @@ test('a list colour persists across a reload', async ({ page }) => {
   // cache first is what makes this assertion about the server rather than
   // about IndexedDB.
   await reloadFromServer(page)
-  await expect(dot).toHaveCSS('background-color', 'rgb(74, 111, 150)')
+  // Same pseudo-element read as above — this is the assertion that proves
+  // the colour came back from the *server*.
+  await expect
+    .poll(() =>
+      dot.evaluate((el) => getComputedStyle(el, '::after').backgroundColor),
+    )
+    .toBe('rgb(74, 111, 150)')
 })
 
 // docs/specs/lists.md — ordering: the kebab's Move up/Move down are the

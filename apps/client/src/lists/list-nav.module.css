@@ -1,4 +1,28 @@
 /* docs/specs/lists.md — sidebar (desktop) / drawer (mobile). */
+/* Every glyph in the nav occupies this box — the icons are 16px, and the
+   colour dot is centred in the same footprint so all five rows put their
+   text on one left edge (see `.dot`). *(added 2026-08-04.)* */
+.nav {
+  --nav-glyph: 16px;
+  /* The gap from a row's left edge to its icon.
+     Wider than the --space-2 it was, because the selection marker claims
+     the first 4px of that edge: at 8px the icon sat right against the
+     marker on a selected row. Applied to every row including the create
+     buttons, which have no active state — an icon column that shifts by
+     row type is worse than one that is uniformly a little further in.
+     *(added 2026-08-04.)* */
+  --nav-inset: var(--space-3);
+  /* One height for every row in the nav — create buttons, derived views
+     and list rows alike. They were 38.2, 38.5 and 40.5px, close enough to
+     look like a mistake rather than a rhythm.
+
+     `max()` against --hit-area so this can never drop a row below the
+     touch-target floor: that token is 34px on a mouse and 44px on touch
+     (tokens.css), so this is 38px on desktop and 44px on a phone.
+     *(added 2026-08-04.)* */
+  --nav-row: max(38px, var(--hit-area));
+}
+
 .nav ul {
   display: flex;
   flex-direction: column;
@@ -17,7 +41,24 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  /* No bottom margin: the separator below owns the space between the
+     derived views and the real lists. *(changed 2026-08-04.)* */
+}
+
+/* The break between "views of your todos" and "the lists they live in" —
+   the one real division in the nav, so it gets a mark rather than only
+   space. Deliberately short and centred rather than a full-width rule: a
+   rule edge to edge reads as a hard section break in a column that is
+   otherwise one continuous list, and this is a pause, not a wall.
+   *(added 2026-08-04.)* */
+.separator {
+  /* Space either side, more than the gap between rows in a group, so the
+     division is legible from the rhythm alone. */
+  margin: var(--space-4) auto;
+  width: 40px;
+  height: var(--border-width);
+  background: var(--line);
+  border: none;
 }
 
 /* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
@@ -40,19 +81,26 @@
   justify-content: flex-start;
   gap: var(--space-2);
   width: 100%;
-  min-height: var(--hit-area);
+  height: var(--nav-row);
   /* Matches `.link`'s row box below, so the icon and label sit on the same
      left edge as the list rows (docs/specs/ui.md — one left edge). The
-     leading inset accounts for the transparent marker reserved below. */
-  padding: var(--space-2);
+     leading value comes from --nav-inset, less this row's own transparent
+     hairline. */
+  padding: var(--space-2) var(--space-2) var(--space-2)
+    calc(var(--nav-inset) - var(--border-width));
   font-size: var(--text-base);
   color: var(--muted);
   background: none;
   border: none;
   border-radius: var(--radius-sm);
-  /* A marker's worth of transparent space, reserved unconditionally so
-     selecting Today doesn't shift the icon (same technique as `.link`). */
-  border-left: var(--space-1) solid transparent;
+  /* One transparent hairline, the same inset the create buttons above
+     carry from their own border — so every icon in the nav sits on one
+     left edge. The selection marker is drawn *over* this edge by
+     `.todayActive::before` rather than reserving 4px here, which used to
+     push these two rows 3px right of "New todo" and "New list".
+     *(changed 2026-08-04: was `var(--space-1) solid transparent`.)* */
+  border-left: var(--border-width) solid transparent;
+  position: relative;
   transition:
     color var(--duration-fast) var(--ease),
     background-color var(--duration-fast) var(--ease),
@@ -70,7 +118,6 @@
    would be clipped by the nav's scroll container (docs/specs/ui.md). */
 .today:focus-visible {
   outline: none;
-  border-left-color: var(--accent);
   box-shadow: inset 0 0 0 var(--border-width) var(--accent);
 }
 
@@ -80,7 +127,19 @@
 .todayActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
-  border-left-color: var(--accent);
+}
+
+/* The same marker a selected list carries (`.itemActive::before`), drawn
+   over the row's left edge rather than reserved in the layout — so
+   selecting a view never shifts its icon. *(changed 2026-08-04.)* */
+.todayActive::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--border-width) * -1);
+  width: var(--space-1);
+  background: var(--accent);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
 /* docs/specs/ui.md — the nav: the row is a segmented button — the name
@@ -118,11 +177,10 @@
      Transparent padding rather than a border: the marker is drawn over
      this space by `::before`, and a real border would sit *outside* it.
 
-     The row's own 1px border already contributes to that inset, so this
-     reserves the marker's width *minus* the border — 4px of padding on
-     top of it would land the content 1px right of the views.
-     *(added 2026-08-04.)* */
-  padding-left: calc(var(--space-1) - var(--border-width));
+     *(removed 2026-08-04: the views no longer reserve marker space
+     either, so reserving it here pushed list rows 3px right of the create
+     buttons. Every row now carries one hairline and nothing more; the
+     marker is painted over it.)* */
   /* `overflow: hidden` used to clip the segmented button's backgrounds to
      the outer radius — but it also clipped the marker, which is offset
      outward by the border width, back inside the hairline. That is the
@@ -176,12 +234,22 @@
   min-width: 0;
   text-align: left;
   /* Padding, not a clip edge flush against the text: this row already has
-     --space-2 of leading padding, so a glyph's ink overhang (an "A" leans
-     left past its origin) has room and `overflow: hidden` can't shave it.
-     See --ink-overhang in tokens.css for rows that don't have that luxury. */
-  padding: var(--space-2) var(--space-2);
+     leading padding, so a glyph's ink overhang (an "A" leans left past
+     its origin) has room and `overflow: hidden` can't shave it. See
+     --ink-overhang in tokens.css for rows that don't have that luxury.
+
+     Vertical: the shell around this row carries a 1px border top and
+     bottom that no other nav row has, which made list rows 2px taller
+     than the views and the create buttons. Taking that back here keeps
+     every row the same height without giving up the row's outline.
+
+     Leading: --nav-inset, the shared left edge every nav row uses. This
+     row's shell contributes 1px of it. *(changed 2026-08-04.)* */
+  padding: calc(var(--space-2) - var(--border-width)) var(--space-2)
+    calc(var(--space-2) - var(--border-width))
+    calc(var(--nav-inset) - var(--border-width));
   font-size: var(--text-base);
-  min-height: var(--hit-area);
+  height: calc(var(--nav-row) - var(--border-width) * 2);
   display: flex;
   align-items: center;
   /* Space between the colour dot and the name (see `.dot`). */
@@ -226,12 +294,51 @@
    The circle itself lives in list-dot.module.css, shared with the list
    title in the main pane so the two can't drift. This keeps the nav's own
    8px default (--dot-size unset). *(extracted 2026-08-03.)* */
+/* The dot is 8px where every other row's glyph is a 16px icon, so on its
+   own it pulled a list's name 8px left of "Today" and "New todo". Centred
+   in an icon-sized box instead: the dot keeps its size — it is meant to be
+   a quiet marker, not an icon — and every name in the nav starts on the
+   same left edge. *(added 2026-08-04.)* */
+/* A 16px footprint, matching every other glyph in the nav, with the dot
+   itself painted at the 8px the footer's status dot uses — the two are
+   the same mark and must read as the same size.
+
+   Drawn as a pseudo-element rather than by insetting this box: `composes`
+   places the shared rule *after* anything declared here, so `width` and
+   `background-clip` were both being reset by it — the dot painted the
+   full 16px. A child element is outside that fight entirely.
+   *(added 2026-08-04.)* */
 .dot {
-  composes: dot from './list-dot.module.css';
+  /* Declared here rather than composed from list-dot.module.css: that
+     rule paints a `background` across the whole box, which is the wrong
+     shape once the footprint is 16px and the dot is 8px. The shared rule
+     still serves the footer and the list title, where box and dot are the
+     same thing. */
+  width: var(--nav-glyph);
+  height: var(--nav-glyph);
+  flex: none;
+  position: relative;
 }
 
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--marker);
+}
+
+/* No colour set: an unfilled ring at the same size, not an absence. */
 .dotEmpty {
-  composes: dotEmpty from './list-dot.module.css';
+  box-shadow: none;
+}
+
+.dotEmpty::after {
+  background: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
 }
 
 /* docs/specs/ui.md — focus changes the border colour only, never an
@@ -254,6 +361,9 @@
    the same, so both compose the shared `navAction` class (styles/
    button.module.css) rather than declaring width/justify-content here —
    the two had quietly diverged before. */
+/* Same leading inset as every other nav row, even though a create button
+   has no active state to reserve for: an icon column that shifts by row
+   type is worse than one uniformly a little further in. */
 .add {
   composes: action default navAction from '../styles/button.module.css';
 }
@@ -274,6 +384,24 @@
    rather than the neutral default: it is the most frequent action in the
    app, and New list beside it is the rarer companion, so the pair carries
    its own hierarchy. *(added 2026-08-04.)* */
+/* `.action` gives these a 1px border the views and list rows don't have,
+   which pushed their icons 1px further in. Taken back so every row in the
+   nav starts its icon on the same edge.
+
+   Height comes from `--nav-row`, not from padding: the four row types
+   have different intrinsic content (a 16px icon, a serif label, a
+   segmented shell) and no arithmetic on padding makes them agree. One
+   explicit minimum does, and it survives a change to any of them.
+   *(added 2026-08-04.)* */
+.newTodo,
+.add {
+  padding-inline-start: calc(var(--nav-inset) - var(--border-width));
+  /* The full row height: these carry `box-sizing: border-box` from the
+     global reset, so their 1px border is already inside it — subtracting
+     it here made them 2px short of the rows below. */
+  height: var(--nav-row);
+}
+
 .newTodo {
   composes: action primary navAction from '../styles/button.module.css';
 }
