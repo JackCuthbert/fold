@@ -175,6 +175,12 @@ export function MainScreen() {
   // its own. *(added 2026-08-04.)*
   const viewCount = useViewCount({
     lists: lists.data ?? [],
+    // `lists.data !== undefined`, not `isSuccess`: the persisted cache can
+    // hydrate the query as successful before the lists themselves are
+    // there, and an empty array then reads as "no lists" rather than "not
+    // loaded yet" — which is how the header briefly announced "No todos"
+    // on every cold load. *(fixed 2026-08-04.)*
+    listsLoaded: lists.data !== undefined,
     listId: activeList?.id ?? null,
     view: showingToday ? 'today' : showingSummary ? 'summary' : 'list',
   })
@@ -471,11 +477,16 @@ export function MainScreen() {
                 "128 todos") would shift the title sideways every time a
                 todo was ticked. `role="status"` so the change is announced
                 rather than only seen. *(added 2026-08-04.)* */}
-            {viewCount !== null && (
-              <p className={styles['count']} role="status">
-                {viewCount}
-              </p>
-            )}
+            {/* Always rendered, so the header's height is the same before
+                and after the todos arrive — a conditional line pushed the
+                whole list down the moment it appeared. While the count is
+                unknown this is a skeleton bar of the same height, and the
+                text replaces it in place. *(added 2026-08-04.)* */}
+            <p className={styles['count']} role="status">
+              {viewCount ?? (
+                <span className={styles['countSkeleton']} aria-hidden="true" />
+              )}
+            </p>
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>

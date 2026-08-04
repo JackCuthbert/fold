@@ -317,6 +317,46 @@
      change — it updates on every completion, right under a centred
      title. */
   font-variant-numeric: tabular-nums;
+  /* Holds the line's height even while it has no text, so the list below
+     doesn't jump down when the count arrives. `min-height` rather than a
+     fixed one: the line is a single row of --text-sm, and this is exactly
+     the box that row occupies. *(added 2026-08-04.)* */
+  min-height: calc(var(--text-sm) * var(--line-normal));
+}
+
+/* The placeholder shown while the todos are still unknown. A bar of the
+   same height as the text it stands in for, so swapping one for the other
+   changes nothing about the layout.
+
+   Width is arbitrary but stable — the real text varies ("No todos" to
+   "128 todos · 64 done") and guessing per-view would be false precision.
+   This reads as "something is coming", which is all it needs to say.
+
+   The pulse matches `.dot--offline` (status-dot.module.css), the app's
+   existing "waiting" animation, rather than inventing a second idiom.
+   global.css disables all animation under prefers-reduced-motion, which
+   leaves this a plain static bar — still doing its real job of holding
+   the space. */
+.countSkeleton {
+  display: inline-block;
+  width: 7rem;
+  /* Not 100% of the line: a bar shorter than the line box reads as
+     placeholder text rather than as a divider or a broken element. */
+  height: 0.7em;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  animation: count-skeleton var(--duration-pulse) var(--ease) infinite;
+}
+
+@keyframes count-skeleton {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.25;
+  }
 }
 
 /* The scrolling child spans the full pane width so its scrollbar tracks

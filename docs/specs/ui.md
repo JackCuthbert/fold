@@ -426,10 +426,23 @@ done"**, or **"No todos"** when it is empty.
   its own. A list view therefore stays a single-list fetch: the count must
   never be the reason the app fans out across every list, which is what
   keeps it free on a slow server (see issue #24).
-- **Silence while unknown, words when empty.** Before the todos arrive the
-  line renders nothing rather than "No todos" — announcing an empty view
-  and then contradicting it a moment later is worse than a beat of silence.
-  Once the query is idle, no todos means the view really is empty.
+- **A skeleton while unknown, words when empty.** Before the todos arrive
+  the line shows a placeholder bar of exactly the text's height, never
+  "No todos" — announcing an empty view and then contradicting it a moment
+  later is worse than showing nothing legible. The line is always present
+  so the list below it never shifts down when the count appears.
+  - "Not loaded yet" and "loaded and empty" must be genuinely
+    distinguishable. The signal is whether the pane that owns the query has
+    put a response in the cache — an empty list settles with `todos: []`,
+    which is different from having no entry at all. Query *status* flags
+    are not a safe substitute here: the count observes the cache rather
+    than owning a query, so flags like `isFetching`/`isSuccess` describe a
+    request that never runs. *(added 2026-08-04, after three separate bugs
+    from exactly that: a false "No todos" on every cold load, a real empty
+    list showing no line, and a new list stuck on the skeleton.)*
+  - The lists are the other half: on a cold load they arrive after first
+    paint, so an empty list collection means "not loaded" as often as it
+    means "none".
 
 ## Overlays
 

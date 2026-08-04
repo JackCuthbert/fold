@@ -41,10 +41,20 @@ describe('countSummary', () => {
   })
 
   // Silence, not a claim. Rendering "No todos" before the todos arrive
-  // would state the opposite of what is about to appear.
+  // states the opposite of what is about to appear — and on a cold load
+  // that is exactly what happened, for several frames, before correcting
+  // itself. The caller decides what "pending" means (use-view-count.ts);
+  // this only has to stay quiet when told.
   it('renders nothing while the todos are still unknown', () => {
     expect(countSummary(undefined)).toBeNull()
     expect(countSummary([], { pending: true })).toBeNull()
     expect(countSummary([todo('a')], { pending: true })).toBeNull()
+  })
+
+  // The distinction the pending flag exists to draw: an empty array means
+  // "no todos" only once the fetch has actually resolved.
+  it('separates "not loaded yet" from "loaded and empty"', () => {
+    expect(countSummary([], { pending: true })).toBeNull()
+    expect(countSummary([], { pending: false })).toBe('No todos')
   })
 })

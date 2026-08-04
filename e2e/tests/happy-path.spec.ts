@@ -18,8 +18,10 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 
   // docs/specs/ui.md — the header: an empty list says so in words rather
-  // than showing a bare zero or nothing at all.
-  await expect(page.getByText('No todos')).toBeVisible()
+  // than showing a bare zero or nothing at all. A moment of skeleton comes
+  // first — the list is new, so its todos genuinely aren't known yet — so
+  // this waits for the settled state rather than the first frame.
+  await expect(page.getByText('No todos')).toBeVisible({ timeout: 10_000 })
 
   await addTodo(page, 'Buy milk')
   await expect(page.getByText('Buy milk')).toBeVisible()
