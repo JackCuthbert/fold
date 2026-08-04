@@ -16,6 +16,25 @@ export const TODAY_VIEW = 'view:today' as const
 export const SUMMARY_VIEW = 'view:summary' as const
 export type ViewId = string
 
+/**
+ * Every derived view, in the order the nav shows them.
+ *
+ * One ordered list rather than a set of loose constants, because the order
+ * is load-bearing: `Ctrl+Shift+<n>` jumps to the nth view
+ * (docs/specs/ui.md — keyboard shortcuts), so adding a view here gives it
+ * a chord for free, and *where* it goes decides which digit it takes.
+ *
+ * That is deliberate. Real lists are numbered by nothing — they come and
+ * go, and a chord that silently changes meaning when a list is created is
+ * worse than no chord (they are reachable by name from the command
+ * palette instead, issue #26). Derived views are a small, fixed set that
+ * only changes when someone decides to add one, so a position here is a
+ * decision rather than an accident.
+ *
+ * *(added 2026-08-04.)*
+ */
+export const DERIVED_VIEWS = [TODAY_VIEW, SUMMARY_VIEW] as const
+
 export const isTodayView = (view: ViewId | null): boolean => view === TODAY_VIEW
 
 export const isSummaryView = (view: ViewId | null): boolean =>
@@ -23,7 +42,7 @@ export const isSummaryView = (view: ViewId | null): boolean =>
 
 /** True for any derived view — i.e. anything that is not a real list. */
 export const isDerivedView = (view: ViewId | null): boolean =>
-  isTodayView(view) || isSummaryView(view)
+  DERIVED_VIEWS.some((id) => id === view)
 
 /** Last millisecond of `now`'s local day — the cutoff for "due today". */
 export function endOfLocalDay(now: Date): number {

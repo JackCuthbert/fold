@@ -353,7 +353,7 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   // from the same constant that binds it.
   await page.locator('body').click()
   await page.keyboard.press(`${mod}+/`)
-  const help = page.getByRole('dialog', { name: 'About Fold' })
+  const help = page.getByRole('dialog', { name: 'Help' })
   await expect(help).toBeVisible()
   await expect(
     help.getByRole('heading', { name: 'Keyboard shortcuts' }),

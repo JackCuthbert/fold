@@ -793,7 +793,7 @@ are the interface.
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Summary |
-| `Ctrl+/` | Open this list (the help modal) |
+| `Ctrl+/` | Open Help |
 
 **`Ctrl` on every platform, including macOS.** The conventional advice is
 Cmd on a Mac and Ctrl elsewhere, and this did that until 2026-08-04. Two
@@ -817,6 +817,16 @@ asking for it back.
 
 **Digits carry Shift.** `Ctrl+1` never arrives on macOS. `Ctrl+Shift+1`
 does.
+
+**`Ctrl+Shift+<n>` is the nth derived view**, numbered in nav order and
+generated from `DERIVED_VIEWS` (todos/today.ts) — so adding a view gives
+it a chord, a nav row and a help-modal entry without touching the map.
+**Real lists deliberately get none.** They are created and deleted freely,
+so a positional chord would change meaning under the user; they are
+reachable by name from the command palette instead (issue #26). Derived
+views are a small fixed set that only changes when someone decides to add
+one, so a position there is a decision rather than an accident.
+*(added 2026-08-04.)*
 
 - **One app-level listener owns the whole map** (`use-shortcuts.ts`), not
   handlers scattered across components. The map is a single thing the user
@@ -845,6 +855,9 @@ does.
   happens to be open would be worse than either consistent behaviour.
 - **Never steal a keystroke from a field.** Anything typed into an input,
   textarea, select or `contenteditable` belongs to that field.
+- **The modal is titled "Help", not "About Fold"** — it is entirely
+  how-to, and "About" promises provenance (version, licence) that isn't
+  there. *(renamed 2026-08-04.)*
 - **The map is listed in the help modal, first**, rendered *from* the same
   constant that binds it — a shortcut nobody knows about may as well not
   exist, and documentation maintained by hand drifts silently. It leads the

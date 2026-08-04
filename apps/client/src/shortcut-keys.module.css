@@ -61,12 +61,12 @@
    capitalised the way it is printed on the key itself. */
 .wide {
   width: auto;
-  padding: 0 0.45em;
-  font-size: 0.72em;
-  /* Height is set in `em` on `.cap`, so a smaller font-size here would
-     shrink the cap too. Pinned back to the square's height in the same
-     units the row uses. */
-  height: 2em;
+  padding: 0 0.4em;
+  /* Deliberately NOT a smaller font-size. It was 0.72em so the word would
+     fit a narrow cap, which set "Shift" nearly 2px below the "1" beside
+     it — two type sizes inside one chord, which reads as a mistake. The
+     cap widens for the word instead; the letters stay the same size as
+     every other key. *(fixed 2026-08-04.)* */
   letter-spacing: 0.02em;
 }
 

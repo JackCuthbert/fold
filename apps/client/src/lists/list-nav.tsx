@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
+import type { IconType } from 'react-icons'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
 import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
-import {
-  isSummaryView,
-  isTodayView,
-  SUMMARY_VIEW,
-  TODAY_VIEW,
-} from '../todos/today'
+import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from '../todos/today'
 import { useModifierHeld } from '../use-modifier-held'
 import { useTheme } from '../use-theme'
 import { ShortcutKeys } from '../shortcut-keys'
@@ -60,10 +56,19 @@ function colourVar(color: string): Record<string, string> {
 
 const NEW_TODO_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-todo')
 const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
-const TODAY_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'go-today')
-const SUMMARY_SHORTCUT = SHORTCUTS.find(
-  (entry) => entry.action === 'go-summary',
-)
+/**
+ * How each derived view is drawn in the nav.
+ *
+ * Keyed by view id so the rows are rendered *from* DERIVED_VIEWS
+ * (todos/today.ts) rather than written out one by one: that list decides
+ * both the order and the `Ctrl+Shift+<n>` chords, so a view added there
+ * should appear here without touching the markup below.
+ * *(added 2026-08-04.)*
+ */
+const VIEW_META: Record<string, { label: string; icon: IconType }> = {
+  [TODAY_VIEW]: { label: 'Today', icon: LuSun },
+  [SUMMARY_VIEW]: { label: 'Summary', icon: LuHistory },
+}
 
 // docs/specs/lists.md — discover/create/rename/delete.
 //
@@ -182,44 +187,39 @@ export function ListNav(props: {
           where you are already looking when you wonder what the view is.
           *(moved 2026-08-04.)* */}
       <div className={styles['views']}>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isTodayView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(TODAY_VIEW)}
-        >
-          <LuSun aria-hidden="true" size={16} />
-          Today
-          {TODAY_SHORTCUT && (
-            <span
-              className={styles['navKey']}
-              data-revealed={modifierHeld || undefined}
+        {DERIVED_VIEWS.map((view, index) => {
+          const meta = VIEW_META[view]
+          if (!meta) return null
+          const Icon = meta.icon
+          // The nth view's chord, by the same 1-based index the map uses
+          // (shortcuts.ts — VIEW_SHORTCUTS). Looked up rather than
+          // assumed, so a view beyond the ninth simply shows no hint.
+          const shortcut = SHORTCUTS.find(
+            (entry) => entry.action === `go-view:${index + 1}`,
+          )
+          return (
+            <button
+              key={view}
+              type="button"
+              className={cx(
+                styles['today'],
+                props.selected === view && styles['todayActive'],
+              )}
+              onClick={() => props.onSelect(view)}
             >
-              <ShortcutKeys shortcut={TODAY_SHORTCUT} />
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={cx(
-            styles['today'],
-            isSummaryView(props.selected) && styles['todayActive'],
-          )}
-          onClick={() => props.onSelect(SUMMARY_VIEW)}
-        >
-          <LuHistory aria-hidden="true" size={16} />
-          Summary
-          {SUMMARY_SHORTCUT && (
-            <span
-              className={styles['navKey']}
-              data-revealed={modifierHeld || undefined}
-            >
-              <ShortcutKeys shortcut={SUMMARY_SHORTCUT} />
-            </span>
-          )}
-        </button>
+              <Icon aria-hidden="true" size={16} />
+              {meta.label}
+              {shortcut && (
+                <span
+                  className={styles['navKey']}
+                  data-revealed={modifierHeld || undefined}
+                >
+                  <ShortcutKeys shortcut={shortcut} />
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* The one real division in the nav: views of your todos above, the

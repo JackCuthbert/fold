@@ -5,8 +5,10 @@ import {
   matchShortcut,
   shortcutLetter,
   SHORTCUTS,
+  viewIndexOf,
   type ShortcutContext,
 } from '../src/shortcuts'
+import { DERIVED_VIEWS } from '../src/todos/today'
 
 const press = (
   code: string,
@@ -55,10 +57,10 @@ describe('matchShortcut', () => {
   // never fire. `code` is the physical key, whatever the modifiers do to it.
   it('matches shifted digits, which `key` could not express', () => {
     expect(matchShortcut(press('Digit1', { ctrl: true, shift: true }))).toBe(
-      'go-today',
+      'go-view:1',
     )
     expect(matchShortcut(press('Digit2', { ctrl: true, shift: true }))).toBe(
-      'go-summary',
+      'go-view:2',
     )
   })
 
@@ -90,8 +92,8 @@ describe('shortcutLetter', () => {
       'new-todo': 'K',
       'new-list': 'N',
       help: '/',
-      'go-today': '1',
-      'go-summary': '2',
+      'go-view:1': '1',
+      'go-view:2': '2',
     })
   })
 })
@@ -120,7 +122,7 @@ describe('isActionAvailable', () => {
     // Everything else is unaffected: New list is exactly what you want in
     // that state, and navigating to a view needs no list at all.
     expect(isActionAvailable('new-list', noLists)).toBe(true)
-    expect(isActionAvailable('go-today', noLists)).toBe(true)
+    expect(isActionAvailable('go-view:1', noLists)).toBe(true)
   })
 })
 
@@ -139,5 +141,37 @@ describe('isTextEntry', () => {
       false,
     )
     expect(isTextEntry(null)).toBe(false)
+  })
+})
+
+// docs/specs/ui.md — keyboard shortcuts: the nth derived view gets
+// Ctrl+Shift+n, generated from DERIVED_VIEWS so adding a view needs no
+// change to the map. Real lists deliberately get nothing — a positional
+// chord would change meaning whenever a list is created or deleted.
+describe('derived-view chords', () => {
+  it('binds one chord per view, numbered in nav order', () => {
+    const viewChords = SHORTCUTS.filter((s) => viewIndexOf(s.action) !== null)
+    expect(viewChords).toHaveLength(DERIVED_VIEWS.length)
+    expect(viewChords.map((s) => s.code)).toEqual(
+      DERIVED_VIEWS.map((_, i) => `Digit${i + 1}`),
+    )
+  })
+
+  it('resolves an action back to its 1-based index', () => {
+    expect(viewIndexOf('go-view:1')).toBe(1)
+    expect(viewIndexOf('go-view:2')).toBe(2)
+    // Not a view action at all.
+    expect(viewIndexOf('new-todo')).toBeNull()
+  })
+
+  // Every view chord must be Ctrl+Shift — plain Ctrl+digit is taken by
+  // the OS and the browser, so it would never arrive.
+  it('always carries both modifiers', () => {
+    for (const chord of SHORTCUTS.filter(
+      (s) => viewIndexOf(s.action) !== null,
+    )) {
+      expect(chord.primary, chord.action).toBe(true)
+      expect(chord.shift, chord.action).toBe(true)
+    }
   })
 })

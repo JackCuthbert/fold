@@ -1,3 +1,5 @@
+import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from './todos/today'
+
 /**
  * Keyboard shortcuts (docs/specs/ui.md — keyboard shortcuts, issue #5).
  *
@@ -7,13 +9,38 @@
  * rendering concern (CLAUDE.md — test behavior over shape).
  */
 
-/** The actions a shortcut can request. One per binding. */
+/**
+ * What each derived view is called in the help modal.
+ *
+ * Here rather than in today.ts because it is presentation: that module
+ * defines what the views *are*, this one how a shortcut describes them.
+ * Falls back to the view id, so a view added without a name here still
+ * gets a working chord rather than a crash.
+ */
+const VIEW_NAMES: Record<string, string> = {
+  [TODAY_VIEW]: 'Today',
+  [SUMMARY_VIEW]: 'Summary',
+}
+
+/**
+ * The actions a shortcut can request.
+ *
+ * `go-view:<n>` is the nth derived view, numbered from 1 in the order the
+ * nav shows them (todos/today.ts — DERIVED_VIEWS). A template literal
+ * rather than one member per view, so adding a view needs no change here.
+ */
 export type ShortcutAction =
   | 'new-todo'
   | 'new-list'
   | 'help'
-  | 'go-today'
-  | 'go-summary'
+  | `go-view:${number}`
+
+/** The 1-based index a `go-view:` action refers to, or null. */
+export function viewIndexOf(action: ShortcutAction): number | null {
+  if (!action.startsWith('go-view:')) return null
+  const index = Number(action.slice('go-view:'.length))
+  return Number.isInteger(index) ? index : null
+}
 
 export interface Shortcut {
   action: ShortcutAction
@@ -67,7 +94,7 @@ const PRINTED_KEY: Record<string, string> = {
  * view, which does not exist yet (issue #6), and binding it now would take
  * the browser's own find away and give nothing back.
  */
-export const SHORTCUTS: readonly Shortcut[] = [
+const BASE_SHORTCUTS: readonly Shortcut[] = [
   {
     action: 'new-todo',
     // K, and it stays K even though the whole map moved to Ctrl (which
@@ -100,31 +127,50 @@ export const SHORTCUTS: readonly Shortcut[] = [
     code: 'Slash',
     primary: true,
     shift: false,
-    description: 'Keyboard shortcuts',
+    // What it opens, not what it contains: this chord is listed *inside*
+    // the modal it opens, where "Keyboard shortcuts" read as a pointer to
+    // the section it was already sitting in.
+    // *(changed 2026-08-04.)*
+    description: 'Open Help',
   },
-  // The derived views, numbered in the order they appear in the nav
-  // (docs/specs/today-view.md, docs/specs/summary-view.md). Shift is what
-  // makes a digit usable at all here: plain Ctrl+1 is taken twice over on
-  // a Mac — by the OS for switching Spaces, and again by some browsers for
-  // switching tabs — so the keydown never arrives.
-  //
-  // Matched on `code` (`Digit1`), which is why this works: Shift+1 reports
-  // `event.key` as "!", so a `key`-based binding would never fire.
-  // *(added 2026-08-04.)*
-  {
-    action: 'go-today',
-    code: 'Digit1',
+  // The derived views are appended below, one chord each.
+]
+
+/**
+ * `Ctrl+Shift+<n>` for the nth derived view.
+ *
+ * Generated from DERIVED_VIEWS rather than written out, so adding a view
+ * gives it a chord without touching this file — and *only* derived views
+ * get one. Real lists are deliberately excluded: they are created and
+ * deleted freely, so a positional chord would change meaning under the
+ * user. They are reachable by name from the command palette instead
+ * (issue #26).
+ *
+ * Shift is what makes a digit usable at all: plain Ctrl+1 is taken twice
+ * over on a Mac — by the OS for switching Spaces, and again by some
+ * browsers for switching tabs — so the keydown never arrives. Matched on
+ * `code` (`Digit1`), which is the other half of why this works: Shift+1
+ * reports `event.key` as "!", so a `key`-based binding would never fire.
+ *
+ * Digits stop at 9. `Digit0` would be a tenth view reached by a key that
+ * reads as zero, which is worse than that view having no chord at all.
+ *
+ * *(added 2026-08-04.)*
+ */
+const VIEW_SHORTCUTS: readonly Shortcut[] = DERIVED_VIEWS.slice(0, 9).map(
+  (view, index) => ({
+    action: `go-view:${index + 1}` as const,
+    code: `Digit${index + 1}`,
     primary: true,
     shift: true,
-    description: 'Go to Today',
-  },
-  {
-    action: 'go-summary',
-    code: 'Digit2',
-    primary: true,
-    shift: true,
-    description: 'Go to Summary',
-  },
+    description: `Go to ${VIEW_NAMES[view] ?? view}`,
+  }),
+)
+
+/** The whole map: the fixed actions, then one chord per derived view. */
+export const SHORTCUTS: readonly Shortcut[] = [
+  ...BASE_SHORTCUTS,
+  ...VIEW_SHORTCUTS,
 ]
 
 /**

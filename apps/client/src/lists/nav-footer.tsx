@@ -53,7 +53,7 @@ export function NavFooter(props: {
         <button
           type="button"
           className={styles['control']}
-          aria-label="About Fold"
+          aria-label="Help"
           onClick={props.onOpenHelp}
         >
           <LuCircleHelp aria-hidden="true" size={16} />

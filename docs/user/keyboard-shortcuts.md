@@ -10,7 +10,7 @@ remembering: making something, and getting somewhere.
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Summary |
-| `Ctrl+/` | Open **About Fold**, which lists these |
+| `Ctrl+/` | Open **Help**, which lists these |
 
 **`Ctrl` on every platform, including a Mac.** Most Mac apps would use `⌘`
 here, and Fold deliberately doesn't: the chords worth having kept colliding
@@ -21,7 +21,7 @@ that differ by platform.
 has. Let go and they disappear again. They also appear when you hover a
 row.
 
-The **About Fold** window (the `?` at the bottom of the sidebar) lists them
+The **Help** window (the `?` at the bottom of the sidebar) lists them
 all, and it's the first thing in there.
 
 ## When they don't fire

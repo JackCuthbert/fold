@@ -55,7 +55,7 @@ export function HelpModal(props: {
       <Dialog.Portal>
         <Dialog.Backdrop className={cx(styles['backdrop'])} />
         <Dialog.Popup className={cx(styles['popup'])} initialFocus={titleRef}>
-          <ModalHeader titleRef={titleRef}>About Fold</ModalHeader>
+          <ModalHeader titleRef={titleRef}>Help</ModalHeader>
           <div className={styles['body']}>
             {/* docs/specs/ui.md — keyboard shortcuts (issue #5). First,
                 because this is now the fastest thing to reach — Cmd/Ctrl+/

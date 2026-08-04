@@ -15,10 +15,10 @@ import { cx } from './styles/cx'
 import { SummaryPane } from './todos/summary-pane'
 import { TodayPane } from './todos/today-pane'
 import {
+  DERIVED_VIEWS,
   isDerivedView,
   isSummaryView,
   isTodayView,
-  SUMMARY_VIEW,
   TODAY_VIEW,
 } from './todos/today'
 import { TodayDetail } from './todos/today-pane'
@@ -26,6 +26,7 @@ import { TodoPane } from './todos/todo-pane'
 import { AddTodoModal } from './todos/add-todo-modal'
 import { useAddTodo } from './todos/use-add-todo'
 import { useGlobalAddTodo } from './todos/use-global-add-todo'
+import { viewIndexOf } from './shortcuts'
 import { useShortcuts } from './use-shortcuts'
 import { useTodoActions } from './todos/use-todo-actions'
 import { useTodoDetailForm } from './todos/use-todo-detail-form'
@@ -247,18 +248,22 @@ export function MainScreen() {
       canAddTodo: (lists.data?.length ?? 0) > 0,
     },
     (action) => {
-      if (action === 'new-todo') globalAdd.setOpen(true)
-      else if (action === 'new-list') listForm.openCreate()
+      if (action === 'new-todo') return globalAdd.setOpen(true)
+      if (action === 'new-list') return listForm.openCreate()
+      if (action === 'help') return setHelpOpen(true)
+
+      // `go-view:<n>` — the nth derived view, in nav order
+      // (todos/today.ts — DERIVED_VIEWS). Resolved here rather than
+      // carried on the action so the map stays a list of chords rather
+      // than a list of view ids.
+      const index = viewIndexOf(action)
+      const view = index === null ? undefined : DERIVED_VIEWS[index - 1]
+      if (view === undefined) return
+      selectList(view)
       // Jumping to a view also closes the drawer: on mobile the nav is an
       // overlay, and landing on a view still behind it would hide the
       // thing you just navigated to. Same reason `onSelect` closes it.
-      else if (action === 'go-today') {
-        selectList(TODAY_VIEW)
-        setDrawerOpen(false)
-      } else if (action === 'go-summary') {
-        selectList(SUMMARY_VIEW)
-        setDrawerOpen(false)
-      } else setHelpOpen(true)
+      setDrawerOpen(false)
     },
   )
 
