@@ -32,12 +32,12 @@ describe('countSummary', () => {
     expect(countSummary([todo('a'), todo('b', true)])).toBe('1 todo · 1 done')
   })
 
-  // A finished list is not an empty one — "No todos" would erase the work,
-  // and a bare "0 todos" reads as a bug. Saying both keeps it honest.
-  it('still reports the work when everything is done', () => {
-    expect(countSummary([todo('a', true), todo('b', true)])).toBe(
-      '0 todos · 2 done',
-    )
+  // A finished list is not an empty one, so "No todos" would erase the
+  // work — but "0 todos · 2 done" reads as a bug rather than a state. The
+  // done count alone already says the view isn't empty.
+  it('drops the zero when everything is done', () => {
+    expect(countSummary([todo('a', true), todo('b', true)])).toBe('2 done')
+    expect(countSummary([todo('a', true)])).toBe('1 done')
   })
 
   // Silence, not a claim. Rendering "No todos" before the todos arrive

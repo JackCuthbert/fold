@@ -412,8 +412,10 @@ done"**, or **"No todos"** when it is empty.
 - **The headline counts what is left**, not the total. A number that never
   moves as work is finished is noise; one that falls when you tick
   something is feedback. The completed half only appears once there is
-  some — and a view where everything is done still reports both ("0 todos ·
-  6 done") rather than claiming to be empty, which would erase the work.
+  some. When *everything* is done the count drops to just "6 done": "No
+  todos" would erase the work, but "0 todos · 6 done" reads as a bug rather
+  than a state, and the done count alone already says the view isn't
+  empty.
 - **Under the title, not beside it.** The title is centred by balancing the
   ☰ against an equal-width spacer, so a count of changing width alongside
   it would shift the title sideways every time a todo was ticked. It sits

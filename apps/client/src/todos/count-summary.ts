@@ -21,10 +21,13 @@ export function countSummary(
 
   const done = todos.filter((todo) => todo.completed).length
   const active = todos.length - done
+  // Nothing left to do, but work was done: report only that. "0 todos"
+  // reads as a bug rather than a state, and the done count already says
+  // the view isn't empty. *(changed 2026-08-04.)*
+  if (active === 0) return `${done} done`
   // The headline is what's *left*, so the number falls as work is
   // finished. A total that never moves is noise.
   const head = `${active} ${active === 1 ? 'todo' : 'todos'}`
-  // Completed is only worth the words once there is some — and a list
-  // where everything is done should say so rather than read as empty.
+  // Completed is only worth the words once there is some.
   return done === 0 ? head : `${head} · ${done} done`
 }
