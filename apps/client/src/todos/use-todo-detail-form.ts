@@ -1,6 +1,6 @@
 import { todoPrioritySchema, type Todo, type TodoChanges } from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, type Control } from 'react-hook-form'
 import { z } from 'zod'
 import { dueToFields, fieldsToDue, type DueFields } from './due-fields'
@@ -92,6 +92,13 @@ export interface TodoDetailForm {
    * is no longer a second Close.
    */
   revert: () => void
+  /**
+   * True while the open todo is completed and has not been unlocked —
+   * every field is read-only (docs/specs/todos.md).
+   */
+  locked: boolean
+  /** Deliberately allow editing this completed todo, for this opening. */
+  unlock: () => void
 }
 
 /**
@@ -127,6 +134,13 @@ export function useTodoDetailForm(
   // different todo has to re-derive both; previously a `key` on the surface
   // forced a remount to do it, but the form no longer lives there.
   const shownUid = useRef<string | null>(todo?.uid ?? null)
+  // docs/specs/todos.md — a completed todo is read-only until unlocked.
+  // Deliberately *not* persisted and reset whenever a different todo is
+  // shown (see the effect below): a guard you can switch off once and
+  // forget is not a guard. Lives here rather than in either surface so it
+  // survives the mobile/desktop breakpoint along with the form state
+  // (issue #25).
+  const [unlocked, setUnlocked] = useState(false)
 
   const {
     control,
@@ -155,6 +169,8 @@ export function useTodoDetailForm(
   useEffect(() => {
     if (!todo) {
       shownUid.current = null
+      // Closing re-locks, so reopening a completed todo asks again.
+      setUnlocked(false)
       return
     }
     if (todo.uid === shownUid.current) return
@@ -162,6 +178,8 @@ export function useTodoDetailForm(
     initialFields.current = dueToFields(todo.due)
     // `reset` also clears `isDirty`, so the newly opened todo starts clean.
     reset(defaultsFor(todo, initialFields.current))
+    // Switching to a different todo re-locks for the same reason.
+    setUnlocked(false)
   }, [todo, reset])
 
   const submit = (values: DetailForm): void => {
@@ -199,5 +217,9 @@ export function useTodoDetailForm(
       initialFields.current = dueToFields(todo.due)
       reset(defaultsFor(todo, initialFields.current))
     },
+    // Only a *completed* todo locks. An active one has nothing to protect:
+    // editing it is the ordinary case, not a rewrite of a finished record.
+    locked: todo?.completed === true && !unlocked,
+    unlock: (): void => setUnlocked(true),
   }
 }

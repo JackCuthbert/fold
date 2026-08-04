@@ -131,9 +131,18 @@ items, the create action, and Settings alike. Specifically:
   semibold. *(changed 2026-08-02: was the text "Lists". With Today, Summary
   and the collections all below it, "Lists" described only part of what
   follows; the app's own name identifies the panel instead. Origami for the
-  folded paper the name means.)* It stays compact — it heads the panel, so
-  it should not claim as much vertical space as the rows beneath it.
-  *(added 2026-08-01.)*
+  folded paper the name means.)*
+  *(changed 2026-08-04: it now **matches the detail panel's heading** — the
+  same type size and the same uniform padding. Both are the title of a
+  full-height column, and at a step smaller the nav read as a lesser part
+  beside the panel. This supersedes the earlier "stays compact" rule
+  (2026-08-01), which was written when the nav's heading had nothing to be
+  consistent with.)*
+  *(changed 2026-08-04: **left-aligned**, on the rows' shared edge. It was
+  centred on 2026-08-03 on the reasoning that the mark is the brand rather
+  than a nav row and should sit apart; in practice the exception read as an
+  oversight, and "one left edge" below is better applied to the whole
+  column than with the heading exempted from it.)*
 - **Selecting a list looks like selection, not hover.** *(added
   2026-08-01: the active row used a hover-ish fill that read as a stuck
   button.)* The active row is distinct from the hover state — carry it with
@@ -483,6 +492,19 @@ over an undimmed background, so they didn't read as modal.)*
     vanished outright on a resize, losing the name and colour already
     entered. Same shape as the todo detail panel, fixed a day earlier — see
     `todos/use-todo-detail-form.ts` and `lists/use-list-form.ts`.)*
+- **A disabled control must look disabled.** Muted ink, a faintly tinted
+  ground, and a `not-allowed` cursor — a read-only field that is
+  pixel-identical to an editable one reads as broken, and you only discover
+  the difference by clicking and having nothing happen. This lives once, on
+  the element selectors in `global.css`, so every form gets it. A select
+  trigger is a *button* rather than an input, so it needs the rule stated
+  for it explicitly; the same is true of anything else that styles its own
+  control surface. *(added 2026-08-04, issue #25: the todo panel's
+  read-only state was invisible.)*
+  - **Say why, not just that.** Where a control is disabled for a reason
+    the user could act on, the surface states it — the todo panel's
+    "Completed" notice and its popover, rather than leaving a wall of inert
+    fields to be puzzled over.
 - **A divider separates a title from its content** in modals and side
   panels, so the heading reads as a header — especially once the body
   scrolls beneath it. *(added 2026-07-31.)* This is for the *title*

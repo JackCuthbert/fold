@@ -67,6 +67,34 @@ textarea {
   width: 100%;
 }
 
+/* docs/specs/ui.md — a disabled control must look disabled. Without this
+   a read-only field was indistinguishable from an editable one: same ink,
+   same border, same paper — you only discovered it by clicking and having
+   nothing happen. Muted ink on a faintly tinted ground says "not yours to
+   change" at a glance, and the cursor confirms it on hover, matching the
+   treatment disabled buttons already had (styles/button.module.css).
+
+   Base UI's Field cascade sets both the native `disabled` attribute and
+   `data-disabled`; the Select trigger is a button that only gets the
+   latter, so both are matched. *(added 2026-08-04, issue #25.)* */
+input:disabled,
+select:disabled,
+textarea:disabled,
+[data-disabled] > input,
+[data-disabled] > textarea {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--line) 22%, transparent);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+/* A label whose field is disabled reads as inactive too, so the whole
+   field — label and control — recedes together rather than a live-looking
+   label sitting over a dead input. */
+[data-disabled] > label {
+  color: var(--faint);
+}
+
 /* A textarea grows vertically, never horizontally. The browser default is
    `resize: both`, which lets the notes field escape the panel that contains
    it and breaks the layout around it — the field is already `width: 100%`,

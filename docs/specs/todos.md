@@ -257,6 +257,74 @@ be one click.
   gets no backdrop of its own — the confirm would float on the panel's
   scrim with nothing dimming the panel behind it.
 
+## A completed todo is read-only until unlocked
+
+*(added 2026-08-04, issue #25.)*
+
+Editing a finished todo is one of two things, and the UI should make you
+say which:
+
+- it was **completed by mistake** — the record is wrong, correct it; or
+- **the scope has changed** — the record is right, and what you need is a
+  *new* todo.
+
+Both used to go through the same unguarded form, so the second silently
+rewrote history. A completed todo is the only record that the work was
+done, and [Summary](./summary-view.md) is built entirely from those
+records — editing one destroys history rather than tidying it, the same
+reasoning that removed bulk "clear completed" above.
+
+So opening the detail panel on a completed todo renders every field
+**disabled**, and the panel offers the three honest ways forward:
+
+- **Untick it in the list** — the "completed by mistake" fix. Completion
+  itself is *not* locked: it is reversible, and it doesn't rewrite the
+  record.
+- **Duplicate** — the "scope changed" answer (below).
+- **Edit anyway** — deliberately unlock the fields. It lasts for that
+  opening only: closing the panel, or switching to another todo, re-locks.
+  A guard you can switch off once and forget is not a guard.
+
+**Delete stays live while locked.** It has its own confirmation, and
+locking it would mean unlocking to edit before you could remove a
+completed todo, which is backwards.
+
+The lock state lives with the form state (`use-todo-detail-form.ts`) so it
+survives the mobile/desktop breakpoint like everything else there.
+
+### Saying so, not just doing it
+
+A disabled field that looks identical to an editable one reads as broken.
+So:
+
+- Disabled controls are **visibly** disabled — muted ink, a faintly tinted
+  ground, and a `not-allowed` cursor. This applies app-wide, not just here
+  (`styles/global.css`); select triggers are buttons rather than inputs and
+  need the same treatment explicitly.
+- The header carries a **"Completed"** notice, with a popover explaining
+  why the fields are locked and what the three ways forward are. Amber —
+  attention, not alarm; nothing has gone wrong.
+
+## Duplicating a todo
+
+*(added 2026-08-04, issue #25.)*
+
+**Duplicate** copies a todo into new work in one click: summary (marked
+`" (copy)"`), due date, priority, notes and list.
+
+- **The copy is never completed.** This is structural rather than
+  remembered: `NewTodo` has no completion field, so a duplicate of a
+  finished todo is born active and carries none of its completion metadata.
+- **It gets a fresh `created`**, since it is new work and ordering depends
+  on it (see ordering above).
+- **The due date is carried over.** Clearing it would silently drop
+  information the user can remove in one keystroke, and a copy of an
+  overdue todo being overdue is arguably right — the work still isn't done.
+- **The panel switches to the copy.** The next action is almost always
+  editing it, and leaving you on the source means hunting for it.
+- Available whether the source is locked or not — it is never destructive,
+  and it is what the lock exists to point you towards.
+
 ## Moving a todo between lists
 
 *(added 2026-08-02.)*

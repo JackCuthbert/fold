@@ -173,6 +173,23 @@
   text-align: left;
 }
 
+/* A disabled select must look disabled, exactly like the inputs beside it
+   (global.css). The trigger is a *button*, not an input, so the global
+   rule there doesn't reach it — and Base UI marks it with `data-disabled`
+   rather than the native attribute, since a Select trigger stays
+   focusable. Both are matched.
+
+   `!important` on the colour is the one blunt instrument here: the
+   priority classes above set ink through `:not()` selectors of equal
+   specificity, so a locked High priority would otherwise stay red and read
+   as live. *(added 2026-08-04, issue #25.)* */
+.selectTrigger:disabled,
+.selectTrigger[data-disabled] {
+  color: var(--muted) !important;
+  background: color-mix(in srgb, var(--line) 22%, transparent);
+  cursor: not-allowed;
+}
+
 /* The trigger's default ink is scoped to triggers *without* a priority
    class — see the fuller note on the equivalent rule in
    add-todo-modal.module.css. `.selectTrigger` and the composed `.high` are
@@ -359,6 +376,50 @@
    *(renamed and restyled 2026-08-04.)* */
 .reset {
   composes: action ghost from '../styles/button.module.css';
+}
+
+/* Why every field is inert: this todo is already finished
+   (docs/specs/todos.md — a completed todo is read-only until unlocked).
+
+   A pill rather than plain muted text, because it is a *warning* about the
+   state of the record, not a passive label like "Unsaved changes" beside
+   it — at muted weight it read as decoration and left the disabled fields
+   looking broken instead of protected. Amber is the app's existing
+   attention-without-alarm colour (--status-syncing); nothing here has gone
+   wrong. *(added 2026-08-04, issue #25.)* */
+/* The pill and its explainer, side by side. The badge cannot live inside
+   the pill: its trigger is a full --hit-area touch target and the pill is
+   a 21px chip, so nesting overflowed it (docs/specs/ui.md — controls &
+   touch targets: never size a control to its glyph). Kept adjacent so the
+   relationship is still obvious. *(added 2026-08-04.)* */
+.lockStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.lockNote {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--status-syncing) 16%, transparent);
+  color: var(--status-syncing);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+/* "Edit anyway" — the deliberate escape hatch on a locked, completed todo
+   (docs/specs/todos.md). Ghost, like Reset: it is a way *out* of the
+   guard, not an action the panel is urging. */
+.unlock {
+  composes: action ghost from '../styles/button.module.css';
+}
+
+/* Copy this todo into new work. Neutral chrome rather than ghost: unlike
+   Reset it is available at all times and is a real, primary-ish action —
+   the answer to "the scope changed" (issue #25). */
+.duplicate {
+  composes: action default from '../styles/button.module.css';
 }
 
 .delete {
