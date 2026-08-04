@@ -402,6 +402,33 @@ at and can act on it without scrolling back up.
   so measure it once at startup and publish it as a custom property rather
   than hard-coding a guess.
 
+### How much is in this view
+
+*(added 2026-08-04.)*
+
+Under the title, a muted line says what the view holds: **"12 todos · 5
+done"**, or **"No todos"** when it is empty.
+
+- **The headline counts what is left**, not the total. A number that never
+  moves as work is finished is noise; one that falls when you tick
+  something is feedback. The completed half only appears once there is
+  some — and a view where everything is done still reports both ("0 todos ·
+  6 done") rather than claiming to be empty, which would erase the work.
+- **Under the title, not beside it.** The title is centred by balancing the
+  ☰ against an equal-width spacer, so a count of changing width alongside
+  it would shift the title sideways every time a todo was ticked. It sits
+  directly beneath with no gap — the two read as one unit rather than as
+  two header rows.
+- **It costs no request.** The line is derived from the todos the visible
+  view has already loaded, read from the same query rather than a fetch of
+  its own. A list view therefore stays a single-list fetch: the count must
+  never be the reason the app fans out across every list, which is what
+  keeps it free on a slow server (see issue #24).
+- **Silence while unknown, words when empty.** Before the todos arrive the
+  line renders nothing rather than "No todos" — announcing an empty view
+  and then contradicting it a moment later is worse than a beat of silence.
+  Once the query is idle, no todos means the view really is empty.
+
 ## Overlays
 
 *(added 2026-07-31: the delete-list confirm and the mobile sheet appeared

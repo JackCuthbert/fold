@@ -17,6 +17,10 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await createList(page, listName)
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 
+  // docs/specs/ui.md — the header: an empty list says so in words rather
+  // than showing a bare zero or nothing at all.
+  await expect(page.getByText('No todos')).toBeVisible()
+
   await addTodo(page, 'Buy milk')
   await expect(page.getByText('Buy milk')).toBeVisible()
   // docs/specs/ui.md — accessibility: focus must not land somewhere
@@ -41,6 +45,9 @@ test('login → create list → add → complete → delete', async ({ page }) =
   await expect(
     page.getByRole('button', { name: 'Completed (1)' }),
   ).toBeVisible()
+  // The count tracks what's *left*, so completing one moves it — and the
+  // done half only appears once there is some.
+  await expect(page.getByText('1 todo · 1 done')).toBeVisible()
 
   // docs/specs/todos.md — clearing completed todos: there is no bulk
   // delete; a completed todo is the only record that the work was done.

@@ -285,6 +285,40 @@
   width: 100%;
 }
 
+/* docs/specs/ui.md — the header: how much is in this view, on its own line
+   under the title. Its own line rather than beside the title because the
+   title is centred by balancing the ☰ against `.headerSpacer`; a count of
+   changing width would shift the title sideways each time a todo was
+   ticked. Shares the row's measure and inline padding so it sits on the
+   same centre line as the title above it.
+
+   Sits directly under the title with no gap: the header's `row-gap` is
+   spacing for separate rows, but this line and the title are one unit, and
+   the space read as a disconnect between them. The negative margin cancels
+   that gap rather than removing it, so any other header row keeps it.
+   *(changed 2026-08-04.)*
+
+   Muted and one step down the type scale: this annotates the title, and
+   should never compete with it. */
+.count {
+  max-width: var(--measure);
+  /* Longhands, not `margin: 0 auto` — the shorthand would reset the
+     negative block-start below back to 0. */
+  margin-inline: auto;
+  margin-block-start: calc(-1 * var(--space-2));
+  margin-block-end: 0;
+  padding-inline: var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  /* Tabular figures so the line doesn't jitter horizontally as digits
+     change — it updates on every completion, right under a centred
+     title. */
+  font-variant-numeric: tabular-nums;
+}
+
 /* The scrolling child spans the full pane width so its scrollbar tracks
    the pane's true edge rather than floating inset mid-view — the reading
    measure is applied by `.mainScrollInner`'s padding *inside* the
