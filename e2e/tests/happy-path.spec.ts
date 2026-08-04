@@ -273,8 +273,12 @@ test('a completed todo locks, unlocks deliberately, and duplicates active', asyn
   await expect(page.getByRole('button', { name: 'Save' })).toBeHidden()
 
   // Duplicate is offered while locked, and opens the copy — which is
-  // active, so its fields are editable.
-  await page.getByRole('button', { name: 'Duplicate', exact: true }).click()
+  // active, so its fields are editable. It sits on its own row below the
+  // actions, styled as a link rather than a button
+  // *(changed 2026-08-04: was an icon button named "Duplicate")*.
+  await page
+    .getByRole('button', { name: 'Duplicate this todo', exact: true })
+    .click()
   await expect(summary).toHaveValue('Finished work (copy)')
   await expect(summary).toBeEnabled()
   await expect(page.getByRole('button', { name: 'Save' })).toBeVisible()

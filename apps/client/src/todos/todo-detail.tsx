@@ -7,7 +7,6 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Controller } from 'react-hook-form'
 import { LuChevronDown, LuCopy } from 'react-icons/lu'
-import { IconButton } from '../icon-button'
 import { InfoBadge } from '../info-badge'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
@@ -440,21 +439,6 @@ export function TodoDetail(props: {
               </button>
             </>
           )}
-          {/* Always available, locked or not: copying a todo is what the
-              lock exists to point you towards, and it is never
-              destructive. The copy is born active and gets a fresh
-              `created` (duplicate-todo.ts).
-
-              Icon-only, named by a tooltip: the row already carries up to
-              four controls, and this is the one whose meaning a single
-              familiar glyph carries completely. The name is on the button
-              itself too, not only in the tooltip — see icon-button.tsx. */}
-          <IconButton
-            label="Duplicate"
-            icon={<LuCopy aria-hidden="true" size={16} />}
-            className={styles['duplicate']}
-            onClick={props.onDuplicate}
-          />
           {/* Live while locked too: Delete has its own confirmation
               (issue #19), and locking it would mean unlocking to edit
               before you could remove a completed todo, which is
@@ -465,6 +449,37 @@ export function TodoDetail(props: {
             onClick={props.onDelete}
           >
             Delete
+          </button>
+        </div>
+
+        {/* Duplicate sits on its own row, styled as a link rather than a
+            button.
+
+            It was an icon button in the actions row, where it floated
+            between Reset and Delete as the only unlabelled control and
+            read as an afterthought. Its own row also keeps it clear of
+            the header, which already carries the "Completed" pill and its
+            popover on exactly the todos where duplicating is the point.
+
+            A link, because this is rare — reach for it when a finished
+            todo's scope has changed, not on a normal edit. Button chrome
+            would claim the same weight as Save and Delete for something
+            used a fraction as often; a quiet underline-on-hover matches
+            how often it is wanted. Still a real <button> underneath: it
+            performs an action rather than navigating.
+            *(changed 2026-08-04.)*
+
+            Always available, locked or not: copying is what the lock
+            points you towards, and it is never destructive. The copy is
+            born active with a fresh `created` (duplicate-todo.ts). */}
+        <div className={styles['secondaryActions']}>
+          <button
+            type="button"
+            className={styles['duplicate']}
+            onClick={props.onDuplicate}
+          >
+            <LuCopy aria-hidden="true" size={14} />
+            Duplicate this todo
           </button>
         </div>
 

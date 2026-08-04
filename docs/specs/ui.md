@@ -143,6 +143,15 @@ items, the create action, and Settings alike. Specifically:
   than a nav row and should sit apart; in practice the exception read as an
   oversight, and "one left edge" below is better applied to the whole
   column than with the heading exempted from it.)*
+  - **The favicon is the same mark** (`public/favicon.svg`), so the tab and
+    the nav agree. The glyph is duplicated there rather than imported:
+    react-icons is a bundled runtime dependency, and a favicon is served
+    statically before any JS runs — so changing the nav mark means changing
+    that file too. It is theme-aware via `prefers-color-scheme` (a favicon
+    renders outside the app's DOM and cannot inherit the design tokens),
+    with flat-ink PNG fallbacks for browsers that don't support SVG icons.
+    *(added 2026-08-04: there was no favicon at all, so tabs showed the
+    browser's default globe.)*
 - **Selecting a list looks like selection, not hover.** *(added
   2026-08-01: the active row used a hover-ish fill that read as a stuck
   button.)* The active row is distinct from the hover state — carry it with
@@ -503,7 +512,11 @@ over an undimmed background, so they didn't read as modal.)*
     `info-badge.tsx`, and the same distinction in the overlays section).
   - Reserve it for actions a single familiar glyph carries completely. A
     row of unlabelled icons is a guessing game.
-  *(added 2026-08-04.)*
+  *(added 2026-08-04. The rule stands, but nothing currently uses
+  `icon-button.tsx`: its one instance was Duplicate, which moved out of the
+  detail panel's actions row later the same day — being the only unlabelled
+  control in a row of labelled ones is exactly the "guessing game" this
+  warns about ([todos](./todos.md) — duplicating a todo).)*
 - **Warning is its own button role**, distinct from destructive: an action
   that is permitted but should give pause, like unlocking a completed todo
   for editing. Amber (`--status-syncing`), matching the notice it answers.

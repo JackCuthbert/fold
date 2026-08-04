@@ -1,0 +1,57 @@
+# Fold, deployed (docs/specs/deployment.md).
+#
+#   docker compose -f compose.prod.yml up -d
+#
+# This is *not* compose.yml — that one runs a local Radicale for manual
+# testing and has nothing to do with deployment.
+#
+# Serve this behind a reverse proxy that terminates TLS. The image runs
+# with NODE_ENV=production, which sets `Secure` on the session cookie
+# (apps/server/src/session/cookie.ts), and a browser discards a `Secure`
+# cookie sent over plain HTTP — so over http:// the login screen simply
+# reappears after a successful sign-in, with no error to explain why.
+services:
+  fold:
+    # No image is published yet — you build it yourself, from this
+    # checkout. `docker compose up -d --build` after a `git pull` is the
+    # upgrade path.
+    build: .
+    image: fold:local
+    container_name: fold
+    restart: unless-stopped
+    ports:
+      # Bound to loopback: the reverse proxy in front is what should be
+      # reachable, not this. Drop the `127.0.0.1:` only if the host is
+      # already firewalled off.
+      - '127.0.0.1:3000:3000'
+    environment:
+      # REQUIRED, min 16 characters, and secret. It seals the session
+      # cookie, which carries the user's CalDAV credentials
+      # (docs/architecture/sealed-cookie-sessions.md) — anyone who learns
+      # this can forge a session. Generate one with:
+      #   openssl rand -base64 32
+      # Changing it invalidates every existing session, which is also how
+      # you sign everyone out.
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      # Uncomment ONLY if you cannot put TLS in front of this. It drops
+      # `Secure` from the session cookie so plain HTTP works — and that
+      # cookie seals your CalDAV credentials, so anyone who can watch the
+      # network can copy it. A trusted LAN, not the internet.
+      # ALLOW_INSECURE_COOKIE: 'true'
+    healthcheck:
+      # Any static response proves the process is up and serving. The API
+      # would be a worse probe: /api/lists needs a session, and every
+      # other endpoint's health depends on the *CalDAV* server, which is
+      # not this container's liveness.
+      test: ['CMD', 'bun', '-e', 'await fetch("http://localhost:3000/")']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # The BFF holds no state — no database, no session store, no uploads
+    # (docs/specs/overview.md). Nothing to persist, so no volumes: todos
+    # live on the CalDAV server, and the offline queue lives in the
+    # browser's IndexedDB.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true

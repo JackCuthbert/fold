@@ -19,7 +19,16 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /mobile/,
+      testIgnore: [/mobile/, /screenshot/],
+    },
+    // A generator, not a test: it writes docs/screenshot.png, which the
+    // repo tracks. Its own project so `bun run screenshot` can select it —
+    // and so `test`, which names the projects it wants, never rewrites a
+    // committed image as a side effect of running the suite.
+    {
+      name: 'screenshot',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /screenshot/,
     },
     {
       name: 'mobile',
