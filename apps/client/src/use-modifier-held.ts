@@ -59,19 +59,18 @@ export function useModifierHeld(): boolean {
       // mid-sentence. *(fixed 2026-08-04.)*
       if (isTextEntryTarget(event.target)) return
       if (!event.ctrlKey) return
-      // Modifiers only. Ctrl and Shift are both *parts of* a chord, so
-      // neither means the question has been answered — pressing Shift
-      // while reading the hints used to hide them mid-reach, which is
-      // exactly when they are being used. A real key (the K in Ctrl+K)
-      // does end it: the chord has fired, and the answer is no longer
-      // needed. *(fixed 2026-08-04: any second key cancelled.)*
-      if (event.key !== 'Control' && event.key !== 'Shift') {
-        cancel()
-        return
-      }
-      // Already counting down, or already shown: auto-repeat fires keydown
-      // over and over while a key is held, and restarting the timer on each
-      // would mean it never elapsed.
+      // Nothing pressed *while* Ctrl is down ends the reveal — only
+      // letting go of Ctrl does. Earlier versions cancelled on the second
+      // key, on the theory that a fired chord had answered the question;
+      // in use that just meant the hints vanished the instant you did the
+      // thing they were describing, and firing a second chord from the
+      // same hold was impossible.
+      // *(fixed 2026-08-04, twice: first any second key cancelled, then
+      // every key but Shift did.)*
+      //
+      // The guard below is only about not restarting the countdown:
+      // keydown auto-repeats while a key is held, so re-arming the timer
+      // on each repeat would mean it never elapsed.
       if (timer !== undefined || shown) return
       timer = setTimeout(() => {
         shown = true
