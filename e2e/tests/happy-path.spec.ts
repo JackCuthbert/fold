@@ -315,13 +315,15 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
 
   // Focus must not be in a text field, or the shortcut correctly declines
   // to steal the keystroke.
+  // K, not N: the browser reserves Cmd+N and never releases the keydown to
+  // the page (docs/specs/ui.md — keyboard shortcuts).
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+n`)
+  await page.keyboard.press(`${mod}+k`)
   const addDialog = page.getByRole('dialog', { name: 'Add a todo' })
   await expect(addDialog).toBeVisible()
 
   // Pressing it again must not stack a second dialog on the first.
-  await page.keyboard.press(`${mod}+n`)
+  await page.keyboard.press(`${mod}+k`)
   await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(1)
 
   await page.keyboard.press('Escape')
@@ -346,15 +348,33 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
 
-  // Today is a derived view with no collection behind it, so New todo has
-  // nowhere to put anything and must do nothing — the same reason its
-  // "Add a todo" row isn't rendered there (docs/specs/today-view.md).
+  // The whole point of issue #15: New todo works from a derived view too,
+  // because it carries its own list picker. It used to do nothing here.
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+n`)
-  await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(0)
-  // New list still works there — it doesn't need a selected list.
-  await page.keyboard.press(`${mod}+Shift+n`)
-  await expect(page.getByRole('dialog', { name: 'New list' })).toBeVisible()
+  await page.keyboard.press(`${mod}+k`)
+  await expect(addDialog).toBeVisible()
+
+  // No default list, deliberately: submitting without choosing must be
+  // refused rather than filing the todo somewhere unlooked-at.
+  const summary = page.getByRole('textbox', { name: 'Add a todo' })
+  await summary.fill('Made from Today')
+  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
+  // `exact` matters: the picker's own placeholder is "Choose a list…", so
+  // a substring match would also find the trigger and pass regardless.
+  await expect(
+    addDialog.getByText('Choose a list', { exact: true }),
+  ).toBeVisible()
+  await expect(addDialog).toBeVisible()
+
+  // Choosing one lets it through, and the app follows the todo to the list
+  // it landed in — being left on a view that may not contain it reads as a
+  // failure.
+  await addDialog.getByRole('combobox', { name: 'List' }).click()
+  await page.getByRole('option', { name: listName, exact: true }).click()
+  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(addDialog).toBeHidden()
+  await expect(page.getByRole('heading', { name: listName })).toBeVisible()
+  await expect(page.getByText('Made from Today')).toBeVisible()
 })

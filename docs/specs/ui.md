@@ -152,6 +152,26 @@ items, the create action, and Settings alike. Specifically:
     with flat-ink PNG fallbacks for browsers that don't support SVG icons.
     *(added 2026-08-04: there was no favicon at all, so tabs showed the
     browser's default globe.)*
+- **"New todo" sits at the very top of the nav**, above Today and Summary
+  and set apart from them (issue #15). It is the app's most frequent
+  action; grouping it with the derived views would read as a fourth place
+  to *look* rather than a thing to *do*. It carries the accent fill —
+  nothing above it competes — and prints its chord on its trailing edge, so
+  the shortcut is discoverable from where a mouse user is already looking
+  (see keyboard shortcuts below). The chord is derived from the same
+  constant that binds it, so the button cannot advertise a binding the app
+  does not have. *(added 2026-08-04.)*
+  - **This is a second path to adding a todo, not a replacement.** The
+    in-list "Add a todo" row stays: it is faster when you are already in
+    the list, and its target is implicit. The sidebar button has no
+    implicit list, so its form carries a picker.
+  - **No default list, deliberately.** The picker opens on "Choose a list…"
+    and refuses to submit without one. Filing a todo into a list the user
+    never looked at is worse than asking which one — a wrong guess is
+    invisible, and the todo is simply somewhere else.
+  - **Creating from a derived view navigates to the chosen list**, so you
+    can see where the todo went. Creating something and being left looking
+    at a view that may not contain it reads as a failure.
 - **Selecting a list looks like selection, not hover.** *(added
   2026-08-01: the active row used a hover-ish fill that read as a stuck
   button.)* The active row is distinct from the hover state — carry it with
@@ -769,9 +789,19 @@ are the interface.
 
 | Chord | Does |
 |---|---|
-| `Cmd/Ctrl+N` | New todo |
+| `Cmd/Ctrl+K` | New todo |
 | `Cmd/Ctrl+Shift+N` | New list |
 | `Cmd/Ctrl+/` | Open this list (the help modal) |
+
+**`Cmd/Ctrl+K`, not `+N`.** `Cmd+N` is reserved by the *browser*: Chrome
+opens a new window and the keydown never reaches the page, so there is
+nothing for `preventDefault()` to cancel — a binding that cannot be made to
+work rather than one implemented wrongly. `Cmd+K` is the near-universal
+"quick action" chord (Linear, Slack, Notion, GitHub) and is unreserved.
+That convention is also where this is going: the chord is meant to open a
+command palette rather than one specific form, so reserving it now means
+only what the surface *contains* changes later, not how it is reached.
+*(changed 2026-08-04: was `Cmd+N`, which the browser never released.)*
 
 - **One app-level listener owns the whole map** (`use-shortcuts.ts`), not
   handlers scattered across components. The map is a single thing the user
@@ -789,9 +819,10 @@ are the interface.
   panel, which holds an edit in progress. The nav drawer is deliberately
   *not* in that set: a closed or collapsed sidebar is exactly when reaching
   for the keyboard beats hunting for the button.
-- **New todo needs a list.** Today and Summary are derived views with no
-  collection behind them, so it does nothing there — the same reason their
-  "Add a todo" row isn't rendered.
+- **New todo works everywhere, because it carries its own list picker**
+  (issue #15). It stands down only when there are no lists at all, since
+  the picker would then have nothing to offer. *(changed 2026-08-04: it was
+  bound to the in-list add path and did nothing on Today or Summary.)*
 - **A bound chord is always consumed**, even when the action is
   unavailable. Letting `Cmd+N` fall through to the browser only when a modal
   happens to be open would be worse than either consistent behaviour.

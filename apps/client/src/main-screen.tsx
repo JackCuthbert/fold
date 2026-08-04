@@ -21,7 +21,9 @@ import {
 } from './todos/today'
 import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
+import { AddTodoModal } from './todos/add-todo-modal'
 import { useAddTodo } from './todos/use-add-todo'
+import { useGlobalAddTodo } from './todos/use-global-add-todo'
 import { useShortcuts } from './use-shortcuts'
 import { useTodoActions } from './todos/use-todo-actions'
 import { useTodoDetailForm } from './todos/use-todo-detail-form'
@@ -189,6 +191,17 @@ export function MainScreen() {
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
   // docs/specs/summary-view.md).
   const add = useAddTodo(showingDerived ? '' : (active ?? ''))
+  // The global add path (issue #15): the sidebar button and Cmd/Ctrl+K,
+  // both of which can fire from anywhere — including the derived views,
+  // which have no list of their own. The list is chosen in the form.
+  const globalAdd = useGlobalAddTodo()
+  // Where focus returns when the global add modal closes. Null when the
+  // chord opened it — there was no trigger, and Base UI then restores to
+  // wherever focus was, which is the right answer for a keyboard-invoked
+  // dialog. `useRef` rather than state: it is read on close, never
+  // rendered (docs/specs/ui.md — accessibility: focus must not land
+  // somewhere misleading).
+  const globalAddTrigger = useRef<HTMLButtonElement | null>(null)
 
   // docs/specs/ui.md — keyboard shortcuts (issue #5). One listener owning
   // the whole map; the rules are pure functions in shortcuts.ts.
@@ -203,19 +216,23 @@ export function MainScreen() {
     {
       dialogOpen:
         add.addOpen ||
+        globalAdd.open ||
         settingsOpen ||
         helpOpen ||
         openTodo !== null ||
         listForm.creating ||
         listForm.editing !== null ||
         listForm.deleting !== null,
-      // Today and Summary have no collection behind them. `active` falls
-      // back to TODAY_VIEW rather than null, so this one test covers both
-      // "a derived view is showing" and "no list is selected".
-      canAddTodo: !showingDerived,
+      // The chord opens the *global* add path, which carries its own list
+      // picker — so it works from Today and Summary too, where there is no
+      // list to inherit. It needs somewhere to put the todo, though: with
+      // no lists at all, the picker would have nothing to offer.
+      // *(changed 2026-08-04, issue #15: was bound to the in-list path and
+      // did nothing on a derived view.)*
+      canAddTodo: (lists.data?.length ?? 0) > 0,
     },
     (action) => {
-      if (action === 'new-todo') add.setAddOpen(true)
+      if (action === 'new-todo') globalAdd.setOpen(true)
       else if (action === 'new-list') listForm.openCreate()
       else setHelpOpen(true)
     },
@@ -325,6 +342,11 @@ export function MainScreen() {
         <ListNav
           selected={active}
           form={listForm}
+          newTodoRef={globalAddTrigger}
+          onNewTodo={() => {
+            globalAdd.setOpen(true)
+            setDrawerOpen(false)
+          }}
           onSelect={(listId) => {
             selectList(listId)
             setDrawerOpen(false)
@@ -385,6 +407,30 @@ export function MainScreen() {
       {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      {/* The global add-todo modal (issue #15), opened by the sidebar
+          button or Cmd/Ctrl+K. A sibling of the drawer for the same reason
+          Settings and Help are: on mobile the button lives inside the
+          drawer's Dialog, and a modal owned there would be nested and lose
+          its backdrop.
+
+          Passing `lists` is what turns on the picker — the modal requires
+          a choice then, with no default (issue #15). */}
+      <AddTodoModal
+        open={globalAdd.open}
+        onOpenChange={globalAdd.setOpen}
+        target={{
+          kind: 'global',
+          lists: lists.data ?? [],
+          onAdd: (listId, todo) => {
+            globalAdd.add(listId, todo)
+            // Go to where the todo landed. Creating something and being
+            // left looking at a view that may not contain it reads as a
+            // failure.
+            selectList(listId)
+          },
+        }}
+        triggerRef={globalAddTrigger}
+      />
       {/* The list surfaces, here for the same reason and for one more —
           see `listForm` above (issues #20 and #21). Opening one closes the
           drawer: on mobile it's an overlay in its own right, and leaving it

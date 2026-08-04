@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import type { RefObject } from 'react'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
 import { InfoBadge } from '../info-badge'
 import { api, useSyncEngine } from '../providers'
@@ -10,6 +11,7 @@ import {
   TODAY_VIEW,
 } from '../todos/today'
 import { useTheme } from '../use-theme'
+import { isApplePlatform, modifierLabel, SHORTCUTS } from '../shortcuts'
 import { ListItemMenu } from './list-item-menu'
 import { markerColor } from './list-color'
 import { reorder } from './list-order'
@@ -29,6 +31,21 @@ export function useLists() {
   })
 }
 
+/**
+ * The chord printed on the New todo button.
+ *
+ * Derived from SHORTCUTS rather than typed out, so the button cannot
+ * advertise a binding the app does not have — the same rule the help
+ * modal follows (docs/specs/ui.md — keyboard shortcuts). Falls back to an
+ * empty string if the action is ever unbound, which renders nothing rather
+ * than a lie.
+ */
+const NEW_TODO_HINT = (() => {
+  const shortcut = SHORTCUTS.find((entry) => entry.action === 'new-todo')
+  if (!shortcut) return ''
+  return `${modifierLabel(isApplePlatform())}${shortcut.label}`
+})()
+
 // docs/specs/lists.md — discover/create/rename/delete.
 //
 // Presentational as far as its modals go: the create/edit/delete surfaces
@@ -41,6 +58,10 @@ export function ListNav(props: {
   selected: string | null
   onSelect: (listId: string) => void
   form: ListFormState
+  /** Open the global add-todo modal (issue #15). */
+  onNewTodo: () => void
+  /** So the modal can restore focus here on close (main-screen.tsx). */
+  newTodoRef?: RefObject<HTMLButtonElement | null>
 }) {
   const lists = useLists()
   const theme = useTheme()
@@ -65,6 +86,27 @@ export function ListNav(props: {
 
   return (
     <nav className={styles['nav']} aria-label="Lists">
+      {/* issue #15 — creating a todo from anywhere, including the derived
+          views, which have no "Add a todo" row of their own. At the very
+          top and set apart from the views below it: this is the app's most
+          frequent action, and grouping it with Today/Summary would read as
+          a fourth place to *look* rather than a thing to *do*.
+
+          The chord is on the face of the button rather than in a tooltip:
+          a shortcut nobody knows about may as well not exist
+          (docs/specs/ui.md — keyboard shortcuts), and the button is where
+          someone reaching for the mouse will already be looking. */}
+      <button
+        ref={props.newTodoRef}
+        type="button"
+        className={styles['newTodo']}
+        onClick={props.onNewTodo}
+      >
+        <LuPlus aria-hidden="true" size={16} />
+        New todo
+        <kbd className={styles['newTodoKey']}>{NEW_TODO_HINT}</kbd>
+      </button>
+
       {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
           views pinned above the real lists, and visually distinct from
           them: ghost buttons (link appearance only, unlike every other

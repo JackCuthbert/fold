@@ -21,38 +21,44 @@ const OPEN: ShortcutContext = { dialogOpen: false, canAddTodo: true }
 
 describe('matchShortcut', () => {
   it('matches the platform modifier, not either one', () => {
-    expect(matchShortcut(press('n', { meta: true }), true)).toBe('new-todo')
-    expect(matchShortcut(press('n', { ctrl: true }), false)).toBe('new-todo')
+    expect(matchShortcut(press('k', { meta: true }), true)).toBe('new-todo')
+    expect(matchShortcut(press('k', { ctrl: true }), false)).toBe('new-todo')
   })
 
-  // Ctrl+N is "new window" on macOS. Accepting either modifier everywhere
-  // would quietly take that over.
+  // Accepting either modifier everywhere would quietly take over chords
+  // the other platform reserves for itself.
   it('ignores the other platform’s modifier', () => {
-    expect(matchShortcut(press('n', { ctrl: true }), true)).toBeNull()
-    expect(matchShortcut(press('n', { meta: true }), false)).toBeNull()
+    expect(matchShortcut(press('k', { ctrl: true }), true)).toBeNull()
+    expect(matchShortcut(press('k', { meta: true }), false)).toBeNull()
   })
 
   it('needs a modifier at all', () => {
-    expect(matchShortcut(press('n'), true)).toBeNull()
+    expect(matchShortcut(press('k'), true)).toBeNull()
   })
 
-  // Shift is what separates the two N bindings, so it has to be matched
-  // exactly rather than ignored — otherwise Cmd+Shift+N opens both.
-  it('separates New todo from New list by shift', () => {
+  // Shift has to be matched exactly rather than ignored, or Cmd+Shift+K
+  // would also open the new-todo form.
+  it('matches shift exactly', () => {
     expect(matchShortcut(press('n', { meta: true, shift: true }), true)).toBe(
       'new-list',
     )
-    expect(matchShortcut(press('n', { meta: true }), true)).toBe('new-todo')
+    // Cmd+N without shift is unbound — the browser reserves it, which is
+    // why New todo moved to K.
+    expect(matchShortcut(press('n', { meta: true }), true)).toBeNull()
+    expect(
+      matchShortcut(press('k', { meta: true, shift: true }), true),
+    ).toBeNull()
   })
 
   it('matches regardless of the key’s reported case', () => {
     expect(matchShortcut(press('N', { meta: true, shift: true }), true)).toBe(
       'new-list',
     )
+    expect(matchShortcut(press('K', { meta: true }), true)).toBe('new-todo')
   })
 
   it('does not claim keys it has no binding for', () => {
-    expect(matchShortcut(press('k', { meta: true }), true)).toBeNull()
+    expect(matchShortcut(press('p', { meta: true }), true)).toBeNull()
     // Reserved for search, which does not exist yet (issue #6). Until it
     // does, the browser's own find must keep working.
     expect(matchShortcut(press('f', { meta: true }), true)).toBeNull()
@@ -75,13 +81,14 @@ describe('isActionAvailable', () => {
     }
   })
 
-  // Today and Summary are derived views with no collection behind them, so
-  // there is nowhere for a new todo to go.
-  it('withholds New todo in a derived view', () => {
-    const derived = { ...OPEN, canAddTodo: false }
-    expect(isActionAvailable('new-todo', derived)).toBe(false)
-    // New list is still fine there — it doesn't need a selected list.
-    expect(isActionAvailable('new-list', derived)).toBe(true)
+  // New todo carries its own list picker (issue #15), so it works from
+  // Today and Summary too — but it still needs somewhere to put the todo.
+  // With no lists at all the picker would have nothing to offer.
+  it('withholds New todo when there is no list to add to', () => {
+    const noLists = { ...OPEN, canAddTodo: false }
+    expect(isActionAvailable('new-todo', noLists)).toBe(false)
+    // New list is exactly what you want in that state.
+    expect(isActionAvailable('new-list', noLists)).toBe(true)
   })
 })
 

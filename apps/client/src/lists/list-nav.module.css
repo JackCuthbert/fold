@@ -212,3 +212,32 @@
   composes: action default navAction from '../styles/button.module.css';
   margin-top: var(--space-3);
 }
+
+/* "New todo" — the global add path (issue #15), pinned above the derived
+   views. The same shared chrome as "+ New list" below, because it is the
+   same kind of thing: an action that opens a modal, not a nav row.
+
+   Given the accent fill rather than the neutral default: it is the most
+   frequent action in the app, and it sits above Today/Summary where
+   nothing else competes for emphasis. *(added 2026-08-04.)* */
+.newTodo {
+  composes: action primary navAction from '../styles/button.module.css';
+  margin-bottom: var(--space-4);
+}
+
+/* The chord, on the face of the button (docs/specs/ui.md — keyboard
+   shortcuts: a shortcut nobody knows about may as well not exist).
+
+   `margin-left: auto` pushes it to the trailing edge, so the icon and
+   label keep the nav's shared left edge and the hint reads as an
+   annotation rather than part of the label. Dimmed against the accent
+   fill so it informs without competing with the words. */
+.newTodoKey {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  opacity: 0.7;
+  /* The glyphs are wider than the surrounding type; a little tracking
+     stops "⌘K" reading as one character. */
+  letter-spacing: 0.02em;
+}

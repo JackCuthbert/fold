@@ -33,7 +33,8 @@ export function AddTodoTrigger(props: ReturnType<typeof useAddTodo>) {
       <AddTodoModal
         open={props.addOpen}
         onOpenChange={props.setAddOpen}
-        onAdd={(todo) => props.actions.add(todo)}
+        // In-list: this pane's list is the target, so no picker.
+        target={{ kind: 'list', onAdd: (todo) => props.actions.add(todo) }}
         triggerRef={props.addTriggerRef}
       />
     </>

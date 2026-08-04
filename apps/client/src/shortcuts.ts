@@ -32,10 +32,21 @@ export interface Shortcut {
 export const SHORTCUTS: readonly Shortcut[] = [
   {
     action: 'new-todo',
-    key: 'n',
+    // K, not N. `Cmd+N` is reserved by the *browser* — Chrome opens a new
+    // window and the keydown never reaches the page at all, so there is
+    // nothing for `preventDefault()` to cancel. Nothing was wrong with the
+    // handler; it was simply never called.
+    //
+    // `Cmd+K` is the near-universal "quick action" chord (Linear, Slack,
+    // Notion, GitHub) and is unreserved in Chrome. That convention is also
+    // where this is headed: the chord is meant to open a command palette
+    // rather than one specific form, and reserving it now means only what
+    // the surface *contains* changes later, not how it is reached.
+    // *(changed 2026-08-04: was Cmd+N, which the browser never released.)*
+    key: 'k',
     primary: true,
     shift: false,
-    label: 'N',
+    label: 'K',
     description: 'New todo',
   },
   {
