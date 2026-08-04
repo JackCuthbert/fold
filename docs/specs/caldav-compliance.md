@@ -84,6 +84,39 @@ Updates never regenerate a VTODO from our model. The flow, implemented in
    resource all pass through untouched.
 5. PUT with `If-Match`.
 
+## Request cost
+
+*(added 2026-08-04, issue #24.)*
+
+**A collection's URL is derived, never discovered.** A list id *is* the
+last path segment of its collection URL, so resolving one costs nothing.
+The gateway used to run full calendar discovery — one PROPFIND of the
+calendar home plus one **per collection** — merely to look up an href, on
+every read and every write. With 20 lists that was 23 requests to learn
+something already known.
+
+**Ask for the state you need, not for everything.** The one piece of live
+collection state the read path needs is the ctag (for the short-circuit
+above), so `fetchTodos` issues a single `Depth: 0` PROPFIND of *that*
+collection. Nothing else needs a round trip at all.
+
+**Outbound requests are capped at six concurrent.** Bun's `fetch` stalls
+for roughly a second above about seven concurrent requests to one host —
+measured: seven concurrent PROPFINDs took 11ms, eight took 1068ms, and
+the same eight issued by `curl` took 44ms. It is a client-side ceiling,
+not a server limit (raising Radicale's `max_connections` to 200 changed
+nothing), so the cap lives at the gateway's shared fetch and covers the
+fan-out inside tsdav that we don't own.
+
+Measured against a local Radicale, before and after:
+
+| Lists | `fetchTodos` | `createTodo` |
+|---|---|---|
+| 10 | 1107ms → **9ms** | 2172ms → **22ms** |
+| 30 | 1941ms → **11ms** | 3828ms → **19ms** |
+
+Both are now flat in the number of lists rather than growing.
+
 ## Robustness rules
 
 - A malformed VTODO from the server is skipped with a logged warning; it

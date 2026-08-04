@@ -11,6 +11,7 @@ import {
 import { applyChanges, createTodoIcs, readTodo } from '@fold/vtodo'
 import { DAVClient } from 'tsdav'
 import { CaldavError, CaldavUnreachableError } from './errors'
+import { limitConcurrency } from './limit-concurrency'
 import type { CaldavGateway } from './gateway'
 
 const VTODO_FILTER = [
@@ -150,13 +151,25 @@ export function makeFetchWithRetry(
   }
 }
 
+// Every CalDAV request the gateway makes funnels through here, which is
+// why the concurrency cap belongs at this seam: tsdav fans out one
+// PROPFIND *per collection* during discovery, and Bun's fetch stalls for
+// ~1s above roughly seven concurrent requests to a host (issue #24 — see
+// limit-concurrency.ts for the measurements). Capping here fixes every
+// call site at once, including the ones inside tsdav that we don't own.
+//
+// The limit wraps the *retrying* fetch rather than the reverse, so a
+// retry re-queues behind other work instead of holding its slot while it
+// waits out the backoff.
+//
 // `Object.assign` (rather than a cast) attaches `preconnect` from the
 // global `fetch` so this satisfies Bun's `typeof fetch` (a function plus
 // that one static) structurally, without claiming to implement it —
 // DAVClient never calls `preconnect` itself.
-const fetchWithRetry: typeof fetch = Object.assign(makeFetchWithRetry(fetch), {
-  preconnect: fetch.preconnect,
-})
+const fetchWithRetry: typeof fetch = Object.assign(
+  limitConcurrency(makeFetchWithRetry(fetch)),
+  { preconnect: fetch.preconnect },
+)
 
 /**
  * Wrap upstream failures in our typed errors.
@@ -309,19 +322,73 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
       projectedProps: LIST_PROJECTED,
     })
 
-  const findCalendar = async (listId: string): Promise<RawCalendar> => {
-    const calendars = await fetchCalendarsWithProps()
-    const calendar = calendars.find(
-      (entry) => listIdFromHref(entry.url) === listId,
-    )
-    if (!calendar) throw new CaldavError(404, `no such list: ${listId}`)
-    return calendar
+  /**
+   * The collection URL for a list id, without asking the server.
+   *
+   * A list id *is* the last path segment of its collection URL —
+   * `toList` derives one from the other (`listIdFromHref`), and
+   * `createList` builds the URL this same way. So resolving a URL never
+   * needed a round trip, let alone the full discovery fan-out
+   * `findCalendar` used to do: one PROPFIND of the calendar home plus one
+   * *per collection*, on every read and every write (issue #24).
+   *
+   * With 20 lists that was 23 requests to learn one href — and because
+   * Bun's fetch stalls above ~7 concurrent requests to a host, it cost
+   * ~1.3s rather than the ~2ms the work actually takes.
+   *
+   * A bad id yields a URL the server 404s, which `assertOk`/`translate`
+   * already turn into the same `CaldavError(404)` the old lookup threw
+   * explicitly — so the failure mode is unchanged, it just costs one
+   * request instead of N.
+   *
+   * *(added 2026-08-04, issue #24.)*
+   */
+  const calendarUrl = (listId: string): string => {
+    const home = client.account?.homeUrl
+    if (!home) throw new CaldavError(500, 'no calendar home')
+    return new URL(`${encodeURIComponent(listId)}/`, home).href
+  }
+
+  /**
+   * A minimal `RawCalendar` for the operations that only need a URL.
+   *
+   * tsdav's `createCalendarObject`/`fetchCalendarObjects` read `url` and
+   * nothing else off the calendar, so synthesising it avoids discovery
+   * entirely. Anything that needs *live* collection state — the ctag for
+   * the 304 short-circuit — must still ask the server; see `fetchCtag`.
+   */
+  const calendarRef = (listId: string): RawCalendar => ({
+    url: calendarUrl(listId),
+  })
+
+  /**
+   * The collection's current ctag — one PROPFIND of that collection, not
+   * of every collection. This is the one piece of live state the todo
+   * read path genuinely needs (docs/specs/caldav-compliance.md — the
+   * ctag short-circuit).
+   */
+  const fetchCtag = async (listId: string): Promise<string> => {
+    const response = await fetch(calendarUrl(listId), {
+      method: 'PROPFIND',
+      headers: {
+        ...authHeader(),
+        Depth: '0',
+        'Content-Type': 'application/xml',
+      },
+      body:
+        '<?xml version="1.0"?><propfind xmlns="DAV:" ' +
+        'xmlns:CS="http://calendarserver.org/ns/">' +
+        '<prop><CS:getctag/></prop></propfind>',
+    })
+    assertOk(response)
+    const text = await response.text()
+    return /<(?:\w+:)?getctag>([^<]*)<\/(?:\w+:)?getctag>/.exec(text)?.[1] ?? ''
   }
 
   const fetchRawTodos = async (
     listId: string,
   ): Promise<{ calendar: RawCalendar; objects: RawObject[] }> => {
-    const calendar = await findCalendar(listId)
+    const calendar = calendarRef(listId)
     const objects = await client.fetchCalendarObjects({
       calendar,
       filters: VTODO_FILTER,
@@ -389,7 +456,7 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
     renameList: (listId, displayName) =>
       translate(async () => {
         await ensureLogin()
-        const calendar = await findCalendar(listId)
+        const calendar = calendarRef(listId)
         const response = await fetch(calendar.url, {
           method: 'PROPPATCH',
           headers: {
@@ -409,7 +476,7 @@ export function makeTsdavGateway(credentials: Credentials): CaldavGateway {
     setListProps: (listId, props) =>
       translate(async () => {
         await ensureLogin()
-        const calendar = await findCalendar(listId)
+        const calendar = calendarRef(listId)
         // docs/specs/lists.md — colours and ordering. `null` clears a
         // property (D:remove), a value sets it (D:set), and `undefined`
         // omits it from the request entirely so it is left alone.
@@ -456,7 +523,7 @@ ${removes.length > 0 ? `  <D:remove><D:prop>${removes.join('')}</D:prop></D:remo
     deleteList: (listId) =>
       translate(async () => {
         await ensureLogin()
-        const calendar = await findCalendar(listId)
+        const calendar = calendarRef(listId)
         const response = await fetch(calendar.url, {
           method: 'DELETE',
           headers: authHeader(),
@@ -467,14 +534,16 @@ ${removes.length > 0 ? `  <D:remove><D:prop>${removes.join('')}</D:prop></D:remo
     fetchTodos: (listId, knownCtag): Promise<TodosResponse | null> =>
       translate(async () => {
         await ensureLogin()
-        const calendar = await findCalendar(listId)
-        const ctag = calendar.ctag ?? ''
+        // The one read that needs live collection state, so it asks for
+        // exactly that — one PROPFIND of this collection, not discovery
+        // of every collection (issue #24).
+        const ctag = await fetchCtag(listId)
         // Ctag short-circuit — docs/specs/caldav-compliance.md.
         if (knownCtag !== undefined && ctag !== '' && ctag === knownCtag) {
           return null
         }
         const objects = await client.fetchCalendarObjects({
-          calendar,
+          calendar: calendarRef(listId),
           filters: VTODO_FILTER,
         })
         return {
@@ -497,7 +566,7 @@ ${removes.length > 0 ? `  <D:remove><D:prop>${removes.join('')}</D:prop></D:remo
     createTodo: (listId, input: NewTodo) =>
       translate(async () => {
         await ensureLogin()
-        const calendar = await findCalendar(listId)
+        const calendar = calendarRef(listId)
         const response = await client.createCalendarObject({
           calendar,
           filename: `${encodeURIComponent(input.uid)}.ics`,
