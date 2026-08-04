@@ -20,11 +20,23 @@
   font-size: var(--text-base);
   font-weight: var(--weight-medium);
   color: var(--ink);
-  /* Aligns the heading with the todo summaries beneath it: rows carry the
-     checkbox column, so the text starts one hit-area plus the row gap in.
-     Matching that keeps one left edge for the reading column
-     (docs/specs/ui.md). */
-  padding-inline-start: calc(var(--hit-area) + var(--space-1));
+  /* Aligns the heading with the todo summaries beneath it (docs/specs/ui.md
+     — one left edge).
+
+     This has to reproduce the row's own leading offset exactly, and that is
+     *not* simply the hit area: the checkbox's touch target is --hit-area
+     wide but pulled back by half its overhang so the visible ring, not the
+     invisible padding, sits on the shared edge (checkbox.module.css —
+     `.hitArea`). The body then starts one --space-1 gap after it
+     (todo-item.module.css — `.todo`).
+
+     Measured: the row body starts 31px in, and `--hit-area + --space-1`
+     gave 38 — so the heading sat 9px right of every summary beneath it.
+     *(fixed 2026-08-04: was --hit-area + --space-1.)* */
+  padding-inline-start: calc(
+    var(--hit-area) + (var(--checkbox-size) - var(--hit-area)) / 2 +
+      var(--space-1)
+  );
   padding-block: var(--space-2);
 }
 
