@@ -26,6 +26,7 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
       PORT: 0,
       SESSION_SECRET: TEST_SECRET,
       NODE_ENV: 'development',
+      ALLOW_INSECURE_COOKIE: false,
     },
     makeGateway: () => ({ ...base, ...gateway }),
   }

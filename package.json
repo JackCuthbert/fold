@@ -14,7 +14,8 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "vitest run",
     "test:integration": "bun run --filter @fold/server test:integration",
-    "test:e2e": "bun run --filter @fold/e2e test"
+    "test:e2e": "bun run --filter @fold/e2e test",
+    "screenshot": "bun run --filter @fold/e2e screenshot"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

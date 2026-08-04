@@ -1,4 +1,5 @@
 import { credentialsSchema } from '@fold/schemas'
+import { useSecureCookie } from '../../config'
 import { sessionCookie } from '../../session/cookie'
 import { json, type Route } from '../route'
 
@@ -12,7 +13,7 @@ export const createSession: Route = {
     const cookie = await sessionCookie(
       credentials,
       ctx.app.config.SESSION_SECRET,
-      ctx.app.config.NODE_ENV === 'production',
+      useSecureCookie(ctx.app.config),
     )
     return json(
       { serverUrl: credentials.serverUrl, username: credentials.username },
