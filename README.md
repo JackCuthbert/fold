@@ -176,6 +176,7 @@ Open the Vite URL and sign in with your CalDAV server URL + credentials.
 | `bun run test:integration`     | gateway vs a real Radicale (spawns a container)  |
 | `bun run test:e2e`             | Playwright happy paths (needs Docker + chromium) |
 | `bun run screenshot`           | regenerate the README screenshot                 |
+| `bun run favicons`             | rebuild the favicon PNGs from `favicon.svg`      |
 
 ### Docs
 

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "bun run --filter @fold/client build && playwright test --project desktop --project mobile",
     "screenshot": "bun run --filter @fold/client build && playwright test --project screenshot",
+    "favicons": "node build-favicons.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

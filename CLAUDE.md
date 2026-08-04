@@ -51,6 +51,12 @@ and sanctioned for exactly this. Both were removed.)_
   detail panel, colours, type — re-run it and commit the new image with
   that change. A stale screenshot misrepresents the app and nobody notices.
   _(added 2026-08-04.)_
+- **Generated assets are never hand-edited.** `apps/client/public/favicon.svg`
+  is the source of truth for the app mark; the PNGs beside it are built from
+  it by `bun run favicons`. Change the SVG, run the script, commit all three.
+  The script also rejects a `--` inside an XML comment, which silently
+  breaks the file in Firefox while Chrome recovers.
+  _(added 2026-08-04.)_
 
 ## Technical
 
