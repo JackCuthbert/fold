@@ -6,7 +6,8 @@ import { Select } from '@base-ui/react/select'
 import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Controller } from 'react-hook-form'
-import { LuChevronDown } from 'react-icons/lu'
+import { LuChevronDown, LuCopy } from 'react-icons/lu'
+import { IconButton } from '../icon-button'
 import { InfoBadge } from '../info-badge'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
@@ -442,14 +443,18 @@ export function TodoDetail(props: {
           {/* Always available, locked or not: copying a todo is what the
               lock exists to point you towards, and it is never
               destructive. The copy is born active and gets a fresh
-              `created` (duplicate-todo.ts). */}
-          <button
-            type="button"
+              `created` (duplicate-todo.ts).
+
+              Icon-only, named by a tooltip: the row already carries up to
+              four controls, and this is the one whose meaning a single
+              familiar glyph carries completely. The name is on the button
+              itself too, not only in the tooltip — see icon-button.tsx. */}
+          <IconButton
+            label="Duplicate"
+            icon={<LuCopy aria-hidden="true" size={16} />}
             className={styles['duplicate']}
             onClick={props.onDuplicate}
-          >
-            Duplicate
-          </button>
+          />
           {/* Live while locked too: Delete has its own confirmation
               (issue #19), and locking it would mean unlocking to edit
               before you could remove a completed todo, which is

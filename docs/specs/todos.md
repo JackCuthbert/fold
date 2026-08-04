@@ -283,7 +283,10 @@ So opening the detail panel on a completed todo renders every field
 - **Duplicate** — the "scope changed" answer (below).
 - **Edit anyway** — deliberately unlock the fields. It lasts for that
   opening only: closing the panel, or switching to another todo, re-locks.
-  A guard you can switch off once and forget is not a guard.
+  A guard you can switch off once and forget is not a guard. Styled as a
+  **warning** rather than a quiet or destructive action: nothing is lost by
+  unlocking, but it rewrites a finished record, so it should give pause
+  ([ui](./ui.md) — button roles).
 
 **Delete stays live while locked.** It has its own confirmation, and
 locking it would mean unlocking to edit before you could remove a
@@ -323,7 +326,10 @@ So:
 - **The panel switches to the copy.** The next action is almost always
   editing it, and leaving you on the source means hunting for it.
 - Available whether the source is locked or not — it is never destructive,
-  and it is what the lock exists to point you towards.
+  and it is what the lock exists to point you towards. Rendered as an
+  icon-only button with a tooltip: the actions row already carries several
+  controls, and a copy glyph carries this meaning completely
+  ([ui](./ui.md) — icon-only buttons).
 
 ## Moving a todo between lists
 

@@ -1,0 +1,51 @@
+/* An icon-only button and the tooltip that names it — see icon-button.tsx.
+ * *(added 2026-08-04.)*
+ */
+
+/* docs/specs/ui.md — controls & touch targets: a small glyph still needs a
+   real target, so the button keeps the full --hit-area box that every
+   other action button has. It takes its surface/border/role from
+   button.module.css via the caller's `className`; only the shape changes
+   here, so a labelled and an icon-only button sit at the same height in
+   the same row. */
+.button {
+  /* The label is a glyph, so the generous inline padding meant for text
+     would make a very wide, mostly empty box. Square instead. */
+  padding-inline: 0;
+  width: var(--hit-area);
+  flex: none;
+}
+
+.glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.positioner {
+  z-index: 42;
+}
+
+/* The same surface as the info popover (info-badge.module.css), so the two
+   read as one family — they differ in *purpose*, not appearance. Narrower,
+   because a tooltip holds a control's name rather than prose. */
+.popup {
+  max-width: 14rem;
+  background: var(--surface);
+  color: var(--muted);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  white-space: nowrap;
+  /* docs/specs/ui.md — overlays animate in and out; disabled under
+     prefers-reduced-motion by global.css. */
+  transition: opacity var(--duration-fast) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+}

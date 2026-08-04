@@ -409,10 +409,14 @@
 }
 
 /* "Edit anyway" — the deliberate escape hatch on a locked, completed todo
-   (docs/specs/todos.md). Ghost, like Reset: it is a way *out* of the
-   guard, not an action the panel is urging. */
+   (docs/specs/todos.md).
+
+   Amber warning rather than ghost: this rewrites a finished record, so it
+   should give you pause rather than recede. It also matches the
+   "Completed" notice it answers (`.lockNote` above), so the warning and
+   its escape hatch read as one idea. *(changed 2026-08-04: was ghost.)* */
 .unlock {
-  composes: action ghost from '../styles/button.module.css';
+  composes: action warning from '../styles/button.module.css';
 }
 
 /* Copy this todo into new work. Neutral chrome rather than ghost: unlike

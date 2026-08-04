@@ -492,6 +492,23 @@ over an undimmed background, so they didn't read as modal.)*
     vanished outright on a resize, losing the name and colour already
     entered. Same shape as the todo detail panel, fixed a day earlier — see
     `todos/use-todo-detail-form.ts` and `lists/use-list-form.ts`.)*
+- **An icon-only button is named by a tooltip** — and by `aria-label` on
+  the button itself, never only by the tooltip: hover doesn't exist on
+  touch, and assistive tech must not depend on a hover-triggered element to
+  learn what a control does. It keeps the same hit area and height as a
+  labelled button beside it, so only the width changes.
+  - **This is the case tooltips are for.** A tooltip's content is an
+    accessible *name* for its trigger. Prose the user is meant to read
+    needs a popover instead — focusable, escapable, announced (see
+    `info-badge.tsx`, and the same distinction in the overlays section).
+  - Reserve it for actions a single familiar glyph carries completely. A
+    row of unlabelled icons is a guessing game.
+  *(added 2026-08-04.)*
+- **Warning is its own button role**, distinct from destructive: an action
+  that is permitted but should give pause, like unlocking a completed todo
+  for editing. Amber (`--status-syncing`), matching the notice it answers.
+  Red stays reserved for actions that actually destroy something, or it
+  stops meaning anything. *(added 2026-08-04, issue #25.)*
 - **A disabled control must look disabled.** Muted ink, a faintly tinted
   ground, and a `not-allowed` cursor — a read-only field that is
   pixel-identical to an editable one reads as broken, and you only discover
