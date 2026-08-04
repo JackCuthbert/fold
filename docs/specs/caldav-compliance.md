@@ -100,15 +100,28 @@ collection state the read path needs is the ctag (for the short-circuit
 above), so `fetchTodos` issues a single `Depth: 0` PROPFIND of *that*
 collection. Nothing else needs a round trip at all.
 
-**Outbound requests are capped at six concurrent.** Bun's `fetch` stalls
-for roughly a second above about seven concurrent requests to one host —
-measured: seven concurrent PROPFINDs took 11ms, eight took 1068ms, and
-the same eight issued by `curl` took 44ms. It is a client-side ceiling,
-not a server limit (raising Radicale's `max_connections` to 200 changed
-nothing), so the cap lives at the gateway's shared fetch and covers the
-fan-out inside tsdav that we don't own.
+**Outbound requests are capped at six concurrent.** A CalDAV server may
+speak **HTTP/1.0**, where connections close after every response and a
+client's connection pool has nothing to reuse — Radicale's built-in
+server (Python's `wsgiref.simple_server`) is one, and never sets
+`protocol_version`. Every request then costs a fresh TCP connection, and
+a wide burst becomes a pile of simultaneous connects: 12 at once measured
+~1050ms against HTTP/1.0 versus 14ms against an HTTP/1.1 keep-alive
+server, on the same runtime.
 
-Measured against a local Radicale, before and after:
+*(corrected 2026-08-04: this was first attributed to a Bun `fetch`
+pooling bug. It is not — Node 24 shows the same ~1089ms, and pooling
+isn't failing so much as being denied by a server that won't keep
+connections open. A production Radicale behind uWSGI/Gunicorn speaks
+HTTP/1.1 and would not show this.)*
+
+The cap is worth keeping regardless of the server: the cost is
+per-connection, we cannot know what an arbitrary CalDAV server speaks,
+and it also covers the fan-out inside tsdav that we don't own.
+
+Measured against a local (HTTP/1.0) Radicale, before and after — the
+absolute numbers are inflated by the connection cost above, but the
+request *counts* they reflect are real on any server:
 
 | Lists | `fetchTodos` | `createTodo` |
 |---|---|---|
