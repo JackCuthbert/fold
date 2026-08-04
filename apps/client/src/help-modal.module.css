@@ -168,24 +168,16 @@
   gap: var(--space-3);
 }
 
+/* Wide enough for "⌘ shift N", the longest chord. A fixed column keeps
+   the descriptions aligned, which is the point of the two-column form. */
 .shortcutKeys {
   flex: none;
-  /* Enough for "⌘⇧N", the widest binding. A fixed column keeps the
-     descriptions aligned, which is the point of the two-column form. */
-  min-width: 4.5rem;
-}
-
-/* The same restrained treatment as `code` above — a tint and a mono face,
-   no heavy 3D key cap, which would be louder than anything else on this
-   page (docs/specs/ui.md). */
-.shortcutKeys kbd {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--text-xs);
+  min-width: 6.5rem;
+  /* At body size, not --text-xs: these are drawn as glyphs now
+     (shortcut-keys.tsx), and a modifier keycap shrunk below the text
+     beside it is unreadable. *(changed 2026-08-04.)* */
+  font-size: var(--text-sm);
   color: var(--ink);
-  background: var(--line);
-  border-radius: var(--radius-xs);
-  padding: 2px var(--space-1);
-  white-space: nowrap;
 }
 
 .shortcutName {

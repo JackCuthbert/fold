@@ -214,12 +214,25 @@ export function MainScreen() {
   // beats hunting for the button.
   useShortcuts(
     {
+      // Only true *modals* stand a shortcut down — a second dialog on top
+      // of one you are already in is never what Cmd+K meant.
+      //
+      // The detail panel is deliberately absent, even though it holds an
+      // unsaved edit. It is a layout column on desktop, not a modal, and
+      // treating it as blocking meant the shortcuts stopped working for
+      // most of a session — you usually have a todo open. The edit is
+      // protected by the rule that already matters more: a shortcut never
+      // fires while a field has focus (shortcuts.ts — isTextEntry), which
+      // is where you are whenever you are actually mid-edit. Clicking away
+      // from the fields and pressing Cmd+K is a deliberate act, and the
+      // edit survives it — the panel's state is hoisted here and outlives
+      // the modal opening over it (use-todo-detail-form.ts).
+      // *(changed 2026-08-04: `openTodo !== null` was in this list.)*
       dialogOpen:
         add.addOpen ||
         globalAdd.open ||
         settingsOpen ||
         helpOpen ||
-        openTodo !== null ||
         listForm.creating ||
         listForm.editing !== null ||
         listForm.deleting !== null,

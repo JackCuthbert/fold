@@ -112,9 +112,27 @@
   display: flex;
   align-items: stretch;
   border: var(--border-width) solid var(--line);
+  /* The selection marker is this shell's own left border, not a stripe
+     drawn inside it. Inside `.link` it sat *within* the grey border, so a
+     hairline of --line ran down its left and the marker stopped short of
+     the rounded corner — visible as soon as you zoom in.
+
+     Reserved unconditionally at the marker's width so selecting a list
+     doesn't reflow the row; `.itemActive` only changes its colour.
+     *(fixed 2026-08-04.)* */
+  border-left-width: var(--space-1);
   border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--shadow-button);
+}
+
+/* docs/specs/ui.md — the nav: selecting a list looks like selection, not
+   hover. The marker is the row's whole left edge, corner to corner. The
+   colour comes from `markerColor` inline (lists/list-color.ts), which
+   hands back --accent when a list's own colour would vanish against the
+   paper. */
+.itemActive {
+  border-left-color: var(--accent);
 }
 
 /* docs/specs/ui.md — the nav: list rows are full width — the name takes
@@ -139,11 +157,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* A leading marker (see .linkActive) needs room to sit inside the row
-     without nudging the label when it appears — reserved unconditionally
-     so selecting a list doesn't shift the text horizontally. */
-  border-left: var(--space-1) solid transparent;
-  transition: border-color var(--duration-fast) var(--ease);
+  /* No marker here any more — it is `.item`'s own left border, so it can
+     reach the row's rounded corners instead of sitting inside the grey
+     shell. *(moved 2026-08-04.)* */
 }
 
 /* docs/specs/ui.md — the nav: selecting a list looks like selection, not
@@ -163,13 +179,11 @@
   transition: background-color var(--duration-fast) var(--ease);
 }
 
+/* The selected row's ink and weight. The marker itself is `.itemActive`
+   on the shell above. */
 .linkActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
-  /* The default marker. A list with a colour overrides this inline with
-     `markerColor` (lists/list-color.ts) — the contrast guard hands back
-     this same token when the colour would vanish against the paper. */
-  border-left-color: var(--accent);
 }
 
 /* docs/specs/lists.md — colours: an 8px dot before the name, in every
@@ -210,34 +224,43 @@
    the two had quietly diverged before. */
 .add {
   composes: action default navAction from '../styles/button.module.css';
-  margin-top: var(--space-3);
 }
 
-/* "New todo" — the global add path (issue #15), pinned above the derived
-   views. The same shared chrome as "+ New list" below, because it is the
-   same kind of thing: an action that opens a modal, not a nav row.
-
-   Given the accent fill rather than the neutral default: it is the most
-   frequent action in the app, and it sits above Today/Summary where
-   nothing else competes for emphasis. *(added 2026-08-04.)* */
-.newTodo {
-  composes: action primary navAction from '../styles/button.module.css';
+/* The two "create something" actions, grouped at the top of the nav.
+   They were split — New todo above the derived views, New list below the
+   whole list — which made two buttons doing the same kind of thing look
+   unrelated. Together they read as one place to start something.
+   *(grouped 2026-08-04.)* */
+.create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin-bottom: var(--space-4);
 }
 
-/* The chord, on the face of the button (docs/specs/ui.md — keyboard
+/* "New todo" — the global add path (issue #15). Given the accent fill
+   rather than the neutral default: it is the most frequent action in the
+   app, and New list beside it is the rarer companion, so the pair carries
+   its own hierarchy. *(added 2026-08-04.)* */
+.newTodo {
+  composes: action primary navAction from '../styles/button.module.css';
+}
+
+/* The chord, on the face of a create button (docs/specs/ui.md — keyboard
    shortcuts: a shortcut nobody knows about may as well not exist).
 
    `margin-left: auto` pushes it to the trailing edge, so the icon and
    label keep the nav's shared left edge and the hint reads as an
-   annotation rather than part of the label. Dimmed against the accent
-   fill so it informs without competing with the words. */
-.newTodoKey {
+   annotation rather than part of the label.
+
+   Set at the *label's* size rather than shrunk to --text-xs: a hint that
+   needs squinting at is not a hint, and the two sat side by side looking
+   mismatched. The caps carry their own smaller scale internally
+   (shortcut-keys.module.css), so this only has to place them.
+   *(changed 2026-08-04.)* */
+.navKey {
   margin-left: auto;
-  font-family: inherit;
-  font-size: var(--text-xs);
-  opacity: 0.7;
-  /* The glyphs are wider than the surrounding type; a little tracking
-     stops "⌘K" reading as one character. */
-  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  font-size: inherit;
 }

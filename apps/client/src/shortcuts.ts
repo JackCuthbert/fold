@@ -17,9 +17,20 @@ export interface Shortcut {
   /** Cmd on macOS, Ctrl elsewhere — see `hasPrimaryModifier`. */
   primary: boolean
   shift: boolean
-  /** How the help modal writes it, minus the platform's modifier glyphs. */
-  label: string
   description: string
+}
+
+/**
+ * The letter as it is printed on a keycap.
+ *
+ * Derived rather than stored: the modifiers are already described by
+ * `primary` and `shift`, and `ShortcutKeys` draws those as glyphs. A
+ * separate `label` field held the same information a second time and had
+ * already drifted once — it still read "Shift N" after the glyph rendering
+ * made the word redundant. *(changed 2026-08-04.)*
+ */
+export function shortcutLetter(shortcut: Shortcut): string {
+  return shortcut.key.toUpperCase()
 }
 
 /**
@@ -46,7 +57,6 @@ export const SHORTCUTS: readonly Shortcut[] = [
     key: 'k',
     primary: true,
     shift: false,
-    label: 'K',
     description: 'New todo',
   },
   {
@@ -54,7 +64,6 @@ export const SHORTCUTS: readonly Shortcut[] = [
     key: 'n',
     primary: true,
     shift: true,
-    label: 'Shift N',
     description: 'New list',
   },
   {
@@ -62,7 +71,6 @@ export const SHORTCUTS: readonly Shortcut[] = [
     key: '/',
     primary: true,
     shift: false,
-    label: '/',
     description: 'Keyboard shortcuts',
   },
 ]

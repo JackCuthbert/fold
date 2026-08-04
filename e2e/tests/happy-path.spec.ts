@@ -344,7 +344,14 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await expect(
     help.getByRole('heading', { name: 'Keyboard shortcuts' }),
   ).toBeVisible()
-  await expect(help.locator('kbd')).toHaveCount(3)
+  // One row per binding, each drawn as individual keycaps
+  // (shortcut-keys.tsx) — so assert the rows, not the caps, which vary
+  // with how many keys a chord has.
+  await expect(help.getByRole('term')).toHaveCount(3)
+  // The chord for New todo is K, not N: the browser reserves Cmd+N.
+  await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(
+    'K',
+  )
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
 

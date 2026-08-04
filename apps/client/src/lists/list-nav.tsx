@@ -11,7 +11,8 @@ import {
   TODAY_VIEW,
 } from '../todos/today'
 import { useTheme } from '../use-theme'
-import { isApplePlatform, modifierLabel, SHORTCUTS } from '../shortcuts'
+import { ShortcutKeys } from '../shortcut-keys'
+import { SHORTCUTS } from '../shortcuts'
 import { ListItemMenu } from './list-item-menu'
 import { markerColor } from './list-color'
 import { reorder } from './list-order'
@@ -32,19 +33,15 @@ export function useLists() {
 }
 
 /**
- * The chord printed on the New todo button.
+ * The binding this button advertises.
  *
- * Derived from SHORTCUTS rather than typed out, so the button cannot
- * advertise a binding the app does not have — the same rule the help
- * modal follows (docs/specs/ui.md — keyboard shortcuts). Falls back to an
- * empty string if the action is ever unbound, which renders nothing rather
- * than a lie.
+ * Looked up in SHORTCUTS rather than typed out, so the button cannot
+ * advertise a chord the app does not have — the same rule the help modal
+ * follows (docs/specs/ui.md — keyboard shortcuts). `undefined` if the
+ * action is ever unbound, which renders nothing rather than a lie.
  */
-const NEW_TODO_HINT = (() => {
-  const shortcut = SHORTCUTS.find((entry) => entry.action === 'new-todo')
-  if (!shortcut) return ''
-  return `${modifierLabel(isApplePlatform())}${shortcut.label}`
-})()
+const NEW_TODO_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-todo')
+const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
 
 // docs/specs/lists.md — discover/create/rename/delete.
 //
@@ -86,26 +83,55 @@ export function ListNav(props: {
 
   return (
     <nav className={styles['nav']} aria-label="Lists">
-      {/* issue #15 — creating a todo from anywhere, including the derived
-          views, which have no "Add a todo" row of their own. At the very
-          top and set apart from the views below it: this is the app's most
-          frequent action, and grouping it with Today/Summary would read as
-          a fourth place to *look* rather than a thing to *do*.
+      {/* The two "create something" actions, at the very top and set apart
+          from the views below. New todo is issue #15 — creating one from
+          anywhere, including the derived views, which have no "Add a todo"
+          row of their own.
 
-          The chord is on the face of the button rather than in a tooltip:
-          a shortcut nobody knows about may as well not exist
+          They belong together: both open a create modal, and both are
+          things you *do* rather than places you *look*. New list used to
+          sit below the whole list of lists, which made two buttons of the
+          same kind look unrelated. *(grouped 2026-08-04.)*
+
+          Each prints its chord on its own face rather than hiding it in a
+          tooltip: a shortcut nobody knows about may as well not exist
           (docs/specs/ui.md — keyboard shortcuts), and the button is where
-          someone reaching for the mouse will already be looking. */}
-      <button
-        ref={props.newTodoRef}
-        type="button"
-        className={styles['newTodo']}
-        onClick={props.onNewTodo}
-      >
-        <LuPlus aria-hidden="true" size={16} />
-        New todo
-        <kbd className={styles['newTodoKey']}>{NEW_TODO_HINT}</kbd>
-      </button>
+          someone reaching for the mouse is already looking. */}
+      <div className={styles['create']}>
+        <button
+          ref={props.newTodoRef}
+          type="button"
+          className={styles['newTodo']}
+          onClick={props.onNewTodo}
+        >
+          <LuPlus aria-hidden="true" size={16} />
+          New todo
+          {NEW_TODO_SHORTCUT && (
+            <span className={styles['navKey']}>
+              <ShortcutKeys shortcut={NEW_TODO_SHORTCUT} onFilled />
+            </span>
+          )}
+        </button>
+        {/* docs/specs/ui.md — one left edge, including controls: a literal
+            "+ " prefix is text, so it sat at the label's inset rather than
+            on the icon column every other nav row aligns to. A real icon
+            lines up with Settings' gear. The accessible name keeps the
+            "+ New list" wording the e2e suite matches on. */}
+        <button
+          type="button"
+          className={styles['add']}
+          aria-label="+ New list"
+          onClick={props.form.openCreate}
+        >
+          <LuPlus aria-hidden="true" size={16} />
+          New list
+          {NEW_LIST_SHORTCUT && (
+            <span className={styles['navKey']}>
+              <ShortcutKeys shortcut={NEW_LIST_SHORTCUT} />
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
           views pinned above the real lists, and visually distinct from
@@ -161,19 +187,28 @@ export function ListNav(props: {
 
       <ul>
         {(lists.data ?? []).map((list, index, all) => (
-          <li key={list.id} className={styles['item']}>
+          <li
+            key={list.id}
+            // The selection marker is the shell's own left border, so the
+            // colour goes here rather than on the button inside it —
+            // otherwise it sits *within* the grey border and stops short
+            // of the rounded corner. *(moved 2026-08-04.)*
+            className={cx(
+              styles['item'],
+              list.id === props.selected && styles['itemActive'],
+            )}
+            style={
+              list.id === props.selected
+                ? { borderLeftColor: markerColor(list.color, theme) }
+                : undefined
+            }
+          >
             <button
               type="button"
-              className={
-                list.id === props.selected
-                  ? `${styles['link']} ${styles['linkActive']}`
-                  : styles['link']
-              }
-              style={
-                list.id === props.selected
-                  ? { borderLeftColor: markerColor(list.color, theme) }
-                  : undefined
-              }
+              className={cx(
+                styles['link'],
+                list.id === props.selected && styles['linkActive'],
+              )}
               onClick={() => props.onSelect(list.id)}
             >
               {/* docs/specs/lists.md — colours: every list gets a dot,
@@ -208,21 +243,6 @@ export function ListNav(props: {
           </li>
         ))}
       </ul>
-
-      {/* docs/specs/ui.md — one left edge, including controls: a literal
-          "+ " prefix is text, so it sat at the label's inset rather than
-          on the icon column every other nav row aligns to. A real icon
-          lines up with Settings' gear. The accessible name keeps the
-          "+ New list" wording the e2e suite matches on. */}
-      <button
-        type="button"
-        className={styles['add']}
-        aria-label="+ New list"
-        onClick={props.form.openCreate}
-      >
-        <LuPlus aria-hidden="true" size={16} />
-        New list
-      </button>
 
       {/* No modals here. The create/edit/delete surfaces are rendered by
           MainScreen as siblings of the drawer — see the note on this
