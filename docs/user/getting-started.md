@@ -16,4 +16,5 @@ No CalDAV server handy? See
 [running a local CalDAV server](./local-caldav-server.md) to try the app
 against a throwaway Radicale instance.
 
-See [lists](./lists.md) and [todos](./todos.md) next.
+See [lists](./lists.md) and [todos](./todos.md) next, and
+[keyboard shortcuts](./keyboard-shortcuts.md) once you're settled in.

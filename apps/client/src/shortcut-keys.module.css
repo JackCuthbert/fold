@@ -1,0 +1,81 @@
+/* Keyboard chords, drawn as mini keycaps — see shortcut-keys.tsx. Shared
+   by the help modal's list and the nav's New todo button, so the two
+   cannot drift apart.
+
+   The design: a chord is a picture of keys, so each key gets its own cap.
+   Restrained, in keeping with the rest of the app (docs/specs/ui.md) — a
+   hairline border, a faint fill and a single-pixel bottom edge standing in
+   for the key's height. No 3D bevel or drop shadow, which would be the
+   loudest thing on a page of quiet type.
+   *(added 2026-08-04.)* */
+.keys {
+  display: inline-flex;
+  align-items: center;
+  /* Enough to read as separate caps, tight enough to read as one chord. */
+  gap: 3px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* One cap. Sized from the text it sits beside via `em`, so the same
+   component serves the 14px help list and the 16px nav button.
+
+   **Exact squares.** Real keycaps are square, and a chord of caps that are
+   *nearly* the same size reads as a rendering bug rather than a design.
+   `width` and `height` are set to the same value with no padding — an
+   earlier version used `min-width` plus inline padding, which let the
+   command glyph (intrinsically wider than a letter) push its cap 3px
+   wider than the "K" beside it. The glyph is centred by the flex box
+   instead, so nothing depends on how wide the mark happens to be.
+   *(fixed 2026-08-04.)* */
+.cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 1.7em;
+  height: 1.7em;
+  padding: 0;
+  /* The glyph is drawn at 1em of the cap's own font-size; anything wider
+     is clipped rather than allowed to stretch the square. */
+  overflow: hidden;
+  /* Sans, never the body serif: the modifier glyphs are geometric, and a
+     serif letterform beside them looks like a different system. */
+  font-family: var(--sans);
+  font-size: 0.85em;
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  color: var(--ink);
+  background: var(--surface);
+  border: var(--border-width) solid var(--line);
+  /* The bottom edge is the key's height, in one pixel. */
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* "Shift" is a word, not a letter, so its cap is the one that isn't
+   square — the same proportion a real keyboard gives it. It keeps the
+   square's *height* so the row still lines up, and takes its width from
+   the word. Spelled out rather than ⇧, which is easily misread as caps
+   lock (Material's nearest glyph is literally named for that), and
+   capitalised the way it is printed on the key itself. */
+.wide {
+  width: auto;
+  padding: 0 0.45em;
+  font-size: 0.72em;
+  /* Height is set in `em` on `.cap`, so a smaller font-size here would
+     shrink the cap too. Pinned back to the square's height in the same
+     units the row uses. */
+  height: 2em;
+  letter-spacing: 0.02em;
+}
+
+/* On a filled button (the nav's New todo), the caps sit on the accent
+   rather than on paper. Inherit the button's ink and tint the fill from
+   it, so the caps read as pressed into the button rather than as pale
+   stickers stuck on top. */
+.onFilled .cap {
+  color: inherit;
+  background: rgb(255 255 255 / 0.14);
+  border-color: rgb(255 255 255 / 0.28);
+}

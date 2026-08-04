@@ -290,3 +290,106 @@ test('a completed todo locks, unlocks deliberately, and duplicates active', asyn
     page.getByRole('checkbox', { name: 'Mark "Finished work" active' }),
   ).toBeVisible()
 })
+
+// docs/specs/ui.md — keyboard shortcuts (issue #5). The unit tests cover
+// the matching rules; this covers the wiring those rules can't see — that
+// the chord reaches a real listener and opens the real modal, and that the
+// "don't stack a second dialog" rule holds against actual Base UI dialogs
+// rather than a boolean.
+test('keyboard shortcuts open the modals, and stand down when one is open', async ({
+  page,
+}) => {
+  await login(page)
+  const listName = uniqueName('shortcuts')
+  await createList(page, listName)
+  await expect(page.getByRole('heading', { name: listName })).toBeVisible()
+
+  // Ctrl on every platform, including macOS — one family, no branch
+  // (docs/specs/ui.md — keyboard shortcuts). This test used to compute
+  // Meta-vs-Control from `navigator.platform`; there is nothing to compute
+  // any more. *(changed 2026-08-04.)*
+  const mod = 'Control'
+
+  // Focus must not be in a text field, or the shortcut correctly declines
+  // to steal the keystroke.
+  // K, not N: the browser reserves Cmd+N and never releases the keydown to
+  // the page (docs/specs/ui.md — keyboard shortcuts).
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+k`)
+  const addDialog = page.getByRole('dialog', { name: 'Add a todo' })
+  await expect(addDialog).toBeVisible()
+
+  // Pressing it again must not stack a second dialog on the first.
+  await page.keyboard.press(`${mod}+k`)
+  await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(1)
+
+  await page.keyboard.press('Escape')
+  await expect(addDialog).toBeHidden()
+
+  // Shift routes to the other binding rather than firing both.
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+Shift+n`)
+  await expect(page.getByRole('dialog', { name: 'New list' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // The map documents itself: the help modal lists what is bound, rendered
+  // from the same constant that binds it.
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+/`)
+  const help = page.getByRole('dialog', { name: 'About Fold' })
+  await expect(help).toBeVisible()
+  await expect(
+    help.getByRole('heading', { name: 'Keyboard shortcuts' }),
+  ).toBeVisible()
+  // One row per binding, each drawn as individual keycaps
+  // (shortcut-keys.tsx) — so assert the rows, not the caps, which vary
+  // with how many keys a chord has.
+  await expect(help.getByRole('term')).toHaveCount(5)
+  // The chord for New todo is K, held for the command palette it will
+  // become (issue #26).
+  await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(
+    'K',
+  )
+  await page.keyboard.press('Escape')
+  await expect(help).toBeHidden()
+
+  // Ctrl+Shift+1/2 jump straight to the derived views. Shift is what makes
+  // a digit usable at all: plain Ctrl+1 is taken by the OS for Spaces and
+  // again by some browsers for tabs, so the keydown never arrives. Matched
+  // on `event.code`, since Shift+1 reports `event.key` as "!".
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+Shift+Digit2`)
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible()
+  await page.keyboard.press(`${mod}+Shift+Digit1`)
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
+
+  // The whole point of issue #15: New todo works from a derived view too,
+  // because it carries its own list picker. It used to do nothing here.
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+k`)
+  await expect(addDialog).toBeVisible()
+
+  // No default list, deliberately: submitting without choosing must be
+  // refused rather than filing the todo somewhere unlooked-at.
+  const summary = page.getByRole('textbox', { name: 'Add a todo' })
+  await summary.fill('Made from Today')
+  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
+  // `exact` matters: the picker's own placeholder is "Choose a list…", so
+  // a substring match would also find the trigger and pass regardless.
+  await expect(
+    addDialog.getByText('Choose a list', { exact: true }),
+  ).toBeVisible()
+  await expect(addDialog).toBeVisible()
+
+  // Choosing one lets it through, and the app follows the todo to the list
+  // it landed in — being left on a view that may not contain it reads as a
+  // failure.
+  await addDialog.getByRole('combobox', { name: 'List' }).click()
+  await page.getByRole('option', { name: listName, exact: true }).click()
+  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(addDialog).toBeHidden()
+  await expect(page.getByRole('heading', { name: listName })).toBeVisible()
+  await expect(page.getByText('Made from Today')).toBeVisible()
+})

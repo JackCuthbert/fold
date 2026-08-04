@@ -142,18 +142,39 @@
 /* docs/specs/todos.md — due times: the date and its optional time read as
    one "Due" control, so they share a row rather than stacking as two
    unrelated fields. Matches the add-todo modal exactly. */
+/* Due and Time side by side — until they don't fit, then stacked.
+   `flex-wrap` rather than a media query: what matters is whether the two
+   native inputs fit, and that depends on the panel's width (a bottom sheet
+   on mobile, a column on desktop) and on the platform's own date/time
+   control, not on the viewport. A breakpoint would guess at it.
+
+   iOS renders `<input type="date">` and `type="time"` at a fixed
+   intrinsic width and will not shrink them below it. With a `0` basis the
+   two claimed more room than the sheet had and pushed the whole panel into
+   a horizontal scroll (reported on iPhone 17 Pro).
+   *(fixed 2026-08-04.)* */
 .dueRow {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   align-items: flex-start;
 }
 
+/* `flex-basis: auto` so each field asks for its content's real width, and
+   the row wraps when both no longer fit. `min-width` keeps a wrapped field
+   full-width rather than leaving a stranded half-row, and stops the
+   date input being squeezed to unreadable on the narrowest sheets. */
+.dueDate,
+.dueTime {
+  min-width: 9rem;
+}
+
 .dueDate {
-  flex: 3 1 0;
+  flex: 3 1 auto;
 }
 
 .dueTime {
-  flex: 2 1 0;
+  flex: 2 1 auto;
 }
 
 .selectTrigger {

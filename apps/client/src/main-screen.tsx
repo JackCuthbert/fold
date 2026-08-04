@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami } from 'react-icons/lu'
 import { ConfirmDialog } from './confirm'
 import { HelpModal } from './help-modal'
+import { InfoBadge } from './info-badge'
 import { ListFormModal } from './lists/list-form-modal'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
@@ -17,11 +18,15 @@ import {
   isDerivedView,
   isSummaryView,
   isTodayView,
+  SUMMARY_VIEW,
   TODAY_VIEW,
 } from './todos/today'
 import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
+import { AddTodoModal } from './todos/add-todo-modal'
 import { useAddTodo } from './todos/use-add-todo'
+import { useGlobalAddTodo } from './todos/use-global-add-todo'
+import { useShortcuts } from './use-shortcuts'
 import { useTodoActions } from './todos/use-todo-actions'
 import { useTodoDetailForm } from './todos/use-todo-detail-form'
 import { useViewCount } from './todos/use-view-count'
@@ -188,6 +193,74 @@ export function MainScreen() {
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
   // docs/specs/summary-view.md).
   const add = useAddTodo(showingDerived ? '' : (active ?? ''))
+  // The global add path (issue #15): the sidebar button and Cmd/Ctrl+K,
+  // both of which can fire from anywhere — including the derived views,
+  // which have no list of their own. The list is chosen in the form.
+  const globalAdd = useGlobalAddTodo()
+  // Where focus returns when the global add modal closes. Null when the
+  // chord opened it — there was no trigger, and Base UI then restores to
+  // wherever focus was, which is the right answer for a keyboard-invoked
+  // dialog. `useRef` rather than state: it is read on close, never
+  // rendered (docs/specs/ui.md — accessibility: focus must not land
+  // somewhere misleading).
+  const globalAddTrigger = useRef<HTMLButtonElement | null>(null)
+
+  // docs/specs/ui.md — keyboard shortcuts (issue #5). One listener owning
+  // the whole map; the rules are pure functions in shortcuts.ts.
+  //
+  // "Obscured" is every dialog *and* the open detail panel, which is a
+  // modal sheet on mobile and holds an editable form on desktop — either
+  // way, opening a second surface over an edit in progress is not what
+  // Cmd+N should do. The drawer is deliberately *not* in this list: a
+  // collapsed or closed nav is exactly when reaching for the keyboard
+  // beats hunting for the button.
+  useShortcuts(
+    {
+      // Only true *modals* stand a shortcut down — a second dialog on top
+      // of one you are already in is never what Cmd+K meant.
+      //
+      // The detail panel is deliberately absent, even though it holds an
+      // unsaved edit. It is a layout column on desktop, not a modal, and
+      // treating it as blocking meant the shortcuts stopped working for
+      // most of a session — you usually have a todo open. The edit is
+      // protected by the rule that already matters more: a shortcut never
+      // fires while a field has focus (shortcuts.ts — isTextEntry), which
+      // is where you are whenever you are actually mid-edit. Clicking away
+      // from the fields and pressing Cmd+K is a deliberate act, and the
+      // edit survives it — the panel's state is hoisted here and outlives
+      // the modal opening over it (use-todo-detail-form.ts).
+      // *(changed 2026-08-04: `openTodo !== null` was in this list.)*
+      dialogOpen:
+        add.addOpen ||
+        globalAdd.open ||
+        settingsOpen ||
+        helpOpen ||
+        listForm.creating ||
+        listForm.editing !== null ||
+        listForm.deleting !== null,
+      // The chord opens the *global* add path, which carries its own list
+      // picker — so it works from Today and Summary too, where there is no
+      // list to inherit. It needs somewhere to put the todo, though: with
+      // no lists at all, the picker would have nothing to offer.
+      // *(changed 2026-08-04, issue #15: was bound to the in-list path and
+      // did nothing on a derived view.)*
+      canAddTodo: (lists.data?.length ?? 0) > 0,
+    },
+    (action) => {
+      if (action === 'new-todo') globalAdd.setOpen(true)
+      else if (action === 'new-list') listForm.openCreate()
+      // Jumping to a view also closes the drawer: on mobile the nav is an
+      // overlay, and landing on a view still behind it would hide the
+      // thing you just navigated to. Same reason `onSelect` closes it.
+      else if (action === 'go-today') {
+        selectList(TODAY_VIEW)
+        setDrawerOpen(false)
+      } else if (action === 'go-summary') {
+        selectList(SUMMARY_VIEW)
+        setDrawerOpen(false)
+      } else setHelpOpen(true)
+    },
+  )
 
   // Drop a persisted id the server no longer knows about, so it can't come
   // back on the next load.
@@ -293,6 +366,11 @@ export function MainScreen() {
         <ListNav
           selected={active}
           form={listForm}
+          newTodoRef={globalAddTrigger}
+          onNewTodo={() => {
+            globalAdd.setOpen(true)
+            setDrawerOpen(false)
+          }}
           onSelect={(listId) => {
             selectList(listId)
             setDrawerOpen(false)
@@ -353,6 +431,30 @@ export function MainScreen() {
       {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      {/* The global add-todo modal (issue #15), opened by the sidebar
+          button or Cmd/Ctrl+K. A sibling of the drawer for the same reason
+          Settings and Help are: on mobile the button lives inside the
+          drawer's Dialog, and a modal owned there would be nested and lose
+          its backdrop.
+
+          Passing `lists` is what turns on the picker — the modal requires
+          a choice then, with no default (issue #15). */}
+      <AddTodoModal
+        open={globalAdd.open}
+        onOpenChange={globalAdd.setOpen}
+        target={{
+          kind: 'global',
+          lists: lists.data ?? [],
+          onAdd: (listId, todo) => {
+            globalAdd.add(listId, todo)
+            // Go to where the todo landed. Creating something and being
+            // left looking at a view that may not contain it reads as a
+            // failure.
+            selectList(listId)
+          },
+        }}
+        triggerRef={globalAddTrigger}
+      />
       {/* The list surfaces, here for the same reason and for one more —
           see `listForm` above (issues #20 and #21). Opening one closes the
           drawer: on mobile it's an overlay in its own right, and leaving it
@@ -457,25 +559,69 @@ export function MainScreen() {
                 </button>
               )}
               <h1 className={styles['title']}>
-                {/* docs/specs/lists.md — colours: the list's dot travels
-                    with its title, so the colour is still there while you
-                    are looking at the list (issue #12). Only for a real
-                    list, and only when it has a colour — a derived view is
-                    not a collection and has none, and an uncoloured list
-                    gets nothing rather than the nav's empty ring (see
-                    `.titleDot`). */}
-                {activeList?.color !== undefined && (
-                  <span
-                    className={styles['titleDot']}
-                    style={{ background: activeList.color }}
-                    aria-hidden="true"
-                  />
-                )}
-                {showingToday
-                  ? 'Today'
-                  : showingSummary
-                    ? 'Summary'
-                    : (activeList?.displayName ?? 'Todos')}
+                {/* The dot and the name are wrapped together, and it is
+                    this shrink-to-fit box — not the full-width `.title` —
+                    that the info badge hangs off. Anchoring to `.title`
+                    would put the badge at the far edge of the header row,
+                    since `.title` is `flex: 1` and fills the space between
+                    the ☰ and `.headerSpacer`. See `.titleText`.
+                    *(added 2026-08-04.)* */}
+                <span className={styles['titleText']}>
+                  {/* docs/specs/lists.md — colours: the list's dot travels
+                      with its title, so the colour is still there while you
+                      are looking at the list (issue #12). Only for a real
+                      list, and only when it has a colour — a derived view is
+                      not a collection and has none, and an uncoloured list
+                      gets nothing rather than the nav's empty ring (see
+                      `.titleDot`). */}
+                  {activeList?.color !== undefined && (
+                    <span
+                      className={styles['titleDot']}
+                      style={{ background: activeList.color }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {showingToday
+                    ? 'Today'
+                    : showingSummary
+                      ? 'Summary'
+                      : (activeList?.displayName ?? 'Todos')}
+                  {/* docs/specs/today-view.md, docs/specs/summary-view.md —
+                      the explanation of what a derived view *is* belongs
+                      beside that view's own title, where someone wondering
+                      what they are looking at is already looking. It used to
+                      hang off the nav row (list-nav.tsx), which made two of
+                      the nav's rows a different shape from all the others.
+
+                      Only the derived views get one: a list is a collection
+                      on the server with a name its owner chose, and nothing
+                      about it needs explaining.
+
+                      The wording is the nav's, verbatim — shorter than the
+                      help modal's on purpose, and saying the same thing
+                      (help-modal.tsx, "Today and Summary").
+                      *(moved 2026-08-04.)* */}
+                  {(showingToday || showingSummary) && (
+                    <span className={styles['titleInfo']}>
+                      <InfoBadge
+                        label={showingToday ? 'About Today' : 'About Summary'}
+                      >
+                        {showingToday ? (
+                          <>
+                            Everything due today or already overdue, gathered
+                            from all your lists. A view, not a list you can add
+                            to.
+                          </>
+                        ) : (
+                          <>
+                            What you&rsquo;ve finished, grouped by day — handy
+                            for a standup. A view, not a list you can add to.
+                          </>
+                        )}
+                      </InfoBadge>
+                    </span>
+                  )}
+                </span>
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
             </div>

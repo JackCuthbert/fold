@@ -52,6 +52,15 @@
   --measure: 34rem;
 
   --serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  /* Keyboard keycaps only, so far (shortcut-keys.tsx). The body face is
+     the serif above and stays that way — a keycap is a picture of a
+     physical key, not prose, and a serif "K" beside a geometric ⌘ glyph
+     reads as two different systems. System UI stack rather than a webfont:
+     it costs nothing and already matches the OS the key belongs to.
+     *(added 2026-08-04.)* */
+  --sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   --paper: #faf9f6;
   --surface: #ffffff;

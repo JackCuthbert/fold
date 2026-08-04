@@ -210,17 +210,25 @@ test('README screenshot', async ({ page }) => {
   await openDetail(page, FEATURED)
 
   // Nothing mid-flight in the picture: no sync pill, no focus ring on
-  // whatever was last clicked, no hover state under the mouse.
+  // whatever was last clicked.
   await waitForSync(page)
-  await page.mouse.move(0, 0)
   await page.evaluate(() => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
   })
+
+  // Rest the pointer on Today, so its keyboard shortcut is revealed
+  // (docs/specs/ui.md — keyboard shortcuts: the chords are hidden until
+  // hovered or until Ctrl is held). A screenshot of the nav at rest shows
+  // no chords at all, which would say the app has none — this is the one
+  // frame where a hover state is the honest one.
+  // *(added 2026-08-04.)*
+  await page.getByRole('button', { name: 'Today', exact: true }).hover()
+
   // Let any open/settle transition finish (docs/specs/ui.md — overlays
-  // animate). Fixed rather than polled: there is no state change to wait
-  // on, only paint.
+  // animate), including the hint's own fade. Fixed rather than polled:
+  // there is no state change to wait on, only paint.
   await page.waitForTimeout(500)
 
   await page.screenshot({ path: '../docs/screenshot.png' })

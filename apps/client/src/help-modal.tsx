@@ -2,6 +2,8 @@ import { Dialog } from '@base-ui/react/dialog'
 import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { ModalHeader } from './modal-header'
+import { ShortcutKeys } from './shortcut-keys'
+import { SHORTCUTS } from './shortcuts'
 import { cx } from './styles/cx'
 import styles from './help-modal.module.css'
 
@@ -55,6 +57,34 @@ export function HelpModal(props: {
         <Dialog.Popup className={cx(styles['popup'])} initialFocus={titleRef}>
           <ModalHeader titleRef={titleRef}>About Fold</ModalHeader>
           <div className={styles['body']}>
+            {/* docs/specs/ui.md — keyboard shortcuts (issue #5). First,
+                because this is now the fastest thing to reach — Cmd/Ctrl+/
+                opens the modal you are reading, and someone who arrives
+                that way is almost always here for the map.
+
+                Just the list. The rules about when a shortcut stands down
+                are true but not worth reading: they describe behaviour you
+                never notice working, and they pushed the list itself below
+                the fold. *(changed 2026-08-04.)*
+
+                Rendered *from* SHORTCUTS rather than written out, so a
+                binding cannot be added without appearing here — the failure
+                mode for this kind of documentation is silent drift. */}
+            <section className={styles['section']}>
+              <h3 className={styles['heading']}>Keyboard shortcuts</h3>
+              <dl className={styles['shortcuts']}>
+                {SHORTCUTS.map((shortcut) => (
+                  <div key={shortcut.action} className={styles['shortcutRow']}>
+                    <dt className={styles['shortcutKeys']}>
+                      <ShortcutKeys shortcut={shortcut} />
+                    </dt>
+                    <dd className={styles['shortcutName']}>
+                      {shortcut.description}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
             {/* docs/specs/today-view.md, docs/specs/summary-view.md */}
             <section className={styles['section']}>
               <h3 className={styles['heading']}>Today and Summary</h3>
@@ -150,6 +180,7 @@ export function HelpModal(props: {
                 to alphabetical.
               </p>
             </section>
+
             {/* No footer Close. The header's ✕ is the close control — this
                 button sat below the scroll viewport, so you had to scroll
                 the whole modal to find it. *(removed 2026-08-03: it is what

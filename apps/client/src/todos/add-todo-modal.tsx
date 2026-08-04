@@ -25,11 +25,29 @@ const addTodoSchema = z
     dueTime: z.string(),
     description: z.string(),
     priority: z.union([todoPrioritySchema, z.literal('')]),
+    // '' when the modal was opened from inside a list, which supplies the
+    // target itself. Only the global path (issue #15) renders the picker,
+    // and `pickList` below makes it required there.
+    listId: z.string(),
   })
   .refine((values) => values.dueTime === '' || values.due !== '', {
     path: ['dueTime'],
     message: 'Pick a date for this time',
   })
+
+/**
+ * The schema for the global add-todo path, where the list is the user's to
+ * choose and there is no sensible default (issue #15).
+ *
+ * A second schema rather than a flag inside the first: "required only
+ * sometimes" is the kind of conditional validation that reads fine and
+ * fails quietly. Here the requirement is a property of *which form is
+ * open*, so it belongs to the form rather than to the field.
+ */
+const globalAddTodoSchema = addTodoSchema.refine(
+  (values) => values.listId !== '',
+  { path: ['listId'], message: 'Choose a list' },
+)
 type AddTodoForm = z.infer<typeof addTodoSchema>
 
 const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
@@ -56,6 +74,7 @@ const EMPTY_VALUES: AddTodoForm = {
   dueTime: '',
   description: '',
   priority: '',
+  listId: '',
 }
 
 // docs/specs/ui.md — layout: adding a todo opens a modal rather than an
@@ -66,10 +85,34 @@ const EMPTY_VALUES: AddTodoForm = {
 // Every field is Base UI (Dialog, Accordion, Field, Input, Select), wired
 // to react-hook-form + zod via Controller (docs/specs/ui.md — component
 // library / forms).
+/**
+ * Where a new todo goes, and so which shape the form takes.
+ *
+ * A union rather than optional props, because the two modes are mutually
+ * exclusive: the in-list path already knows the list and must not render a
+ * picker; the global path cannot know it and must. Optional callbacks
+ * would let a caller supply neither, or both, and only find out at
+ * runtime.
+ */
+type AddTodoTarget =
+  /** Opened from inside a list, which is the target (todo-pane.tsx). */
+  | { kind: 'list'; onAdd: (todo: NewTodo) => void }
+  /**
+   * Opened from anywhere — the sidebar button or Cmd/Ctrl+K (issue #15).
+   * Renders a picker and requires a choice: there is deliberately no
+   * default, because filing a todo into a list the user never looked at is
+   * worse than asking which one.
+   */
+  | {
+      kind: 'global'
+      lists: ReadonlyArray<{ id: string; displayName: string }>
+      onAdd: (listId: string, todo: NewTodo) => void
+    }
+
 export function AddTodoModal(props: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (todo: NewTodo) => void
+  target: AddTodoTarget
   // docs/specs/ui.md — accessibility: focus must not land somewhere
   // misleading after an action. This dialog is opened from a plain
   // <button> (todo-pane.tsx), not a Base UI `Dialog.Trigger`, so Base UI
@@ -80,8 +123,16 @@ export function AddTodoModal(props: {
   // `finalFocus` removes the guesswork.
   triggerRef: RefObject<HTMLButtonElement | null>
 }) {
+  const pickList = props.target.kind === 'global'
+  const listOptions =
+    props.target.kind === 'global'
+      ? props.target.lists.map((list) => ({
+          label: list.displayName,
+          value: list.id,
+        }))
+      : []
   const { control, handleSubmit, reset } = useForm<AddTodoForm>({
-    resolver: zodResolver(addTodoSchema),
+    resolver: zodResolver(pickList ? globalAddTodoSchema : addTodoSchema),
     defaultValues: EMPTY_VALUES,
   })
 
@@ -90,13 +141,20 @@ export function AddTodoModal(props: {
     // (docs/specs/todos.md — due times). `undefined` means the schema's
     // time-needs-a-date rule already rejected this, so it can't reach here.
     const due = fieldsToDue({ date: values.due, time: values.dueTime })
-    props.onAdd({
+    const todo: NewTodo = {
       uid: crypto.randomUUID(),
       summary: values.summary,
       ...(due ? { due } : {}),
       ...(values.description ? { description: values.description } : {}),
       ...(values.priority ? { priority: values.priority } : {}),
-    })
+    }
+    // The schema guarantees a non-empty listId whenever the picker is
+    // shown, so this branch cannot lose a todo to an unset list.
+    if (props.target.kind === 'global') {
+      props.target.onAdd(values.listId, todo)
+    } else {
+      props.target.onAdd(todo)
+    }
     reset(EMPTY_VALUES)
     props.onOpenChange(false)
   }
@@ -147,6 +205,73 @@ export function AddTodoModal(props: {
                 </Field.Root>
               )}
             />
+
+            {/* The list picker, only on the global add path (issue #15).
+                Above the Advanced accordion, not inside it: it is required
+                here, and a required field hidden behind a disclosure is a
+                form that fails validation pointing at something you cannot
+                see. */}
+            {pickList && (
+              <Controller
+                name="listId"
+                control={control}
+                render={({
+                  field: { name, value, onChange },
+                  fieldState: { invalid, error },
+                }) => (
+                  <Field.Root
+                    className={styles['field']}
+                    name={name}
+                    invalid={invalid}
+                  >
+                    <Field.Label>List</Field.Label>
+                    <Select.Root
+                      items={listOptions}
+                      value={value}
+                      onValueChange={onChange}
+                    >
+                      <Select.Trigger className={styles['selectTrigger']}>
+                        {/* No default list, deliberately (issue #15): filing
+                            a todo somewhere the user never looked is worse
+                            than asking. The placeholder says so rather than
+                            showing a pre-selected list. */}
+                        <Select.Value placeholder="Choose a list…" />
+                        <Select.Icon className={styles['selectIcon']}>
+                          <LuChevronDown aria-hidden="true" size={14} />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Positioner
+                          className={styles['selectPositioner']}
+                          side="bottom"
+                          sideOffset={4}
+                          alignItemWithTrigger={false}
+                        >
+                          <Select.Popup className={styles['selectPopup']}>
+                            {listOptions.map((option) => (
+                              <Select.Item
+                                key={option.value}
+                                value={option.value}
+                                className={styles['selectItem']}
+                              >
+                                <Select.ItemText>
+                                  {option.label}
+                                </Select.ItemText>
+                              </Select.Item>
+                            ))}
+                          </Select.Popup>
+                        </Select.Positioner>
+                      </Select.Portal>
+                    </Select.Root>
+                    {error && (
+                      <Field.Error className={styles['error']} match>
+                        {error.message}
+                      </Field.Error>
+                    )}
+                  </Field.Root>
+                )}
+              />
+            )}
 
             <Accordion.Root className={styles['accordion']}>
               <Accordion.Item className={styles['accordionItem']}>
