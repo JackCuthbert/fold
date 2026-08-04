@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
-import { InfoBadge } from '../info-badge'
 import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import {
@@ -10,6 +9,7 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
 } from '../todos/today'
+import { useModifierHeld } from '../use-modifier-held'
 import { useTheme } from '../use-theme'
 import { ShortcutKeys } from '../shortcut-keys'
 import { SHORTCUTS } from '../shortcuts'
@@ -40,8 +40,25 @@ export function useLists() {
  * follows (docs/specs/ui.md — keyboard shortcuts). `undefined` if the
  * action is ever unbound, which renders nothing rather than a lie.
  */
+/**
+ * The inline style carrying a selected list's marker colour.
+ *
+ * A custom property in a plain record rather than a cast to
+ * `CSSProperties`: React accepts `--*` keys at runtime but its types do
+ * not admit them, and asserting the wider type past the checker is exactly
+ * what type-aware lint objects to (CLAUDE.md — fix findings, don't
+ * suppress them).
+ */
+function markerStyle(color: string): Record<string, string> {
+  return { '--marker': color }
+}
+
 const NEW_TODO_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-todo')
 const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
+const TODAY_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'go-today')
+const SUMMARY_SHORTCUT = SHORTCUTS.find(
+  (entry) => entry.action === 'go-summary',
+)
 
 // docs/specs/lists.md — discover/create/rename/delete.
 //
@@ -63,6 +80,12 @@ export function ListNav(props: {
   const lists = useLists()
   const theme = useTheme()
   const { mutate } = props.form
+  // docs/specs/ui.md — keyboard shortcuts: the chords are hints, not
+  // labels. Five permanent keycaps is a lot of chrome on a page whose
+  // point is restraint, so they stay hidden until you hold Ctrl — the
+  // moment you are asking the question — or hover the row they belong to.
+  // *(added 2026-08-04.)*
+  const modifierHeld = useModifierHeld()
 
   // docs/specs/lists.md — reordering writes only the lists that moved:
   // swapping two adjacent lists swaps two numbers, rather than renumbering
@@ -107,7 +130,10 @@ export function ListNav(props: {
           <LuPlus aria-hidden="true" size={16} />
           New todo
           {NEW_TODO_SHORTCUT && (
-            <span className={styles['navKey']}>
+            <span
+              className={styles['navKey']}
+              data-revealed={modifierHeld || undefined}
+            >
               <ShortcutKeys shortcut={NEW_TODO_SHORTCUT} onFilled />
             </span>
           )}
@@ -126,7 +152,10 @@ export function ListNav(props: {
           <LuPlus aria-hidden="true" size={16} />
           New list
           {NEW_LIST_SHORTCUT && (
-            <span className={styles['navKey']}>
+            <span
+              className={styles['navKey']}
+              data-revealed={modifierHeld || undefined}
+            >
               <ShortcutKeys shortcut={NEW_LIST_SHORTCUT} />
             </span>
           )}
@@ -139,67 +168,72 @@ export function ListNav(props: {
           control in the nav), set off as a group by space rather than a
           divider, with no kebab menu because there is nothing on the
           server to rename or delete. */}
-      {/* Each view is a row, not just a button: the badge is a control in
-          its own right (a popover trigger) and must not be nested inside
-          the button that selects the view — a button inside a button is
-          invalid, and a tap meant for the badge would also switch views.
-          The row wrapper puts them side by side instead, with the button
-          taking the width so the icon and label keep the nav's shared left
-          edge (docs/specs/ui.md — one left edge). *(added 2026-08-03.)* */}
+      {/* Every row in the nav is one button and nothing else. The info
+          badges that explained these two views used to hang off them,
+          which made Today and Summary the only rows with a second control
+          in them — the rhythm broke exactly where the nav is meant to read
+          as a plain list of places to go. The explanation now sits beside
+          the view's own title in the content header (main-screen.tsx),
+          where you are already looking when you wonder what the view is.
+          *(moved 2026-08-04.)* */}
       <div className={styles['views']}>
-        <div className={styles['viewRow']}>
-          <button
-            type="button"
-            className={cx(
-              styles['today'],
-              isTodayView(props.selected) && styles['todayActive'],
-            )}
-            onClick={() => props.onSelect(TODAY_VIEW)}
-          >
-            <LuSun aria-hidden="true" size={16} />
-            Today
-          </button>
-          {/* Shorter than the help modal's wording on purpose, and saying
-              the same thing — help-modal.tsx, "Today and Summary". */}
-          <InfoBadge label="About Today">
-            Everything due today or already overdue, gathered from all your
-            lists. A view, not a list you can add to.
-          </InfoBadge>
-        </div>
-        <div className={styles['viewRow']}>
-          <button
-            type="button"
-            className={cx(
-              styles['today'],
-              isSummaryView(props.selected) && styles['todayActive'],
-            )}
-            onClick={() => props.onSelect(SUMMARY_VIEW)}
-          >
-            <LuHistory aria-hidden="true" size={16} />
-            Summary
-          </button>
-          <InfoBadge label="About Summary">
-            What you&rsquo;ve finished, grouped by day — handy for a standup. A
-            view, not a list you can add to.
-          </InfoBadge>
-        </div>
+        <button
+          type="button"
+          className={cx(
+            styles['today'],
+            isTodayView(props.selected) && styles['todayActive'],
+          )}
+          onClick={() => props.onSelect(TODAY_VIEW)}
+        >
+          <LuSun aria-hidden="true" size={16} />
+          Today
+          {TODAY_SHORTCUT && (
+            <span
+              className={styles['navKey']}
+              data-revealed={modifierHeld || undefined}
+            >
+              <ShortcutKeys shortcut={TODAY_SHORTCUT} />
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          className={cx(
+            styles['today'],
+            isSummaryView(props.selected) && styles['todayActive'],
+          )}
+          onClick={() => props.onSelect(SUMMARY_VIEW)}
+        >
+          <LuHistory aria-hidden="true" size={16} />
+          Summary
+          {SUMMARY_SHORTCUT && (
+            <span
+              className={styles['navKey']}
+              data-revealed={modifierHeld || undefined}
+            >
+              <ShortcutKeys shortcut={SUMMARY_SHORTCUT} />
+            </span>
+          )}
+        </button>
       </div>
 
       <ul>
         {(lists.data ?? []).map((list, index, all) => (
           <li
             key={list.id}
-            // The selection marker is the shell's own left border, so the
-            // colour goes here rather than on the button inside it —
-            // otherwise it sits *within* the grey border and stops short
-            // of the rounded corner. *(moved 2026-08-04.)*
             className={cx(
               styles['item'],
               list.id === props.selected && styles['itemActive'],
             )}
+            // The marker is drawn by `.itemActive::before` over the row's
+            // left edge, so this only has to supply its colour. A custom
+            // property rather than a border colour: reserving a 4px border
+            // on every row to keep the active one from reflowing made the
+            // inactive rows visibly lopsided.
+            // *(changed 2026-08-04.)*
             style={
               list.id === props.selected
-                ? { borderLeftColor: markerColor(list.color, theme) }
+                ? markerStyle(markerColor(list.color, theme))
                 : undefined
             }
           >

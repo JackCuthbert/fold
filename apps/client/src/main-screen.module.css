@@ -222,6 +222,53 @@
   font-weight: var(--weight-medium);
 }
 
+/* The dot-plus-name unit, and the anchor the info badge is positioned
+   against (main-screen.tsx).
+
+   It exists because `.title` is `flex: 1` — it spans the whole gap between
+   the ☰ and `.headerSpacer`, so positioning the badge against *that* box
+   would fling it to the far edge of the header. This box shrinks to the
+   text, so `left: 100%` on `.titleInfo` lands exactly at the name's
+   trailing edge whatever the name is.
+
+   `min-width: 0` so a long list name can still shrink and ellipsize inside
+   the centred row rather than forcing it wider.
+   *(added 2026-08-04.)* */
+.titleText {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* docs/specs/today-view.md, docs/specs/summary-view.md — the info badge
+   that explains a derived view, beside that view's own title.
+
+   Out of flow, deliberately. The title is centred by balancing the ☰
+   against `.headerSpacer`, and the name centres within what's left; an
+   in-flow badge would be part of what gets centred, so the name would sit
+   half a badge left of centre on Today and Summary and dead centre on
+   every list — the title visibly jumping sideways as you moved between
+   views. The same reasoning already keeps the todo count on its own line
+   rather than beside the title (see `.count`). Taking the badge out of
+   flow leaves the centring to be computed from the name alone.
+
+   The badge's own hit area (info-badge.module.css) is `--hit-area` square
+   with a 14px glyph in the middle, so the glyph already sits ~15px clear
+   of the name without any offset here — no extra gap needed, and one
+   would only push it under `.headerSpacer`.
+   *(added 2026-08-04.)* */
+.titleInfo {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
 /* docs/specs/lists.md — colours: the list's colour follows it into the
    main pane's title, so the colour doesn't disappear exactly when you are
    looking at that list. Same dot as the nav's (list-dot.module.css), one

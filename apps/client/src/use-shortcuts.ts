@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import {
   isActionAvailable,
-  isApplePlatform,
   isTextEntryTarget,
   matchShortcut,
   type ShortcutAction,
@@ -33,15 +32,10 @@ export function useShortcuts(
   latest.current = { context, onAction }
 
   useEffect(() => {
-    // Read once per attach — a machine does not change platform
-    // mid-session. Shares its definition with the help modal's label, so
-    // the documented chord is always the bound one.
-    const isApple = isApplePlatform()
-
     const handle = (event: KeyboardEvent): void => {
       // Never steal a keystroke from a field (shortcuts.ts — isTextEntry).
       if (isTextEntryTarget(event.target)) return
-      const action = matchShortcut(event, isApple)
+      const action = matchShortcut(event)
       if (action === null) return
       // Matched but unavailable — a dialog is open, or there is no list to
       // add to. Deliberately still `preventDefault()`: the chord is ours

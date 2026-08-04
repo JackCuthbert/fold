@@ -789,52 +789,82 @@ are the interface.
 
 | Chord | Does |
 |---|---|
-| `Cmd/Ctrl+K` | New todo |
-| `Cmd/Ctrl+Shift+N` | New list |
-| `Cmd/Ctrl+/` | Open this list (the help modal) |
+| `Ctrl+K` | New todo |
+| `Ctrl+Shift+N` | New list |
+| `Ctrl+Shift+1` | Go to Today |
+| `Ctrl+Shift+2` | Go to Summary |
+| `Ctrl+/` | Open this list (the help modal) |
 
-**`Cmd/Ctrl+K`, not `+N`.** `Cmd+N` is reserved by the *browser*: Chrome
+**`Ctrl` on every platform, including macOS.** The conventional advice is
+Cmd on a Mac and Ctrl elsewhere, and this did that until 2026-08-04. Two
+things argued it down: the chords worth having kept colliding — `Cmd+N` is
+the browser's, and `Cmd`/`Ctrl` + a digit is taken twice over on macOS, by
+the OS for Spaces and again by the browser for tabs — and one family means
+no platform branch in the binding, none in the label, and a chord you can
+say out loud. The cost is deliberate: Ctrl is not the native modifier on
+macOS. Fold is personal software written for someone who lives in vim
+(README — personal software). `metaKey` is not accepted as an alternative;
+that would reintroduce exactly the collisions this escapes.
+
+**`K`, not `N`, for New todo.** `Cmd+N` is reserved by the *browser*: it
 opens a new window and the keydown never reaches the page, so there is
 nothing for `preventDefault()` to cancel — a binding that cannot be made to
-work rather than one implemented wrongly. `Cmd+K` is the near-universal
-"quick action" chord (Linear, Slack, Notion, GitHub) and is unreserved.
-That convention is also where this is going: the chord is meant to open a
-command palette rather than one specific form, so reserving it now means
-only what the surface *contains* changes later, not how it is reached.
-*(changed 2026-08-04: was `Cmd+N`, which the browser never released.)*
+work rather than one implemented wrongly. Moving to Ctrl freed `N` again,
+but K stays: it is the near-universal quick-action key (Linear, Slack,
+Notion, GitHub) and is where the command palette is headed (issue #26), so
+binding it now means the palette inherits the muscle memory rather than
+asking for it back.
+
+**Digits carry Shift.** `Ctrl+1` never arrives on macOS. `Ctrl+Shift+1`
+does.
 
 - **One app-level listener owns the whole map** (`use-shortcuts.ts`), not
   handlers scattered across components. The map is a single thing the user
   learns and the help modal documents, so it is a single thing in the code:
-  otherwise no one place answers "what does `Cmd+N` do here", and two
-  components can silently claim the same chord. The matching rules are pure
+  otherwise no one place answers "what does this chord do here", and two
+  components can silently claim the same one. The matching rules are pure
   functions in `shortcuts.ts`, tested without a DOM.
-- **Cmd on Apple platforms, Ctrl elsewhere — never either.** Accepting both
-  would take over `Ctrl+N` on macOS, where it means "new window" everywhere
-  else in the OS. One `isApplePlatform()` backs both the binding and the
-  label the help modal prints, so the documented chord is always the bound
-  one.
-- **A shortcut stands down while any dialog is open**, rather than stacking a
-  second surface on what you are already doing. That includes the detail
-  panel, which holds an edit in progress. The nav drawer is deliberately
-  *not* in that set: a closed or collapsed sidebar is exactly when reaching
-  for the keyboard beats hunting for the button.
-- **New todo works everywhere, because it carries its own list picker**
-  (issue #15). It stands down only when there are no lists at all, since
-  the picker would then have nothing to offer. *(changed 2026-08-04: it was
-  bound to the in-list add path and did nothing on Today or Summary.)*
+- **Bindings are matched on `event.code`, not `event.key`.** `key` reports
+  what a key *produces* once modifiers apply — Shift+1 is `"!"` — so a
+  digit binding matched on `key` would silently never fire. `code` is the
+  physical key, whatever the modifiers or the layout do to it.
+  *(changed 2026-08-04.)*
+- **A shortcut stands down while a modal is open**, rather than stacking a
+  second surface on what you are already doing. The detail panel is
+  deliberately *not* in that set: it is a layout column on desktop, not a
+  modal, and treating it as blocking made the chords dead for most of a
+  session. An unsaved edit there is protected by the rule that already
+  matters — a shortcut never fires while a field has focus — and the
+  panel's state outlives a modal opening over it.
+  *(changed 2026-08-04: the open detail panel used to block.)*
+- **New todo needs a list to exist**, since its form asks which one to use
+  (issue #15). It works from Today and Summary; it stands down only when
+  there are no lists at all.
 - **A bound chord is always consumed**, even when the action is
-  unavailable. Letting `Cmd+N` fall through to the browser only when a modal
+  unavailable. Letting it fall through to the browser only when a modal
   happens to be open would be worse than either consistent behaviour.
 - **Never steal a keystroke from a field.** Anything typed into an input,
   textarea, select or `contenteditable` belongs to that field.
-- **The map is listed in the help modal**, rendered *from* the same constant
-  that binds it — a shortcut nobody knows about may as well not exist, and
-  documentation maintained by hand drifts silently.
-- **`Cmd/Ctrl+F` is deliberately unbound.** It was in the original issue,
-  but it depends on the search view (issue #6) and overriding the browser's
-  own find is a real cost: taking it away before there is something better
-  to put in its place is a straight loss.
+- **The map is listed in the help modal, first**, rendered *from* the same
+  constant that binds it — a shortcut nobody knows about may as well not
+  exist, and documentation maintained by hand drifts silently. It leads the
+  modal because `Ctrl+/` opens it and someone arriving that way is here for
+  the map. Just the list: the rules above are true but describe behaviour
+  you never notice working, and they pushed the list below the fold.
+  *(changed 2026-08-04.)*
+- **The nav prints each row's chord, but only on demand.** Five permanent
+  keycaps is a lot of chrome on a page built on restraint, and a hint you
+  have learned is noise. They appear on hover, or when Ctrl is held for
+  400ms — long enough to distinguish "holding Ctrl to ask" from "reaching
+  for a chord I know", so ordinary use never makes the nav strobe. Hidden
+  entirely while a field has focus, since the shortcuts do not fire there
+  either, and removed altogether on touch devices
+  (`hover: hover and pointer: fine`), which have no Ctrl to hold.
+  *(added 2026-08-04.)*
+- **`Ctrl+F` is deliberately unbound.** It was in the original issue, but it
+  depends on the search view (issue #6) and overriding the browser's own
+  find is a real cost: taking it away before there is something better to
+  put in its place is a straight loss.
 
 ## Accessibility
 

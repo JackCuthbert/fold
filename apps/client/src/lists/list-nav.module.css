@@ -20,19 +20,6 @@
   margin-bottom: var(--space-4);
 }
 
-/* One derived view: the ghost button that selects it, plus the info badge
-   that explains it (info-badge.tsx). Two sibling controls rather than one
-   nested in the other — see list-nav.tsx.
-   The button below is `width: 100%`, so it takes the row and the badge
-   sits at the trailing edge; the icon and label keep the same left edge as
-   every other nav row (docs/specs/ui.md — one left edge), and the badge
-   appearing can't push them right.
-   *(added 2026-08-03.)* */
-.viewRow {
-  display: flex;
-  align-items: center;
-}
-
 /* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
    reads as a different kind of thing from a list: a view, not a collection.
    Each is a **ghost button** — link appearance only, no background, border
@@ -111,28 +98,49 @@
 .item {
   display: flex;
   align-items: stretch;
+  /* A uniform hairline the whole way round, active or not. The marker is
+     drawn *over* the left edge by `.itemActive::before` rather than being
+     a wider border on this element: reserving 4px unconditionally made an
+     inactive row visibly lopsided, and colouring that same 4px when
+     active read as a fat edge rather than the clean marker the derived
+     views carry. A pseudo-element needs no reserved space, so nothing
+     reflows and nothing looks wrong at rest.
+     *(changed 2026-08-04: was `border-left-width: var(--space-1)`.)* */
   border: var(--border-width) solid var(--line);
-  /* The selection marker is this shell's own left border, not a stripe
-     drawn inside it. Inside `.link` it sat *within* the grey border, so a
-     hairline of --line ran down its left and the marker stopped short of
-     the rounded corner — visible as soon as you zoom in.
-
-     Reserved unconditionally at the marker's width so selecting a list
-     doesn't reflow the row; `.itemActive` only changes its colour.
-     *(fixed 2026-08-04.)* */
-  border-left-width: var(--space-1);
   border-radius: var(--radius-sm);
+  /* Also clips the marker to the row's rounded corners. */
   overflow: hidden;
   box-shadow: var(--shadow-button);
+  /* The marker is positioned against this box. */
+  position: relative;
 }
 
 /* docs/specs/ui.md — the nav: selecting a list looks like selection, not
-   hover. The marker is the row's whole left edge, corner to corner. The
-   colour comes from `markerColor` inline (lists/list-color.ts), which
-   hands back --accent when a list's own colour would vanish against the
-   paper. */
-.itemActive {
-  border-left-color: var(--accent);
+   hover. The marker sits inside the row's border box and runs its full
+   height, matching the derived views' own left edge exactly.
+
+   The colour arrives as `--marker`, set inline on `.itemActive` by
+   `markerColor` (lists/list-color.ts) — which hands back --accent when a
+   list's own colour would vanish against the paper. A custom property
+   rather than `background: inherit`, which would pick up the row's own
+   background instead; the fallback keeps the marker visible if the
+   property is ever missing. */
+.itemActive::before {
+  content: '';
+  position: absolute;
+  /* Negative insets pull the marker out over the border. An absolutely
+     positioned box is placed against the *padding* box, so at `0` it sat
+     inside the 1px hairline — a sliver of --line down its left, and the
+     marker stopping short of the corners. That is the same inset this
+     change set out to remove. Offsetting by the border width puts it on
+     the border box instead, so it owns the row's left edge outright.
+     *(fixed 2026-08-04.)* */
+  inset-block: calc(var(--border-width) * -1);
+  inset-inline-start: calc(var(--border-width) * -1);
+  width: var(--space-1);
+  background: var(--marker, var(--accent));
+  /* Above the row's own background, below its content. */
+  z-index: 1;
 }
 
 /* docs/specs/ui.md — the nav: list rows are full width — the name takes
@@ -263,4 +271,51 @@
   display: inline-flex;
   align-items: center;
   font-size: inherit;
+  /* Hidden until asked for. Five permanent keycaps down the nav is a lot
+     of chrome on a page built on restraint, and a hint you have already
+     learned is just noise. It appears on hover, or — better — whenever
+     Ctrl is held, which reveals every binding at once at exactly the
+     moment you are asking the question (use-modifier-held.ts).
+
+     `visibility` rather than `display`, so the caps still occupy their
+     space: revealing them must not reflow the row's label.
+     *(added 2026-08-04.)* */
+  visibility: hidden;
+  /* Washed out even when shown — a hint should sit behind the label it
+     annotates, not compete with it. */
+  opacity: 0.55;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+
+/* Only where there is a keyboard to press. A touch device has no Ctrl to
+   hold and no hover to trigger the reveal, so the caps would be dead
+   weight taking room from the label — and on a phone the nav is a drawer
+   where width is scarcest. `hover: hover` and `pointer: fine` together
+   rather than either alone: a stylus reports fine-but-no-hover, and some
+   Android browsers claim hover on a coarse pointer.
+   *(added 2026-08-04.)* */
+@media (hover: hover) and (pointer: fine) {
+  /* Hovering the row it belongs to, or holding the modifier anywhere. */
+  .newTodo:hover .navKey,
+  .newTodo:focus-visible .navKey,
+  .add:hover .navKey,
+  .add:focus-visible .navKey,
+  .today:hover .navKey,
+  .today:focus-visible .navKey,
+  .navKey[data-revealed] {
+    visibility: visible;
+  }
+
+  /* Holding Ctrl is a deliberate question, so answer it at full strength —
+     hover is incidental and stays dimmer. */
+  .navKey[data-revealed] {
+    opacity: 0.8;
+  }
+}
+
+/* Touch: not merely hidden but gone, so the label gets the width back. */
+@media not all and (hover: hover) and (pointer: fine) {
+  .navKey {
+    display: none;
+  }
 }

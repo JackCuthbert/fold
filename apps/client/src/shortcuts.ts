@@ -8,29 +8,56 @@
  */
 
 /** The actions a shortcut can request. One per binding. */
-export type ShortcutAction = 'new-todo' | 'new-list' | 'help'
+export type ShortcutAction =
+  | 'new-todo'
+  | 'new-list'
+  | 'help'
+  | 'go-today'
+  | 'go-summary'
 
 export interface Shortcut {
   action: ShortcutAction
-  /** `event.key`, lowercased. */
-  key: string
-  /** Cmd on macOS, Ctrl elsewhere — see `hasPrimaryModifier`. */
+  /**
+   * `event.code` — the *physical* key, e.g. `KeyK`, `Digit1`, `Slash`.
+   *
+   * Not `event.key`, which reports what the key *produces* once modifiers
+   * are applied: Shift+1 is `"!"`, and on a Mac Option+1 is `"¡"`. A digit
+   * binding matched on `key` would simply never fire, silently. `code`
+   * describes the key you actually press, so a chord means the same thing
+   * whatever the modifiers or the keyboard layout do to it.
+   * *(changed 2026-08-04: was `event.key`, which cannot express a
+   * shifted digit.)*
+   */
+  code: string
+  /** Ctrl on every platform — see `hasPrimaryModifier`. */
   primary: boolean
   shift: boolean
   description: string
 }
 
 /**
- * The letter as it is printed on a keycap.
+ * What is printed on the keycap for this binding.
  *
- * Derived rather than stored: the modifiers are already described by
- * `primary` and `shift`, and `ShortcutKeys` draws those as glyphs. A
- * separate `label` field held the same information a second time and had
- * already drifted once — it still read "Shift N" after the glyph rendering
- * made the word redundant. *(changed 2026-08-04.)*
+ * Derived from `code` rather than stored: the modifiers are already
+ * described by `primary` and `shift`, and `ShortcutKeys` draws those
+ * separately. A `label` field held the same information twice and had
+ * already drifted once. *(changed 2026-08-04.)*
  */
 export function shortcutLetter(shortcut: Shortcut): string {
-  return shortcut.key.toUpperCase()
+  const { code } = shortcut
+  if (code.startsWith('Key')) return code.slice(3)
+  if (code.startsWith('Digit')) return code.slice(5)
+  // Punctuation and anything else: spelled out in the map below rather
+  // than guessed at from a code name like "Slash".
+  return PRINTED_KEY[code] ?? code
+}
+
+/** How to print the keys whose `code` name isn't the glyph itself. */
+const PRINTED_KEY: Record<string, string> = {
+  Slash: '/',
+  Period: '.',
+  Comma: ',',
+  Semicolon: ';',
 }
 
 /**
@@ -43,68 +70,90 @@ export function shortcutLetter(shortcut: Shortcut): string {
 export const SHORTCUTS: readonly Shortcut[] = [
   {
     action: 'new-todo',
-    // K, not N. `Cmd+N` is reserved by the *browser* — Chrome opens a new
-    // window and the keydown never reaches the page at all, so there is
-    // nothing for `preventDefault()` to cancel. Nothing was wrong with the
-    // handler; it was simply never called.
+    // K, and it stays K even though the whole map moved to Ctrl (which
+    // freed up N again).
     //
-    // `Cmd+K` is the near-universal "quick action" chord (Linear, Slack,
-    // Notion, GitHub) and is unreserved in Chrome. That convention is also
-    // where this is headed: the chord is meant to open a command palette
-    // rather than one specific form, and reserving it now means only what
-    // the surface *contains* changes later, not how it is reached.
-    // *(changed 2026-08-04: was Cmd+N, which the browser never released.)*
-    key: 'k',
+    // The reason is the command palette this chord is meant to become
+    // (issue #26): K is the near-universal quick-action key — Linear,
+    // Slack, Notion, GitHub — and the palette will want it. Binding New
+    // todo to K now means the palette *inherits* the muscle memory rather
+    // than asking for it back later; only what the surface contains
+    // changes, not how it is reached.
+    //
+    // *(2026-08-04: briefly moved to N once Ctrl made N available, then
+    // moved back — freeing K for a palette that will replace this exact
+    // chord gains nothing and costs the reservation.)*
+    code: 'KeyK',
     primary: true,
     shift: false,
     description: 'New todo',
   },
   {
     action: 'new-list',
-    key: 'n',
+    code: 'KeyN',
     primary: true,
     shift: true,
     description: 'New list',
   },
   {
     action: 'help',
-    key: '/',
+    code: 'Slash',
     primary: true,
     shift: false,
     description: 'Keyboard shortcuts',
   },
+  // The derived views, numbered in the order they appear in the nav
+  // (docs/specs/today-view.md, docs/specs/summary-view.md). Shift is what
+  // makes a digit usable at all here: plain Ctrl+1 is taken twice over on
+  // a Mac — by the OS for switching Spaces, and again by some browsers for
+  // switching tabs — so the keydown never arrives.
+  //
+  // Matched on `code` (`Digit1`), which is why this works: Shift+1 reports
+  // `event.key` as "!", so a `key`-based binding would never fire.
+  // *(added 2026-08-04.)*
+  {
+    action: 'go-today',
+    code: 'Digit1',
+    primary: true,
+    shift: true,
+    description: 'Go to Today',
+  },
+  {
+    action: 'go-summary',
+    code: 'Digit2',
+    primary: true,
+    shift: true,
+    description: 'Go to Summary',
+  },
 ]
 
 /**
- * Whether this machine uses Cmd rather than Ctrl.
+ * **Ctrl on every platform, including macOS.**
  *
- * One definition, because two would drift: the binding
- * (`use-shortcuts.ts`) and the label the help modal prints must agree, or
- * the app documents a chord that does nothing. `navigator.platform` is
- * deprecated but remains the most reliable signal available —
- * `userAgentData` is Chromium-only, so it is a hint rather than an answer.
- */
-export function isApplePlatform(): boolean {
-  return /mac|iphone|ipad|ipod/i.test(navigator.platform)
-}
-
-/** How this platform writes the primary modifier, for display. */
-export function modifierLabel(isApple: boolean): string {
-  return isApple ? '⌘' : 'Ctrl+'
-}
-
-/**
- * Cmd on Apple platforms, Ctrl everywhere else.
+ * The conventional advice is Cmd on a Mac and Ctrl elsewhere, and this did
+ * that until 2026-08-04. Two things argued it down:
  *
- * Testing both `metaKey` and `ctrlKey` against the platform — rather than
- * accepting either — keeps Ctrl+N free to mean "new window" on macOS,
- * where that is what it does everywhere else in the OS.
+ * - The chords worth having kept colliding. `Cmd+N` is the browser's, and
+ *   `Cmd`/`Ctrl` + a digit is taken twice over on macOS — by the OS for
+ *   Spaces and again by the browser for tabs. Ctrl+Shift is the one
+ *   combination with room left in it.
+ * - It is one family rather than two. No platform branch in the binding,
+ *   no platform branch in the label, and a keycap that reads "Ctrl"
+ *   everywhere is a chord you can tell someone over the phone.
+ *
+ * The cost is real and deliberate: Ctrl is not the native modifier on
+ * macOS, so this departs from what a Mac user expects. Fold is personal
+ * software written for someone who lives in vim, where Ctrl is home
+ * (README — personal software).
+ *
+ * `metaKey` is deliberately *not* accepted as an alternative: Cmd+K would
+ * then shadow whatever the browser or OS does with it, which is the class
+ * of collision this whole change exists to escape.
  */
 export function hasPrimaryModifier(
   event: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey'>,
-  isApple: boolean,
 ): boolean {
-  return isApple ? event.metaKey : event.ctrlKey
+  return event.ctrlKey && !event.metaKey
 }
 
 /**
@@ -176,15 +225,18 @@ export function isActionAvailable(
   return true
 }
 
-/** The action this event asks for, or null. */
+/**
+ * The action this event asks for, or null.
+ *
+ * Matched on `event.code` — see the `code` field. No platform argument any
+ * more: the modifier is Ctrl everywhere (`hasPrimaryModifier`).
+ */
 export function matchShortcut(
-  event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey'>,
-  isApple: boolean,
+  event: Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey'>,
 ): ShortcutAction | null {
-  const key = event.key.toLowerCase()
   for (const shortcut of SHORTCUTS) {
-    if (shortcut.key !== key) continue
-    if (shortcut.primary !== hasPrimaryModifier(event, isApple)) continue
+    if (shortcut.code !== event.code) continue
+    if (shortcut.primary !== hasPrimaryModifier(event)) continue
     if (shortcut.shift !== event.shiftKey) continue
     return shortcut.action
   }

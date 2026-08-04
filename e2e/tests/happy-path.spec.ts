@@ -304,14 +304,11 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await createList(page, listName)
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 
-  // Chromium on Linux/CI reports a non-Apple platform, so Control is the
-  // primary modifier there. Deliberately asserted against the same
-  // `navigator.platform` test the app uses, rather than hardcoded: a
-  // mismatch here would mean the app binds a chord this never presses.
-  const isApple = await page.evaluate(() =>
-    /mac|iphone|ipad|ipod/i.test(navigator.platform),
-  )
-  const mod = isApple ? 'Meta' : 'Control'
+  // Ctrl on every platform, including macOS — one family, no branch
+  // (docs/specs/ui.md — keyboard shortcuts). This test used to compute
+  // Meta-vs-Control from `navigator.platform`; there is nothing to compute
+  // any more. *(changed 2026-08-04.)*
+  const mod = 'Control'
 
   // Focus must not be in a text field, or the shortcut correctly declines
   // to steal the keystroke.
@@ -347,13 +344,24 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   // One row per binding, each drawn as individual keycaps
   // (shortcut-keys.tsx) — so assert the rows, not the caps, which vary
   // with how many keys a chord has.
-  await expect(help.getByRole('term')).toHaveCount(3)
-  // The chord for New todo is K, not N: the browser reserves Cmd+N.
+  await expect(help.getByRole('term')).toHaveCount(5)
+  // The chord for New todo is K, held for the command palette it will
+  // become (issue #26).
   await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(
     'K',
   )
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
+
+  // Ctrl+Shift+1/2 jump straight to the derived views. Shift is what makes
+  // a digit usable at all: plain Ctrl+1 is taken by the OS for Spaces and
+  // again by some browsers for tabs, so the keydown never arrives. Matched
+  // on `event.code`, since Shift+1 reports `event.key` as "!".
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+Shift+Digit2`)
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible()
+  await page.keyboard.press(`${mod}+Shift+Digit1`)
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
 
   // The whole point of issue #15: New todo works from a derived view too,
   // because it carries its own list picker. It used to do nothing here.

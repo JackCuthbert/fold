@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami } from 'react-icons/lu'
 import { ConfirmDialog } from './confirm'
 import { HelpModal } from './help-modal'
+import { InfoBadge } from './info-badge'
 import { ListFormModal } from './lists/list-form-modal'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
@@ -17,6 +18,7 @@ import {
   isDerivedView,
   isSummaryView,
   isTodayView,
+  SUMMARY_VIEW,
   TODAY_VIEW,
 } from './todos/today'
 import { TodayDetail } from './todos/today-pane'
@@ -247,7 +249,16 @@ export function MainScreen() {
     (action) => {
       if (action === 'new-todo') globalAdd.setOpen(true)
       else if (action === 'new-list') listForm.openCreate()
-      else setHelpOpen(true)
+      // Jumping to a view also closes the drawer: on mobile the nav is an
+      // overlay, and landing on a view still behind it would hide the
+      // thing you just navigated to. Same reason `onSelect` closes it.
+      else if (action === 'go-today') {
+        selectList(TODAY_VIEW)
+        setDrawerOpen(false)
+      } else if (action === 'go-summary') {
+        selectList(SUMMARY_VIEW)
+        setDrawerOpen(false)
+      } else setHelpOpen(true)
     },
   )
 
@@ -548,25 +559,69 @@ export function MainScreen() {
                 </button>
               )}
               <h1 className={styles['title']}>
-                {/* docs/specs/lists.md — colours: the list's dot travels
-                    with its title, so the colour is still there while you
-                    are looking at the list (issue #12). Only for a real
-                    list, and only when it has a colour — a derived view is
-                    not a collection and has none, and an uncoloured list
-                    gets nothing rather than the nav's empty ring (see
-                    `.titleDot`). */}
-                {activeList?.color !== undefined && (
-                  <span
-                    className={styles['titleDot']}
-                    style={{ background: activeList.color }}
-                    aria-hidden="true"
-                  />
-                )}
-                {showingToday
-                  ? 'Today'
-                  : showingSummary
-                    ? 'Summary'
-                    : (activeList?.displayName ?? 'Todos')}
+                {/* The dot and the name are wrapped together, and it is
+                    this shrink-to-fit box — not the full-width `.title` —
+                    that the info badge hangs off. Anchoring to `.title`
+                    would put the badge at the far edge of the header row,
+                    since `.title` is `flex: 1` and fills the space between
+                    the ☰ and `.headerSpacer`. See `.titleText`.
+                    *(added 2026-08-04.)* */}
+                <span className={styles['titleText']}>
+                  {/* docs/specs/lists.md — colours: the list's dot travels
+                      with its title, so the colour is still there while you
+                      are looking at the list (issue #12). Only for a real
+                      list, and only when it has a colour — a derived view is
+                      not a collection and has none, and an uncoloured list
+                      gets nothing rather than the nav's empty ring (see
+                      `.titleDot`). */}
+                  {activeList?.color !== undefined && (
+                    <span
+                      className={styles['titleDot']}
+                      style={{ background: activeList.color }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {showingToday
+                    ? 'Today'
+                    : showingSummary
+                      ? 'Summary'
+                      : (activeList?.displayName ?? 'Todos')}
+                  {/* docs/specs/today-view.md, docs/specs/summary-view.md —
+                      the explanation of what a derived view *is* belongs
+                      beside that view's own title, where someone wondering
+                      what they are looking at is already looking. It used to
+                      hang off the nav row (list-nav.tsx), which made two of
+                      the nav's rows a different shape from all the others.
+
+                      Only the derived views get one: a list is a collection
+                      on the server with a name its owner chose, and nothing
+                      about it needs explaining.
+
+                      The wording is the nav's, verbatim — shorter than the
+                      help modal's on purpose, and saying the same thing
+                      (help-modal.tsx, "Today and Summary").
+                      *(moved 2026-08-04.)* */}
+                  {(showingToday || showingSummary) && (
+                    <span className={styles['titleInfo']}>
+                      <InfoBadge
+                        label={showingToday ? 'About Today' : 'About Summary'}
+                      >
+                        {showingToday ? (
+                          <>
+                            Everything due today or already overdue, gathered
+                            from all your lists. A view, not a list you can add
+                            to.
+                          </>
+                        ) : (
+                          <>
+                            What you&rsquo;ve finished, grouped by day — handy
+                            for a standup. A view, not a list you can add to.
+                          </>
+                        )}
+                      </InfoBadge>
+                    </span>
+                  )}
+                </span>
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
             </div>

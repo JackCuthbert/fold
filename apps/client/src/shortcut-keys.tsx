@@ -1,8 +1,5 @@
-import {
-  MdOutlineKeyboardCommandKey,
-  MdOutlineKeyboardControlKey,
-} from 'react-icons/md'
-import { isApplePlatform, shortcutLetter, type Shortcut } from './shortcuts'
+import { MdOutlineKeyboardControlKey } from 'react-icons/md'
+import { shortcutLetter, type Shortcut } from './shortcuts'
 import { cx } from './styles/cx'
 import styles from './shortcut-keys.module.css'
 
@@ -42,11 +39,7 @@ export function ShortcutKeys(props: {
     <span className={cx(styles['keys'], props.onFilled && styles['onFilled'])}>
       {props.shortcut.primary && (
         <kbd className={styles['cap']}>
-          {isApplePlatform() ? (
-            <MdOutlineKeyboardCommandKey aria-hidden="true" size={glyph} />
-          ) : (
-            <MdOutlineKeyboardControlKey aria-hidden="true" size={glyph} />
-          )}
+          <MdOutlineKeyboardControlKey aria-hidden="true" size={glyph} />
         </kbd>
       )}
       {props.shortcut.shift && (
