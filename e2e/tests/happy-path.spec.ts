@@ -219,3 +219,30 @@ test('reordering a list survives a reload', async ({ page }) => {
     expect(await pairOrder()).toEqual([second, first])
   }).toPass()
 })
+
+// docs/specs/ui.md — overlays: the footer's second "Close" became Reset,
+// since the header's ✕ already closes the panel. Reverting had no control
+// at all before — it meant closing and reopening.
+test('Reset discards an edit and restores the stored values', async ({
+  page,
+}) => {
+  await login(page)
+  await createList(page, uniqueName('revert-check'))
+  await addTodo(page, 'Original summary')
+  await waitForSync(page)
+
+  await page.getByText('Original summary').click()
+  const summary = page.getByRole('textbox', { name: 'Summary' })
+  const reset = page.getByRole('button', { name: 'Reset', exact: true })
+  // Nothing to undo yet, so it is disabled — the same rule Save follows.
+  await expect(reset).toBeDisabled()
+
+  await summary.fill('Edited but not saved')
+  await expect(page.getByText('Unsaved changes')).toBeVisible()
+  await expect(reset).toBeEnabled()
+
+  await reset.click()
+  await expect(summary).toHaveValue('Original summary')
+  await expect(page.getByText('Unsaved changes')).toBeHidden()
+  await expect(reset).toBeDisabled()
+})

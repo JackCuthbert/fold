@@ -508,6 +508,19 @@ over an undimmed background, so they didn't read as modal.)*
   - **The confirm dialog is the exception — it gets no ✕.** A destructive
     confirm asks a question and offers two explicit answers; a third
     dismissal path in the header would compete with its Cancel.
+  - **One close control per surface.** The todo panel's footer carried a
+    "Close" beside the header's ✕, which was two controls for one action.
+    That button is now **Reset** — discard the edit and restore the stored
+    values — which had no control at all before: undoing an edit meant
+    closing the panel and reopening it. It is disabled when the form is
+    clean, the same rule Save follows. *(changed 2026-08-04.)*
+  - **A surface's status belongs in its header**, not beside its buttons.
+    The todo panel's "Unsaved changes" sat in the actions row, which is the
+    panel's widest and most variable strip: right-aligned there, it drifted
+    into the middle of a wide panel — far from anything it referred to —
+    and wrapped on a narrow one. The header is a fixed row at a fixed
+    height, so the note stays put at every width, and stays visible when a
+    long todo scrolls the actions out of view. *(moved 2026-08-04.)*
   - **A modal does not carry both a ✕ and a footer Close.** Two close
     controls in one modal is one too many. The help modal's footer Close
     was removed when the ✕ arrived — it sat below the scroll viewport, so

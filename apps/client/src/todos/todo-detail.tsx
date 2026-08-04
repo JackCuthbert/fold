@@ -127,6 +127,25 @@ export function TodoDetail(props: {
               },
             }
           : {})}
+        {...(isDirty
+          ? {
+              // Save is disabled until something changes, which leaves the
+              // panel looking inert while you are in fact mid-edit. This
+              // says why the button is live — and, more usefully, warns
+              // that closing now would lose the change. `role="status"` so
+              // it is announced rather than only seen.
+              //
+              // In the header rather than the actions row: that row is the
+              // panel's widest, most variable strip, so a right-aligned
+              // note drifted into the middle of a wide panel — far from
+              // anything it referred to — and wrapped on a narrow one. The
+              // header is a fixed row at a fixed height, and stays visible
+              // when a long todo scrolls the actions out of view, which is
+              // where the warning matters most.
+              // *(moved 2026-08-04: was beside the buttons.)*
+              status: <span role="status">Unsaved changes</span>,
+            }
+          : {})}
       >
         Edit todo
       </ModalHeader>
@@ -332,24 +351,20 @@ export function TodoDetail(props: {
           <button type="submit" className={styles['save']} disabled={!isDirty}>
             Save
           </button>
+          {/* Reset, not a second Close: the header's ✕ is the close
+              control (docs/specs/ui.md — overlays: one close control per
+              surface), so a footer Close only duplicated it. Reverting an
+              edit had no control at all — it meant closing the panel and
+              reopening it. Disabled when there is nothing to undo, the
+              same rule Save follows. *(changed 2026-08-04.)* */}
           <button
             type="button"
-            className={styles['close']}
-            onClick={props.onClose}
+            className={styles['reset']}
+            onClick={props.form.revert}
+            disabled={!isDirty}
           >
-            Close
+            Reset
           </button>
-          {/* Save is disabled until something changes, which leaves the
-              panel looking inert while you are in fact mid-edit. This says
-              why the button is live — and, more usefully, warns that
-              closing now would lose the change. `role="status"` so it is
-              announced rather than only seen. Sits between the buttons and
-              Delete, in space the row already had. *(added 2026-08-03.)* */}
-          {isDirty && (
-            <span className={styles['dirty']} role="status">
-              Unsaved changes
-            </span>
-          )}
           <button
             type="button"
             className={styles['delete']}

@@ -275,9 +275,10 @@
   gap: var(--space-3);
   margin-top: var(--space-2);
   padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
-  /* The row can hold four items once "Unsaved changes" appears; on a narrow
-     sheet that is more than fits, so it wraps rather than squeezing the
-     buttons below their hit area. */
+  /* Three buttons now that "Unsaved changes" has moved to the header
+     (modal-header.module.css — `.status`). Still wraps rather than
+     squeezing them below their hit area on the narrowest sheets.
+     *(updated 2026-08-04.)* */
   flex-wrap: wrap;
   row-gap: var(--space-2);
 }
@@ -290,13 +291,6 @@
    Delete, which is space the row already had — so nothing shifts when this
    appears and disappears, and Delete's own `margin-left: auto` still pins
    it to the trailing edge. *(added 2026-08-03.)* */
-.dirty {
-  margin-left: auto;
-  font-size: var(--text-sm);
-  color: var(--muted);
-  white-space: nowrap;
-}
-
 /* docs/specs/todos.md — metadata: facts *about* the todo rather than fields
    on it, so it reads as a footnote below the actions — muted, small, and
    separated by a hairline. It sits inside `.form`, which already owns the
@@ -356,8 +350,15 @@
   composes: action primary from '../styles/button.module.css';
 }
 
-.close {
-  composes: action default from '../styles/button.module.css';
+/* Reverts the edit rather than closing the panel — the header's ✕ owns
+   closing (docs/specs/ui.md — overlays).
+
+   Ghost rather than the footer Close's neutral chrome: Reset is only
+   meaningful while an edit is in progress, so it should recede beside Save
+   rather than claim equal weight at all times.
+   *(renamed and restyled 2026-08-04.)* */
+.reset {
+  composes: action ghost from '../styles/button.module.css';
 }
 
 .delete {
