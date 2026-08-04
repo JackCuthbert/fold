@@ -763,6 +763,48 @@ Paper-white background, near-black ink, one accent colour. Light/dark via
 `prefers-color-scheme`. Generous whitespace; restrained chrome — the todos
 are the interface.
 
+## Keyboard shortcuts
+
+*(added 2026-08-04, issue #5.)*
+
+| Chord | Does |
+|---|---|
+| `Cmd/Ctrl+N` | New todo |
+| `Cmd/Ctrl+Shift+N` | New list |
+| `Cmd/Ctrl+/` | Open this list (the help modal) |
+
+- **One app-level listener owns the whole map** (`use-shortcuts.ts`), not
+  handlers scattered across components. The map is a single thing the user
+  learns and the help modal documents, so it is a single thing in the code:
+  otherwise no one place answers "what does `Cmd+N` do here", and two
+  components can silently claim the same chord. The matching rules are pure
+  functions in `shortcuts.ts`, tested without a DOM.
+- **Cmd on Apple platforms, Ctrl elsewhere — never either.** Accepting both
+  would take over `Ctrl+N` on macOS, where it means "new window" everywhere
+  else in the OS. One `isApplePlatform()` backs both the binding and the
+  label the help modal prints, so the documented chord is always the bound
+  one.
+- **A shortcut stands down while any dialog is open**, rather than stacking a
+  second surface on what you are already doing. That includes the detail
+  panel, which holds an edit in progress. The nav drawer is deliberately
+  *not* in that set: a closed or collapsed sidebar is exactly when reaching
+  for the keyboard beats hunting for the button.
+- **New todo needs a list.** Today and Summary are derived views with no
+  collection behind them, so it does nothing there — the same reason their
+  "Add a todo" row isn't rendered.
+- **A bound chord is always consumed**, even when the action is
+  unavailable. Letting `Cmd+N` fall through to the browser only when a modal
+  happens to be open would be worse than either consistent behaviour.
+- **Never steal a keystroke from a field.** Anything typed into an input,
+  textarea, select or `contenteditable` belongs to that field.
+- **The map is listed in the help modal**, rendered *from* the same constant
+  that binds it — a shortcut nobody knows about may as well not exist, and
+  documentation maintained by hand drifts silently.
+- **`Cmd/Ctrl+F` is deliberately unbound.** It was in the original issue,
+  but it depends on the search view (issue #6) and overriding the browser's
+  own find is a real cost: taking it away before there is something better
+  to put in its place is a straight loss.
+
 ## Accessibility
 
 - **Keyboard-first.** Logical tab order, visible focus rings, no keyboard

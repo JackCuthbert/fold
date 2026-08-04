@@ -290,3 +290,71 @@ test('a completed todo locks, unlocks deliberately, and duplicates active', asyn
     page.getByRole('checkbox', { name: 'Mark "Finished work" active' }),
   ).toBeVisible()
 })
+
+// docs/specs/ui.md — keyboard shortcuts (issue #5). The unit tests cover
+// the matching rules; this covers the wiring those rules can't see — that
+// the chord reaches a real listener and opens the real modal, and that the
+// "don't stack a second dialog" rule holds against actual Base UI dialogs
+// rather than a boolean.
+test('keyboard shortcuts open the modals, and stand down when one is open', async ({
+  page,
+}) => {
+  await login(page)
+  const listName = uniqueName('shortcuts')
+  await createList(page, listName)
+  await expect(page.getByRole('heading', { name: listName })).toBeVisible()
+
+  // Chromium on Linux/CI reports a non-Apple platform, so Control is the
+  // primary modifier there. Deliberately asserted against the same
+  // `navigator.platform` test the app uses, rather than hardcoded: a
+  // mismatch here would mean the app binds a chord this never presses.
+  const isApple = await page.evaluate(() =>
+    /mac|iphone|ipad|ipod/i.test(navigator.platform),
+  )
+  const mod = isApple ? 'Meta' : 'Control'
+
+  // Focus must not be in a text field, or the shortcut correctly declines
+  // to steal the keystroke.
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+n`)
+  const addDialog = page.getByRole('dialog', { name: 'Add a todo' })
+  await expect(addDialog).toBeVisible()
+
+  // Pressing it again must not stack a second dialog on the first.
+  await page.keyboard.press(`${mod}+n`)
+  await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(1)
+
+  await page.keyboard.press('Escape')
+  await expect(addDialog).toBeHidden()
+
+  // Shift routes to the other binding rather than firing both.
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+Shift+n`)
+  await expect(page.getByRole('dialog', { name: 'New list' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // The map documents itself: the help modal lists what is bound, rendered
+  // from the same constant that binds it.
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+/`)
+  const help = page.getByRole('dialog', { name: 'About Fold' })
+  await expect(help).toBeVisible()
+  await expect(
+    help.getByRole('heading', { name: 'Keyboard shortcuts' }),
+  ).toBeVisible()
+  await expect(help.locator('kbd')).toHaveCount(3)
+  await page.keyboard.press('Escape')
+  await expect(help).toBeHidden()
+
+  // Today is a derived view with no collection behind it, so New todo has
+  // nowhere to put anything and must do nothing — the same reason its
+  // "Add a todo" row isn't rendered there (docs/specs/today-view.md).
+  await page.getByRole('button', { name: 'Today', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
+  await page.locator('body').click()
+  await page.keyboard.press(`${mod}+n`)
+  await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(0)
+  // New list still works there — it doesn't need a selected list.
+  await page.keyboard.press(`${mod}+Shift+n`)
+  await expect(page.getByRole('dialog', { name: 'New list' })).toBeVisible()
+})

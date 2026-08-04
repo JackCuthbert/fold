@@ -2,8 +2,14 @@ import { Dialog } from '@base-ui/react/dialog'
 import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { ModalHeader } from './modal-header'
+import { isApplePlatform, modifierLabel, SHORTCUTS } from './shortcuts'
 import { cx } from './styles/cx'
 import styles from './help-modal.module.css'
+
+// Read once at module scope — a machine does not change platform
+// mid-session, and this shares its definition with the actual binding
+// (shortcuts.ts) so the two cannot disagree.
+const MODIFIER = modifierLabel(isApplePlatform())
 
 /**
  * Names a control the reader can actually go and click — a button, a menu
@@ -148,6 +154,38 @@ export function HelpModal(props: {
                 Your chosen order is stored on the server, so it follows you to
                 your other devices. On a server without support, lists fall back
                 to alphabetical.
+              </p>
+            </section>
+
+            {/* docs/specs/ui.md — keyboard shortcuts (issue #5). A shortcut
+                nobody knows about may as well not exist, so the map is
+                listed here rather than left to be discovered.
+
+                Rendered *from* SHORTCUTS rather than written out, so a
+                binding cannot be added without appearing here — the failure
+                mode for this kind of documentation is silent drift. */}
+            <section className={styles['section']}>
+              <h3 className={styles['heading']}>Keyboard shortcuts</h3>
+              <dl className={styles['shortcuts']}>
+                {SHORTCUTS.map((shortcut) => (
+                  <div key={shortcut.action} className={styles['shortcutRow']}>
+                    <dt className={styles['shortcutKeys']}>
+                      <kbd>
+                        {MODIFIER}
+                        {shortcut.label.replace('Shift ', '⇧')}
+                      </kbd>
+                    </dt>
+                    <dd className={styles['shortcutName']}>
+                      {shortcut.description}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p>
+                Shortcuts stand down while a dialog is open, so they never stack
+                a second one on top of what you&rsquo;re doing. A closed sidebar
+                is no obstacle though — that&rsquo;s exactly when they&rsquo;re
+                most useful.
               </p>
             </section>
             {/* No footer Close. The header's ✕ is the close control — this

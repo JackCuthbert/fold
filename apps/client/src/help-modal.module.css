@@ -147,3 +147,49 @@
 /* No `.close` here. This modal's close control is the header's ✕ — the
    footer button it replaced sat below the scroll viewport, so it could only
    be found by scrolling the whole modal. *(removed 2026-08-03.)* */
+
+/* The keyboard shortcut list (docs/specs/ui.md — keyboard shortcuts,
+   issue #5). A <dl>, because that is what this is: each chord is the term
+   and what it does is the definition.
+
+   Two columns rather than "⌘N — New todo" in prose: the keys are what the
+   eye scans for, so they get their own aligned column and a fixed width
+   wide enough for the longest chord. *(added 2026-08-04.)* */
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.shortcutKeys {
+  flex: none;
+  /* Enough for "⌘⇧N", the widest binding. A fixed column keeps the
+     descriptions aligned, which is the point of the two-column form. */
+  min-width: 4.5rem;
+}
+
+/* The same restrained treatment as `code` above — a tint and a mono face,
+   no heavy 3D key cap, which would be louder than anything else on this
+   page (docs/specs/ui.md). */
+.shortcutKeys kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--text-xs);
+  color: var(--ink);
+  background: var(--line);
+  border-radius: var(--radius-xs);
+  padding: 2px var(--space-1);
+  white-space: nowrap;
+}
+
+.shortcutName {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}

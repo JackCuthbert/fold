@@ -22,6 +22,7 @@ import {
 import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
 import { useAddTodo } from './todos/use-add-todo'
+import { useShortcuts } from './use-shortcuts'
 import { useTodoActions } from './todos/use-todo-actions'
 import { useTodoDetailForm } from './todos/use-todo-detail-form'
 import { useViewCount } from './todos/use-view-count'
@@ -188,6 +189,37 @@ export function MainScreen() {
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
   // docs/specs/summary-view.md).
   const add = useAddTodo(showingDerived ? '' : (active ?? ''))
+
+  // docs/specs/ui.md — keyboard shortcuts (issue #5). One listener owning
+  // the whole map; the rules are pure functions in shortcuts.ts.
+  //
+  // "Obscured" is every dialog *and* the open detail panel, which is a
+  // modal sheet on mobile and holds an editable form on desktop — either
+  // way, opening a second surface over an edit in progress is not what
+  // Cmd+N should do. The drawer is deliberately *not* in this list: a
+  // collapsed or closed nav is exactly when reaching for the keyboard
+  // beats hunting for the button.
+  useShortcuts(
+    {
+      dialogOpen:
+        add.addOpen ||
+        settingsOpen ||
+        helpOpen ||
+        openTodo !== null ||
+        listForm.creating ||
+        listForm.editing !== null ||
+        listForm.deleting !== null,
+      // Today and Summary have no collection behind them. `active` falls
+      // back to TODAY_VIEW rather than null, so this one test covers both
+      // "a derived view is showing" and "no list is selected".
+      canAddTodo: !showingDerived,
+    },
+    (action) => {
+      if (action === 'new-todo') add.setAddOpen(true)
+      else if (action === 'new-list') listForm.openCreate()
+      else setHelpOpen(true)
+    },
+  )
 
   // Drop a persisted id the server no longer knows about, so it can't come
   // back on the next load.
