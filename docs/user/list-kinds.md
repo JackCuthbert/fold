@@ -18,9 +18,7 @@ Fold matches the **whole name**, ignoring capitals. "Groceries" and
 | Groceries, Grocery, Shopping | Grouping in Today and Summary, plus **Complete all** |
 | Chores, Chore | **Complete all** and **Schedule all** |
 | Reading, To-Read, Watching, To-Watch, Listening, To-Listen | No due dates — priority instead |
-| Health, Wellbeing | The sparkle, for now |
-
-Health lists are recognised but don't do anything yet.
+| Health, Wellbeing | Always first in Today and Summary |
 
 ## Grouping
 
@@ -42,6 +40,18 @@ in the add form or when you open a todo. Use **priority** to say what's
 next.
 
 Move a todo out of that list and the due date fields come back.
+
+## Health comes first
+
+Anything on a health list leads **Today**, in a bordered block above
+everything else, each row marked with a heart ♥. Not sorted higher — in a
+section of its own, so a high-priority chore can't push it down.
+
+**Summary** does the same within each day, without the box: those are
+already done, so they just lead their day and keep the heart.
+
+Health todos are otherwise completely ordinary — no bulk buttons, due dates
+work as normal. The only thing that changes is where they show up.
 
 ## Complete all
 

@@ -59,4 +59,16 @@ describe('countableRows', () => {
     expect(countableRows(todos, LISTS)).toHaveLength(2)
     expect(countSummary(countableRows(todos, LISTS))).toBe('1 todo · 1 done')
   })
+
+  // Health todos are lifted into their own block in Today
+  // (docs/specs/list-kinds.md), which puts them outside the grouped list
+  // the rest of the view renders — but they are still rows on the screen,
+  // so the header has to keep counting them.
+  it('counts health rows, which render outside the main list', () => {
+    const lists = [...LISTS, list('h', 'Health')]
+    const todos = [todo('tablets', 'h'), todo('eggs', 'g'), todo('bread', 'g')]
+    // Two rows: the health todo, and the Groceries group.
+    expect(countableRows(todos, lists)).toHaveLength(2)
+    expect(countSummary(countableRows(todos, lists))).toBe('2 todos')
+  })
 })

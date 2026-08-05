@@ -233,6 +233,73 @@ test('the global add picker defaults to the list on screen', async ({
   ).not.toHaveText(first)
 })
 
+// docs/specs/list-kinds.md — health first.
+test('health todos lead Today in a block of their own', async ({ page }) => {
+  await login(page)
+  await createList(page, 'Health')
+  const other = uniqueName('work')
+  await createList(page, other)
+
+  // Health gets no bulk actions — it is ordinary todos in a list that
+  // only behaves differently in the derived views.
+  await navRow(page, 'Health').click()
+  await expect(page.getByRole('button', { name: 'Complete all' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Schedule all' })).toBeHidden()
+
+  const now = new Date()
+  const today = [
+    String(now.getFullYear()),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+
+  await addTodo(page, 'Take the tablets')
+  await page.getByText('Take the tablets', { exact: true }).click()
+  await page.getByLabel('Due', { exact: true }).fill(today)
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+  // A *high priority* todo elsewhere, due the same day. The health todo
+  // still leads: this is a separate block, not a priority weighting.
+  await navRow(page, other).click()
+  await addTodo(page, 'Urgent work thing')
+  await page.getByText('Urgent work thing', { exact: true }).click()
+  await page.getByLabel('Due', { exact: true }).fill(today)
+  await page.getByLabel('Priority').click()
+  await page.getByRole('option', { name: 'High' }).click()
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await waitForSync(page)
+
+  await page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('button', { name: 'Today', exact: true })
+    .first()
+    .click()
+
+  // The block exists, is named, and holds the health todo.
+  const block = page.getByRole('region', { name: 'Health' })
+  await expect(block).toBeVisible()
+  await expect(block.getByText('Take the tablets')).toBeVisible()
+  // The high-priority work todo is outside it, however urgent.
+  await expect(block.getByText('Urgent work thing')).toBeHidden()
+
+  // And the block is genuinely above — measured, since "leads the view" is
+  // the whole feature and DOM order alone would not prove it renders first.
+  const blockBox = await block.boundingBox()
+  const otherRow = await page
+    .getByText('Urgent work thing', { exact: true })
+    .boundingBox()
+  expect(blockBox).not.toBeNull()
+  expect(otherRow).not.toBeNull()
+  expect(blockBox!.y).toBeLessThan(otherRow!.y)
+
+  // Completing it drops it out of the block — a finished health todo needs
+  // no chasing, so it joins the ordinary Completed section.
+  await block
+    .getByRole('checkbox', { name: 'Mark "Take the tablets" done' })
+    .click()
+  await expect(block).toBeHidden()
+})
+
 test('renaming a list gives it a kind, and takes it away again', async ({
   page,
 }) => {

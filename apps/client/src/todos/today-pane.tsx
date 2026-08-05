@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { duplicateTodo } from './duplicate-todo'
-import { groupTodos } from './group-by-list'
+import { groupTodos, leadsDerivedViews, partitionFirst } from './group-by-list'
 import { GroupRow } from './group-row'
+import { HealthBlock } from './health-block'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { sortActiveTodos } from './sort'
@@ -57,15 +58,48 @@ export function TodayPane(props: {
   const listName = (listId: string): string =>
     props.lists.find((list) => list.id === listId)?.displayName ?? ''
 
+  // docs/specs/list-kinds.md — health leads, in its own block. Split
+  // before grouping: the two rules do not interact (no kind both leads and
+  // groups), but partitioning first keeps each half's grouping independent.
+  // *(added 2026-08-05, issue #27.)*
+  const { first: healthActive, rest: restActive } = partitionFirst(
+    active,
+    props.lists,
+  )
+
   // docs/specs/list-kinds.md — grouping, applied after sorting so a group
   // takes the position of its earliest todo rather than being appended.
   // Both halves are grouped: eight things still to buy is one errand, not
   // eight tasks. *(added 2026-08-05, issue #27.)*
-  const activeRows = groupTodos(active, props.lists)
+  const activeRows = groupTodos(restActive, props.lists)
   const completedRows = groupTodos(completed, props.lists)
 
   return (
     <div className={paneStyles['pane']}>
+      {/* Above the main list, and outside it: this is its own section, not
+          a run of specially-styled rows within one list
+          (docs/specs/list-kinds.md). Completed health todos are *not*
+          lifted — a finished one needs no chasing, so it joins the
+          ordinary Completed accordion below. */}
+      <HealthBlock count={healthActive.length}>
+        {healthActive.map((todo) => (
+          // No `health` heart on these rows: the block they sit in is
+          // already titled "Health", and every row also names its list in
+          // the meta cluster — a heart there made three statements of the
+          // same fact. The heart earns its place where there is no block
+          // (Summary, and Today's Completed section).
+          // *(changed 2026-08-05.)*
+          <TodayRow
+            key={todo.uid}
+            todo={todo}
+            now={now}
+            listName={listName(todo.listId)}
+            onOpen={(trigger) => props.onOpen(todo, trigger)}
+            onToggled={playPop}
+          />
+        ))}
+      </HealthBlock>
+
       <ul className={paneStyles['list']}>
         {activeRows.map((row) =>
           row.kind === 'group' ? (
@@ -120,6 +154,9 @@ export function TodayPane(props: {
                     todo={row.todo}
                     now={now}
                     listName={listName(row.todo.listId)}
+                    {...(leadsDerivedViews(row.todo, props.lists)
+                      ? { health: true }
+                      : {})}
                     onOpen={(trigger) => props.onOpen(row.todo, trigger)}
                   />
                 ),
@@ -150,6 +187,8 @@ export function TodayRow(props: {
   todo: Todo
   now: Date
   listName: string
+  /** Marks the row as health — docs/specs/list-kinds.md. */
+  health?: boolean
   onOpen: (trigger: HTMLElement) => void
   onToggled?: () => void
 }) {
@@ -160,6 +199,7 @@ export function TodayRow(props: {
     <TodoItem
       todo={todo}
       now={props.now}
+      {...(props.health ? { health: true } : {})}
       badge={
         props.listName ? (
           <span className={styles['listBadge']}>{props.listName}</span>

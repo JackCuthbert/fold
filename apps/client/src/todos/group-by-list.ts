@@ -1,6 +1,44 @@
 import type { Todo, TodoList } from '@fold/schemas'
 import { featuresOf } from '../lists/list-kind'
 
+/**
+ * Split todos into the ones that lead a derived view and the rest
+ * (docs/specs/list-kinds.md — health first).
+ *
+ * Order *within* each half is preserved, so whatever the caller sorted by
+ * still holds — this only decides which block a todo lands in.
+ *
+ * A partition rather than a comparator in `sortByDueInstant`: the rule is
+ * not "health sorts earlier", it is "health is a separate block". Folding
+ * it into the sort would make a health todo due next month appear to be
+ * overdue, since position in that list means time.
+ */
+export function partitionFirst(
+  todos: readonly Todo[],
+  lists: readonly TodoList[],
+): { first: Todo[]; rest: Todo[] } {
+  const byId = new Map(lists.map((list) => [list.id, list]))
+  const first: Todo[] = []
+  const rest: Todo[] = []
+  for (const todo of todos) {
+    const list = byId.get(todo.listId)
+    // An unknown list cannot be looked up, so it stays in the main block —
+    // the safe default, same as grouping.
+    if (list && featuresOf(list.displayName).first) first.push(todo)
+    else rest.push(todo)
+  }
+  return { first, rest }
+}
+
+/** True when this todo's list leads derived views. */
+export function leadsDerivedViews(
+  todo: Todo,
+  lists: readonly TodoList[],
+): boolean {
+  const list = lists.find((entry) => entry.id === todo.listId)
+  return list ? featuresOf(list.displayName).first : false
+}
+
 // docs/specs/list-kinds.md — grouping in derived views.
 //
 // Deliberately *not* part of `selectToday` or `summariseCompleted`. Those

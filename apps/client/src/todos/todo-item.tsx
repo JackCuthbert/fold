@@ -1,5 +1,6 @@
 import type { Todo, TodoPriority } from '@fold/schemas'
 import type { ReactNode } from 'react'
+import { LuHeart } from 'react-icons/lu'
 import { cx } from '../styles/cx'
 import { Checkbox } from './checkbox'
 import { dueInstant, isOverdue } from './sort'
@@ -56,6 +57,15 @@ export function TodoItem(props: {
    * come from several (docs/specs/today-view.md). Lists pass nothing.
    */
   badge?: ReactNode
+  /**
+   * Marks this row as health (docs/specs/list-kinds.md — health first).
+   *
+   * A heart in the meta cluster rather than another word: the row already
+   * names its list there, and "Health ♥" would say the same thing twice.
+   * Colour is not the only signal — the glyph has an accessible label, and
+   * the block's own heading names it.
+   */
+  health?: boolean
 }) {
   const { todo } = props
   const overdue = !todo.completed && isOverdue(todo, props.now)
@@ -81,6 +91,16 @@ export function TodoItem(props: {
         <span className={styles['titleRow']}>
           <span className={styles['summary']}>{todo.summary}</span>
           <span className={styles['meta']}>
+            {/* First in the cluster, before the list name it qualifies —
+                docs/specs/list-kinds.md. Filled, not outlined: an outline
+                heart reads as "favourite this", which is a control. */}
+            {props.health && (
+              <LuHeart
+                className={styles['health']}
+                size={12}
+                aria-label="Health"
+              />
+            )}
             {props.badge}
             {todo.priority && (
               <span className={cx(styles['prio'], PRIO_CLASS[todo.priority])}>

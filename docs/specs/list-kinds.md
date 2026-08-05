@@ -146,6 +146,67 @@ priority is how you say what is next.
 
 *(added 2026-08-05.)*
 
+### Health first — `HEALTH_LIST`
+
+Health todos **lead every derived view**, and in Today they sit in a
+bordered block of their own above everything else.
+
+**Unconditional, not a weighting.** A high-priority chore does not outrank
+a health todo. An earlier design had health win only at equal priority
+(Health/Medium beating Chores/Medium), which is subtler and arguably more
+correct — but the resulting order is impossible to predict by looking at
+it, and this view's whole job is to be scannable. Health is the one
+category where "I'll get to it" is the wrong outcome, so it is not
+competing on the same scale as everything else.
+*(decided 2026-08-05: the issue comment proposed priority weighting.)*
+
+**A border around the block, not around each row.** One bordered row would
+be the loudest thing in a pane built on restraint ([ui](./ui.md)); a single
+outline around several reads as a section — effectively its own small list
+pinned above the rest, which is what it is. The tint inside is barely
+there, and exists only so the block still groups where the border is
+ambiguous against the row hairlines inside it.
+
+- **Not collapsible.** The Completed accordion below folds away because it
+  is a record of work already done. This is work still to do, and the point
+  of lifting it is that it cannot be left unseen.
+- **Ordered normally within the block** — by due instant, like any other
+  Today row. Leading the view is about which block a todo is in, not about
+  its time.
+- **Completed health todos are not lifted.** A finished one needs no
+  chasing, so it joins the ordinary Completed section.
+- **Summary leads within each day, without the block.** That view is a
+  record read by date, so lifting a health todo up the page would file it
+  under the wrong heading; and the rows there are already done, so the
+  block's "don't miss this" argument does not apply. The heart alone
+  carries the category.
+
+**A heart, but only where there is no block.** In Today's health block the
+heading already says "Health" and each row names its list in the meta
+cluster, so a heart there was the same fact stated three times. It appears
+on the rows that sit *outside* a block — Summary, and Today's Completed
+section — where nothing else marks them.
+*(changed 2026-08-05: was on every health row, including inside the
+block. Only visible once rendered.)*
+
+Drawn in the muted `--list-red`, not a priority red: this is a category,
+not an alarm. Where the block exists its heading names it in words, so
+neither colour nor iconography is ever the only signal
+([ui](./ui.md) — accessibility).
+
+**The block must not move the rows it contains.** Its border is pulled
+outward into the pane's padding rather than insetting its contents, so a
+row inside sits on the same checkbox column as the rows below
+([ui](./ui.md) — one left edge). The first implementation used
+`padding-inline`, which indented every row in the block by 12px — invisible
+in isolation, obvious against the ungrouped rows beneath.
+*(fixed 2026-08-05.)*
+
+**No bulk actions.** Health todos are ordinary todos in their own list;
+everything about this kind is where they appear.
+
+*(added 2026-08-05.)*
+
 ### Bulk schedule — `CHORES_LIST`
 
 One button in the list header: **set every active todo in this list to

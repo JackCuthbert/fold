@@ -121,6 +121,19 @@ const LISTS = [
     ],
   },
   {
+    // Also a recognised kind, and the one whose behaviour is least
+    // guessable from the nav alone — its todos lead the derived views
+    // (docs/specs/list-kinds.md). Present so the screenshot's nav shows
+    // more than one sparkled list, which is what makes the mark read as a
+    // category rather than a one-off. *(added 2026-08-05.)*
+    name: 'Health',
+    colour: 'Rose',
+    todos: [
+      { summary: 'Book the dentist', priority: 'Medium' },
+      { summary: 'Refill the prescription', due: 2 },
+    ],
+  },
+  {
     // A recognised list kind (docs/specs/list-kinds.md), so it carries the
     // sparkle in the nav — which is worth having in the screenshot.
     //

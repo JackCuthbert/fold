@@ -1,6 +1,10 @@
 import type { Todo, TodoList } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
-import { groupTodos } from '../src/todos/group-by-list'
+import {
+  groupTodos,
+  leadsDerivedViews,
+  partitionFirst,
+} from '../src/todos/group-by-list'
 
 const list = (id: string, displayName: string): TodoList => ({
   id,
@@ -70,5 +74,68 @@ describe('groupTodos', () => {
     const rows = groupTodos([todo('eggs', 'g'), todo('socks', 's')], lists)
     expect(rows).toHaveLength(2)
     expect(rows.every((r) => r.kind === 'group')).toBe(true)
+  })
+})
+
+// docs/specs/list-kinds.md — health first.
+describe('partitionFirst', () => {
+  const lists = [list('h', 'Health'), list('w', 'Work'), list('g', 'Groceries')]
+
+  it('lifts a health list out, leaving everything else behind', () => {
+    const todos = [
+      todo('report', 'w'),
+      todo('tablets', 'h'),
+      todo('eggs', 'g'),
+      todo('physio', 'h'),
+    ]
+    const { first, rest } = partitionFirst(todos, lists)
+    expect(first.map((t) => t.uid)).toEqual(['tablets', 'physio'])
+    expect(rest.map((t) => t.uid)).toEqual(['report', 'eggs'])
+  })
+
+  // The caller has already sorted; a partition must not reorder within
+  // either half or it would undo that.
+  it('keeps each half in the order it was given', () => {
+    const todos = [todo('c', 'h'), todo('a', 'h'), todo('b', 'h')]
+    expect(partitionFirst(todos, lists).first.map((t) => t.uid)).toEqual([
+      'c',
+      'a',
+      'b',
+    ])
+  })
+
+  it('lifts nothing when no list is a health list', () => {
+    const todos = [todo('report', 'w'), todo('eggs', 'g')]
+    const { first, rest } = partitionFirst(todos, lists)
+    expect(first).toEqual([])
+    expect(rest).toHaveLength(2)
+  })
+
+  it('leaves a todo whose list is unknown in the main block', () => {
+    const { first, rest } = partitionFirst([todo('orphan', 'gone')], lists)
+    expect(first).toEqual([])
+    expect(rest).toHaveLength(1)
+  })
+
+  it('is unaffected by a high priority elsewhere', () => {
+    // Unconditional, not a weighting: a high-priority chore does not
+    // outrank a health todo (docs/specs/list-kinds.md).
+    const todos = [
+      { ...todo('urgent', 'w'), priority: 'high' as const },
+      todo('tablets', 'h'),
+    ]
+    expect(partitionFirst(todos, lists).first.map((t) => t.uid)).toEqual([
+      'tablets',
+    ])
+  })
+})
+
+describe('leadsDerivedViews', () => {
+  const lists = [list('h', 'Health'), list('w', 'Work')]
+
+  it('is true only for a todo in a leading list', () => {
+    expect(leadsDerivedViews(todo('a', 'h'), lists)).toBe(true)
+    expect(leadsDerivedViews(todo('b', 'w'), lists)).toBe(false)
+    expect(leadsDerivedViews(todo('c', 'gone'), lists)).toBe(false)
   })
 })

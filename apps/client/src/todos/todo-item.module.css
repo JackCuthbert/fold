@@ -142,6 +142,23 @@
    so the option that sets a priority matches the row that displays it.
    *(changed 2026-08-03: these three rules were declared here and needed by
    two more modules.)* */
+/* docs/specs/list-kinds.md — the heart marking a health row.
+   *(added 2026-08-05, issue #27.)*
+
+   `--list-red` rather than `--danger`: the priority scale already owns
+   the alarm reds (see priority.module.css), and a health todo is not an
+   error or an overdue warning. The muted list red reads as a category.
+
+   `flex: none` and a nudge down: it sits in the meta cluster beside text
+   at --text-sm, and a glyph's optical centre is slightly above a
+   lowercase line's. */
+.health {
+  flex: none;
+  color: var(--list-red);
+  fill: currentColor;
+  transform: translateY(0.5px);
+}
+
 .prioHigh {
   composes: high from '../styles/priority.module.css';
 }

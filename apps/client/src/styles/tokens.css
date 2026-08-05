@@ -97,6 +97,20 @@
   --list-violet: #7a5f8f;
   --list-rose: #9c5c72;
 
+  /* docs/specs/list-kinds.md — the health block's outline and fill.
+     Derived from --list-red so the block, its heading and the row hearts
+     are visibly one idea, but mixed *towards the paper* rather than being
+     literal values: unlike a list colour, this is chrome, and chrome has
+     to sit down against whichever paper it is on. Restated for dark mode
+     below, where the same mix against a near-black page comes out muddy.
+     *(added 2026-08-05, issue #27.)* */
+  --health-edge: color-mix(in srgb, var(--list-red) 28%, var(--surface));
+  /* Barely there — 4% still read as a tinted panel rather than as paper
+     with an outline on it. The border does the grouping; this only stops
+     the block dissolving into the row hairlines inside it.
+     *(softened 2026-08-05: was 4%.)* */
+  --health-wash: color-mix(in srgb, var(--list-red) 2%, var(--surface));
+
   /* Buttons carry a very slight shadow — paper on paper, not a drop
      shadow that lifts them off the page (docs/specs/ui.md — controls). */
   --shadow-button: 0 1px 1px rgb(0 0 0 / 0.04);
@@ -145,6 +159,12 @@
     --status-synced: #7fa87f;
     --status-syncing: #d9a441;
     --status-offline: #e0705f;
+    /* The light-mode mix towards a near-black surface comes out muddy
+       brown rather than a red-tinted edge, so both are lifted here — a
+       stronger share of a lighter red. Same intent, legible on this
+       paper (docs/specs/list-kinds.md). */
+    --health-edge: color-mix(in srgb, #e0705f 34%, var(--surface));
+    --health-wash: color-mix(in srgb, #e0705f 4%, var(--surface));
   }
 }
 

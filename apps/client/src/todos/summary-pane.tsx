@@ -1,5 +1,5 @@
 import type { Todo, TodoList } from '@fold/schemas'
-import { groupTodos } from './group-by-list'
+import { groupTodos, leadsDerivedViews, partitionFirst } from './group-by-list'
 import { GroupRow } from './group-row'
 import { dayLabel, summariseCompleted } from './summary'
 import styles from './summary-pane.module.css'
@@ -39,7 +39,17 @@ export function SummaryPane(props: {
       )}
 
       {days.map((group) => {
-        const rows = groupTodos(group.todos, props.lists)
+        // docs/specs/list-kinds.md — health leads, here *within its day*:
+        // this view is a record read by date, so lifting a health todo out
+        // of its day and up the page would put it under the wrong heading.
+        //
+        // No bordered block either, unlike Today. The block exists to make
+        // outstanding health work impossible to leave unseen; these are
+        // already done, so the heart alone carries the category and the day
+        // stays one uninterrupted run of rows.
+        // *(added 2026-08-05, issue #27.)*
+        const { first, rest } = partitionFirst(group.todos, props.lists)
+        const rows = groupTodos([...first, ...rest], props.lists)
         return (
           <section key={group.day} className={styles['day']}>
             {/* A heading per day rather than a divider: this view is read by
@@ -70,6 +80,9 @@ export function SummaryPane(props: {
                     todo={row.todo}
                     now={now}
                     listName={listName(row.todo.listId)}
+                    {...(leadsDerivedViews(row.todo, props.lists)
+                      ? { health: true }
+                      : {})}
                     onOpen={(trigger) => props.onOpen(row.todo, trigger)}
                   />
                 ),

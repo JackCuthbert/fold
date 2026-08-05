@@ -135,7 +135,8 @@ export function HelpModal(props: {
                 and <UI>Summary</UI>, since &ldquo;did the shopping&rdquo; is
                 the useful fact rather than each item. Both it and a chores list
                 can be ticked off all at once. A reading list has no due dates
-                at all — set a priority instead to say what&rsquo;s next.
+                at all — set a priority instead to say what&rsquo;s next. A
+                health list leads <UI>Today</UI>, in a block of its own.
               </p>
               <p>
                 Nothing is stored on your server for this — it is worked out

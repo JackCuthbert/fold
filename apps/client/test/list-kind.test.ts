@@ -60,6 +60,7 @@ describe('featuresOf', () => {
       bulkComplete: true,
       bulkSchedule: false,
       noDueDates: false,
+      first: false,
     })
   })
 
@@ -71,6 +72,7 @@ describe('featuresOf', () => {
       bulkComplete: true,
       bulkSchedule: true,
       noDueDates: false,
+      first: false,
     })
   })
 
@@ -80,6 +82,7 @@ describe('featuresOf', () => {
       bulkComplete: false,
       bulkSchedule: false,
       noDueDates: true,
+      first: false,
     })
   })
 
@@ -89,6 +92,7 @@ describe('featuresOf', () => {
       bulkComplete: false,
       bulkSchedule: false,
       noDueDates: false,
+      first: false,
     })
   })
 
@@ -96,6 +100,25 @@ describe('featuresOf', () => {
   it('leaves due dates alone on every other kind', () => {
     for (const name of ['Groceries', 'Chores', 'Health']) {
       expect(featuresOf(name).noDueDates).toBe(false)
+    }
+  })
+
+  it('lifts a health list to the front, and gives it no bulk actions', () => {
+    // Health todos are ordinary todos in their own list — the behaviour is
+    // entirely about where they appear in the derived views.
+    expect(featuresOf('Health')).toEqual({
+      groups: false,
+      bulkComplete: false,
+      bulkSchedule: false,
+      noDueDates: false,
+      first: true,
+    })
+    expect(featuresOf('Wellbeing').first).toBe(true)
+  })
+
+  it('lifts nothing else to the front', () => {
+    for (const name of ['Groceries', 'Chores', 'Reading', 'Work']) {
+      expect(featuresOf(name).first).toBe(false)
     }
   })
 })

@@ -34,6 +34,16 @@ export interface KindFeatures {
    * does not apply, which is the truth for a reading list.
    */
   noDueDates: boolean
+  /**
+   * Lift this list's todos into their own block at the top of every
+   * derived view (docs/specs/list-kinds.md — health first).
+   *
+   * Unconditional, not a weighting: a high-priority chore does not
+   * outrank a health todo. Health is the one category where "I'll get to
+   * it" is the wrong outcome, so it is not competing on the same scale as
+   * everything else.
+   */
+  first: boolean
 }
 
 interface KindDefinition {
@@ -57,6 +67,7 @@ const NONE: KindFeatures = {
   bulkComplete: false,
   bulkSchedule: false,
   noDueDates: false,
+  first: false,
 }
 
 const DEFINITIONS: Record<ListKind, KindDefinition> = {
@@ -100,8 +111,10 @@ const DEFINITIONS: Record<ListKind, KindDefinition> = {
     names: ['health', 'wellbeing', 'well-being'],
     label: 'Health list',
     description:
-      'Recognised as health-related. No behaviour is attached to it yet.',
-    features: NONE,
+      'Its todos lead every derived view, in a block of their own marked ' +
+      'with a heart — health is the one thing that should not wait behind ' +
+      'a chore. Otherwise they are ordinary todos.',
+    features: { ...NONE, first: true },
   },
 }
 
