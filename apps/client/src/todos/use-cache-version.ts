@@ -25,6 +25,28 @@ let cacheVersion = 0
  *
  * Returns nothing useful — callers read what they need from the cache
  * afterwards. Its only job is to be a value that changed.
+ *
+ * **The notification is deferred to a microtask, never delivered inline.**
+ * Some cache writes happen *during* a render: a pane's `queryFn` stores
+ * the raw server response for its ctag (use-today-todos.ts, todo-pane.tsx)
+ * and `QueryCache.notify` then calls every subscriber synchronously. The
+ * subscribers here live in MainScreen — `useViewCount` and
+ * `useListActiveTodos` — so React saw a parent being updated while a child
+ * was still rendering, and said so on every view switch:
+ *
+ *     Cannot update a component (`MainScreen`) while rendering a
+ *     different component (`TodayPane`).
+ *
+ * Deferring puts the update after the render that provoked it, which is
+ * where it always belonged: nothing here needs to be synchronous, because
+ * the counter is only ever read to *notice a change*, not to supply a
+ * value the render depends on.
+ *
+ * Deliberately not solved by filtering the subscription — see above; and
+ * not by moving the ctag out of the query cache, which is the deeper fix
+ * (the raw entry is bookkeeping that nothing renders) but a change to how
+ * sync stores its state rather than to how the UI observes it.
+ * *(fixed 2026-08-05: the warning fired on every switch between views.)*
  */
 export function useCacheVersion(): void {
   const queryClient = useQueryClient()
@@ -34,7 +56,10 @@ export function useCacheVersion(): void {
     (onChange) =>
       queryClient.getQueryCache().subscribe(() => {
         cacheVersion += 1
-        onChange()
+        // Coalesces naturally: several writes in one tick bump the
+        // counter several times but schedule one notification each, and
+        // React batches the resulting renders.
+        queueMicrotask(onChange)
       }),
     () => cacheVersion,
   )
