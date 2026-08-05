@@ -178,6 +178,26 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   await expect(
     page.getByRole('button', { name: 'Complete all' }),
   ).toBeDisabled()
+
+  // A *list* view never groups, so its accordion counts todos — 3 above is
+  // right. A derived view does, so its accordion must count rows: complete
+  // the one ungrouped todo as well, and Today's Completed section holds
+  // four todos in two rows. It said "(4)" while showing two.
+  // *(added 2026-08-05.)*
+  await navRow(page, other).click()
+  await page
+    .getByRole('checkbox', { name: 'Mark "Write the report" done' })
+    .click()
+  await waitForSync(page)
+
+  await page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('button', { name: 'Today', exact: true })
+    .first()
+    .click()
+  await expect(
+    page.getByRole('button', { name: /^Completed \(2\)$/ }),
+  ).toBeVisible()
 })
 
 // docs/specs/list-kinds.md — no due dates on a media list, and the

@@ -137,7 +137,12 @@ export function TodayPane(props: {
               aria-hidden="true"
               size={14}
             />
-            Completed ({completed.length})
+            {/* docs/specs/list-kinds.md — rows, not todos: four completed
+                groceries are one row behind this trigger, so counting the
+                todos claimed six where five were visible. The condition
+                above can stay on `completed` — "is there anything at all"
+                has the same answer either way. *(fixed 2026-08-05.)* */}
+            Completed ({completedRows.length})
           </Collapsible.Trigger>
           <Collapsible.Panel>
             <ul className={cx(paneStyles['list'], paneStyles['completedList'])}>
