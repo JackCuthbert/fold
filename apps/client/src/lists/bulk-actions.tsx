@@ -39,10 +39,18 @@ export function BulkActions(props: {
   const features = featuresOf(props.listName)
   const count = props.active.length
 
-  // Nothing to act on: an empty list's buttons would be a control that
-  // does nothing, which is worse than one that isn't there.
-  if (count === 0) return null
+  // A list with no kind has no whole-list actions at all, so there is
+  // nothing to render. A list *with* a kind always shows its buttons —
+  // see `disabled` below.
   if (!features.bulkComplete && !features.bulkSchedule) return null
+
+  // Shown but inert when there is nothing outstanding, rather than
+  // disappearing. A control that vanishes takes the header's height with
+  // it, so ticking off the last todo made the whole list jump; and a
+  // recognised list should look the same whether or not you happen to be
+  // caught up — the buttons are part of what the list *is*.
+  // *(changed 2026-08-05: rendered nothing at zero.)*
+  const disabled = count === 0
 
   const completeAll = (): void => {
     for (const todo of props.active) actions.update(todo, { completed: true })
@@ -63,6 +71,7 @@ export function BulkActions(props: {
         <button
           type="button"
           className={styles['action']}
+          disabled={disabled}
           onClick={() => setConfirming('complete')}
         >
           <LuListChecks aria-hidden="true" size={14} />
@@ -73,6 +82,7 @@ export function BulkActions(props: {
         <button
           type="button"
           className={styles['action']}
+          disabled={disabled}
           onClick={() => {
             setDate(todayFieldValue())
             setConfirming('schedule')

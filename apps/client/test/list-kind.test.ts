@@ -59,6 +59,7 @@ describe('featuresOf', () => {
       groups: true,
       bulkComplete: true,
       bulkSchedule: false,
+      noDueDates: false,
     })
   })
 
@@ -69,6 +70,16 @@ describe('featuresOf', () => {
       groups: false,
       bulkComplete: true,
       bulkSchedule: true,
+      noDueDates: false,
+    })
+  })
+
+  it('takes due dates off a media list, and nothing else', () => {
+    expect(featuresOf('Reading')).toEqual({
+      groups: false,
+      bulkComplete: false,
+      bulkSchedule: false,
+      noDueDates: true,
     })
   })
 
@@ -77,7 +88,15 @@ describe('featuresOf', () => {
       groups: false,
       bulkComplete: false,
       bulkSchedule: false,
+      noDueDates: false,
     })
+  })
+
+  // Every other kind keeps its due dates — only media lists lose them.
+  it('leaves due dates alone on every other kind', () => {
+    for (const name of ['Groceries', 'Chores', 'Health']) {
+      expect(featuresOf(name).noDueDates).toBe(false)
+    }
   })
 })
 

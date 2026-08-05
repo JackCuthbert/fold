@@ -218,16 +218,40 @@ test('reordering a list survives a reload', async ({ page }) => {
     expect(await pairOrder()).toEqual([first, second])
   }).toPass()
 
-  await openListMenu(page, second)
-  await page.getByRole('menuitem', { name: 'Move up' }).click()
+  // "Move up" swaps with the *immediate* neighbour in the whole nav
+  // (lists/list-order.ts), and the suite shares one Radicale — so other
+  // tests' lists can sit between these two, and one press then swaps
+  // `second` with one of those instead. Press until the pair flips, which
+  // tests the same behaviour without assuming the pair is adjacent.
+  //
+  // The single press this replaces passed only for as long as no other
+  // spec created a list concurrently. It broke the moment one did, and
+  // read as a bug in reordering rather than an assumption in the test.
+  // *(fixed 2026-08-05.)*
   await expect(async () => {
+    if ((await pairOrder())[0] === second) return
+    await openListMenu(page, second)
+    await page.getByRole('menuitem', { name: 'Move up' }).click()
     expect(await pairOrder()).toEqual([second, first])
   }).toPass()
 
-  // The last row has no neighbour below it, so "Move down" is disabled —
-  // `second` was created last, so it is still the bottom of the nav.
-  await openListMenu(page, first)
-  await expect(page.getByRole('menuitem', { name: 'Move down' })).toBeDisabled()
+  // The *first* row has no neighbour above it, so "Move up" is disabled
+  // there. Asserted on whichever list is actually at the top rather than
+  // on one of this test's own pair: with a shared Radicale, neither is
+  // reliably at either end of the nav — the previous version asserted
+  // "Move down" on `first` assuming it was the bottom row, which only
+  // held while no other spec created a list after it.
+  // *(fixed 2026-08-05.)*
+  // Its own kebab, reached through the row rather than looked up by name:
+  // the top list may be any of the suite's, and a by-name lookup matches
+  // both the drawer's and the pinned sidebar's copy on desktop.
+  await page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('listitem')
+    .first()
+    .getByRole('button', { name: /^Actions for / })
+    .click()
+  await expect(page.getByRole('menuitem', { name: 'Move up' })).toBeDisabled()
   await page.keyboard.press('Escape')
 
   // Drop the persisted query cache before reloading, so the assertion is

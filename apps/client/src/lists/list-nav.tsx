@@ -291,7 +291,7 @@ export function ListNav(props: {
                 <LuSparkles
                   className={styles['sparkle']}
                   aria-hidden="true"
-                  size={12}
+                  size={14}
                 />
               )}
             </button>

@@ -25,6 +25,15 @@ export interface KindFeatures {
   bulkComplete: boolean
   /** Offer "give every active todo the same due date". */
   bulkSchedule: boolean
+  /**
+   * Hide the due-date fields entirely — this is a list of things to get
+   * to, not things due by a deadline.
+   *
+   * Hidden rather than disabled: a greyed-out field says "you can't set
+   * this here", which invites the question why. Absent says the concept
+   * does not apply, which is the truth for a reading list.
+   */
+  noDueDates: boolean
 }
 
 interface KindDefinition {
@@ -47,6 +56,7 @@ const NONE: KindFeatures = {
   groups: false,
   bulkComplete: false,
   bulkSchedule: false,
+  noDueDates: false,
 }
 
 const DEFINITIONS: Record<ListKind, KindDefinition> = {
@@ -81,9 +91,10 @@ const DEFINITIONS: Record<ListKind, KindDefinition> = {
     ],
     label: 'Reading list',
     description:
-      'Recognised as a list of things to get to rather than things to do ' +
-      'by a deadline. No behaviour is attached to it yet.',
-    features: NONE,
+      'A list of things to get to rather than things due by a date, so ' +
+      'its todos have no due date — set a priority instead to say what ' +
+      'is next.',
+    features: { ...NONE, noDueDates: true },
   },
   HEALTH_LIST: {
     names: ['health', 'wellbeing', 'well-being'],

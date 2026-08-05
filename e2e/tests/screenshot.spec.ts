@@ -121,11 +121,18 @@ const LISTS = [
     ],
   },
   {
+    // A recognised list kind (docs/specs/list-kinds.md), so it carries the
+    // sparkle in the nav — which is worth having in the screenshot.
+    //
+    // No `due` on any of these, and that is not an oversight: a media list
+    // has no due-date fields at all, so setting one here would hang
+    // waiting for an input that is deliberately absent. Priority is how
+    // such a list says what is next. *(changed 2026-08-05.)*
     name: 'Reading',
     colour: 'Violet',
     todos: [
       { summary: 'Finish the Le Guin essays' },
-      { summary: 'Return library books', due: 4 },
+      { summary: 'Return library books', priority: 'High' },
       { summary: 'Start the Graeber' },
     ],
   },

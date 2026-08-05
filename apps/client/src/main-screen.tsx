@@ -205,7 +205,10 @@ export function MainScreen() {
   // A derived view has no collection to add to, so the add path is bound
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
   // docs/specs/summary-view.md).
-  const add = useAddTodo(showingDerived ? '' : (active ?? ''))
+  const add = useAddTodo(
+    showingDerived ? '' : (active ?? ''),
+    activeList?.displayName ?? '',
+  )
   // The global add path (issue #15): the sidebar button and Cmd/Ctrl+K,
   // both of which can fire from anywhere — including the derived views,
   // which have no list of their own. The list is chosen in the form.
@@ -454,14 +457,24 @@ export function MainScreen() {
           drawer's Dialog, and a modal owned there would be nested and lose
           its backdrop.
 
-          Passing `lists` is what turns on the picker — the modal requires
-          a choice then, with no default (issue #15). */}
+          Passing `lists` is what turns on the picker (issue #15).
+
+          It defaults to the list you are looking at, and only demands a
+          choice when there isn't one — on Today or Summary, which are not
+          lists. The original rule was "never default", on the grounds
+          that filing a todo into a list you never looked at is worse than
+          asking; that reasoning is about the derived views and does not
+          survive contact with the case where you are *in* a list and
+          press the same shortcut. There, the list on screen is obviously
+          the answer, and re-picking it every time is friction.
+          *(changed 2026-08-05.)* */}
       <AddTodoModal
         open={globalAdd.open}
         onOpenChange={globalAdd.setOpen}
         target={{
           kind: 'global',
           lists: lists.data ?? [],
+          ...(activeList ? { defaultListId: activeList.id } : {}),
           onAdd: (listId, todo) => {
             globalAdd.add(listId, todo)
             // Go to where the todo landed. Creating something and being

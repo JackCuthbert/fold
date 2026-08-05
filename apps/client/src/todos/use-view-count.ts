@@ -1,13 +1,9 @@
 import type { Todo, TodoList, TodosResponse } from '@fold/schemas'
 import { useQueryClient } from '@tanstack/react-query'
-import { useSyncExternalStore } from 'react'
 import { countSummary } from './count-summary'
+import { useCacheVersion } from './use-cache-version'
+import { groupTodos } from './group-by-list'
 import { selectToday } from './today'
-
-// Bumped on every query-cache event. Module scope so the subscription can
-// write to it without a ref, and shared harmlessly: its only job is to be
-// a value that changed since the last render.
-let cacheVersion = 0
 
 /**
  * The count line for whichever view is showing.
@@ -52,24 +48,10 @@ export function useViewCount(options: {
   const keys = watched.map((list) => list.id)
 
   // Re-render whenever any todos entry changes, so the line falls the
-  // moment a todo is ticked.
-  //
-  // The snapshot is a counter bumped on every cache event rather than
-  // anything derived from the data: `useSyncExternalStore` compares
-  // snapshots by `Object.is`, so returning a fresh array or object would
-  // loop forever, and returning something stable like `getAll().length`
-  // would miss the case this exists for — a query's *data* changing while
-  // the number of queries does not.
-  // The counter is bumped by the *subscription*, never by the read —
-  // `getSnapshot` must be pure, or React re-renders forever.
-  useSyncExternalStore(
-    (onChange) =>
-      queryClient.getQueryCache().subscribe(() => {
-        cacheVersion += 1
-        onChange()
-      }),
-    () => cacheVersion,
-  )
+  // moment a todo is ticked. Shared with useListActiveTodos — see
+  // use-cache-version.ts, which explains why the counter and its filter
+  // must be common to both.
+  useCacheVersion()
 
   const entries = keys.map((id) =>
     queryClient.getQueryData<TodosResponse>(['todos', id]),
@@ -81,12 +63,47 @@ export function useViewCount(options: {
   const pending = !options.listsLoaded || (keys.length > 0 && !anyKnown)
 
   const todos: Todo[] = entries.flatMap((entry) => entry?.todos ?? [])
-  // Today counts its own slice, not every todo in every list — the line
-  // has to describe what the view actually shows
-  // (docs/specs/today-view.md).
+  // Each view counts what it actually renders, not every todo it could
+  // reach. Two separate bugs came from skipping this:
+  //
+  // - Summary counted every todo in every list, active ones included, so
+  //   a view that only ever shows finished work announced "4 todos ·
+  //   8 done" — and the 4 were todos it does not display at all. It
+  //   shows completed todos, so that is what it counts.
+  // - Today counted its slice but not its *rows*, so three grouped
+  //   grocery todos counted three times against a single visible row.
+  //
+  // *(fixed 2026-08-05, issue #27.)*
   const shown =
     options.view === 'today'
       ? selectToday(todos, options.now ?? new Date())
-      : todos
-  return countSummary(shown, { pending })
+      : options.view === 'summary'
+        ? todos.filter((todo) => todo.completed)
+        : todos
+  // Grouping is a display decision, so it belongs to the count the same
+  // way it belongs to the Summary day headings: a grouped list is one
+  // row and counts once (docs/specs/list-kinds.md). A list view never
+  // groups, so its rows are its todos.
+  const counted =
+    options.view === 'list' ? shown : countableRows(shown, options.lists)
+  return countSummary(counted, { pending })
+}
+
+/**
+ * One representative todo per rendered row.
+ *
+ * A grouped list contributes a single entry, so the header agrees with
+ * what is on screen. Which todo represents the group decides whether the
+ * row reads as done: a group is only finished when every todo in it is
+ * (group-row.tsx), so an outstanding one is picked when there is one.
+ */
+export function countableRows(
+  todos: readonly Todo[],
+  lists: readonly TodoList[],
+): Todo[] {
+  return groupTodos(todos, lists).map((row) =>
+    row.kind === 'todo'
+      ? row.todo
+      : (row.todos.find((todo) => !todo.completed) ?? row.todos[0]!),
+  )
 }

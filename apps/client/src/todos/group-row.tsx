@@ -55,8 +55,11 @@ export function GroupRow(props: {
         <span className={styles['name']}>
           <span className={styles['nameText']}>{props.group.listName}</span>
         </span>
+        {/* "todos", the word used everywhere else for the same thing —
+            "items" was a second name for one concept.
+            *(changed 2026-08-05.)* */}
         <span className={styles['count']}>
-          {count} {count === 1 ? 'item' : 'items'}
+          {count} {count === 1 ? 'todo' : 'todos'}
         </span>
         <LuChevronRight
           className={styles['chevron']}

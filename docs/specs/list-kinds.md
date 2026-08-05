@@ -111,7 +111,11 @@ list**. Not a selection model — there is no multi-select anywhere in
 Fold, and this needs none. You have done the shopping; the whole list is
 done.
 
-- Only shown when the list has at least one active todo.
+- **Always shown on a list of that kind, disabled when there is nothing
+  outstanding.** A control that disappears takes the header's height with
+  it, so ticking off the last todo made the list jump; and a recognised
+  list should look the same whether or not you happen to be caught up.
+  *(changed 2026-08-05: was hidden at zero.)*
 - **Asks first.** It completes an unbounded number of todos at once and
   there is no undo, so it goes through the same `ConfirmDialog` a delete
   does ([todos](./todos.md)), naming the count.
@@ -119,6 +123,28 @@ done.
   optimistic write path ([sync-and-offline](./sync-and-offline.md)). No
   new mutation kind: the outbox already coalesces and retries these, and
   a bulk kind would need its own conflict handling for no benefit.
+
+### No due dates — `MEDIA_LIST`
+
+A reading, watching or listening list holds things to **get to**, not
+things due by a date. Its todos have no due date anywhere: the date and
+time fields are absent from both the add form and the detail panel, and
+priority is how you say what is next.
+
+- **Hidden, not disabled.** A greyed-out field says "you can't set this
+  here", which invites the question why; an absent one says the concept
+  does not apply. The detail panel also greys every field on a completed
+  todo, so a second greyed-out reason would be indistinguishable from
+  that one.
+- The add form's list picker means the target can change mid-form, so a
+  due date typed before choosing a media list is **dropped on submit**
+  rather than merely hidden.
+- Existing due dates on a todo already in such a list are left on the
+  server untouched — Fold stops offering the field, it does not go and
+  rewrite data another client may have set
+  ([caldav-compliance](./caldav-compliance.md)).
+
+*(added 2026-08-05.)*
 
 ### Bulk schedule — `CHORES_LIST`
 

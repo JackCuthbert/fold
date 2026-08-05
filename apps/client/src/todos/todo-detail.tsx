@@ -5,9 +5,10 @@ import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
 import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Controller } from 'react-hook-form'
+import { Controller, useWatch } from 'react-hook-form'
 import { LuChevronDown, LuCopy } from 'react-icons/lu'
 import { InfoBadge } from '../info-badge'
+import { featuresOf } from '../lists/list-kind'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import { cycleTimeOf, punctualityOf, type Punctuality } from './punctuality'
@@ -102,6 +103,24 @@ export function TodoDetail(props: {
 }) {
   const { todo } = props
   const { control, isDirty, onSubmit, locked } = props.form
+  // docs/specs/list-kinds.md — a media list has no due dates anywhere.
+  //
+  // Read from the form's *pending* list, not the todo's stored one: the
+  // panel can move a todo between lists, and the fields have to follow
+  // the choice as it is made. Reading `todo.listId` meant moving a book
+  // out of Reading left the due fields hidden until after a save — the
+  // one moment you would want to set a date.
+  //
+  // Resolved from a list rather than the surrounding view for the same
+  // reason it is per-todo at all: Today and Summary show todos from
+  // several lists at once.
+  // *(added 2026-08-05, issue #27; broadened to the pending list the
+  // same day.)*
+  const pendingListId = useWatch({ control, name: 'listId' })
+  const noDueDates = featuresOf(
+    props.lists.find((list) => list.id === (pendingListId || props.todo.listId))
+      ?.displayName ?? '',
+  ).noDueDates
   // Captured once so every row in the metadata footer resolves "Today"
   // against the same instant.
   const now = new Date()
@@ -215,57 +234,66 @@ export function TodoDetail(props: {
         />
         {/* docs/specs/todos.md — due times: the time sits beside the
                 date as one "Due" control, and is optional — an empty time
-                means the todo is all-day. */}
-        <div className={styles['dueRow']}>
-          <Controller
-            name="due"
-            control={control}
-            render={({ field: { ref, name, value, onBlur, onChange } }) => (
-              <Field.Root
-                className={cx(styles['field'], styles['dueDate'])}
-                name={name}
-                disabled={locked}
-              >
-                <Field.Label>Due</Field.Label>
-                <Input
-                  ref={ref}
-                  type="date"
-                  value={value}
-                  onBlur={onBlur}
-                  onValueChange={onChange}
-                />
-              </Field.Root>
-            )}
-          />
-          <Controller
-            name="dueTime"
-            control={control}
-            render={({
-              field: { ref, name, value, onBlur, onChange },
-              fieldState: { error },
-            }) => (
-              <Field.Root
-                className={cx(styles['field'], styles['dueTime'])}
-                name={name}
-                disabled={locked}
-              >
-                <Field.Label>Time</Field.Label>
-                <Input
-                  ref={ref}
-                  type="time"
-                  value={value}
-                  onBlur={onBlur}
-                  onValueChange={onChange}
-                />
-                {error?.message && (
-                  <Field.Error className={styles['error']} match>
-                    {error.message}
-                  </Field.Error>
-                )}
-              </Field.Root>
-            )}
-          />
-        </div>
+                means the todo is all-day.
+
+                Absent on a media list (docs/specs/list-kinds.md), which
+                holds things to get to rather than things due by a date.
+                Hidden rather than disabled: the panel already greys every
+                field on a *completed* todo, and a second greyed-out
+                reason would be indistinguishable from that one.
+                *(added 2026-08-05, issue #27.)* */}
+        {!noDueDates && (
+          <div className={styles['dueRow']}>
+            <Controller
+              name="due"
+              control={control}
+              render={({ field: { ref, name, value, onBlur, onChange } }) => (
+                <Field.Root
+                  className={cx(styles['field'], styles['dueDate'])}
+                  name={name}
+                  disabled={locked}
+                >
+                  <Field.Label>Due</Field.Label>
+                  <Input
+                    ref={ref}
+                    type="date"
+                    value={value}
+                    onBlur={onBlur}
+                    onValueChange={onChange}
+                  />
+                </Field.Root>
+              )}
+            />
+            <Controller
+              name="dueTime"
+              control={control}
+              render={({
+                field: { ref, name, value, onBlur, onChange },
+                fieldState: { error },
+              }) => (
+                <Field.Root
+                  className={cx(styles['field'], styles['dueTime'])}
+                  name={name}
+                  disabled={locked}
+                >
+                  <Field.Label>Time</Field.Label>
+                  <Input
+                    ref={ref}
+                    type="time"
+                    value={value}
+                    onBlur={onBlur}
+                    onValueChange={onChange}
+                  />
+                  {error?.message && (
+                    <Field.Error className={styles['error']} match>
+                      {error.message}
+                    </Field.Error>
+                  )}
+                </Field.Root>
+              )}
+            />
+          </div>
+        )}
         <Controller
           name="priority"
           control={control}

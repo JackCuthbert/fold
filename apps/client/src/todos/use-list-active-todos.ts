@@ -1,11 +1,6 @@
 import type { Todo, TodosResponse } from '@fold/schemas'
 import { useQueryClient } from '@tanstack/react-query'
-import { useSyncExternalStore } from 'react'
-
-// Bumped on every query-cache event — see use-view-count.ts, which uses
-// the same trick for the same reason. Module scope, and shared harmlessly:
-// its only job is to be a value that changed since the last render.
-let cacheVersion = 0
+import { useCacheVersion } from './use-cache-version'
 
 /**
  * A list's still-open todos, read from the cache the list pane already
@@ -23,16 +18,9 @@ let cacheVersion = 0
 export function useListActiveTodos(listId: string | null): Todo[] {
   const queryClient = useQueryClient()
 
-  // `getSnapshot` must be pure, so the counter is bumped by the
-  // subscription and only read here.
-  useSyncExternalStore(
-    (onChange) =>
-      queryClient.getQueryCache().subscribe(() => {
-        cacheVersion += 1
-        onChange()
-      }),
-    () => cacheVersion,
-  )
+  // Shared with useViewCount — see use-cache-version.ts for why these two
+  // must not keep separate counters or separate filters.
+  useCacheVersion()
 
   if (!listId) return []
   const entry = queryClient.getQueryData<TodosResponse>(['todos', listId])

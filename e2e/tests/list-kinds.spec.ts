@@ -1,6 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
 
+/** The add-todo dialog, so its fields are unambiguous. */
+const addDialog = (page: Page) =>
+  page.getByRole('dialog', { name: 'Add a todo' })
+
 /**
  * A list's own row in the nav.
  *
@@ -95,7 +99,13 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
     .getByRole('button', { name: 'Today', exact: true })
     .first()
     .click()
-  await expect(page.getByText('3 items')).toBeVisible()
+  await expect(page.getByText('3 todos', { exact: true })).toBeVisible()
+  // The header counts rows, not the todos behind them: two rows here —
+  // the Groceries group and the ungrouped "Write the report" — so "2
+  // todos", never "4". *(added 2026-08-05.)*
+  // `main`-scoped: the nav's status dot and the toast region are also
+  // role="status", and only this one is the header's count line.
+  await expect(page.getByRole('main').getByRole('status')).toHaveText('2 todos')
   // The individual items are behind the group, not beside it — that is
   // the whole point of collapsing them.
   await expect(page.getByText('Eggs')).toBeHidden()
@@ -107,7 +117,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // ship unnoticed and obvious once seen. *(added 2026-08-05.)*
   const edges = await page.evaluate(() => {
     const groupButton = [...document.querySelectorAll('button')].find(
-      (button) => button.textContent?.includes('items'),
+      (button) => button.textContent?.includes('todos'),
     )
     const todoRow = [...document.querySelectorAll('li')].find((item) =>
       item.textContent?.includes('Write the report'),
@@ -130,7 +140,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   expect(edges.groupGlyph).toBe(edges.checkbox)
 
   // The row navigates to the list rather than expanding in place.
-  await page.getByRole('button', { name: /Groceries.*3 items/ }).click()
+  await page.getByRole('button', { name: /Groceries.*3 todos/ }).click()
   await expect(page.getByText('Eggs')).toBeVisible()
 
   // Bulk complete asks first, names the count, and ticks the lot.
@@ -144,8 +154,83 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   await expect(
     page.getByRole('button', { name: /Completed \(3\)/ }),
   ).toBeVisible()
-  // Nothing left to act on, so the control that would act on nothing goes.
-  await expect(page.getByRole('button', { name: 'Complete all' })).toBeHidden()
+  // Still there, but inert: the buttons are part of what a recognised
+  // list is, and one that vanished took the header's height with it.
+  await expect(
+    page.getByRole('button', { name: 'Complete all' }),
+  ).toBeDisabled()
+})
+
+// docs/specs/list-kinds.md — no due dates on a media list, and the
+// global picker defaults to the list you are looking at.
+test('a media list has no due dates, in either form', async ({ page }) => {
+  await login(page)
+  await createList(page, 'Reading')
+  const other = uniqueName('work')
+  await createList(page, other)
+
+  // The ordinary list still has them, which is what makes their absence
+  // below a decision rather than a broken form.
+  await navRow(page, other).click()
+  await page.getByRole('button', { name: 'Add a todo' }).click()
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await expect(page.getByLabel('Due', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // Gone on the media list — add form...
+  await navRow(page, 'Reading').click()
+  await page.getByRole('button', { name: 'Add a todo' }).click()
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await expect(page.getByLabel('Due', { exact: true })).toBeHidden()
+  // ...but priority stays, which is how you say what is next.
+  await expect(page.getByLabel('Priority')).toBeVisible()
+  const input = page.getByRole('textbox', { name: 'Add a todo' })
+  await input.fill('Dune')
+  await input.press('Enter')
+  await waitForSync(page)
+
+  // ...and the detail panel.
+  await page.getByText('Dune', { exact: true }).click()
+  await expect(page.getByLabel('Due', { exact: true })).toBeHidden()
+  await expect(page.getByLabel('Priority')).toBeVisible()
+})
+
+test('the global add picker defaults to the list on screen', async ({
+  page,
+}) => {
+  await login(page)
+  const first = uniqueName('alpha')
+  const second = uniqueName('beta')
+  await createList(page, first)
+  await createList(page, second)
+
+  // Looking at a list: it is already chosen, so adding is one step.
+  await navRow(page, second).click()
+  await page.getByRole('button', { name: 'New todo' }).click()
+  await expect(addDialog(page).getByLabel('List', { exact: true })).toHaveText(
+    second,
+  )
+  await page.keyboard.press('Escape')
+
+  // The default follows the selection rather than being captured once.
+  await navRow(page, first).click()
+  await page.getByRole('button', { name: 'New todo' }).click()
+  await expect(addDialog(page).getByLabel('List', { exact: true })).toHaveText(
+    first,
+  )
+  await page.keyboard.press('Escape')
+
+  // On Today — which is not a list — there is still nothing to default
+  // to, so the picker asks.
+  await page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('button', { name: 'Today', exact: true })
+    .first()
+    .click()
+  await page.getByRole('button', { name: 'New todo' }).click()
+  await expect(
+    addDialog(page).getByLabel('List', { exact: true }),
+  ).not.toHaveText(first)
 })
 
 test('renaming a list gives it a kind, and takes it away again', async ({

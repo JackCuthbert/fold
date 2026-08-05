@@ -17,10 +17,10 @@ Fold matches the **whole name**, ignoring capitals. "Groceries" and
 |---|---|
 | Groceries, Grocery, Shopping | Grouping in Today and Summary, plus **Complete all** |
 | Chores, Chore | **Complete all** and **Schedule all** |
-| Reading, To-Read, Watching, To-Watch, Listening, To-Listen | The sparkle, for now |
+| Reading, To-Read, Watching, To-Watch, Listening, To-Listen | No due dates — priority instead |
 | Health, Wellbeing | The sparkle, for now |
 
-The last two are recognised but don't do anything yet.
+Health lists are recognised but don't do anything yet.
 
 ## Grouping
 
@@ -34,6 +34,15 @@ list, where the items are all still there, one per row, exactly as before.
 Only grocery lists group. Chores stay as individual rows, because a chore
 *is* individually interesting when you're reviewing your day.
 
+## No due dates on a reading list
+
+A reading, watching or listening list holds things you'll **get to** — not
+things due by a date. So the due date and time fields simply aren't there,
+in the add form or when you open a todo. Use **priority** to say what's
+next.
+
+Move a todo out of that list and the due date fields come back.
+
 ## Complete all
 
 One button, at the top of the list: tick off everything still open in it.
@@ -41,6 +50,8 @@ You've done the shopping — the whole list is done.
 
 It asks first, and tells you how many todos it's about to tick. There's no
 undo, but nothing is deleted: untick anything individually afterwards.
+
+The button stays visible once you're all caught up, just greyed out.
 
 ## Schedule all
 

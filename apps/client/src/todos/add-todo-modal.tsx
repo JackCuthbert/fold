@@ -6,10 +6,11 @@ import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
 import { todoPrioritySchema, type NewTodo } from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { RefObject } from 'react'
+import { useEffect, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { z } from 'zod'
+import { featuresOf } from '../lists/list-kind'
 import { ModalHeader } from '../modal-header'
 import { cx } from '../styles/cx'
 import styles from './add-todo-modal.module.css'
@@ -96,16 +97,30 @@ const EMPTY_VALUES: AddTodoForm = {
  */
 type AddTodoTarget =
   /** Opened from inside a list, which is the target (todo-pane.tsx). */
-  | { kind: 'list'; onAdd: (todo: NewTodo) => void }
+  | {
+      kind: 'list'
+      /** Its name, which decides the list's kind — docs/specs/list-kinds.md. */
+      listName: string
+      onAdd: (todo: NewTodo) => void
+    }
   /**
    * Opened from anywhere — the sidebar button or Cmd/Ctrl+K (issue #15).
-   * Renders a picker and requires a choice: there is deliberately no
-   * default, because filing a todo into a list the user never looked at is
-   * worse than asking which one.
+   * Renders a picker, pre-filled with the list on screen when there is
+   * one and demanding a choice when there isn't — see `defaultListId`.
+   * *(changed 2026-08-05: was never pre-filled.)*
    */
   | {
       kind: 'global'
       lists: ReadonlyArray<{ id: string; displayName: string }>
+      /**
+       * Pre-selected list — the one on screen, when there is one.
+       *
+       * Absent on Today and Summary, which are not lists, and there the
+       * picker still demands a choice: filing a todo into a list you were
+       * never looking at is worse than asking which.
+       * *(added 2026-08-05.)*
+       */
+      defaultListId?: string
       onAdd: (listId: string, todo: NewTodo) => void
     }
 
@@ -131,16 +146,50 @@ export function AddTodoModal(props: {
           value: list.id,
         }))
       : []
-  const { control, handleSubmit, reset } = useForm<AddTodoForm>({
+  const { control, handleSubmit, reset, watch } = useForm<AddTodoForm>({
     resolver: zodResolver(pickList ? globalAddTodoSchema : addTodoSchema),
     defaultValues: EMPTY_VALUES,
   })
+
+  // `defaultValues` is read once, at mount — and this modal is rendered
+  // by MainScreen for the life of the session, so it never remounts.
+  // Without this the picker kept whichever list was selected the first
+  // time the app rendered, including on Today, where the whole point is
+  // that there is no default. Re-seeded on each open instead.
+  // *(added 2026-08-05.)*
+  const defaultListId =
+    props.target.kind === 'global' ? props.target.defaultListId : undefined
+  useEffect(() => {
+    if (props.open) reset({ ...EMPTY_VALUES, listId: defaultListId ?? '' })
+    // Deliberately keyed on open + the default only. `reset` is stable
+    // across renders, and re-seeding on anything else would wipe what the
+    // user has typed mid-form.
+  }, [props.open, defaultListId, reset])
+
+  // docs/specs/list-kinds.md — a media list's todos have no due date, so
+  // the fields are not rendered at all. Watched rather than read once:
+  // the global form has a list picker, so the answer changes as you
+  // choose, and the fields have to appear or vanish with it.
+  // *(added 2026-08-05, issue #27.)*
+  const chosenListId = watch('listId')
+  const targetListName =
+    props.target.kind === 'list'
+      ? props.target.listName
+      : (props.target.lists.find((list) => list.id === chosenListId)
+          ?.displayName ?? '')
+  const noDueDates = featuresOf(targetListName).noDueDates
 
   const submit = (values: AddTodoForm): void => {
     // All-day when no time is given, zoned when there is
     // (docs/specs/todos.md — due times). `undefined` means the schema's
     // time-needs-a-date rule already rejected this, so it can't reach here.
-    const due = fieldsToDue({ date: values.due, time: values.dueTime })
+    // Dropped outright on a media list, not merely hidden: the picker
+    // lets you set a date and *then* choose a reading list, which would
+    // otherwise file a due date the form is no longer showing you.
+    // *(added 2026-08-05, issue #27.)*
+    const due = noDueDates
+      ? null
+      : fieldsToDue({ date: values.due, time: values.dueTime })
     const todo: NewTodo = {
       uid: crypto.randomUUID(),
       summary: values.summary,
@@ -155,7 +204,7 @@ export function AddTodoModal(props: {
     } else {
       props.target.onAdd(todo)
     }
-    reset(EMPTY_VALUES)
+    reset({ ...EMPTY_VALUES, listId: defaultListId ?? '' })
     props.onOpenChange(false)
   }
 
@@ -163,7 +212,7 @@ export function AddTodoModal(props: {
     <Dialog.Root
       open={props.open}
       onOpenChange={(open) => {
-        if (!open) reset(EMPTY_VALUES)
+        if (!open) reset({ ...EMPTY_VALUES, listId: defaultListId ?? '' })
         props.onOpenChange(open)
       }}
     >
@@ -286,57 +335,66 @@ export function AddTodoModal(props: {
                 <Accordion.Panel className={styles['accordionPanel']}>
                   {/* docs/specs/todos.md — due times: the time sits beside
                       the date as one "Due" control, and is optional —
-                      leaving it empty keeps the todo all-day. */}
-                  <div className={styles['dueRow']}>
-                    <Controller
-                      name="due"
-                      control={control}
-                      render={({
-                        field: { ref, name, value, onBlur, onChange },
-                      }) => (
-                        <Field.Root
-                          className={cx(styles['field'], styles['dueDate'])}
-                          name={name}
-                        >
-                          <Field.Label>Due</Field.Label>
-                          <Input
-                            ref={ref}
-                            type="date"
-                            value={value}
-                            onBlur={onBlur}
-                            onValueChange={onChange}
-                          />
-                        </Field.Root>
-                      )}
-                    />
-                    <Controller
-                      name="dueTime"
-                      control={control}
-                      render={({
-                        field: { ref, name, value, onBlur, onChange },
-                        fieldState: { error },
-                      }) => (
-                        <Field.Root
-                          className={cx(styles['field'], styles['dueTime'])}
-                          name={name}
-                        >
-                          <Field.Label>Time</Field.Label>
-                          <Input
-                            ref={ref}
-                            type="time"
-                            value={value}
-                            onBlur={onBlur}
-                            onValueChange={onChange}
-                          />
-                          {error?.message && (
-                            <Field.Error className={styles['error']} match>
-                              {error.message}
-                            </Field.Error>
-                          )}
-                        </Field.Root>
-                      )}
-                    />
-                  </div>
+                      leaving it empty keeps the todo all-day.
+
+                      Absent entirely on a media list (docs/specs/
+                      list-kinds.md): a reading list holds things to get
+                      to, not things due by a date. Hidden rather than
+                      disabled — a greyed field invites "why can't I set
+                      this?", while an absent one says the concept does
+                      not apply. */}
+                  {!noDueDates && (
+                    <div className={styles['dueRow']}>
+                      <Controller
+                        name="due"
+                        control={control}
+                        render={({
+                          field: { ref, name, value, onBlur, onChange },
+                        }) => (
+                          <Field.Root
+                            className={cx(styles['field'], styles['dueDate'])}
+                            name={name}
+                          >
+                            <Field.Label>Due</Field.Label>
+                            <Input
+                              ref={ref}
+                              type="date"
+                              value={value}
+                              onBlur={onBlur}
+                              onValueChange={onChange}
+                            />
+                          </Field.Root>
+                        )}
+                      />
+                      <Controller
+                        name="dueTime"
+                        control={control}
+                        render={({
+                          field: { ref, name, value, onBlur, onChange },
+                          fieldState: { error },
+                        }) => (
+                          <Field.Root
+                            className={cx(styles['field'], styles['dueTime'])}
+                            name={name}
+                          >
+                            <Field.Label>Time</Field.Label>
+                            <Input
+                              ref={ref}
+                              type="time"
+                              value={value}
+                              onBlur={onBlur}
+                              onValueChange={onChange}
+                            />
+                            {error?.message && (
+                              <Field.Error className={styles['error']} match>
+                                {error.message}
+                              </Field.Error>
+                            )}
+                          </Field.Root>
+                        )}
+                      />
+                    </div>
+                  )}
                   <Controller
                     name="priority"
                     control={control}
