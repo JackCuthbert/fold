@@ -136,7 +136,7 @@ export function TodoDetail(props: {
           // 13px and sit 8px proud of the text. Side by side, the badge
           // keeps its touch target and the pill keeps its shape, and the
           // two still read as one unit.
-          <span className={styles['lockStatus']}>
+          <span className={styles['lockStatus']} data-testid="lock-status">
             <span className={styles['lockNote']}>Completed</span>
             {/* A popover, not a bare label: "Completed" alone says what
                 the todo is, not why the form is inert or what to do about

@@ -286,7 +286,14 @@ test('a completed todo locks, unlocks deliberately, and duplicates active', asyn
   // Locked: the fields are inert and the panel says why.
   const summary = page.getByRole('textbox', { name: 'Summary' })
   await expect(summary).toBeDisabled()
-  await expect(page.getByText('Completed', { exact: true })).toBeVisible()
+  // Scoped to the header's lock pill, not any "Completed" on the page. A
+  // bare exact-text match also caught the metadata row's "Completed"
+  // label, which only renders once COMPLETED has come back from the
+  // server — so this assertion passed or failed on sync timing rather
+  // than on the thing it is testing. *(fixed 2026-08-05.)*
+  await expect(
+    page.getByTestId('lock-status').getByText('Completed', { exact: true }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save' })).toBeHidden()
 
   // Duplicate is offered while locked, and opens the copy — which is
