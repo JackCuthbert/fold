@@ -305,8 +305,18 @@
    inside its parens while the tint bleeds past — but applied to a bare
    reference mid-sentence it pulled the tinted box onto the words either
    side. This puts a real gap back. *(added 2026-08-05.)* */
-.inlineCode {
-  margin: 0 var(--space-1);
+.section .inlineCode {
+  /* Two classes, to outrank `.section code` (0,2,0) — a bare `.inlineCode`
+     is 0,1,0 and lost the cascade whatever the source order, which is why
+     the first attempt at this changed nothing.
+
+     `--space-1` of *positive* margin, against that rule's `--space-1`
+     negative: the negative pull exists so `#1D9BF6FF` sits tight inside
+     its parentheses in the extensions topic, and here it dragged the tint
+     onto the words either side. The rule's own horizontal padding already
+     bleeds the tint 4px past the glyphs, so this has to clear that as
+     well as restore an ordinary word space. */
+  margin: 0 var(--space-2);
 }
 
 /* The one link in the modal (the About topic's attribution). Underlined
