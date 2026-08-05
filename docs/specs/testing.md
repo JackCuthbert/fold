@@ -51,6 +51,34 @@ Happy paths only:
    bug fixed in `84244ff` — this case exists specifically to close that
    gap.)*
 
+## One CalDAV account per test
+
+*(added 2026-08-05.)*
+
+`login()` signs in as a user derived from the running test's title, so
+**every spec starts from an empty nav**. The container runs with
+`[auth] type = none`, so this costs nothing — no account setup, no
+cleanup, and storage dies with the container.
+
+Every spec used to share one `e2e-user`, which meant sharing one nav, and
+that produced three separate failures in one day — each of which looked
+like a product bug and wasn't:
+
+- A reorder spec assumed its two lists were **adjacent**. "Move up" swaps
+  with the immediate neighbour, so it broke the moment another spec's list
+  sorted between them.
+- A count assumed only its **own** todos were in Today. The derived views
+  span every list, so another spec completing something due today changed
+  the header.
+- A header timed out waiting for "No todos" on a fresh list, because
+  eighteen accumulated lists each cost a conditional request before first
+  paint.
+
+All three passed locally on four workers and failed on CI's one, where
+specs run in sequence and every later test inherits everything earlier
+ones made. **Never assert on anything a test did not create itself** — and
+with an account per test, "everything on the server" is now exactly that.
+
 ## Reloading in an e2e test
 
 *(added 2026-08-04, issue #8.)*

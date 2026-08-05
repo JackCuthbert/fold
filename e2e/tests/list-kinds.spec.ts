@@ -100,19 +100,18 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
     .first()
     .click()
   await expect(page.getByText('3 todos', { exact: true })).toBeVisible()
-  // No assertion on the header's number here, deliberately. Today spans
-  // every list on the shared Radicale, so its count includes other specs'
-  // todos and any literal is a hostage to whatever else has run — this
-  // asserted "2 todos" and failed in CI the moment a parallel spec created
-  // something due today. Reconstructing the expected total by walking the
-  // DOM was the next attempt and was worse: brittle selectors testing the
-  // markup rather than the rule.
+  // The header's own count is asserted in unit tests rather than here —
+  // "a grouped list contributes one row" is a pure function of todos and
+  // lists, checked against every case including the mixed one
+  // (test/view-count-rows.test.ts). This spec covers what only it can:
+  // that grouping reaches the screen.
   //
-  // The rule — a grouped list contributes one row to the count — is a pure
-  // function of todos and lists, and is unit-tested directly against every
-  // case, including the mixed one (test/view-count-rows.test.ts). This
-  // spec covers what only it can: that grouping reaches the screen at all.
-  // *(changed 2026-08-05.)*
+  // It previously asserted a literal "2 todos" and broke when another
+  // spec's todo landed in Today. `login` now gives each test its own
+  // CalDAV account (tests/helpers.ts), so that could be a literal again —
+  // but the unit test is the better home for an arithmetic rule either
+  // way. *(changed 2026-08-05.)*
+
   // The individual items are behind the group, not beside it — that is
   // the whole point of collapsing them.
   await expect(page.getByText('Eggs')).toBeHidden()
@@ -123,10 +122,18 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // implementation was 12px out at both ends, which is small enough to
   // ship unnoticed and obvious once seen. *(added 2026-08-05.)*
   const edges = await page.evaluate(() => {
-    const groupButton = [...document.querySelectorAll('button')].find(
-      (button) => button.textContent?.includes('todos'),
+    // Scoped to <main> and matched on the *whole* trailing count, not on
+    // the substring "todos": the nav's "New todo" button and the header's
+    // own count line both contain it, and `querySelectorAll('button')`
+    // sweeps the entire document. Locally this found the right element by
+    // accident of DOM order and returned null in CI.
+    // *(fixed 2026-08-05.)*
+    const main = document.querySelector('main')
+    const groupButton = [...(main?.querySelectorAll('button') ?? [])].find(
+      (button) =>
+        /Groceries\s*\d+ todos?$/.test(button.textContent?.trim() ?? ''),
     )
-    const todoRow = [...document.querySelectorAll('li')].find((item) =>
+    const todoRow = [...(main?.querySelectorAll('li') ?? [])].find((item) =>
       item.textContent?.includes('Write the report'),
     )
     // Inlined rather than a local helper: this function body is
@@ -143,6 +150,11 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
         : null,
     }
   })
+  // Both found first. A selector that stops matching returns null, and
+  // `null === null` would have made a broken measurement look like a
+  // passing one — which is most of why the CI failure above was confusing.
+  expect(edges.groupGlyph).not.toBeNull()
+  expect(edges.checkbox).not.toBeNull()
   // The sparkle lands on the same column the checkbox ring does.
   expect(edges.groupGlyph).toBe(edges.checkbox)
 

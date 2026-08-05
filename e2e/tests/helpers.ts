@@ -1,11 +1,15 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, test as playwrightTest, type Page } from '@playwright/test'
+
+/** The running test's info — Playwright exposes it outside a fixture. */
+const testInfo = (): { title: string; parallelIndex: number } =>
+  playwrightTest.info()
 
 // Set by global-setup.ts, which runs once in Playwright's root process
 // before any worker spawns, to the throwaway Docker container's
 // Docker-assigned host port — see helpers/radicale-container.ts. Worker
 // processes inherit it because Node subprocesses inherit their parent's
 // environment by default.
-function requireCaldavUrl(): string {
+function requireCaldavBase(): string {
   const base = process.env['E2E_CALDAV_URL']
   if (!base) {
     throw new Error(
@@ -13,17 +17,64 @@ function requireCaldavUrl(): string {
         'after starting the throwaway Radicale container',
     )
   }
-  return `${base}/e2e-user/`
+  return base
 }
 
-export const CALDAV_URL = requireCaldavUrl()
+/**
+ * The collection root for a given CalDAV user.
+ *
+ * The container runs with `[auth] type = none`
+ * (helpers/radicale-container.ts), so any username authenticates and each
+ * gets a collection root of its own.
+ */
+export const caldavUrlFor = (user: string): string =>
+  `${requireCaldavBase()}/${user}/`
 
-export async function login(page: Page): Promise<void> {
+/** Kept for anything that still wants the shared account. */
+export const CALDAV_URL = caldavUrlFor('e2e-user')
+
+/**
+ * Sign in as a user of this **test's own**, derived from its title.
+ *
+ * Every spec used to share one `e2e-user`, which made the whole suite
+ * share one nav. That is where a run of confusing failures came from: a
+ * reorder spec assuming its two lists were adjacent, a count assuming
+ * only its own todos were in Today, a header timing out because eighteen
+ * accumulated lists each cost a conditional request on first paint. All
+ * three were assumptions about state another spec owned.
+ *
+ * A user per test removes the class rather than patching instances. It is
+ * free here — no account setup, no cleanup — because auth is off and
+ * storage is thrown away with the container.
+ *
+ * Pass an explicit `user` only to *share* an account deliberately (a test
+ * that signs out and back in, say).
+ * *(added 2026-08-05.)*
+ */
+export async function login(page: Page, user?: string): Promise<void> {
+  const account = user ?? currentTestUser()
   await page.goto('/')
-  await page.getByLabel('Server URL').fill(CALDAV_URL)
-  await page.getByLabel('Username').fill('e2e-user')
+  await page.getByLabel('Server URL').fill(caldavUrlFor(account))
+  await page.getByLabel('Username').fill(account)
   await page.getByLabel('Password').fill('anything')
   await page.getByRole('button', { name: 'Sign in' }).click()
+}
+
+/**
+ * A Radicale-safe user name for the running test.
+ *
+ * Derived from the test title so a failure names the account it used, and
+ * suffixed with the worker index because the same title can run in two
+ * projects (desktop and mobile) at once.
+ */
+export function currentTestUser(): string {
+  const info = testInfo()
+  const slug = info.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40)
+  return `e2e-${slug}-${info.parallelIndex}`
 }
 
 /** Unique per test run so runs never collide in radicale storage. */
