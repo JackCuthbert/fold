@@ -24,6 +24,31 @@ describe('listKindOf', () => {
     expect(listKindOf('Wellbeing')).toBe('HEALTH_LIST')
   })
 
+  it('recognises the everyday names people actually use', () => {
+    for (const name of ['Supermarket', 'Market', 'Food shopping']) {
+      expect(listKindOf(name)).toBe('GROCERY_LIST')
+    }
+    for (const name of ['Housework', 'Cleaning', 'Errands', 'Maintenance']) {
+      expect(listKindOf(name)).toBe('CHORES_LIST')
+    }
+    for (const name of ['Books', 'Films', 'Podcasts', 'Someday', 'Backlog']) {
+      expect(listKindOf(name)).toBe('MEDIA_LIST')
+    }
+    for (const name of ['Medical', 'Meds', 'Appointments', 'Dentist']) {
+      expect(listKindOf(name)).toBe('HEALTH_LIST')
+    }
+  })
+
+  // Health promotes its todos above everything else, unconditionally, so a
+  // false positive there is louder than in any other kind. These names all
+  // touch on health but describe lists that are as often a log or a wish
+  // list as a set of things to do (docs/specs/list-kinds.md).
+  it('keeps fitness-adjacent names out of the health kind', () => {
+    for (const name of ['Fitness', 'Exercise', 'Gym', 'Self care', 'Running']) {
+      expect(listKindOf(name)).toBeNull()
+    }
+  })
+
   // The rule that makes the feature predictable, and the one most likely
   // to be "improved" into substring matching by someone later.
   it('never matches on a substring', () => {
@@ -60,7 +85,7 @@ describe('featuresOf', () => {
       bulkComplete: true,
       bulkSchedule: false,
       noDueDates: false,
-      first: false,
+      health: false,
     })
   })
 
@@ -72,7 +97,7 @@ describe('featuresOf', () => {
       bulkComplete: true,
       bulkSchedule: true,
       noDueDates: false,
-      first: false,
+      health: false,
     })
   })
 
@@ -82,7 +107,7 @@ describe('featuresOf', () => {
       bulkComplete: false,
       bulkSchedule: false,
       noDueDates: true,
-      first: false,
+      health: false,
     })
   })
 
@@ -92,7 +117,7 @@ describe('featuresOf', () => {
       bulkComplete: false,
       bulkSchedule: false,
       noDueDates: false,
-      first: false,
+      health: false,
     })
   })
 
@@ -103,7 +128,7 @@ describe('featuresOf', () => {
     }
   })
 
-  it('lifts a health list to the front, and gives it no bulk actions', () => {
+  it('marks a health list, and gives it no bulk actions', () => {
     // Health todos are ordinary todos in their own list — the behaviour is
     // entirely about where they appear in the derived views.
     expect(featuresOf('Health')).toEqual({
@@ -111,14 +136,14 @@ describe('featuresOf', () => {
       bulkComplete: false,
       bulkSchedule: false,
       noDueDates: false,
-      first: true,
+      health: true,
     })
-    expect(featuresOf('Wellbeing').first).toBe(true)
+    expect(featuresOf('Wellbeing').health).toBe(true)
   })
 
-  it('lifts nothing else to the front', () => {
+  it('marks no other kind as health', () => {
     for (const name of ['Groceries', 'Chores', 'Reading', 'Work']) {
-      expect(featuresOf(name).first).toBe(false)
+      expect(featuresOf(name).health).toBe(false)
     }
   })
 })

@@ -15,10 +15,16 @@ Fold matches the **whole name**, ignoring capitals. "Groceries" and
 
 | Call your list | And you get |
 |---|---|
-| Groceries, Grocery, Shopping | Grouping in Today and Summary, plus **Complete all** |
-| Chores, Chore | **Complete all** and **Schedule all** |
-| Reading, To-Read, Watching, To-Watch, Listening, To-Listen | No due dates — priority instead |
-| Health, Wellbeing | Always first in Today and Summary |
+| Groceries, Shopping, Supermarket, Market, Food shop | Grouping in Today and Summary, plus **Complete all** |
+| Chores, Housework, Cleaning, Errands, Jobs, Maintenance | **Complete all** and **Schedule all** |
+| Reading, Books, Watching, Films, TV, Listening, Music, Podcasts, Games, Someday, Backlog, Wishlist | No due dates — priority instead |
+| Health, Wellbeing, Medical, Meds, Appointments, Doctor, Dentist, Therapy | Always first in Today and Summary |
+
+Plus the obvious variants — singulars, and `to-read`/`to read` either way.
+
+Note what's **not** in the health row: Fitness, Exercise, Gym. Those lists
+are often a training log rather than things to do, and pinning one to the
+top of Today every day would just teach you to ignore that block.
 
 ## Grouping
 

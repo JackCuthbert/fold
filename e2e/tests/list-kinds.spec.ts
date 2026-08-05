@@ -311,6 +311,23 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
   expect(otherRow).not.toBeNull()
   expect(blockBox!.y).toBeLessThan(otherRow!.y)
 
+  // And it stays inside the pane's reading column. An earlier version
+  // pulled its border outward into that padding so its rows would share
+  // the checkbox column with the todos below — which lined the rows up but
+  // broke the max width everything else respects
+  // (docs/specs/list-kinds.md). Its rows may be indented; the box may not
+  // escape. *(added 2026-08-05.)*
+  const paneBox = await page
+    .getByText('Urgent work thing', { exact: true })
+    .locator('xpath=ancestor::ul')
+    .first()
+    .boundingBox()
+  expect(paneBox).not.toBeNull()
+  expect(blockBox!.x).toBeGreaterThanOrEqual(paneBox!.x)
+  expect(blockBox!.x + blockBox!.width).toBeLessThanOrEqual(
+    paneBox!.x + paneBox!.width,
+  )
+
   // Completing it drops it out of the block — a finished health todo needs
   // no chasing, so it joins the ordinary Completed section.
   await block

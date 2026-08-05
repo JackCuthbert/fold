@@ -36,12 +36,31 @@ changes how a list behaves has to be one the user can predict from the
 name alone, and "is the name exactly this word" is predictable in a way
 "does the name contain this word" is not.
 
+`list-kind.ts` holds the authoritative table; the shape of each set
+matters more than the exact members:
+
 | Kind | Names |
 |---|---|
-| `GROCERY_LIST` | `groceries`, `grocery`, `shopping` |
-| `CHORES_LIST` | `chores`, `chore` |
-| `MEDIA_LIST` | `reading`, `to-read`, `to read`, `watching`, `to-watch`, `to watch`, `listening`, `to-listen`, `to listen` |
-| `HEALTH_LIST` | `health`, `wellbeing`, `well-being` |
+| `GROCERY_LIST` | `groceries`, `grocery`, `shopping`, `shop`, `supermarket`, `market`, `food shop(ping)` |
+| `CHORES_LIST` | `chores`, `chore`, `housework`, `household`, `cleaning`, `errands`, `jobs`, `odd jobs`, `maintenance` |
+| `MEDIA_LIST` | `reading`/`read`/`to-read`/`to read`, `books`; the same for watching and listening, plus `films`, `movies`, `tv`, `shows`, `albums`, `music`, `podcasts`, `games`; and `someday`, `someday/maybe`, `backlog`, `wishlist` |
+| `HEALTH_LIST` | `health`, `wellbeing`, `well-being`, `wellness`, `medical`, `medication`, `meds`, `prescriptions`, `appointments`, `doctor`, `dentist`, `therapy` |
+
+**The sets are sized by how loud a false positive is.** Grouping or
+hiding a due-date field is a tidy-up you can undo by renaming; promoting
+a list above everything else in Today is not, because the promotion is
+unconditional and would outrank a genuinely urgent chore. So `HEALTH_LIST`
+takes only names that mean *looking after my health* — `fitness`,
+`exercise`, `gym` and `self care` are deliberately excluded, since such a
+list is as often a training log or a wish list as a set of things to do,
+and a training log pinned to the top of Today every day teaches you to
+ignore the block.
+
+`MEDIA_LIST` is the widest for the opposite reason: its only behaviour is
+removing a field that such a list would not use anyway, so a generous
+match costs nothing. `someday` and `backlog` are in it because they are
+the same idea stated generically — a queue rather than a schedule.
+*(expanded 2026-08-05: each kind began with only two or three names.)*
 
 **One kind per list.** A grocery list is a distinct thing from a chores
 list, which is distinct from a reading list; a list that is somehow both
@@ -194,16 +213,36 @@ not an alarm. Where the block exists its heading names it in words, so
 neither colour nor iconography is ever the only signal
 ([ui](./ui.md) — accessibility).
 
-**The block must not move the rows it contains.** Its border is pulled
-outward into the pane's padding rather than insetting its contents, so a
-row inside sits on the same checkbox column as the rows below
-([ui](./ui.md) — one left edge). The first implementation used
-`padding-inline`, which indented every row in the block by 12px — invisible
-in isolation, obvious against the ungrouped rows beneath.
-*(fixed 2026-08-05.)*
+**The block stays inside the pane's measure, and its rows are allowed to
+be indented.** Equal padding on all four edges; the border does not break
+out of the reading column to make the rows inside line up with the todos
+below.
+
+This is a deliberate exception to [ui](./ui.md)'s one-left-edge rule, and
+the second attempt at it. The first indented the rows *without* saying so,
+which read as a mistake. The second pulled the border outward into the
+pane's padding so the rows shared the checkbox column — which fixed the
+alignment but broke the container's max width, trading a real edge for a
+notional one. The block is a section of its own, so it may be indented
+like one; what it must not do is escape the column everything else
+respects.
+*(changed 2026-08-05, twice.)*
 
 **No bulk actions.** Health todos are ordinary todos in their own list;
 everything about this kind is where they appear.
+
+**The feature flag is `health`, not something generic.** It was `first`,
+which promised a generality the code does not have: the heart, the red
+palette and the literal word "Health" are all fixed at the view, so a
+second kind setting a `first` flag would silently inherit a red heart and
+prose about health. A specific name cannot be misread that way, and
+`partitionHealth` / `isHealthTodo` match it.
+
+The day a second kind wants a leading block of its own, generalise it
+*then* — with two real cases to design the label, glyph and tone against
+rather than one imagined one. Until then this is honestly one kind's
+behaviour, the same way `groups` is honestly grocery-shaped.
+*(renamed 2026-08-05: was `first`.)*
 
 *(added 2026-08-05.)*
 

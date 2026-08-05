@@ -1,5 +1,5 @@
 import type { Todo, TodoList } from '@fold/schemas'
-import { groupTodos, leadsDerivedViews, partitionFirst } from './group-by-list'
+import { groupTodos, isHealthTodo, partitionHealth } from './group-by-list'
 import { GroupRow } from './group-row'
 import { dayLabel, summariseCompleted } from './summary'
 import styles from './summary-pane.module.css'
@@ -48,8 +48,8 @@ export function SummaryPane(props: {
         // already done, so the heart alone carries the category and the day
         // stays one uninterrupted run of rows.
         // *(added 2026-08-05, issue #27.)*
-        const { first, rest } = partitionFirst(group.todos, props.lists)
-        const rows = groupTodos([...first, ...rest], props.lists)
+        const { health, rest } = partitionHealth(group.todos, props.lists)
+        const rows = groupTodos([...health, ...rest], props.lists)
         return (
           <section key={group.day} className={styles['day']}>
             {/* A heading per day rather than a divider: this view is read by
@@ -80,7 +80,7 @@ export function SummaryPane(props: {
                     todo={row.todo}
                     now={now}
                     listName={listName(row.todo.listId)}
-                    {...(leadsDerivedViews(row.todo, props.lists)
+                    {...(isHealthTodo(row.todo, props.lists)
                       ? { health: true }
                       : {})}
                     onOpen={(trigger) => props.onOpen(row.todo, trigger)}

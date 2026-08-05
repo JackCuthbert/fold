@@ -35,15 +35,23 @@ export interface KindFeatures {
    */
   noDueDates: boolean
   /**
-   * Lift this list's todos into their own block at the top of every
-   * derived view (docs/specs/list-kinds.md — health first).
+   * Treat this list as **health**: its todos lead every derived view, in
+   * a block of their own, marked with a heart
+   * (docs/specs/list-kinds.md — health first).
    *
-   * Unconditional, not a weighting: a high-priority chore does not
-   * outrank a health todo. Health is the one category where "I'll get to
-   * it" is the wrong outcome, so it is not competing on the same scale as
-   * everything else.
+   * Named for the category rather than for the behaviour, and
+   * deliberately so. It was `first: true`, which promised a generality
+   * the code does not have — the heart, the red palette and the literal
+   * word "Health" are all hardcoded at the view, so a second kind setting
+   * a `first` flag would have silently inherited a red heart and prose
+   * about health. A specific name cannot be misread that way.
+   *
+   * The day a second kind wants its own leading block, generalise it
+   * *then* — with two real cases to design the label, glyph and tone
+   * against, rather than one imagined one.
+   * *(renamed 2026-08-05: was `first`.)*
    */
-  first: boolean
+  health: boolean
 }
 
 interface KindDefinition {
@@ -67,12 +75,26 @@ const NONE: KindFeatures = {
   bulkComplete: false,
   bulkSchedule: false,
   noDueDates: false,
-  first: false,
+  health: false,
 }
 
 const DEFINITIONS: Record<ListKind, KindDefinition> = {
   GROCERY_LIST: {
-    names: ['groceries', 'grocery', 'shopping'],
+    // Singular and plural of each, and the words people actually name a
+    // shopping list: "Supermarket" and "Woolies"/"Coles" are common in
+    // AU, "Market" reads the same way. Not "Errands" — that is a chores
+    // list wearing a shopping name, and grouping it would hide things
+    // that are individually interesting.
+    names: [
+      'groceries',
+      'grocery',
+      'shopping',
+      'shop',
+      'supermarket',
+      'market',
+      'food shop',
+      'food shopping',
+    ],
     label: 'Grocery list',
     description:
       'Its todos are grouped into a single row in Today and Summary — ' +
@@ -81,7 +103,21 @@ const DEFINITIONS: Record<ListKind, KindDefinition> = {
     features: { ...NONE, groups: true, bulkComplete: true },
   },
   CHORES_LIST: {
-    names: ['chores', 'chore'],
+    // Household work under whatever name: "Housework", "Cleaning",
+    // "Errands", "Jobs". These get bulk complete *and* bulk schedule, so
+    // the bar is "a batch of small jobs that often share a day" —
+    // Saturday's list. "Maintenance" qualifies on the same reading.
+    names: [
+      'chores',
+      'chore',
+      'housework',
+      'household',
+      'cleaning',
+      'errands',
+      'jobs',
+      'odd jobs',
+      'maintenance',
+    ],
     label: 'Chores list',
     description:
       'You can tick off the whole list at once, or give every todo in it ' +
@@ -89,16 +125,40 @@ const DEFINITIONS: Record<ListKind, KindDefinition> = {
     features: { ...NONE, bulkComplete: true, bulkSchedule: true },
   },
   MEDIA_LIST: {
+    // Things to get to, in any medium. The `to-x` / `to x` pairs are the
+    // same name with and without the hyphen, since both are natural to
+    // type. Media nouns too ("Books", "Films", "Podcasts") — a list of
+    // those is a queue, not a schedule, which is exactly the case for
+    // dropping due dates. "Someday" and "Backlog" are the same idea
+    // stated generically.
     names: [
       'reading',
       'to-read',
       'to read',
+      'read',
+      'books',
       'watching',
       'to-watch',
       'to watch',
+      'watch',
+      'films',
+      'movies',
+      'tv',
+      'shows',
       'listening',
       'to-listen',
       'to listen',
+      'listen',
+      'albums',
+      'music',
+      'podcasts',
+      'games',
+      'someday',
+      'somedaymaybe',
+      'someday/maybe',
+      'backlog',
+      'wishlist',
+      'wish list',
     ],
     label: 'Reading list',
     description:
@@ -108,13 +168,37 @@ const DEFINITIONS: Record<ListKind, KindDefinition> = {
     features: { ...NONE, noDueDates: true },
   },
   HEALTH_LIST: {
-    names: ['health', 'wellbeing', 'well-being'],
+    // The narrowest set of the four, deliberately. This kind *promotes*
+    // todos above everything else, so a false positive is louder than the
+    // others': it reorders a view rather than tidying one, and the
+    // promotion is unconditional — a mis-matched list would outrank a
+    // genuinely urgent chore.
+    //
+    // So: only names that mean "looking after my health", and nothing
+    // that merely touches on it. "Fitness", "Exercise" and "Gym" are all
+    // out — those lists are as often a training log or a wish list as a
+    // set of things to do, and a training log at the top of Today every
+    // day would teach you to ignore the block. Same for "Self care".
+    names: [
+      'health',
+      'wellbeing',
+      'well-being',
+      'wellness',
+      'medical',
+      'medication',
+      'meds',
+      'prescriptions',
+      'appointments',
+      'doctor',
+      'dentist',
+      'therapy',
+    ],
     label: 'Health list',
     description:
       'Its todos lead every derived view, in a block of their own marked ' +
       'with a heart — health is the one thing that should not wait behind ' +
       'a chore. Otherwise they are ordinary todos.',
-    features: { ...NONE, first: true },
+    features: { ...NONE, health: true },
   },
 }
 

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { duplicateTodo } from './duplicate-todo'
-import { groupTodos, leadsDerivedViews, partitionFirst } from './group-by-list'
+import { groupTodos, isHealthTodo, partitionHealth } from './group-by-list'
 import { GroupRow } from './group-row'
 import { HealthBlock } from './health-block'
 import { useSound } from '../sound/use-sound'
@@ -62,7 +62,7 @@ export function TodayPane(props: {
   // before grouping: the two rules do not interact (no kind both leads and
   // groups), but partitioning first keeps each half's grouping independent.
   // *(added 2026-08-05, issue #27.)*
-  const { first: healthActive, rest: restActive } = partitionFirst(
+  const { health: healthActive, rest: restActive } = partitionHealth(
     active,
     props.lists,
   )
@@ -154,7 +154,7 @@ export function TodayPane(props: {
                     todo={row.todo}
                     now={now}
                     listName={listName(row.todo.listId)}
-                    {...(leadsDerivedViews(row.todo, props.lists)
+                    {...(isHealthTodo(row.todo, props.lists)
                       ? { health: true }
                       : {})}
                     onOpen={(trigger) => props.onOpen(row.todo, trigger)}

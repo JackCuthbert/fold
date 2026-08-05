@@ -121,6 +121,14 @@
 .meta {
   margin-left: auto;
   display: flex;
+  /* Centred, not the flex default of `stretch`. Everything here was text
+     of one size until a glyph joined it (the health heart), and a
+     stretched icon sits on its own box rather than on the text's optical
+     line — the heart read as sitting high against "Health  Aug 5" beside
+     it. Centring aligns the two properly, and nothing here is tall
+     enough for it to change the text's own position.
+     *(added 2026-08-05.)* */
+  align-items: center;
   gap: var(--space-2);
   font-size: var(--text-xs);
   color: var(--muted);
@@ -149,14 +157,15 @@
    the alarm reds (see priority.module.css), and a health todo is not an
    error or an overdue warning. The muted list red reads as a category.
 
-   `flex: none` and a nudge down: it sits in the meta cluster beside text
-   at --text-sm, and a glyph's optical centre is slightly above a
-   lowercase line's. */
+   No transform. A half-pixel nudge was standing in for the real problem —
+   `.meta` was stretching its children rather than centring them, so the
+   glyph sat on its own box instead of the text's line. Fixing the
+   container made the nudge an off-centre half pixel of its own.
+   *(fixed 2026-08-05.)* */
 .health {
   flex: none;
   color: var(--list-red);
   fill: currentColor;
-  transform: translateY(0.5px);
 }
 
 .prioHigh {

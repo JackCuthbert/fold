@@ -19,15 +19,25 @@ import paneStyles from './todo-pane.module.css'
 export function HealthBlock(props: { children: ReactNode; count: number }) {
   if (props.count === 0) return null
   return (
-    <section className={styles['block']} aria-label="Health">
-      {/* The heading names the block, so the rows' hearts are not the only
-          thing carrying the category — colour and iconography are never
-          the sole signal (docs/specs/ui.md — accessibility). */}
+    <section className={styles['section']} aria-label="Health">
+      {/* Above the box, not inside it. The heading labels the block the way
+          Summary's day headings label their days — a caption sits outside
+          the thing it names, and inside the border it read as a first row
+          of the block's own content, competing with the todos below it.
+          It also lets the box hold nothing but rows, so its padding is
+          uniform without the heading's own spacing to reconcile.
+          *(moved 2026-08-05.)*
+
+          The heading names the category, so the rows' hearts are never the
+          only thing carrying it — colour and iconography are never the
+          sole signal (docs/specs/ui.md — accessibility). */}
       <h2 className={styles['heading']}>
         <LuHeart className={styles['heart']} size={13} aria-hidden="true" />
         Health
       </h2>
-      <ul className={paneStyles['list']}>{props.children}</ul>
+      <div className={styles['block']}>
+        <ul className={paneStyles['list']}>{props.children}</ul>
+      </div>
     </section>
   )
 }

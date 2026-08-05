@@ -2,8 +2,8 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { featuresOf } from '../lists/list-kind'
 
 /**
- * Split todos into the ones that lead a derived view and the rest
- * (docs/specs/list-kinds.md — health first).
+ * Split todos into the health ones, which lead every derived view, and
+ * the rest (docs/specs/list-kinds.md — health first).
  *
  * Order *within* each half is preserved, so whatever the caller sorted by
  * still holds — this only decides which block a todo lands in.
@@ -12,31 +12,33 @@ import { featuresOf } from '../lists/list-kind'
  * not "health sorts earlier", it is "health is a separate block". Folding
  * it into the sort would make a health todo due next month appear to be
  * overdue, since position in that list means time.
+ *
+ * Named for health rather than for "leads the view", matching the feature
+ * flag — the block's heart, colour and label are all health's, so a
+ * generic name would invite a second kind to reuse it and inherit them.
+ * *(renamed 2026-08-05: was `partitionFirst`.)*
  */
-export function partitionFirst(
+export function partitionHealth(
   todos: readonly Todo[],
   lists: readonly TodoList[],
-): { first: Todo[]; rest: Todo[] } {
+): { health: Todo[]; rest: Todo[] } {
   const byId = new Map(lists.map((list) => [list.id, list]))
-  const first: Todo[] = []
+  const health: Todo[] = []
   const rest: Todo[] = []
   for (const todo of todos) {
     const list = byId.get(todo.listId)
     // An unknown list cannot be looked up, so it stays in the main block —
     // the safe default, same as grouping.
-    if (list && featuresOf(list.displayName).first) first.push(todo)
+    if (list && featuresOf(list.displayName).health) health.push(todo)
     else rest.push(todo)
   }
-  return { first, rest }
+  return { health, rest }
 }
 
-/** True when this todo's list leads derived views. */
-export function leadsDerivedViews(
-  todo: Todo,
-  lists: readonly TodoList[],
-): boolean {
+/** True when this todo belongs to a health list. */
+export function isHealthTodo(todo: Todo, lists: readonly TodoList[]): boolean {
   const list = lists.find((entry) => entry.id === todo.listId)
-  return list ? featuresOf(list.displayName).first : false
+  return list ? featuresOf(list.displayName).health : false
 }
 
 // docs/specs/list-kinds.md — grouping in derived views.

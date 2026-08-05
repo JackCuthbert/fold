@@ -11,23 +11,29 @@
    The tint is barely there. It exists so the block still groups when the
    border alone is ambiguous against the row hairlines inside it, not to
    colour the rows. */
+/* The heading plus the box. The section owns the gap to the list below;
+   the box owns its own padding, and holds nothing but rows.
+   *(added 2026-08-05, when the heading moved outside the box.)* */
+.section {
+  /* Clear of the list below, so this reads as its own section rather than
+     as the first few rows of that list. */
+  margin-block-end: var(--space-4);
+}
+
 .block {
   border: var(--border-width) solid var(--health-edge);
   border-radius: var(--radius-sm);
   background: var(--health-wash);
-  /* docs/specs/ui.md — one left edge. The border is pulled *outward* into
-     the pane's own padding instead of insetting its contents, so a row
-     inside the block sits on exactly the same checkbox column as the rows
-     below it.
-     An earlier version used `padding-inline` here, which indented every
-     row in the block by 12px — measured against the ungrouped rows
-     beneath, which is where it was obvious. A box that groups rows must
-     not move them. *(fixed 2026-08-05.)* */
-  margin-inline: calc(var(--space-3) * -1);
-  padding-inline: var(--space-3);
-  /* Space below, so the block reads as its own section rather than as the
-     first few rows of the list beneath it. */
-  margin-block-end: var(--space-5);
+  /* Equal on all four edges. The block stays *within* the pane's measure
+     rather than being pulled out into its padding: a box that breaks the
+     reading column to line its rows up with the ones outside it trades a
+     real edge for a notional one. Its rows sitting a padding further in
+     than the todos below is accepted — the block is a section of its own,
+     and is allowed to be indented like one.
+     *(changed 2026-08-05: previously `margin-inline` pulled the border
+     outward so the rows shared the checkbox column, which broke the
+     container's max width.)* */
+  padding: var(--space-3);
 }
 
 /* The last row's hairline would sit a padding's width above the block's
@@ -38,14 +44,18 @@
 
 /* Names the block, so the heart is never the only thing carrying the
    meaning (docs/specs/ui.md — accessibility: colour is never the only
-   signal). Quiet: the rows are the content, and this is a label. */
+   signal). Quiet: the rows are the content, and this is a label.
+
+   Outside the box now, so it only needs to space itself from the box
+   below it — the box owns its own padding, uniform on all four edges,
+   with no heading inside to reconcile against.
+   *(changed 2026-08-05: was inside, where its padding stacked on the
+   block's and made the block look bottom-cropped.)* */
 .heading {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  /* Aligns with the block's own inset rather than the rows' text, which
-     starts a checkbox-column further in. */
-  padding-block: var(--space-2);
+  margin-block-end: var(--space-2);
   color: var(--list-red);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
