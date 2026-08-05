@@ -71,6 +71,63 @@ describe('selectToday', () => {
     expect(selectToday([todo('someday')], NOW)).toEqual([])
   })
 
+  // The overdue rule is for work still to be chased. Applied to finished
+  // work it turned Today's "Completed" section into an ever-growing
+  // archive of every todo ever ticked off.
+  it('drops todos completed on a previous day', () => {
+    const items = [
+      todo('done-last-week', {
+        completed: true,
+        completedAt: '2026-08-03T09:00:00.000Z',
+        due: { kind: 'date', value: '2026-08-03' },
+      }),
+      todo('done-yesterday', {
+        completed: true,
+        completedAt: '2026-08-09T09:00:00.000Z',
+        due: { kind: 'date', value: '2026-08-09' },
+      }),
+    ]
+    expect(selectToday(items, NOW)).toEqual([])
+  })
+
+  it('keeps a todo completed today, even one that was overdue', () => {
+    // Finished today is today's work, whenever it happened to be due.
+    const items = [
+      todo('caught-up', {
+        completed: true,
+        completedAt: '2026-08-10T09:00:00.000Z',
+        due: { kind: 'date', value: '2026-08-01' },
+      }),
+    ]
+    expect(selectToday(items, NOW).map((t) => t.uid)).toEqual(['caught-up'])
+  })
+
+  it('falls back to the due date when COMPLETED is absent', () => {
+    // Another client may tick a todo without writing COMPLETED. Without a
+    // finish time, due-today is the only signal that it belongs here.
+    const items = [
+      todo('no-timestamp-today', {
+        completed: true,
+        due: { kind: 'date', value: '2026-08-10' },
+      }),
+      todo('no-timestamp-old', {
+        completed: true,
+        due: { kind: 'date', value: '2026-08-02' },
+      }),
+    ]
+    expect(selectToday(items, NOW).map((t) => t.uid)).toEqual([
+      'no-timestamp-today',
+    ])
+  })
+
+  it('still shows active todos from any time in the past', () => {
+    // The bound added for completed todos must not narrow the active rule.
+    const items = [
+      todo('ancient', { due: { kind: 'date', value: '2025-01-01' } }),
+    ]
+    expect(selectToday(items, NOW).map((t) => t.uid)).toEqual(['ancient'])
+  })
+
   it('includes an all-day todo due today, all day long', () => {
     // An all-day date resolves to the end of its local day, so it must
     // still count as "today" at 12:00 — and at 23:00.

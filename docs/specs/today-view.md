@@ -46,6 +46,15 @@ leaves the view the next day and is only findable by visiting its own list.
   holds the day's finished work rather than an ever-growing archive, which
   is worth seeing at a glance. It stays collapsible; only the initial state
   differs. *(changed 2026-08-02.)*
+- **The overdue rule applies to active todos only.** A completed todo is in
+  Today when it was finished today, or — if the finish time is missing —
+  when it was due today. Extending the open-ended lower bound to finished
+  work was exactly the ever-growing archive the accordion is meant not to
+  be: every todo ever completed accumulated in the section, since a past
+  due date always satisfies "due today or earlier". Nothing is being kept
+  visible by that, either; the reason overdue items stay is that they still
+  need chasing, and a finished one doesn't.
+  *(fixed 2026-08-05: completed todos from previous days leaked in.)*
 
 ## Ordering
 

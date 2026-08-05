@@ -51,6 +51,13 @@ export function endOfLocalDay(now: Date): number {
   return end.getTime()
 }
 
+/** First millisecond of `now`'s local day. */
+export function startOfLocalDay(now: Date): number {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  return start.getTime()
+}
+
 /**
  * Todos due today or already overdue, across every list
  * (docs/specs/today-view.md).
@@ -62,10 +69,32 @@ export function endOfLocalDay(now: Date): number {
  *
  * A todo with no due date resolves to +Infinity via `dueInstant` and so is
  * naturally excluded by the upper bound.
+ *
+ * **Completed todos are bounded at both ends**, unlike active ones. The
+ * open-ended lower bound exists so missed work stays visible; applied to
+ * finished work it did the opposite, accumulating every todo ever
+ * completed on any past day into today's "Completed" section, which is
+ * meant to be one day's slice. A finished todo needs no chasing, so
+ * there is nothing to keep visible.
+ *
+ * "Today" for a completed todo means finished today *or* due today —
+ * `completedAt` is the truer signal but is optional (another client may
+ * omit COMPLETED), so the due date is the fallback that keeps such a todo
+ * from disappearing entirely.
+ * *(fixed 2026-08-05: completed todos from previous days leaked in.)*
  */
 export function selectToday(todos: readonly Todo[], now: Date): Todo[] {
   const cutoff = endOfLocalDay(now)
-  return todos.filter((todo) => dueInstant(todo) <= cutoff)
+  const dayStart = startOfLocalDay(now)
+  return todos.filter((todo) => {
+    const due = dueInstant(todo)
+    if (!todo.completed) return due <= cutoff
+    if (todo.completedAt) {
+      const finished = new Date(todo.completedAt).getTime()
+      return finished >= dayStart && finished <= cutoff
+    }
+    return due >= dayStart && due <= cutoff
+  })
 }
 
 /**
