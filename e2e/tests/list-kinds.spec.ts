@@ -100,12 +100,19 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
     .first()
     .click()
   await expect(page.getByText('3 todos', { exact: true })).toBeVisible()
-  // The header counts rows, not the todos behind them: two rows here —
-  // the Groceries group and the ungrouped "Write the report" — so "2
-  // todos", never "4". *(added 2026-08-05.)*
-  // `main`-scoped: the nav's status dot and the toast region are also
-  // role="status", and only this one is the header's count line.
-  await expect(page.getByRole('main').getByRole('status')).toHaveText('2 todos')
+  // No assertion on the header's number here, deliberately. Today spans
+  // every list on the shared Radicale, so its count includes other specs'
+  // todos and any literal is a hostage to whatever else has run — this
+  // asserted "2 todos" and failed in CI the moment a parallel spec created
+  // something due today. Reconstructing the expected total by walking the
+  // DOM was the next attempt and was worse: brittle selectors testing the
+  // markup rather than the rule.
+  //
+  // The rule — a grouped list contributes one row to the count — is a pure
+  // function of todos and lists, and is unit-tested directly against every
+  // case, including the mixed one (test/view-count-rows.test.ts). This
+  // spec covers what only it can: that grouping reaches the screen at all.
+  // *(changed 2026-08-05.)*
   // The individual items are behind the group, not beside it — that is
   // the whole point of collapsing them.
   await expect(page.getByText('Eggs')).toBeHidden()

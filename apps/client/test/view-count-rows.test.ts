@@ -64,6 +64,25 @@ describe('countableRows', () => {
   // (docs/specs/list-kinds.md), which puts them outside the grouped list
   // the rest of the view renders — but they are still rows on the screen,
   // so the header has to keep counting them.
+  // The case CI hit: unrelated todos, active and completed, sharing the
+  // view with a grouped list. The group still contributes exactly one row
+  // whatever else is present — which is what the e2e used to assert with a
+  // literal "2 todos", and could not, since Today spans every list on a
+  // shared server. *(added 2026-08-05.)*
+  it('counts a group once amid unrelated active and completed todos', () => {
+    const todos = [
+      todo('eggs', 'g'),
+      todo('bread', 'g'),
+      todo('milk', 'g'),
+      todo('report', 'w'),
+      todo('someone-elses', 'w'),
+      todo('finished', 'w', true),
+    ]
+    // Four rows: the Groceries group, two work todos, one done.
+    expect(countableRows(todos, LISTS)).toHaveLength(4)
+    expect(countSummary(countableRows(todos, LISTS))).toBe('3 todos · 1 done')
+  })
+
   it('counts health rows, which render outside the main list', () => {
     const lists = [...LISTS, list('h', 'Health')]
     const todos = [todo('tablets', 'h'), todo('eggs', 'g'), todo('bread', 'g')]
