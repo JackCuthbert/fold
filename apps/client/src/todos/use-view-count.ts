@@ -93,17 +93,31 @@ export function useViewCount(options: {
  * One representative todo per rendered row.
  *
  * A grouped list contributes a single entry, so the header agrees with
- * what is on screen. Which todo represents the group decides whether the
- * row reads as done: a group is only finished when every todo in it is
- * (group-row.tsx), so an outstanding one is picked when there is one.
+ * what is on screen.
+ *
+ * **Grouped per half, because that is how the panes draw it.** Today
+ * renders its outstanding rows and its Completed section as two separate
+ * lists, each grouped on its own (today-pane.tsx), so a grocery list with
+ * both outstanding and finished items shows *two* group rows — one above,
+ * one in the accordion. Grouping the whole slice in one pass collapsed
+ * them into a single row and lost the completed one from the count
+ * entirely: four groceries, two of them done, counted "1 todo" against
+ * two visible rows.
+ * *(fixed 2026-08-05: was one pass over everything.)*
  */
 export function countableRows(
   todos: readonly Todo[],
   lists: readonly TodoList[],
 ): Todo[] {
-  return groupTodos(todos, lists).map((row) =>
-    row.kind === 'todo'
-      ? row.todo
-      : (row.todos.find((todo) => !todo.completed) ?? row.todos[0]!),
-  )
+  const half = (subset: readonly Todo[]): Todo[] =>
+    groupTodos(subset, lists).map((row) =>
+      // A group is only finished when every todo in it is
+      // (group-row.tsx). Splitting first means each half is already
+      // uniform, so the representative simply comes from it.
+      row.kind === 'todo' ? row.todo : row.todos[0]!,
+    )
+  return [
+    ...half(todos.filter((todo) => !todo.completed)),
+    ...half(todos.filter((todo) => todo.completed)),
+  ]
 }

@@ -37,16 +37,20 @@ describe('countableRows', () => {
     expect(countSummary(countableRows(todos, LISTS))).toBe('2 todos')
   })
 
-  it('reads a group as outstanding while any todo in it is', () => {
-    // The row is struck through only when the group is wholly finished
-    // (group-row.tsx), so the count has to agree — otherwise the header
-    // says "done" about a row that does not look done.
+  it('splits a part-done group across both halves', () => {
+    // A grocery list with some items ticked renders *two* group rows — one
+    // outstanding above, one struck through in the Completed section — so
+    // the count reports one of each. This test previously asserted "1 todo
+    // · 1 done" for the same input, on the mistaken belief that a group is
+    // one row across the whole view; it is one row per half, because that
+    // is how the pane draws it. *(corrected 2026-08-05.)*
     const todos = [
       todo('eggs', 'g', true),
       todo('bread', 'g', false),
       todo('report', 'w', true),
     ]
-    expect(countSummary(countableRows(todos, LISTS))).toBe('1 todo · 1 done')
+    // Groceries outstanding, then Groceries done + the work todo.
+    expect(countSummary(countableRows(todos, LISTS))).toBe('1 todo · 2 done')
   })
 
   it('reads a wholly finished group as done', () => {
@@ -81,6 +85,21 @@ describe('countableRows', () => {
     // Four rows: the Groceries group, two work todos, one done.
     expect(countableRows(todos, LISTS)).toHaveLength(4)
     expect(countSummary(countableRows(todos, LISTS))).toBe('3 todos · 1 done')
+  })
+
+  // Today draws its active and completed rows as two separate lists, each
+  // grouped on its own — so a list with both produces *two* group rows.
+  // Grouping the whole slice at once collapses them into one and
+  // undercounts. *(added 2026-08-05.)*
+  it('counts a grouped list once per half when it has both', () => {
+    const todos = [
+      todo('eggs', 'g'),
+      todo('bread', 'g'),
+      todo('milk', 'g', true),
+      todo('butter', 'g', true),
+    ]
+    // Two rows on screen: one Groceries group above, one in Completed.
+    expect(countSummary(countableRows(todos, LISTS))).toBe('1 todo · 1 done')
   })
 
   it('counts health rows, which render outside the main list', () => {
