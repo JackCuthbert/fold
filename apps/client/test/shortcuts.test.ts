@@ -88,13 +88,23 @@ describe('shortcutLetter', () => {
     const printed = Object.fromEntries(
       SHORTCUTS.map((s) => [s.action, shortcutLetter(s)]),
     )
-    expect(printed).toEqual({
-      'new-todo': 'K',
-      'new-list': 'N',
-      help: '/',
-      'go-view:1': '1',
-      'go-view:2': '2',
-    })
+    expect(printed['new-todo']).toBe('K')
+    expect(printed['new-list']).toBe('N')
+    expect(printed['help']).toBe('/')
+  })
+
+  // The view caps are asserted as a *rule* rather than a list. Spelling
+  // out every view meant adding one broke this test for no reason —
+  // shape, not behaviour (CLAUDE.md). What matters is that the nth view's
+  // cap prints n, whichever views exist. *(changed 2026-08-05: was a
+  // literal map of two views.)*
+  it('prints the view number on each view’s cap', () => {
+    const views = SHORTCUTS.filter((s) => s.action.startsWith('go-view:'))
+    expect(views.length).toBe(Math.min(DERIVED_VIEWS.length, 9))
+    for (const [index, shortcut] of views.entries()) {
+      expect(shortcutLetter(shortcut)).toBe(String(index + 1))
+      expect(shortcut.action).toBe(`go-view:${index + 1}`)
+    }
   })
 })
 

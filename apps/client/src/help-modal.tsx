@@ -85,17 +85,20 @@ export function HelpModal(props: {
                 ))}
               </dl>
             </section>
-            {/* docs/specs/today-view.md, docs/specs/summary-view.md */}
+            {/* docs/specs/today-view.md, docs/specs/tomorrow-view.md,
+                docs/specs/summary-view.md */}
             <section className={styles['section']}>
-              <h3 className={styles['heading']}>Today and Summary</h3>
+              <h3 className={styles['heading']}>Today, Tomorrow and Summary</h3>
               <p>
                 <UI>Today</UI> gathers everything due today or already overdue,
-                from all your lists at once. <UI>Summary</UI> shows what
-                you&rsquo;ve finished, grouped by day — handy for a standup.
+                from all your lists at once. <UI>Tomorrow</UI> does the same for
+                the day ahead — but nothing overdue, which stays in Today.{' '}
+                <UI>Summary</UI> shows what you&rsquo;ve finished, grouped by
+                day — handy for a standup.
               </p>
               <p>
-                Neither is a list you can add to. They&rsquo;re just different
-                ways of looking at the todos you already have.
+                None of them is a list you can add to. They&rsquo;re just
+                different ways of looking at the todos you already have.
               </p>
             </section>
             {/* docs/specs/todos.md */}

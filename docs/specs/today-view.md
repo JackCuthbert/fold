@@ -37,6 +37,11 @@ No kebab menu: there is nothing on the server to rename or delete.
 stays in Today rather than disappearing — otherwise anything missed silently
 leaves the view the next day and is only findable by visiting its own list.
 
+This open-ended lower bound is the one thing
+[Tomorrow](./tomorrow-view.md) does *not* share: overdue work is today's
+problem, so it stays here rather than following you into the day ahead.
+*(added 2026-08-05.)*
+
 - "Today" means the **viewer's local day**, consistent with the overdue rule
   in [todos](./todos.md#ordering-and-overdue-comparison).
 - A todo with no due date is never in Today.

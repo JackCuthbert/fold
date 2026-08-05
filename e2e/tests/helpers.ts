@@ -277,3 +277,22 @@ export async function reloadFromServer(page: Page): Promise<void> {
   )
   await page.reload()
 }
+
+/**
+ * A local calendar date, `days` from today, in the `YYYY-MM-DD` form the
+ * `Due` field takes.
+ *
+ * Local parts rather than `toISOString()`, which converts to UTC first and
+ * so lands on the wrong day either side of midnight — the exact bug the
+ * app's own `addLocalDays` avoids. `setDate` rolls the month and year.
+ * *(added 2026-08-05: was written out inline in list-kinds.spec.ts.)*
+ */
+export function dateFieldValue(days = 0): string {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return [
+    String(date.getFullYear()),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}

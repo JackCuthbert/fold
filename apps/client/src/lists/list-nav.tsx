@@ -1,10 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 import type { IconType } from 'react-icons'
-import { LuHistory, LuPlus, LuSparkles, LuSun } from 'react-icons/lu'
+import { LuHistory, LuPlus, LuSparkles, LuSun, LuSunrise } from 'react-icons/lu'
 import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
-import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from '../todos/today'
+import {
+  DERIVED_VIEWS,
+  SUMMARY_VIEW,
+  TODAY_VIEW,
+  TOMORROW_VIEW,
+} from '../todos/today'
 import { useModifierHeld } from '../use-modifier-held'
 import { useTheme } from '../use-theme'
 import { ShortcutKeys } from '../shortcut-keys'
@@ -68,6 +73,10 @@ const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
  */
 const VIEW_META: Record<string, { label: string; icon: IconType }> = {
   [TODAY_VIEW]: { label: 'Today', icon: LuSun },
+  // A sunrise for the day not yet begun, against Today's full sun — the
+  // two read as a sequence at a glance, and both come from the same set
+  // (CLAUDE.md — one icon collection). *(added 2026-08-05.)*
+  [TOMORROW_VIEW]: { label: 'Tomorrow', icon: LuSunrise },
   [SUMMARY_VIEW]: { label: 'Summary', icon: LuHistory },
 }
 

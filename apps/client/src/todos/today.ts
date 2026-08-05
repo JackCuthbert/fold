@@ -12,6 +12,8 @@ import { dueInstant } from './sort'
 // have shadowed. A colon cannot appear unescaped in a path segment, so this
 // value can never collide with a real list id.
 export const TODAY_VIEW = 'view:today' as const
+/** docs/specs/tomorrow-view.md — what is coming, one day ahead. */
+export const TOMORROW_VIEW = 'view:tomorrow' as const
 /** docs/specs/summary-view.md — finished work, grouped by day. */
 export const SUMMARY_VIEW = 'view:summary' as const
 export type ViewId = string
@@ -32,10 +34,21 @@ export type ViewId = string
  * decision rather than an accident.
  *
  * *(added 2026-08-04.)*
+ *
+ * Tomorrow sits between Today and Summary because that is the order the
+ * three read in — the day you are in, the day next, then what is behind
+ * you. It cost Summary its chord: inserting here moved it from
+ * `Ctrl+Shift+2` to `Ctrl+Shift+3`. Taken deliberately, and only because
+ * the alternative is permanent — a nav ordered Today, Summary, Tomorrow
+ * would look wrong every day from now on to spare one relearned digit
+ * once. *(changed 2026-08-05: Tomorrow inserted at position 2.)*
  */
-export const DERIVED_VIEWS = [TODAY_VIEW, SUMMARY_VIEW] as const
+export const DERIVED_VIEWS = [TODAY_VIEW, TOMORROW_VIEW, SUMMARY_VIEW] as const
 
 export const isTodayView = (view: ViewId | null): boolean => view === TODAY_VIEW
+
+export const isTomorrowView = (view: ViewId | null): boolean =>
+  view === TOMORROW_VIEW
 
 export const isSummaryView = (view: ViewId | null): boolean =>
   view === SUMMARY_VIEW
@@ -56,6 +69,21 @@ export function startOfLocalDay(now: Date): number {
   const start = new Date(now)
   start.setHours(0, 0, 0, 0)
   return start.getTime()
+}
+
+/**
+ * The same date, `days` later — by calendar day, not by adding 24 hours.
+ *
+ * `setDate` is what makes it calendar arithmetic: it rolls the month and
+ * year, and it lands on the same wall-clock time across a daylight-saving
+ * boundary, where `+86_400_000` would land an hour out and put a midnight
+ * todo on the wrong side of the day boundary twice a year.
+ * *(added 2026-08-05.)*
+ */
+export function addLocalDays(now: Date, days: number): Date {
+  const shifted = new Date(now)
+  shifted.setDate(shifted.getDate() + days)
+  return shifted
 }
 
 /**
@@ -94,6 +122,46 @@ export function selectToday(todos: readonly Todo[], now: Date): Todo[] {
       return finished >= dayStart && finished <= cutoff
     }
     return due >= dayStart && due <= cutoff
+  })
+}
+
+/**
+ * Todos still **to do** tomorrow, across every list
+ * (docs/specs/tomorrow-view.md).
+ *
+ * Two rules, and both are narrowings of Today's:
+ *
+ * **Bounded at both ends.** Today's open-ended lower bound exists so
+ * missed work keeps following you until it is dealt with. Tomorrow has
+ * nothing to chase: an overdue todo is not tomorrow's problem, it is
+ * today's, and Today is already showing it. Letting overdue items leak in
+ * would make the two views near-copies of each other and turn the one
+ * question Tomorrow answers — "what is coming?" — into "what is coming,
+ * plus everything I have already failed to do".
+ *
+ * **Outstanding work only.** A completed todo belongs to the day it was
+ * *completed*, not the day it was due — which is already how Today selects
+ * (`completedAt`) and exactly how Summary groups. So ticking tomorrow's
+ * work off early moves it to Today, under Completed, and it lands on the
+ * real day in Summary.
+ *
+ * The row does vanish from Tomorrow on the click, and that is correct
+ * rather than a glitch: it is no longer something to do tomorrow. The
+ * first draft kept such todos here to avoid the disappearance, which cost
+ * a special case in this function *and* made Tomorrow the one view whose
+ * completed section could contradict Summary about which day the work
+ * happened on. Deleting the carve-out is what makes the day rule uniform.
+ * *(simplified 2026-08-05: was "finished today or later and due
+ * tomorrow".)*
+ */
+export function selectTomorrow(todos: readonly Todo[], now: Date): Todo[] {
+  const tomorrow = addLocalDays(now, 1)
+  const dayStart = startOfLocalDay(tomorrow)
+  const dayEnd = endOfLocalDay(tomorrow)
+  return todos.filter((todo) => {
+    if (todo.completed) return false
+    const due = dueInstant(todo)
+    return due >= dayStart && due <= dayEnd
   })
 }
 

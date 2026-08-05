@@ -1,4 +1,9 @@
-import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from './todos/today'
+import {
+  DERIVED_VIEWS,
+  SUMMARY_VIEW,
+  TODAY_VIEW,
+  TOMORROW_VIEW,
+} from './todos/today'
 
 /**
  * Keyboard shortcuts (docs/specs/ui.md — keyboard shortcuts, issue #5).
@@ -19,6 +24,7 @@ import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from './todos/today'
  */
 const VIEW_NAMES: Record<string, string> = {
   [TODAY_VIEW]: 'Today',
+  [TOMORROW_VIEW]: 'Tomorrow',
   [SUMMARY_VIEW]: 'Summary',
 }
 

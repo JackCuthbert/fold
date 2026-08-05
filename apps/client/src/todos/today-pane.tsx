@@ -11,7 +11,7 @@ import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { sortActiveTodos } from './sort'
 import styles from './today-pane.module.css'
-import { selectToday, sortByDueInstant } from './today'
+import { selectToday, selectTomorrow, sortByDueInstant } from './today'
 import { TodoDetail } from './todo-detail'
 import { TodoItem } from './todo-item'
 import paneStyles from './todo-pane.module.css'
@@ -24,8 +24,18 @@ import type { TodoDetailForm } from './use-todo-detail-form'
 // order them (by due instant vs the standard rules), and whether they can
 // create (Today cannot). Threading three flags through TodoPane would make
 // both harder to read than keeping them separate.
+//
+// Today and Tomorrow, by contrast, **are** the same pane
+// (docs/specs/tomorrow-view.md): same source, same ordering, same grouping,
+// same health block, same Completed accordion — only the day window
+// differs. So `day` selects the window and everything else is shared. Two
+// copies of this component would have been a hundred duplicated lines that
+// drift the first time one of them is fixed, which is the opposite trade
+// from the TodoPane one above. *(added 2026-08-05.)*
 export function TodayPane(props: {
   lists: readonly TodoList[]
+  /** Which day's slice to show. Defaults to today. */
+  day?: 'today' | 'tomorrow'
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
@@ -42,7 +52,14 @@ export function TodayPane(props: {
   const [showCompleted, setShowCompleted] = useState(true)
 
   const now = new Date()
-  const due = selectToday(todos, now)
+  // Tomorrow selects outstanding work only, so `completed` below comes out
+  // empty there and the accordion suppresses itself — no branch needed.
+  // A todo ticked off early belongs to the day it was *done*, so it moves
+  // to Today (docs/specs/tomorrow-view.md).
+  const due =
+    props.day === 'tomorrow'
+      ? selectTomorrow(todos, now)
+      : selectToday(todos, now)
   // Sorted by due instant, soonest first, so overdue leads
   // (docs/specs/today-view.md — ordering). `sortActiveTodos` runs first so
   // same-instant ties keep the app's standard, stable order — toSorted is
@@ -122,7 +139,15 @@ export function TodayPane(props: {
       </ul>
 
       {/* docs/specs/today-view.md — no "Add a todo" row: a derived view has
-          no collection to add to. */}
+          no collection to add to.
+
+          **And no empty-state copy either.** A line here was tried and
+          removed the same day: the title says which day, the count line
+          says "No todos", and the badge beside the title explains what the
+          view gathers — so a fourth sentence restated what three elements
+          already carried. An empty day is an ordinary state, and the
+          quietest way to show it is to show nothing.
+          *(added and removed 2026-08-05.)* */}
 
       {completed.length > 0 && (
         <Collapsible.Root

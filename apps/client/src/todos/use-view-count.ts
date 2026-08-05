@@ -3,7 +3,37 @@ import { useQueryClient } from '@tanstack/react-query'
 import { countSummary } from './count-summary'
 import { useCacheVersion } from './use-cache-version'
 import { groupTodos } from './group-by-list'
-import { selectToday } from './today'
+import { selectToday, selectTomorrow } from './today'
+
+/** Which view the count is describing. */
+export type CountedView = 'list' | 'today' | 'tomorrow' | 'summary'
+
+/**
+ * What each view actually renders, out of every todo it can reach.
+ *
+ * A lookup rather than a ternary chain: with four views the chain was three
+ * levels deep, and the `list` case — the plain one — read as the final
+ * fallthrough of a nest about the other three. At module scope so the
+ * branches are not rebuilt on every render.
+ * *(changed 2026-08-05: Tomorrow would have made it four.)*
+ *
+ * Two separate bugs came from a view counting more than it draws:
+ *
+ * - Summary counted every todo in every list, active ones included, so a
+ *   view that only ever shows finished work announced "4 todos · 8 done" —
+ *   and the 4 were todos it does not display at all.
+ * - Today counted its slice but not its *rows*, so three grouped grocery
+ *   todos counted three times against a single visible row (that half is
+ *   `countableRows`, below).
+ *
+ * *(fixed 2026-08-05, issue #27.)*
+ */
+function sliceFor(view: CountedView, todos: Todo[], now: Date): Todo[] {
+  if (view === 'today') return selectToday(todos, now)
+  if (view === 'tomorrow') return selectTomorrow(todos, now)
+  if (view === 'summary') return todos.filter((todo) => todo.completed)
+  return todos
+}
 
 /**
  * The count line for whichever view is showing.
@@ -32,9 +62,9 @@ export function useViewCount(options: {
    * frames on every load before correcting itself.
    */
   listsLoaded: boolean
-  /** The list being shown, or null on Today/Summary. */
+  /** The list being shown, or null on a derived view. */
   listId: string | null
-  view: 'list' | 'today' | 'summary'
+  view: CountedView
   now?: Date
 }): string | null {
   const queryClient = useQueryClient()
@@ -64,22 +94,8 @@ export function useViewCount(options: {
 
   const todos: Todo[] = entries.flatMap((entry) => entry?.todos ?? [])
   // Each view counts what it actually renders, not every todo it could
-  // reach. Two separate bugs came from skipping this:
-  //
-  // - Summary counted every todo in every list, active ones included, so
-  //   a view that only ever shows finished work announced "4 todos ·
-  //   8 done" — and the 4 were todos it does not display at all. It
-  //   shows completed todos, so that is what it counts.
-  // - Today counted its slice but not its *rows*, so three grouped
-  //   grocery todos counted three times against a single visible row.
-  //
-  // *(fixed 2026-08-05, issue #27.)*
-  const shown =
-    options.view === 'today'
-      ? selectToday(todos, options.now ?? new Date())
-      : options.view === 'summary'
-        ? todos.filter((todo) => todo.completed)
-        : todos
+  // reach — see `sliceFor`.
+  const shown = sliceFor(options.view, todos, options.now ?? new Date())
   // Grouping is a display decision, so it belongs to the count the same
   // way it belongs to the Summary day headings: a grouped list is one
   // row and counts once (docs/specs/list-kinds.md). A list view never

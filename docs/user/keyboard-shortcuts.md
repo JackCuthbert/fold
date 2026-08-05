@@ -1,16 +1,21 @@
 # Keyboard shortcuts
 
-Five, and no more than that. Fold isn't an app you live inside all day, so
-the shortcuts cover the things you reach for often enough to be worth
-remembering: making something, and getting somewhere.
+A short list, and deliberately so. Fold isn't an app you live inside all
+day, so the shortcuts cover the things you reach for often enough to be
+worth remembering: making something, and getting somewhere.
 
 | Chord | Does |
 |---|---|
 | `Ctrl+K` | New todo, from anywhere |
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
-| `Ctrl+Shift+2` | Go to Summary |
+| `Ctrl+Shift+2` | Go to Tomorrow |
+| `Ctrl+Shift+3` | Go to Summary |
 | `Ctrl+/` | Open **Help**, which lists these |
+
+*(changed 2026-08-05: Tomorrow took `Ctrl+Shift+2`, moving Summary to
+`Ctrl+Shift+3`. The view chords are numbered by the order the sidebar shows
+them, and Tomorrow belongs between the other two.)*
 
 **`Ctrl` on every platform, including a Mac.** Most Mac apps would use `⌘`
 here, and Fold deliberately doesn't: the chords worth having kept colliding
@@ -45,8 +50,8 @@ window, and the keypress never reaches Fold at all. `K` is what most apps
 use for "do something quickly", and it's free.
 
 It opens the same **New todo** form as the sidebar button, wherever you are.
-Because it can be triggered from Today or Summary — which aren't lists — it
-always asks which list the todo belongs to.
+Because it can be triggered from Today, Tomorrow or Summary — none of which
+are lists — it always asks which list the todo belongs to.
 
 ## Why `Shift` on the view shortcuts
 

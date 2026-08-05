@@ -21,7 +21,10 @@ import {
   isDerivedView,
   isSummaryView,
   isTodayView,
+  isTomorrowView,
+  SUMMARY_VIEW,
   TODAY_VIEW,
+  TOMORROW_VIEW,
 } from './todos/today'
 import { TodayDetail } from './todos/today-pane'
 import { TodoPane } from './todos/todo-pane'
@@ -59,6 +62,43 @@ const DESKTOP_QUERY = '(min-width: 768px)'
 // todo was open — measured; todo rows begin clipping their summary below
 // roughly 440px.)*
 const THREE_COLUMN_QUERY = '(min-width: 1280px)'
+
+/**
+ * The title and the "what is this?" copy for each derived view.
+ *
+ * Keyed by view id rather than written into the markup as a ternary chain.
+ * With two views the chain was already two levels deep in two separate
+ * places — the title and the badge — and a third would have made both
+ * unreadable while letting them disagree about which view was showing.
+ * A list is absent on purpose: it has a name its owner chose, and nothing
+ * about it needs explaining (see the badge below).
+ * *(added 2026-08-05: was inline ternaries.)*
+ */
+const DERIVED_INFO: Record<string, { title: string; about: string }> = {
+  [TODAY_VIEW]: {
+    title: 'Today',
+    about:
+      'Everything due today or already overdue, gathered from all your ' +
+      'lists. A view, not a list you can add to.',
+  },
+  [TOMORROW_VIEW]: {
+    title: 'Tomorrow',
+    // Says what it *excludes*, because that is the only surprising thing
+    // about it: someone who knows Today keeps overdue work will reasonably
+    // expect this to as well, and someone who ticks a todo off here will
+    // watch the row leave (docs/specs/tomorrow-view.md).
+    about:
+      'What is still to do tomorrow, from all your lists. Nothing ' +
+      'overdue — that stays in Today — and anything you finish early ' +
+      'moves to the day you did it. A view, not a list you can add to.',
+  },
+  [SUMMARY_VIEW]: {
+    title: 'Summary',
+    about:
+      'What you’ve finished, grouped by day — handy for a standup. A view, ' +
+      'not a list you can add to.',
+  },
+}
 
 export function MainScreen() {
   const lists = useLists()
@@ -176,8 +216,16 @@ export function MainScreen() {
       (lists.data?.some((l) => l.id === selected) ?? false))
   const active = (selectedExists ? selected : null) ?? TODAY_VIEW
   const showingToday = isTodayView(active)
+  const showingTomorrow = isTomorrowView(active)
   const showingSummary = isSummaryView(active)
   const showingDerived = isDerivedView(active)
+  // Today and Tomorrow are the same pane over a different day
+  // (docs/specs/tomorrow-view.md), so the places that only care "is this a
+  // day view" ask once rather than listing both and falling out of step
+  // with each other. *(added 2026-08-05.)*
+  const showingDay = showingToday || showingTomorrow
+  /** Title and explanation when a derived view is showing; null in a list. */
+  const derivedInfo = DERIVED_INFO[active] ?? null
   const activeList = lists.data?.find((list) => list.id === active)
   // docs/specs/list-kinds.md — derived from the name on every render
   // rather than stored: a kind is a Fold opinion about a list, not a fact
@@ -200,7 +248,13 @@ export function MainScreen() {
     // on every cold load. *(fixed 2026-08-04.)*
     listsLoaded: lists.data !== undefined,
     listId: activeList?.id ?? null,
-    view: showingToday ? 'today' : showingSummary ? 'summary' : 'list',
+    view: showingToday
+      ? 'today'
+      : showingTomorrow
+        ? 'tomorrow'
+        : showingSummary
+          ? 'summary'
+          : 'list',
   })
   // A derived view has no collection to add to, so the add path is bound
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
@@ -611,11 +665,7 @@ export function MainScreen() {
                       aria-hidden="true"
                     />
                   )}
-                  {showingToday
-                    ? 'Today'
-                    : showingSummary
-                      ? 'Summary'
-                      : (activeList?.displayName ?? 'Todos')}
+                  {derivedInfo?.title ?? activeList?.displayName ?? 'Todos'}
                   {/* docs/specs/today-view.md, docs/specs/summary-view.md —
                       the explanation of what a derived view *is* belongs
                       beside that view's own title, where someone wondering
@@ -631,23 +681,10 @@ export function MainScreen() {
                       help modal's on purpose, and saying the same thing
                       (help-modal.tsx, "Today and Summary").
                       *(moved 2026-08-04.)* */}
-                  {(showingToday || showingSummary) && (
+                  {derivedInfo && (
                     <span className={styles['titleInfo']}>
-                      <InfoBadge
-                        label={showingToday ? 'About Today' : 'About Summary'}
-                      >
-                        {showingToday ? (
-                          <>
-                            Everything due today or already overdue, gathered
-                            from all your lists. A view, not a list you can add
-                            to.
-                          </>
-                        ) : (
-                          <>
-                            What you&rsquo;ve finished, grouped by day — handy
-                            for a standup. A view, not a list you can add to.
-                          </>
-                        )}
+                      <InfoBadge label={`About ${derivedInfo.title}`}>
+                        {derivedInfo.about}
                       </InfoBadge>
                     </span>
                   )}
@@ -710,10 +747,14 @@ export function MainScreen() {
                   its fade-in (todo-pane.module.css — `.pane`). Without this
                   React reuses the same element and the animation only ever
                   runs once, on first render. */}
-              {showingToday ? (
+              {showingDay ? (
+                // One pane for both day views, given the day to show
+                // (docs/specs/tomorrow-view.md). `key={active}` already
+                // remounts it on the switch, so the two never share state.
                 <TodayPane
                   key={active}
                   lists={lists.data ?? []}
+                  {...(showingTomorrow ? { day: 'tomorrow' as const } : {})}
                   onOpen={openDetail}
                   onOpenList={selectList}
                 />

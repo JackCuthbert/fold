@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
+import {
+  addTodo,
+  createList,
+  dateFieldValue,
+  login,
+  uniqueName,
+  waitForSync,
+} from './helpers'
 
 /** The add-todo dialog, so its fields are unambiguous. */
 const addDialog = (page: Page) =>
@@ -71,14 +78,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // In Today, the same three collapse to one row. A todo needs a due date
   // to be in Today at all, so they are given one through the ordinary
   // edit path.
-  // Local date parts, not `toISOString()` — that converts to UTC first
-  // and lands on the wrong day either side of midnight.
-  const now = new Date()
-  const today = [
-    String(now.getFullYear()),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-')
+  const today = dateFieldValue()
   for (const item of ['Eggs', 'Bread', 'Milk']) {
     await page.getByText(item, { exact: true }).click()
     await page.getByLabel('Due', { exact: true }).fill(today)
@@ -285,12 +285,7 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Complete all' })).toBeHidden()
   await expect(page.getByRole('button', { name: 'Schedule all' })).toBeHidden()
 
-  const now = new Date()
-  const today = [
-    String(now.getFullYear()),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-  ].join('-')
+  const today = dateFieldValue()
 
   await addTodo(page, 'Take the tablets')
   await page.getByText('Take the tablets', { exact: true }).click()

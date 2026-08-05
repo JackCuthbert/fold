@@ -392,7 +392,25 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   // One row per binding, each drawn as individual keycaps
   // (shortcut-keys.tsx) — so assert the rows, not the caps, which vary
   // with how many keys a chord has.
-  await expect(help.getByRole('term')).toHaveCount(5)
+  //
+  // The named actions, not a count. The map grows a chord for every
+  // derived view added (shortcuts.ts — VIEW_SHORTCUTS), so a literal here
+  // made adding a view fail a test about the help modal — and a count
+  // never said which bindings were listed anyway. What the modal owes the
+  // user is that the things it claims to document are actually there.
+  // The e2e package deliberately does not import from the client, so this
+  // asserts the contract from the outside.
+  // *(changed 2026-08-05: was a literal 5, broken by the Tomorrow view.)*
+  for (const action of [
+    'New todo',
+    'New list',
+    'Open Help',
+    'Go to Today',
+    'Go to Tomorrow',
+    'Go to Summary',
+  ]) {
+    await expect(help.getByText(action, { exact: true })).toBeVisible()
+  }
   // The chord for New todo is K, held for the command palette it will
   // become (issue #26).
   await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(
@@ -401,13 +419,17 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
 
-  // Ctrl+Shift+1/2 jump straight to the derived views. Shift is what makes
-  // a digit usable at all: plain Ctrl+1 is taken by the OS for Spaces and
-  // again by some browsers for tabs, so the keydown never arrives. Matched
-  // on `event.code`, since Shift+1 reports `event.key` as "!".
+  // Ctrl+Shift+<n> jumps straight to the nth derived view, in the order
+  // the nav shows them. Shift is what makes a digit usable at all: plain
+  // Ctrl+1 is taken by the OS for Spaces and again by some browsers for
+  // tabs, so the keydown never arrives. Matched on `event.code`, since
+  // Shift+1 reports `event.key` as "!".
+  // *(changed 2026-08-05: Tomorrow took Digit2, moving Summary to 3.)*
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+Shift+Digit2`)
+  await page.keyboard.press(`${mod}+Shift+Digit3`)
   await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible()
+  await page.keyboard.press(`${mod}+Shift+Digit2`)
+  await expect(page.getByRole('heading', { name: 'Tomorrow' })).toBeVisible()
   await page.keyboard.press(`${mod}+Shift+Digit1`)
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
 
