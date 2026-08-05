@@ -348,6 +348,35 @@
   background: var(--marker);
 }
 
+/* docs/specs/list-kinds.md — the sparkle marking a list whose name Fold
+   recognises. A marker, not a control: the explanation lives on the badge
+   beside the list's own title, because every nav row is one button and
+   nothing else.
+
+   At the row's trailing edge, not against the name: beside the name it
+   moved with the text, so it landed in a different place on every row and
+   read as punctuation rather than as a marker. Pinned right, it forms its
+   own column down the nav — one glance says which lists have it.
+   *(changed 2026-08-05: was immediately after the name.)*
+
+   `flex: none` because `.link` is a flex row whose name ellipsises — a
+   shrinkable glyph would be squashed to nothing by a long list name
+   rather than pushing the ellipsis earlier, which is the wrong thing to
+   lose. Faint, and inheriting the row's ink when selected, so it reads as
+   an annotation rather than a second dot competing with the colour one.
+   *(added 2026-08-05, issue #27.)* */
+.sparkle {
+  flex: none;
+  /* Pushes off the name and onto the trailing edge. */
+  margin-inline-start: auto;
+  color: var(--faint);
+}
+
+.linkActive .sparkle {
+  color: inherit;
+  opacity: 0.7;
+}
+
 /* No colour set: an unfilled ring at the same size, not an absence. */
 .dotEmpty {
   box-shadow: none;

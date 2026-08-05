@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../confirm'
 import { duplicateTodo } from './duplicate-todo'
+import { groupTodos } from './group-by-list'
+import { GroupRow } from './group-row'
 import { useSound } from '../sound/use-sound'
 import { cx } from '../styles/cx'
 import { sortActiveTodos } from './sort'
@@ -26,6 +28,8 @@ export function TodayPane(props: {
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
+  /** Go to a list — what a grouped row does (docs/specs/list-kinds.md). */
+  onOpenList: (listId: string) => void
 }) {
   const { todos } = useTodayTodos(props.lists)
   const { playPop } = useSound()
@@ -53,19 +57,34 @@ export function TodayPane(props: {
   const listName = (listId: string): string =>
     props.lists.find((list) => list.id === listId)?.displayName ?? ''
 
+  // docs/specs/list-kinds.md — grouping, applied after sorting so a group
+  // takes the position of its earliest todo rather than being appended.
+  // Both halves are grouped: eight things still to buy is one errand, not
+  // eight tasks. *(added 2026-08-05, issue #27.)*
+  const activeRows = groupTodos(active, props.lists)
+  const completedRows = groupTodos(completed, props.lists)
+
   return (
     <div className={paneStyles['pane']}>
       <ul className={paneStyles['list']}>
-        {active.map((todo) => (
-          <TodayRow
-            key={todo.uid}
-            todo={todo}
-            now={now}
-            listName={listName(todo.listId)}
-            onOpen={(trigger) => props.onOpen(todo, trigger)}
-            onToggled={playPop}
-          />
-        ))}
+        {activeRows.map((row) =>
+          row.kind === 'group' ? (
+            <GroupRow
+              key={`group:${row.listId}`}
+              group={row}
+              onOpenList={props.onOpenList}
+            />
+          ) : (
+            <TodayRow
+              key={row.todo.uid}
+              todo={row.todo}
+              now={now}
+              listName={listName(row.todo.listId)}
+              onOpen={(trigger) => props.onOpen(row.todo, trigger)}
+              onToggled={playPop}
+            />
+          ),
+        )}
       </ul>
 
       {/* docs/specs/today-view.md — no "Add a todo" row: a derived view has
@@ -88,15 +107,23 @@ export function TodayPane(props: {
           </Collapsible.Trigger>
           <Collapsible.Panel>
             <ul className={cx(paneStyles['list'], paneStyles['completedList'])}>
-              {completed.map((todo) => (
-                <TodayRow
-                  key={todo.uid}
-                  todo={todo}
-                  now={now}
-                  listName={listName(todo.listId)}
-                  onOpen={(trigger) => props.onOpen(todo, trigger)}
-                />
-              ))}
+              {completedRows.map((row) =>
+                row.kind === 'group' ? (
+                  <GroupRow
+                    key={`group:${row.listId}`}
+                    group={row}
+                    onOpenList={props.onOpenList}
+                  />
+                ) : (
+                  <TodayRow
+                    key={row.todo.uid}
+                    todo={row.todo}
+                    now={now}
+                    listName={listName(row.todo.listId)}
+                    onOpen={(trigger) => props.onOpen(row.todo, trigger)}
+                  />
+                ),
+              )}
             </ul>
             {/* No "Clear completed" here: it would delete across several
                 lists at once from a view that only shows today's slice of

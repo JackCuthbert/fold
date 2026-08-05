@@ -1,11 +1,13 @@
 import { Dialog } from '@base-ui/react/dialog'
 import type { Todo } from '@fold/schemas'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { LuMenu, LuOrigami } from 'react-icons/lu'
+import { LuMenu, LuOrigami, LuSparkles } from 'react-icons/lu'
 import { ConfirmDialog } from './confirm'
 import { HelpModal } from './help-modal'
 import { InfoBadge } from './info-badge'
 import { ListFormModal } from './lists/list-form-modal'
+import { BulkActions } from './lists/bulk-actions'
+import { kindExplanation } from './lists/list-kind'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
 import { SettingsModal } from './lists/settings-modal'
@@ -26,6 +28,7 @@ import { TodoPane } from './todos/todo-pane'
 import { AddTodoModal } from './todos/add-todo-modal'
 import { useAddTodo } from './todos/use-add-todo'
 import { useGlobalAddTodo } from './todos/use-global-add-todo'
+import { useListActiveTodos } from './todos/use-list-active-todos'
 import { viewIndexOf } from './shortcuts'
 import { useShortcuts } from './use-shortcuts'
 import { useTodoActions } from './todos/use-todo-actions'
@@ -176,6 +179,15 @@ export function MainScreen() {
   const showingSummary = isSummaryView(active)
   const showingDerived = isDerivedView(active)
   const activeList = lists.data?.find((list) => list.id === active)
+  // docs/specs/list-kinds.md — derived from the name on every render
+  // rather than stored: a kind is a Fold opinion about a list, not a fact
+  // about it, so renaming the list changes it immediately and there is no
+  // cached value to invalidate. *(added 2026-08-05, issue #27.)*
+  const kindInfo = activeList ? kindExplanation(activeList.displayName) : null
+  // Read from the cache the list pane already fills, never fetched — the
+  // header must not become a second reader of the server
+  // (use-list-active-todos.ts).
+  const listActiveTodos = useListActiveTodos(activeList?.id ?? null)
   // docs/specs/ui.md — the header: the count line, read from the same
   // queries the visible pane already populates, so it costs no request of
   // its own. *(added 2026-08-04.)*
@@ -626,6 +638,23 @@ export function MainScreen() {
                       </InfoBadge>
                     </span>
                   )}
+                  {/* docs/specs/list-kinds.md — the sparkle. A list whose
+                      name Fold recognises behaves differently, and that is
+                      invisible until it surprises you; this is the thing
+                      you hover to find out why. The nav carries the same
+                      glyph as a bare marker, and this one carries the
+                      explanation. *(added 2026-08-05, issue #27.)* */}
+                  {kindInfo && (
+                    <span className={styles['titleInfo']}>
+                      <InfoBadge
+                        label={`About this ${kindInfo.label.toLowerCase()}`}
+                        icon={LuSparkles}
+                      >
+                        <strong>{kindInfo.label}.</strong>{' '}
+                        {kindInfo.description}
+                      </InfoBadge>
+                    </span>
+                  )}
                 </span>
               </h1>
               <span className={styles['headerSpacer']} aria-hidden="true" />
@@ -647,6 +676,20 @@ export function MainScreen() {
                 <span className={styles['countSkeleton']} aria-hidden="true" />
               )}
             </p>
+            {/* docs/specs/list-kinds.md — whole-list actions, under the
+                count rather than beside the title: like the count, they
+                describe the list rather than name it, and putting them on
+                the title row would unbalance its centring (see the note
+                on `.count`). Renders nothing for a list with no kind, or
+                one with nothing left to act on.
+                *(added 2026-08-05, issue #27.)* */}
+            {activeList && (
+              <BulkActions
+                listId={activeList.id}
+                listName={activeList.displayName}
+                active={listActiveTodos}
+              />
+            )}
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
@@ -659,12 +702,14 @@ export function MainScreen() {
                   key={active}
                   lists={lists.data ?? []}
                   onOpen={openDetail}
+                  onOpenList={selectList}
                 />
               ) : showingSummary ? (
                 <SummaryPane
                   key={active}
                   lists={lists.data ?? []}
                   onOpen={openDetail}
+                  onOpenList={selectList}
                 />
               ) : activeList ? (
                 <TodoPane

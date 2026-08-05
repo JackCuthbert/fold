@@ -1,5 +1,6 @@
 import { Popover } from '@base-ui/react/popover'
 import type { ReactNode } from 'react'
+import type { IconType } from 'react-icons'
 import { LuInfo } from 'react-icons/lu'
 import styles from './info-badge.module.css'
 
@@ -32,7 +33,19 @@ export function InfoBadge(props: {
   children: ReactNode
   /** Accessible name for the trigger, e.g. "About list colours". */
   label: string
+  /**
+   * The glyph, when the default `i` is not the right marker.
+   *
+   * Used by the list-kind sparkle (docs/specs/list-kinds.md), where the
+   * icon carries meaning of its own — "this list does something extra" —
+   * rather than the generic "there is an explanation here". Everything
+   * else about the badge is identical, which is the point: the behaviour
+   * and the popover treatment stay in one place.
+   * *(added 2026-08-05, issue #27.)*
+   */
+  icon?: IconType
 }) {
+  const Icon = props.icon ?? LuInfo
   return (
     <Popover.Root>
       {/* `openOnHover`/`delay` live on Trigger, not Root, in @base-ui/react
@@ -44,7 +57,7 @@ export function InfoBadge(props: {
         openOnHover
         delay={200}
       >
-        <LuInfo aria-hidden="true" size={14} />
+        <Icon aria-hidden="true" size={14} />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner className={styles['positioner']} sideOffset={6}>

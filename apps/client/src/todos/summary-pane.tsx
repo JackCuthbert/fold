@@ -1,4 +1,6 @@
 import type { Todo, TodoList } from '@fold/schemas'
+import { groupTodos } from './group-by-list'
+import { GroupRow } from './group-row'
 import { dayLabel, summariseCompleted } from './summary'
 import styles from './summary-pane.module.css'
 import { TodayRow } from './today-pane'
@@ -16,6 +18,8 @@ export function SummaryPane(props: {
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
+  /** Go to a list — what a grouped row does (docs/specs/list-kinds.md). */
+  onOpenList: (listId: string) => void
 }) {
   const { todos } = useTodayTodos(props.lists)
 
@@ -34,28 +38,46 @@ export function SummaryPane(props: {
         </p>
       )}
 
-      {days.map((group) => (
-        <section key={group.day} className={styles['day']}>
-          {/* A heading per day rather than a divider: this view is read by
+      {days.map((group) => {
+        const rows = groupTodos(group.todos, props.lists)
+        return (
+          <section key={group.day} className={styles['day']}>
+            {/* A heading per day rather than a divider: this view is read by
               scanning for a date, so the date must be the loudest thing on
               the row (docs/specs/summary-view.md). */}
-          <h2 className={styles['dayHeading']}>
-            {dayLabel(group.day, now)}
-            <span className={styles['dayCount']}>{group.todos.length}</span>
-          </h2>
-          <ul className={paneStyles['list']}>
-            {group.todos.map((todo) => (
-              <TodayRow
-                key={todo.uid}
-                todo={todo}
-                now={now}
-                listName={listName(todo.listId)}
-                onOpen={(trigger) => props.onOpen(todo, trigger)}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+            {/* docs/specs/list-kinds.md — the count counts *rows*, so a
+              grouped list contributes 1. Counting the todos behind the
+              group instead put "10" above three visible rows, and a
+              number that disagrees with what is on screen is worse than
+              one that undersells the day: the shopping genuinely was one
+              errand.
+              *(changed 2026-08-05: was a count of todos.)* */}
+            <h2 className={styles['dayHeading']}>
+              {dayLabel(group.day, now)}
+              <span className={styles['dayCount']}>{rows.length}</span>
+            </h2>
+            <ul className={paneStyles['list']}>
+              {rows.map((row) =>
+                row.kind === 'group' ? (
+                  <GroupRow
+                    key={`group:${row.listId}`}
+                    group={row}
+                    onOpenList={props.onOpenList}
+                  />
+                ) : (
+                  <TodayRow
+                    key={row.todo.uid}
+                    todo={row.todo}
+                    now={now}
+                    listName={listName(row.todo.listId)}
+                    onOpen={(trigger) => props.onOpen(row.todo, trigger)}
+                  />
+                ),
+              )}
+            </ul>
+          </section>
+        )
+      })}
 
       {/* docs/specs/summary-view.md — a completed todo with no COMPLETED
           stamp can't be placed on a day. Say so rather than under-report

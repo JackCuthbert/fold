@@ -117,6 +117,31 @@ export function HelpModal(props: {
                 same server.
               </p>
             </section>
+            {/* docs/specs/list-kinds.md — the feature is invisible until
+                it surprises you, so it needs saying somewhere other than
+                the sparkle's own popover: someone who has *seen* the
+                grouping and wants to know why comes here, not to the
+                list they were not looking at. */}
+            <section className={styles['section']}>
+              <h3 className={styles['heading']}>Lists that do more</h3>
+              <p>
+                Name a list <UI>Groceries</UI>, <UI>Chores</UI>,{' '}
+                <UI>Reading</UI> or <UI>Health</UI> and Fold gives it a little
+                extra — a sparkle appears beside its name to say so, and
+                clicking that sparkle explains what it does.
+              </p>
+              <p>
+                A grocery list is gathered into a single row in <UI>Today</UI>{' '}
+                and <UI>Summary</UI>, since &ldquo;did the shopping&rdquo; is
+                the useful fact rather than each item. Both it and a chores list
+                can be ticked off all at once.
+              </p>
+              <p>
+                Nothing is stored on your server for this — it is worked out
+                from the name each time, so renaming a list changes what it
+                does, and another app sees an ordinary list either way.
+              </p>
+            </section>
             {/* docs/specs/lists.md — colours and ordering */}
             <section className={styles['section']}>
               <h3 className={styles['heading']}>Colours and ordering</h3>

@@ -24,6 +24,18 @@ export function ConfirmDialog(props: {
   title: string
   children: ReactNode
   confirmLabel: string
+  /**
+   * How the confirm button reads. Defaults to `destructive` — red — which
+   * is what most of these dialogs are for.
+   *
+   * `affirmative` is for a change that is sweeping enough to be worth
+   * asking about but loses nothing: the bulk list actions
+   * (docs/specs/list-kinds.md). Red on a reversible action teaches the
+   * reader to read past the colour, which is what makes it useless on the
+   * dialog that really does destroy something.
+   * *(added 2026-08-05, issue #27.)*
+   */
+  tone?: 'destructive' | 'affirmative'
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -51,7 +63,11 @@ export function ConfirmDialog(props: {
             </button>
             <button
               type="button"
-              className={styles['danger']}
+              className={
+                props.tone === 'affirmative'
+                  ? styles['affirm']
+                  : styles['danger']
+              }
               onClick={props.onConfirm}
             >
               {props.confirmLabel}

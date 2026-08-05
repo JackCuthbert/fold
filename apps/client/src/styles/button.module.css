@@ -184,6 +184,34 @@
   background: color-mix(in srgb, var(--danger) 12%, var(--surface));
 }
 
+/* Affirmative — a confirm dialog's action when the thing being confirmed
+   is a bulk *change* rather than a loss (docs/specs/list-kinds.md — bulk
+   complete and bulk schedule).
+   *(added 2026-08-05, issue #27.)*
+
+   Red is for what cannot be undone. Ticking off a list, or dating it, is
+   sweeping enough to be worth asking about, but nothing is destroyed and
+   every todo can be set back one at a time — dressing it in the same red
+   as Delete would teach the reader to read past the colour, which is
+   precisely what makes it useless on the dialog that really does destroy
+   something.
+
+   Borrows the status green, the app's existing "this went well" colour,
+   at the same weights `.destructive` uses for its red. */
+.affirmative {
+  border-color: var(--status-synced);
+  color: var(--status-synced);
+}
+
+.affirmative:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-synced) 8%, var(--surface));
+}
+
+.affirmative:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--status-synced) 12%, var(--surface));
+}
+
 /* Ghost — a real action that should recede until wanted: the detail
    panel's Reset, which matters only while an edit is in progress and would
    otherwise sit beside Save with equal weight at all times.

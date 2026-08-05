@@ -104,6 +104,7 @@ supplies an IndexedDB implementation).
 | [todos](./todos.md) | Todo data model, fields, completed handling |
 | [today-view](./today-view.md) | The derived Today view: scope, ordering, fetching |
 | [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |
+| [list-kinds](./list-kinds.md) | Behaviour a list's name unlocks: grouping, bulk actions, the sparkle |
 | [sync-and-offline](./sync-and-offline.md) | Outbox, sync loop, conflicts, offline UX |
 | [api](./api.md) | JSON API surface, handler convention, error mapping |
 | [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |

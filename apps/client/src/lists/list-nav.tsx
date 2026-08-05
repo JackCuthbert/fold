@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 import type { IconType } from 'react-icons'
-import { LuHistory, LuPlus, LuSun } from 'react-icons/lu'
+import { LuHistory, LuPlus, LuSparkles, LuSun } from 'react-icons/lu'
 import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import { DERIVED_VIEWS, SUMMARY_VIEW, TODAY_VIEW } from '../todos/today'
@@ -11,6 +11,7 @@ import { ShortcutKeys } from '../shortcut-keys'
 import { SHORTCUTS } from '../shortcuts'
 import { ListItemMenu } from './list-item-menu'
 import { markerColor } from './list-color'
+import { listKindOf } from './list-kind'
 import { reorder } from './list-order'
 import type { ListFormState } from './use-list-form'
 import styles from './list-nav.module.css'
@@ -278,6 +279,21 @@ export function ListNav(props: {
                 aria-hidden="true"
               />
               {list.displayName}
+              {/* docs/specs/list-kinds.md — the sparkle, as a bare glyph
+                  with no popover. Every nav row is one button and nothing
+                  else, which is why the derived views' info badges moved
+                  out of here in the first place *(2026-08-04)*; a second
+                  interactive control in a list row would undo that. This
+                  marks the list, and the badge beside the list's own
+                  title explains it (main-screen.tsx).
+                  *(added 2026-08-05, issue #27.)* */}
+              {listKindOf(list.displayName) && (
+                <LuSparkles
+                  className={styles['sparkle']}
+                  aria-hidden="true"
+                  size={12}
+                />
+              )}
             </button>
             <ListItemMenu
               displayName={list.displayName}
