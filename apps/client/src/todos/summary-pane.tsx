@@ -31,12 +31,12 @@ export function SummaryPane(props: {
 
   return (
     <div className={paneStyles['pane']}>
-      {days.length === 0 && (
-        <p className={styles['empty']}>
-          Nothing completed yet. Finished todos will appear here, grouped by the
-          day you finished them.
-        </p>
-      )}
+      {/* No empty-state copy. The title names the view, the count line
+          reads "No todos", and the badge beside the title explains what
+          this view gathers — a fourth sentence restated what three
+          elements already carried. The same call was made for Today and
+          Tomorrow the same day (today-pane.tsx).
+          *(removed 2026-08-05.)* */}
 
       {days.map((group) => {
         // docs/specs/list-kinds.md — health leads, here *within its day*:

@@ -88,11 +88,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  /* Same uniform padding as the detail panel's header
+  /* The block padding matches the detail panel's header
      (modal-header.module.css — `.header`), so the two column headers sit
-     at the same height and inset as each other.
-     *(changed 2026-08-04: was --space-2/--space-4.)* */
-  padding: var(--space-3);
+     at the same height. *(changed 2026-08-04: was --space-2/--space-4.)*
+
+     The *inline* padding is the nav's own --space-4, not that header's
+     --space-3: it has to agree with `.navScroll` beneath it, or the mark
+     sits 4px inside the rows it heads. That was invisible while the row
+     held only the mark and became obvious the moment a control landed at
+     its trailing edge — measured, the mark started at 12px against every
+     row's 16px. Two columns separated by the whole content area do not
+     need to share an inset; a column and its own rows do.
+     *(fixed 2026-08-05.)* */
+  padding-block: var(--space-3);
+  padding-inline: var(--space-4);
   /* Matches the detail panel's heading (modal-header.module.css —
      `.titleLarge`). Both are the title of a full-height column, so they
      should read at the same level; at --text-md the nav's mark sat a step

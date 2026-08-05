@@ -1,0 +1,308 @@
+/* docs/specs/list-filter.md — hiding some of your lists. See
+   list-filter-menu.tsx.
+
+   **A ghost icon button in the nav's title row**, at its trailing edge.
+   The control is reached twice a day at most, and every full-width shape
+   tried before gave it the presence of a primary action: in the content
+   header it made that column three controls deep, and as a nav row — at
+   either end, with or without a rule — it read as another place to go
+   rather than a setting. An icon on the title row costs no vertical space
+   at all, and the title row was empty to its right.
+
+   Same ghost treatment as Help and Settings in the footer
+   (nav-footer.module.css — `.control`): those are the app's other two
+   "adjust something" controls, so the three read as one family at the two
+   ends of the nav.
+   *(moved 2026-08-05: content header → below the separator → foot of the
+   panel → the title row.)* */
+.trigger {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  /* Pushes it to the trailing edge of the title row, which is otherwise
+     the mark alone. */
+  margin-inline-start: auto;
+  /* Pulls the box back so the *visible* 16px glyph lands on the same
+     right inset as the rows below, rather than sitting inside the hit
+     area's extra padding — the technique the footer's `.controls` and
+     `.menuTrigger` both use (docs/specs/ui.md — one left edge, including
+     controls). */
+  margin-inline-end: calc((16px - var(--hit-area)) / 2);
+  /* The dot is positioned against this box. */
+  position: relative;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+/* Held open, the trigger keeps the hover treatment: a popup hanging off a
+   button that looks untouched breaks the link between the two, and the
+   pointer has usually moved into the popup by then. Base UI stamps
+   `data-popup-open` on the trigger for exactly this. */
+.trigger:hover,
+.trigger[data-popup-open] {
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* A filter is on. Colour is reinforcement, never the only carrier: the
+   dot below has a shape of its own, the "N lists hidden" row states it in
+   words, and the accessible name carries the count for a screen reader,
+   which gets nothing from either (docs/specs/ui.md — accessibility). */
+.triggerOn {
+  color: var(--accent);
+}
+
+/* The badge on the trigger. *Inside* the box rather than overlapping its
+   corner: this button sits hard against the nav's right inset, so an
+   outset dot would break the edge every other row aligns to. The hit
+   area is 34–44px around a 16px glyph, so there is room to spare.
+   *(added 2026-08-05.)* */
+.dotOn {
+  position: absolute;
+  top: calc(var(--space-1) + 1px);
+  right: calc(var(--space-1) + 1px);
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  /* Reads as a badge on the glyph rather than a speck of the glyph, even
+     when the button's own background fills in on hover. */
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+/* Hover and open fill the button, so the dot's halo has to match what is
+   actually behind it. */
+.trigger:hover .dotOn,
+.trigger[data-popup-open] .dotOn {
+  box-shadow: 0 0 0 2px var(--line);
+}
+
+/* The accent outranks the hover/open ink colour — while lists are hidden
+   that is the more important thing for the button to be saying. */
+.triggerOn:hover,
+.triggerOn[data-popup-open] {
+  color: var(--accent);
+}
+
+/* "N lists hidden" — the last row of the list group, exactly where the
+   hidden rows would have been. Ghost, like the "Add a todo…" row it
+   echoes: a note about the list above it, not another place to go.
+   Click to put them back. */
+.hidden {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--nav-row);
+  padding-inline: var(--nav-inset);
+  margin-block-start: var(--space-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--faint);
+  font-size: var(--text-sm);
+  font-style: italic;
+  cursor: pointer;
+  text-align: start;
+}
+
+.hidden:hover {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+}
+
+.hidden:focus-visible {
+  outline: none;
+  color: var(--accent);
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
+/* Above the dialogs it may open behind: modals are 40/41, their nested
+   popups 42, the toast 50 (docs/specs/ui.md — overlays). Matches the info
+   badge's popover exactly. */
+.positioner {
+  z-index: 60;
+}
+
+.popup {
+  min-width: 13rem;
+  max-width: 18rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Focus by border, never an outline (docs/specs/ui.md — overlays); the
+   popup's own border already delimits it. */
+.popup:focus-visible {
+  outline: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-block-end: var(--border-width) solid var(--line);
+  margin-block-end: var(--space-1);
+}
+
+.title {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* A text link, not a button. `.action ghost` brought a button's padding
+   and min-height with it, so the header grew and shifted the moment a
+   filter went on and this appeared. A link occupies only its text.
+
+   Matches "Duplicate this todo" exactly (todo-detail.module.css —
+   `.duplicate`): the underline is there from the start but transparent,
+   so it colours in on hover without the text reflowing.
+   *(changed 2026-08-05: was a ghost button, which caused layout shift.)* */
+.clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  transition:
+    color var(--duration-fast) var(--ease),
+    text-decoration-color var(--duration-fast) var(--ease);
+}
+
+.clear:hover {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+/* Keyboard users get the underline too — hover is not available to them,
+   and the focus ring alone leaves it looking like static text. */
+.clear:focus-visible {
+  outline: none;
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+.lists {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Long list of lists stays reachable rather than growing the popup past
+     the viewport. */
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+/* The whole row is the label, so the name is as clickable as the box —
+   a 44px target without a 44px checkbox (docs/specs/ui.md — controls). */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* The same faint wash the nav rows use, so a row of lists behaves the same
+   way wherever it appears (list-nav.module.css — `.link:hover`). */
+.row:hover {
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  transition: background-color var(--duration-fast) var(--ease);
+}
+
+.box {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  color: var(--surface);
+  border: var(--border-width) solid var(--faint);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.box[data-checked] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.box:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--border-width) var(--accent);
+}
+
+.indicator {
+  display: inline-flex;
+}
+
+/* The list's own colour, drawn exactly as the nav draws it: an 8px dot
+   centred in a 16px footprint, so every name shares one left edge whether
+   or not its list has a colour (docs/specs/lists.md — colours).
+   The 16px is `--nav-glyph`'s value, declared there on `.nav` and so not
+   in scope here; restated rather than promoted to a global token, since
+   two uses is not yet a system. */
+.dot {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  position: relative;
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--marker);
+}
+
+/* No colour set: an unfilled ring at the same size, not an absence. */
+.dotEmpty::after {
+  background: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

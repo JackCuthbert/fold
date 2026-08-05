@@ -15,7 +15,9 @@ import { useTheme } from '../use-theme'
 import { ShortcutKeys } from '../shortcut-keys'
 import { SHORTCUTS } from '../shortcuts'
 import { ListItemMenu } from './list-item-menu'
-import { markerColor } from './list-color'
+import { colourVar, markerColor } from './list-color'
+import { type ListFilter, visibleLists } from './list-filter'
+import { HiddenListsRow } from './list-filter-menu'
 import { listKindOf } from './list-kind'
 import { reorder } from './list-order'
 import type { ListFormState } from './use-list-form'
@@ -42,24 +44,6 @@ export function useLists() {
  * follows (docs/specs/ui.md — keyboard shortcuts). `undefined` if the
  * action is ever unbound, which renders nothing rather than a lie.
  */
-/**
- * An inline style carrying a list's colour as `--marker`.
- *
- * Used twice, for the two things a list's colour paints: the selection
- * marker on the row's left edge, and the dot before its name. Both are
- * drawn by pseudo-elements, so neither can take the colour as a plain
- * `background` on the element itself.
- *
- * A custom property in a plain record rather than a cast to
- * `CSSProperties`: React accepts `--*` keys at runtime but its types do
- * not admit them, and asserting the wider type past the checker is exactly
- * what type-aware lint objects to (CLAUDE.md — fix findings, don't
- * suppress them).
- */
-function colourVar(color: string): Record<string, string> {
-  return { '--marker': color }
-}
-
 const NEW_TODO_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-todo')
 const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
 /**
@@ -96,6 +80,20 @@ export function ListNav(props: {
   onNewTodo: () => void
   /** So the modal can restore focus here on close (main-screen.tsx). */
   newTodoRef?: RefObject<HTMLButtonElement | null>
+  /**
+   * docs/specs/list-filter.md — which lists are hidden, so the nav can
+   * leave them out. The trigger itself is an icon button in the nav's
+   * title row (main-screen.tsx); only the "N lists hidden" row belongs
+   * here, with the lists it is counting.
+   */
+  filter: ListFilter
+  /**
+   * Ask to unhide them all. MainScreen owns that confirm even though the
+   * row lives here: on mobile this component renders inside the drawer's
+   * Dialog, where a nested dialog gets no backdrop of its own — the same
+   * trap the list forms are hoisted out of.
+   */
+  onRevealLists: () => void
 }) {
   const lists = useLists()
   const theme = useTheme()
@@ -113,6 +111,13 @@ export function ListNav(props: {
   // half-updated one, so both changes are computed before either is
   // applied; each then goes through `mutate`, whose setQueryData callback
   // reads the latest cache and so builds on its predecessor.
+  const allLists = lists.data ?? []
+  // docs/specs/list-filter.md — a hidden list leaves the nav too. That is
+  // the point rather than a side effect: filtering the views while leaving
+  // "Therapy" legible in the sidebar defeats the whole purpose during a
+  // screenshare. *(added 2026-08-05.)*
+  const shownLists = visibleLists(allLists, props.filter)
+
   const move = (listId: string, direction: 'up' | 'down'): void => {
     for (const change of reorder(lists.data ?? [], listId, direction)) {
       mutate({
@@ -239,7 +244,7 @@ export function ListNav(props: {
       <hr className={styles['separator']} />
 
       <ul>
-        {(lists.data ?? []).map((list, index, all) => (
+        {shownLists.map((list) => (
           <li
             key={list.id}
             className={cx(
@@ -306,8 +311,14 @@ export function ListNav(props: {
             </button>
             <ListItemMenu
               displayName={list.displayName}
-              canMoveUp={index > 0}
-              canMoveDown={index < all.length - 1}
+              // Position among *all* lists, not among the visible ones:
+              // `reorder` swaps with the immediate neighbour in the full
+              // nav (list-order.ts), so a list at the top of the filtered
+              // view may still have hidden lists above it — and offering
+              // "Move up" there would swap it with a row nobody can see.
+              // *(added 2026-08-05.)*
+              canMoveUp={allLists.indexOf(list) > 0}
+              canMoveDown={allLists.indexOf(list) < allLists.length - 1}
               onMoveUp={() => move(list.id, 'up')}
               onMoveDown={() => move(list.id, 'down')}
               onEdit={() => props.form.openEdit(list)}
@@ -316,6 +327,14 @@ export function ListNav(props: {
           </li>
         ))}
       </ul>
+
+      {/* docs/specs/list-filter.md — what the filter is hiding, right
+          where the hidden rows would have been. *(added 2026-08-05.)* */}
+      <HiddenListsRow
+        lists={allLists}
+        filter={props.filter}
+        onReveal={props.onRevealLists}
+      />
 
       {/* No modals here. The create/edit/delete surfaces are rendered by
           MainScreen as siblings of the drawer — see the note on this

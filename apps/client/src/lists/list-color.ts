@@ -71,3 +71,23 @@ export function markerColor(color: string | undefined, theme: Theme): string {
   const delta = Math.abs(luminance(color) - PAPER_LUMINANCE[theme])
   return delta >= MIN_DELTA ? color : 'var(--accent)'
 }
+
+/**
+ * An inline style carrying a list's colour as `--marker`.
+ *
+ * The colour goes to a custom property rather than a `background`, because
+ * every place that paints it draws the dot with a pseudo-element at 8px
+ * inside a 16px footprint — a background on the element itself would fill
+ * the whole footprint instead.
+ *
+ * A plain record rather than a cast to `CSSProperties`: React accepts
+ * `--*` keys at runtime but its types do not admit them, and asserting the
+ * wider type past the checker is exactly what type-aware lint objects to
+ * (CLAUDE.md — fix findings, don't suppress them).
+ *
+ * *(moved here 2026-08-05: was private to list-nav.tsx, and the filter
+ * popover draws the same dots.)*
+ */
+export function colourVar(color: string): Record<string, string> {
+  return { '--marker': color }
+}

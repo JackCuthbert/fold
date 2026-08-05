@@ -102,6 +102,7 @@ supplies an IndexedDB implementation).
 | [authentication](./authentication.md) | Login, sealed-cookie sessions, logout, 401 handling |
 | [lists](./lists.md) | List discovery, create/rename/delete, colours, ordering |
 | [todos](./todos.md) | Todo data model, fields, completed handling |
+| [list-filter](./list-filter.md) | Hiding lists from the nav and the derived views |
 | [today-view](./today-view.md) | The derived Today view: scope, ordering, fetching |
 | [tomorrow-view](./tomorrow-view.md) | The derived Tomorrow view: the day ahead, nothing overdue |
 | [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |

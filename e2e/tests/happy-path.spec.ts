@@ -411,6 +411,16 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   ]) {
     await expect(help.getByText(action, { exact: true })).toBeVisible()
   }
+
+  // Everything below the shortcuts is folded away (help-modal.tsx —
+  // `Topic`), so the topics are headings until you open one. Asserted
+  // because a collapsed section that never opens looks identical to one
+  // whose content was lost.
+  const kinds = help.getByRole('button', { name: 'Lists that do more' })
+  await expect(kinds).toBeVisible()
+  await expect(help.getByText(/Other names work too/)).toBeHidden()
+  await kinds.click()
+  await expect(help.getByText(/Other names work too/)).toBeVisible()
   // The chord for New todo is K, held for the command palette it will
   // become (issue #26).
   await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(

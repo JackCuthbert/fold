@@ -7,6 +7,19 @@ import { HelpModal } from './help-modal'
 import { InfoBadge } from './info-badge'
 import { ListFormModal } from './lists/list-form-modal'
 import { BulkActions } from './lists/bulk-actions'
+import {
+  LIST_FILTER_KEY,
+  type ListFilter,
+  loadListFilter,
+  serialiseListFilter,
+  toggleList,
+  visibleLists,
+} from './lists/list-filter'
+import {
+  hiddenCount,
+  ListFilterMenu,
+  RevealListsDialog,
+} from './lists/list-filter-menu'
 import { kindExplanation } from './lists/list-kind'
 import { ListNav, useLists } from './lists/list-nav'
 import { NavFooter } from './lists/nav-footer'
@@ -119,6 +132,40 @@ export function MainScreen() {
   // inside the drawer's Dialog on mobile and lose its backdrop too.
   // *(added 2026-08-03.)*
   const [helpOpen, setHelpOpen] = useState(false)
+  // docs/specs/list-filter.md — one filter, shared by every derived view.
+  //
+  // Here rather than in a pane for the reason everything else here is: the
+  // button lives in the header and the filtering happens in the panes,
+  // which are different components either side of the breakpoint.
+  //
+  // **Persisted deliberately.** The case is a screenshare, and a filter
+  // that silently reset on reload would be worse than none — you would
+  // have to re-check it every time you doubted it. *(added 2026-08-05.)*
+  const [listFilter, setListFilter] = useState<ListFilter>(() =>
+    loadListFilter(localStorage.getItem(LIST_FILTER_KEY)),
+  )
+  // Revealing every hidden list asks first — the one misclick in this app
+  // that is embarrassing rather than merely wrong, since the filter exists
+  // for screensharing (list-filter-menu.tsx — RevealListsDialog). Owned
+  // here so the dialog is never nested inside the mobile drawer.
+  const [revealing, setRevealing] = useState(false)
+
+  const changeFilter = (next: ListFilter): void => {
+    setListFilter(next)
+    const stored = serialiseListFilter(next)
+    if (stored === null) localStorage.removeItem(LIST_FILTER_KEY)
+    else localStorage.setItem(LIST_FILTER_KEY, stored)
+    // Hiding the list you are *looking at* has to move you off it. The
+    // point of this filter is that a hidden list is not on the screen, and
+    // leaving its todos in the content column while its row disappears
+    // from the nav would hide the evidence and keep the contents — the
+    // exact failure it exists to prevent. Today is where selection falls
+    // back everywhere else (docs/specs/today-view.md — selection).
+    // *(added 2026-08-05.)*
+    if (next !== null && selected !== null && next.has(selected)) {
+      selectList(TODAY_VIEW)
+    }
+  }
   // The list create/edit/delete surfaces live here for the same reason
   // again, plus one more: ListNav is rendered by two different trees either
   // side of the breakpoint, so a modal owned there also *unmounted* on a
@@ -226,7 +273,18 @@ export function MainScreen() {
   const showingDay = showingToday || showingTomorrow
   /** Title and explanation when a derived view is showing; null in a list. */
   const derivedInfo = DERIVED_INFO[active] ?? null
-  const activeList = lists.data?.find((list) => list.id === active)
+  const allLists = lists.data ?? []
+  // docs/specs/list-filter.md — the derived views draw only the lists the
+  // filter leaves showing. Passed as the pane's `lists`, which is the
+  // whole implementation: every derived view already derives its rows,
+  // its groups and its health block from that array, so narrowing it
+  // narrows all of them at once and none of those files learn about
+  // filtering. A list view is never filtered — you asked for that list by
+  // name. *(added 2026-08-05.)*
+  const shownLists = showingDerived
+    ? visibleLists(allLists, listFilter)
+    : allLists
+  const activeList = allLists.find((list) => list.id === active)
   // docs/specs/list-kinds.md — derived from the name on every render
   // rather than stored: a kind is a Fold opinion about a list, not a fact
   // about it, so renaming the list changes it immediately and there is no
@@ -240,7 +298,11 @@ export function MainScreen() {
   // queries the visible pane already populates, so it costs no request of
   // its own. *(added 2026-08-04.)*
   const viewCount = useViewCount({
-    lists: lists.data ?? [],
+    // The filtered set, so the count describes the rows on screen rather
+    // than the todos behind a filter. This hook only ever *reads* the
+    // cache — the panes do the fetching — so narrowing it here cannot
+    // stop a hidden list from loading (docs/specs/list-filter.md).
+    lists: shownLists,
     // `lists.data !== undefined`, not `isSuccess`: the persisted cache can
     // hydrate the query as successful before the lists themselves are
     // there, and an empty array then reads as "no lists" rather than "not
@@ -435,12 +497,33 @@ export function MainScreen() {
       <h2 className={styles['navTitle']}>
         <LuOrigami aria-hidden="true" size={18} />
         Fold
+        {/* docs/specs/list-filter.md — the list filter, as a ghost icon
+            button at the trailing edge of the title row. It costs no
+            vertical space, and the row was empty to the right of the
+            mark; every full-width shape tried before gave a
+            twice-a-day control the presence of a primary action.
+
+            Here rather than inside ListNav because it owns a
+            ConfirmDialog: on mobile ListNav renders inside the drawer's
+            Dialog, where a nested dialog gets no backdrop of its own —
+            the same trap Settings and the list forms are hoisted out of.
+            *(moved 2026-08-05.)* */}
+        <ListFilterMenu
+          lists={allLists}
+          filter={listFilter}
+          onToggle={(listId) =>
+            changeFilter(toggleList(listFilter, allLists, listId))
+          }
+          onClear={() => changeFilter(null)}
+        />
       </h2>
       <div className={styles['navScroll']}>
         <ListNav
           selected={active}
           form={listForm}
           newTodoRef={globalAddTrigger}
+          filter={listFilter}
+          onRevealLists={() => setRevealing(true)}
           onNewTodo={() => {
             globalAdd.setOpen(true)
             setDrawerOpen(false)
@@ -505,6 +588,19 @@ export function MainScreen() {
       {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
       <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      {/* docs/specs/list-filter.md — asking before every hidden list
+          reappears. A sibling of the drawer for the same reason Settings
+          is: it is opened from inside the nav, which is a Dialog on
+          mobile. */}
+      <RevealListsDialog
+        open={revealing}
+        count={hiddenCount(allLists, listFilter)}
+        onCancel={() => setRevealing(false)}
+        onConfirm={() => {
+          setRevealing(false)
+          changeFilter(null)
+        }}
+      />
       {/* The global add-todo modal (issue #15), opened by the sidebar
           button or Cmd/Ctrl+K. A sibling of the drawer for the same reason
           Settings and Help are: on mobile the button lives inside the
@@ -740,6 +836,10 @@ export function MainScreen() {
                 active={listActiveTodos}
               />
             )}
+            {/* docs/specs/list-filter.md — the list filter is in the nav,
+                not here: it hides nav rows as well as todos, and this
+                header column was already title + count + actions deep.
+                *(moved 2026-08-05.)* */}
           </div>
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
@@ -753,7 +853,7 @@ export function MainScreen() {
                 // remounts it on the switch, so the two never share state.
                 <TodayPane
                   key={active}
-                  lists={lists.data ?? []}
+                  lists={shownLists}
                   {...(showingTomorrow ? { day: 'tomorrow' as const } : {})}
                   onOpen={openDetail}
                   onOpenList={selectList}
@@ -761,7 +861,7 @@ export function MainScreen() {
               ) : showingSummary ? (
                 <SummaryPane
                   key={active}
-                  lists={lists.data ?? []}
+                  lists={shownLists}
                   onOpen={openDetail}
                   onOpenList={selectList}
                 />

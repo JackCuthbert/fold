@@ -31,8 +31,24 @@
   margin-top: 0;
 }
 
+/* Set off from the open todos above it. */
 .completed {
   margin-top: var(--space-6);
+}
+
+/* ...but not when there are none. With everything ticked off, the list
+   above collapses to 0px (measured) and this margin separated the section
+   from nothing — a 24px hole under the header that read as a rendering
+   fault rather than as spacing.
+
+   `:empty` on the sibling rather than a prop from the pane: the question
+   is exactly "did anything render above me", which the DOM already knows
+   and no component has to compute or keep in step. It correctly does
+   *not* fire in a list view, whose `<ul>` always holds the "Add a todo…"
+   ghost row — there, something really is above the section.
+   *(fixed 2026-08-05.)* */
+.list:empty + .completed {
+  margin-top: 0;
 }
 
 .completedToggle {

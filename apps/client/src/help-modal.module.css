@@ -185,3 +185,152 @@
   line-height: var(--line-normal);
   color: var(--muted);
 }
+
+/* docs/specs/ui.md — the help modal's topics, folded away by default.
+   See `Topic` in help-modal.tsx: eight sections stacked open were a wall
+   of prose you had to scroll past to reach the paragraph you came for.
+   The keyboard shortcuts stay open above these, since Ctrl+/ is how most
+   people arrive. *(added 2026-08-05.)* */
+.topics {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Rules *between* topics only — none above the first or below the last.
+   The group has its own heading above it and the modal's edge below, so
+   an outer border on each side boxed the list in twice.
+   *(changed 2026-08-05.)* */
+.topic + .topic {
+  border-top: var(--border-width) solid var(--line);
+}
+
+.topicHeader {
+  margin: 0;
+}
+
+/* The whole row is the trigger, so the title is as clickable as the
+   chevron. Full width and left-aligned: this is a row of an index, not a
+   button (docs/specs/ui.md — one left edge, including controls). */
+.topicTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--hit-area);
+  padding: var(--space-2) 0;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: start;
+  cursor: pointer;
+}
+
+.topicTrigger:hover {
+  color: var(--accent);
+}
+
+/* Focus by colour and the chevron, not an outline — the row spans the
+   modal's full width, so a ring around it reads as a selected block
+   rather than a focused control (docs/specs/ui.md — overlays). */
+.topicTrigger:focus-visible {
+  outline: none;
+  color: var(--accent);
+}
+
+.topicChevron {
+  flex: none;
+  color: var(--faint);
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.topicTrigger[data-panel-open] .topicChevron {
+  transform: rotate(90deg);
+}
+
+/* Base UI animates the panel between 0 and its measured height via
+   --accordion-panel-height; `overflow: hidden` is what makes that read as
+   a fold rather than a jump. */
+.topicPanel {
+  overflow: hidden;
+}
+
+.topicBody {
+  padding-block-end: var(--space-3);
+}
+
+/* The same prose treatment `.section p` gives the shortcuts block above —
+   restated rather than shared, since that rule is scoped to `.section`
+   and these paragraphs live inside a panel. */
+.topicBody p {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+.topicBody p + p {
+  margin-top: var(--space-2);
+}
+
+/* The list kinds, as a definition list — one name, one sentence on what it
+   unlocks. Four kinds in a paragraph read as a run-on; as terms they are
+   scannable, which is how someone actually uses this section ("what does
+   Reading do again?"). The accordion is what made room for the extra
+   height. *(added 2026-08-05.)* */
+.kinds {
+  margin-block: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}
+
+.kinds dt {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.kinds dd {
+  color: var(--muted);
+  margin: 0 0 var(--space-2);
+}
+
+.kinds dd:last-child {
+  margin-bottom: 0;
+}
+
+/* A code span sitting in ordinary prose, rather than hard against a
+   parenthesis. `.section code`'s negative margin is there for
+   "write ( #1D9BF6FF )" in the extensions topic — it keeps the glyph put
+   inside its parens while the tint bleeds past — but applied to a bare
+   reference mid-sentence it pulled the tinted box onto the words either
+   side. This puts a real gap back. *(added 2026-08-05.)* */
+.inlineCode {
+  margin: 0 var(--space-1);
+}
+
+/* The one link in the modal (the About topic's attribution). Underlined
+   from the start rather than on hover: unlike the "Show all" affordance
+   in the filter popover, this leaves the app entirely, and a link that
+   only announces itself on hover is invisible to anyone not using a
+   mouse. *(added 2026-08-05.)* */
+.link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--faint);
+  transition: text-decoration-color var(--duration-fast) var(--ease);
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* The colophon closing the About topic. Set apart from the prose above it
+   — a little more space, a little quieter — so it reads as a signature
+   rather than a further claim about the app. *(added 2026-08-05.)* */
+.signoff {
+  margin-top: var(--space-3);
+  color: var(--faint);
+}
