@@ -2,11 +2,11 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
 import { useSound } from '../../sound/use-sound'
-import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from '../search/search'
+import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from '../lib/search'
 import styles from './search-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'
 import paneStyles from '../todo-pane/todo-pane.module.css'
-import { useTodayTodos } from '../use-today-todos'
+import { useTodayTodos } from '../hooks/use-today-todos'
 
 // docs/specs/search-view.md — fuzzy text search over every todo, from every
 // list. A derived view like Today and Summary, and it reads from the same
@@ -14,7 +14,7 @@ import { useTodayTodos } from '../use-today-todos'
 //
 // Reuses TodayRow for the same reason Summary does: results come from
 // several lists at once, so each row has to bind its own list's actions.
-export function SearchPane(props: {
+interface SearchPaneProps {
   lists: readonly TodoList[]
   /**
    * The query, owned by MainScreen.
@@ -29,7 +29,9 @@ export function SearchPane(props: {
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
-}) {
+}
+
+export function SearchPane(props: SearchPaneProps) {
   const { todos } = useTodayTodos(props.lists)
   const { playPop } = useSound()
   const field = useRef<HTMLInputElement | null>(null)

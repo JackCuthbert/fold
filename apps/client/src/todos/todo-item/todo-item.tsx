@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { LuHeart } from 'react-icons/lu'
 import { cx } from '../../styles/cx'
 import { Checkbox } from '../checkbox/checkbox'
-import { dueInstant, isOverdue } from '../sort/sort'
+import { dueInstant, isOverdue } from '../lib/sort'
 import styles from './todo-item.module.css'
 
 // docs/specs/todos.md — priority is colour-coded on the row, all three
@@ -38,7 +38,7 @@ export const formatDue = (todo: Todo): string | null => {
   return `${date} ${time}`
 }
 
-export function TodoItem(props: {
+interface TodoItemProps {
   todo: Todo
   now: Date
   onToggle: () => void
@@ -66,7 +66,9 @@ export function TodoItem(props: {
    * the block's own heading names it.
    */
   health?: boolean
-}) {
+}
+
+export function TodoItem(props: TodoItemProps) {
   const { todo } = props
   const overdue = !todo.completed && isOverdue(todo, props.now)
   const due = formatDue(todo)

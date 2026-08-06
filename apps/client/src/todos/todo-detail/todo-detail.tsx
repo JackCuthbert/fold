@@ -8,17 +8,17 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Controller, useWatch } from 'react-hook-form'
 import { LuChevronDown, LuCopy } from 'react-icons/lu'
 import { InfoBadge } from '../../ui/info-badge/info-badge'
-import { featuresOf } from '../../lists/list-kind/list-kind'
+import { featuresOf } from '../../lists/lib/list-kind'
 import { ModalHeader } from '../../ui/modal-header/modal-header'
 import { cx } from '../../styles/cx'
 import {
   cycleTimeOf,
   punctualityOf,
   type Punctuality,
-} from '../punctuality/punctuality'
-import { formatTimestamp } from '../summary/summary'
+} from '../lib/punctuality'
+import { formatTimestamp } from '../lib/summary'
 import styles from './todo-detail.module.css'
-import type { TodoDetailForm } from '../use-todo-detail-form/use-todo-detail-form'
+import type { TodoDetailForm } from '../hooks/use-todo-detail-form'
 
 // docs/specs/ui.md — status display: reuse the semantic status tokens
 // (green succeeded, amber caution, red missed) rather than inventing a
@@ -79,7 +79,7 @@ const PRIO_CLASS: Record<string, string | undefined> = {
 // send NO due change at all, so a foreign client's floating/zoned/UTC value
 // survives untouched (docs/specs/caldav-compliance.md). Only an actual edit
 // rewrites it — as an all-day 'date', or as 'zoned' once a time is given.
-export function TodoDetail(props: {
+interface TodoDetailProps {
   todo: Todo
   /** Every list, for the move dropdown (docs/specs/todos.md). */
   lists: readonly TodoList[]
@@ -104,7 +104,9 @@ export function TodoDetail(props: {
   /** Create a copy of this todo as new, active work (issue #25). */
   onDuplicate: () => void
   onClose: () => void
-}) {
+}
+
+export function TodoDetail(props: TodoDetailProps) {
   const { todo } = props
   const { control, isDirty, onSubmit, locked } = props.form
   // docs/specs/list-kinds.md — a media list has no due dates anywhere.
@@ -626,11 +628,13 @@ export function TodoDetail(props: {
  *   `finalFocus` — the heuristic Base UI falls back to is untrustworthy
  *   once a re-render moves the rows).
  */
-function DetailColumn(props: {
+interface DetailColumnProps {
   children: ReactNode
   focusNonce: number
   onClose: () => void
-}) {
+}
+
+function DetailColumn(props: DetailColumnProps) {
   const panel = useRef<HTMLDivElement>(null)
 
   // Move focus into the panel when it opens. The heading is the target

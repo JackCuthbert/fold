@@ -5,7 +5,7 @@ import { useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ModalHeader } from '../../ui/modal-header/modal-header'
 import { ShortcutKeys } from '../../shortcuts/shortcut-keys/shortcut-keys'
-import { SHORTCUTS } from '../../shortcuts/shortcuts/shortcuts'
+import { SHORTCUTS } from '../../shortcuts/lib/shortcuts'
 import { cx } from '../../styles/cx'
 import styles from './help-modal.module.css'
 
@@ -19,7 +19,11 @@ import styles from './help-modal.module.css'
  * CalDAV property names — things on the *server*, which the reader can
  * never click.
  */
-function UI(props: { children: ReactNode }) {
+interface UIProps {
+  children: ReactNode
+}
+
+function UI(props: UIProps) {
   return <span className={styles['ui']}>{props.children}</span>
 }
 
@@ -36,7 +40,12 @@ function UI(props: { children: ReactNode }) {
  * semantics and the keyboard handling (docs/specs/ui.md — prefer Base UI
  * over hand-rolling).
  */
-function Topic(props: { title: string; children: ReactNode }) {
+interface TopicProps {
+  title: string
+  children: ReactNode
+}
+
+function Topic(props: TopicProps) {
   return (
     <Accordion.Item className={styles['topic']}>
       <Accordion.Header className={styles['topicHeader']}>
@@ -68,10 +77,12 @@ function Topic(props: { title: string; children: ReactNode }) {
 // mobile the footer lives inside the nav drawer's Dialog, and Base UI never
 // renders a *nested* dialog's backdrop (by design). MainScreen owns the open
 // state and renders this as a sibling of the drawer. *(see main-screen.tsx.)*
-export function HelpModal(props: {
+interface HelpModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-}) {
+}
+
+export function HelpModal(props: HelpModalProps) {
   // This is the only modal in the app whose body genuinely scrolls, and Base
   // UI's default initial focus is the first tabbable element — which was
   // "Close", at the very bottom. Focusing it scrolled the body ~120px on

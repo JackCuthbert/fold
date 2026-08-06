@@ -4,12 +4,8 @@ import type { TodoList } from '@fold/schemas'
 import { LuCheck, LuListFilter } from 'react-icons/lu'
 import { ConfirmDialog } from '../../ui/confirm/confirm'
 import { cx } from '../../styles/cx'
-import { colourVar } from '../list-color/list-color'
-import {
-  isNarrowed,
-  type ListFilter,
-  visibleLists,
-} from '../list-filter/list-filter'
+import { colourVar } from '../lib/list-color'
+import { isNarrowed, type ListFilter, visibleLists } from '../lib/list-filter'
 import styles from './list-filter-menu.module.css'
 
 /**
@@ -28,12 +24,14 @@ import styles from './list-filter-menu.module.css'
  * **It asks before revealing** — see `RevealListsDialog` below, which
  * MainScreen renders. *(added 2026-08-05.)*
  */
-export function HiddenListsRow(props: {
+interface HiddenListsRowProps {
   lists: readonly TodoList[]
   filter: ListFilter
   /** Ask to reveal them — the dialog lives in MainScreen, see below. */
   onReveal: () => void
-}) {
+}
+
+export function HiddenListsRow(props: HiddenListsRowProps) {
   const hidden = hiddenCount(props.lists, props.filter)
   if (hidden === 0) return null
   return (
@@ -67,12 +65,14 @@ export function hiddenCount(
  * backdrop of its own — the same trap Settings, Help and the list forms
  * are all hoisted out of (main-screen.tsx). *(added 2026-08-05.)*
  */
-export function RevealListsDialog(props: {
+interface RevealListsDialogProps {
   open: boolean
   count: number
   onCancel: () => void
   onConfirm: () => void
-}) {
+}
+
+export function RevealListsDialog(props: RevealListsDialogProps) {
   const one = props.count === 1
   const noun = one ? 'list' : 'lists'
   return (
@@ -112,12 +112,14 @@ export function RevealListsDialog(props: {
  * nothing to narrow to, and a control that can only ever hide everything
  * (or nothing) is noise.
  */
-export function ListFilterMenu(props: {
+interface ListFilterMenuProps {
   lists: readonly TodoList[]
   filter: ListFilter
   onToggle: (listId: string) => void
   onClear: () => void
-}) {
+}
+
+export function ListFilterMenu(props: ListFilterMenuProps) {
   if (props.lists.length < 2) return null
 
   const shown = visibleLists(props.lists, props.filter).length

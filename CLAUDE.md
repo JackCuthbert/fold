@@ -80,13 +80,36 @@ and sanctioned for exactly this. Both were removed.)_
 - Forms use react-hook-form with `@hookform/resolvers/zod`, reusing
   `packages/schemas`.
 - **The root of `apps/client/src/` is for entry points only** — `main.tsx`,
-  `app.tsx`, `providers.tsx`. Everything else goes in a feature directory
+  `app.tsx`, `providers.tsx`. Everything else goes in a domain directory
   (`todos/`, `lists/`, `sync/`, `auth/`, `sound/`), in `shell/` (the
   app frame: nav, header, panes, modals), `ui/` (generic primitives with
-  no feature knowledge), `shortcuts/`, `help/`, `styles/`, or `lib/`
-  (framework-agnostic helpers). If none of those fits, that is the signal
-  to name a new directory rather than to drop a file at the root — 31 loose
-  files accumulated there before anyone noticed (issue #28).
+  no domain knowledge), `shortcuts/`, `help/`, `styles/`, `hooks/`
+  (cross-cutting hooks) or `lib/` (cross-cutting pure helpers). If none of
+  those fits, that is the signal to name a new directory rather than to
+  drop a file at the root — 31 loose files accumulated there before anyone
+  noticed (issue #28). _(added 2026-08-06.)_
+- **Inside a domain, a UI component gets its own directory; everything
+  else does not.** The directory is the unit: `todo-item.tsx`,
+  `todo-item.module.css` and `todo-item.test.ts` together, so what a
+  component is made of — and whether it is tested — is visible without a
+  search. Non-components stay flat in the domain's `lib/` (pure functions)
+  or `hooks/` (stateful React), because a directory holding one file buys
+  nothing. A domain that is _entirely_ helpers (`sync/`, `api/`) needs no
+  subdivision at all. _(added 2026-08-06.)_
+- **Tests live beside the code they exercise**, not in a parallel `test/`
+  tree — `search.ts` and `search.test.ts` in the same directory. A separate
+  tree makes an untested module look identical to a tested one.
+  _(added 2026-08-06.)_
+- **Props are a named interface, never inline.** `interface TodoItemProps`
+  above the component, `export function TodoItem(props: TodoItemProps)`.
+  The shape gets a name that can be referenced, documented and read on its
+  own. _(added 2026-08-06.)_
+- **Prefer a context to threading a prop through a component that does not
+  use it.** Three exist (`shell/context/`): overlays, the list filter, and
+  selection. Each covers state written in one place and read in several, so
+  the components in between never mention it. A value that is _derived_ per
+  render stays a prop — a context would hide the computation rather than
+  remove drilling, which is why `ViewHeader` still takes nine.
   _(added 2026-08-06.)_
 - **A soft ceiling of ~300 lines for a component file.** Not a lint rule —
   a prompt to ask whether a second concern has crept in. When one has, the

@@ -1,6 +1,6 @@
 import { AddTodoModal } from '../add-todo-modal/add-todo-modal'
 import styles from './add-todo-trigger.module.css'
-import type { useAddTodo } from '../use-add-todo'
+import type { useAddTodo } from '../hooks/use-add-todo'
 
 // docs/specs/ui.md — "Add a todo" is a ghost row at the top of the list: it
 // mirrors a todo row exactly (same height, same checkbox column, same left

@@ -6,11 +6,13 @@ import styles from './checkbox.module.css'
 // Base UI's Checkbox.Root supplies role="checkbox"/aria-checked and keyboard
 // handling; we keep the custom SVG stroke-draw for the check mark
 // (docs/specs/ui.md — micro-interactions).
-export function Checkbox(props: {
+interface CheckboxProps {
   checked: boolean
   label: string
   onToggle: () => void
-}) {
+}
+
+export function Checkbox(props: CheckboxProps) {
   return (
     <span className={styles['hitArea']}>
       <BaseCheckbox.Root

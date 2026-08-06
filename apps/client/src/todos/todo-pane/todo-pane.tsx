@@ -7,12 +7,12 @@ import { api, queryClient, useSyncEngine } from '../../providers'
 import { useSound } from '../../sound/use-sound'
 import { cx } from '../../styles/cx'
 import { AddTodoTrigger } from '../add-todo-trigger/add-todo-trigger'
-import { sortActiveTodos } from '../sort/sort'
+import { sortActiveTodos } from '../lib/sort'
 import { TodoItem } from '../todo-item/todo-item'
 import styles from './todo-pane.module.css'
-import type { useAddTodo } from '../use-add-todo'
+import type { useAddTodo } from '../hooks/use-add-todo'
 
-export function TodoPane(props: {
+interface TodoPaneProps {
   listId: string
   add: ReturnType<typeof useAddTodo>
   // docs/specs/ui.md — the detail panel: selection lives in MainScreen so
@@ -22,7 +22,9 @@ export function TodoPane(props: {
   // *(changed 2026-08-03: was local `openUid` state plus a TodoDetail
   // rendered here.)*
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
-}) {
+}
+
+export function TodoPane(props: TodoPaneProps) {
   const engine = useSyncEngine()
   const todos = useQuery({
     queryKey: ['todos', props.listId],

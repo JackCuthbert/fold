@@ -16,7 +16,12 @@ import paneStyles from '../todo-pane/todo-pane.module.css'
  * an empty bordered box is not a control whose absence moves anything, and
  * an outline around no rows reads as a rendering fault.
  */
-export function HealthBlock(props: { children: ReactNode; count: number }) {
+interface HealthBlockProps {
+  children: ReactNode
+  count: number
+}
+
+export function HealthBlock(props: HealthBlockProps) {
   if (props.count === 0) return null
   return (
     <section className={styles['section']} aria-label="Health">

@@ -20,12 +20,14 @@ const listFormSchema = z.object({
 })
 export type ListFormValues = z.infer<typeof listFormSchema>
 
-export function ListForm(props: {
+interface ListFormProps {
   initial?: ListFormValues
   submitLabel: string
   onSubmit: (values: ListFormValues) => void
   onCancel: () => void
-}) {
+}
+
+export function ListForm(props: ListFormProps) {
   const {
     control,
     handleSubmit,

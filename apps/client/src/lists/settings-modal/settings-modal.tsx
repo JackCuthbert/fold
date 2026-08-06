@@ -12,10 +12,12 @@ import styles from './settings-modal.module.css'
 // opened from a "Settings" entry in the nav footer — they are not loose
 // controls in the nav. Dialog handles focus trapping, scroll locking,
 // Escape-to-close and focus restoration to the trigger.
-export function SettingsModal(props: {
+interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-}) {
+}
+
+export function SettingsModal(props: SettingsModalProps) {
   const { muted, toggleMuted } = useSound()
   // docs/specs/ui.md — Settings: the CalDAV server URL is visible here,
   // read-only — useful to confirm which server you're on. Signing out is

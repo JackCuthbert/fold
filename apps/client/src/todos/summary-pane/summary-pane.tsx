@@ -1,15 +1,11 @@
 import type { Todo, TodoList } from '@fold/schemas'
-import {
-  groupTodos,
-  isHealthTodo,
-  partitionHealth,
-} from '../group-by-list/group-by-list'
+import { groupTodos, isHealthTodo, partitionHealth } from '../lib/group-by-list'
 import { GroupRow } from '../group-row/group-row'
-import { dayLabel, summariseCompleted } from '../summary/summary'
+import { dayLabel, summariseCompleted } from '../lib/summary'
 import styles from './summary-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'
 import paneStyles from '../todo-pane/todo-pane.module.css'
-import { useTodayTodos } from '../use-today-todos'
+import { useTodayTodos } from '../hooks/use-today-todos'
 
 // docs/specs/summary-view.md — finished work, grouped by the day it was
 // finished. Where Today looks forward (what is due), this looks back (what
@@ -17,14 +13,16 @@ import { useTodayTodos } from '../use-today-todos'
 //
 // Reuses TodayRow/TodayDetail: both views draw todos from several lists at
 // once, so both need each row bound to its *own* list's actions.
-export function SummaryPane(props: {
+interface SummaryPaneProps {
   lists: readonly TodoList[]
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
   /** Go to a list — what a grouped row does (docs/specs/list-kinds.md). */
   onOpenList: (listId: string) => void
-}) {
+}
+
+export function SummaryPane(props: SummaryPaneProps) {
   const { todos } = useTodayTodos(props.lists)
 
   const now = new Date()

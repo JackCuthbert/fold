@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MOUNT_DEADLINE_MS } from './lib/deadline/deadline'
+import { MOUNT_DEADLINE_MS } from './lib/deadline'
 import { persister, queryClient } from './providers'
 
 // Pins docs/specs/sync-and-offline.md's refetch triggers: "window focus,

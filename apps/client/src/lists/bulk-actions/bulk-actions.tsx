@@ -2,9 +2,9 @@ import type { Todo } from '@fold/schemas'
 import { useState } from 'react'
 import { LuCalendarClock, LuListChecks } from 'react-icons/lu'
 import { ConfirmDialog } from '../../ui/confirm/confirm'
-import { fieldsToDue } from '../../todos/due-fields/due-fields'
-import { useTodoActions } from '../../todos/use-todo-actions'
-import { featuresOf } from '../list-kind/list-kind'
+import { fieldsToDue } from '../../todos/lib/due-fields'
+import { useTodoActions } from '../../todos/hooks/use-todo-actions'
+import { featuresOf } from '../lib/list-kind'
 import styles from './bulk-actions.module.css'
 
 /**
@@ -22,12 +22,14 @@ import styles from './bulk-actions.module.css'
  * outbox already coalesces and retries these, and a new kind would need
  * its own conflict handling for no benefit.
  */
-export function BulkActions(props: {
+interface BulkActionsProps {
   listId: string
   listName: string
   /** Active todos only — the rows these actions would touch. */
   active: readonly Todo[]
-}) {
+}
+
+export function BulkActions(props: BulkActionsProps) {
   const actions = useTodoActions(props.listId)
   const [confirming, setConfirming] = useState<'complete' | 'schedule' | null>(
     null,

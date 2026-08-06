@@ -12,20 +12,20 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { createApi, type Api } from './api/client/client'
-import { withDeadline } from './lib/deadline/deadline'
+import { createApi, type Api } from './api/client'
+import { withDeadline } from './lib/deadline'
 import {
   createSyncEngine,
   type SyncEngine,
   type SyncStatus,
-} from './sync/engine/engine'
+} from './sync/engine'
 import {
   outboxKeyFor,
   readServerIdentity,
   subscribeServerIdentity,
-} from './lib/server-identity/server-identity'
-import { openOutboxStorage } from './sync/idb-storage/idb-storage'
-import { classifyBlockReason, TaggedFatalError } from './sync/process/process'
+} from './lib/server-identity'
+import { openOutboxStorage } from './sync/idb-storage'
+import { classifyBlockReason, TaggedFatalError } from './sync/process'
 import { useToast } from './ui/toast/toast'
 
 export const api: Api = createApi()

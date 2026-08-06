@@ -34,7 +34,7 @@ import styles from './modal-header.module.css'
  * and this module keeps owning the shape. A boolean `isDialog` would only
  * have invited a second boolean the next time something differed.)*
  */
-export function ModalHeader(props: {
+interface ModalHeaderProps {
   children: ReactNode
   /**
    * The larger heading used by the todo detail panel, the app's biggest
@@ -70,7 +70,9 @@ export function ModalHeader(props: {
    * *(added 2026-08-04.)*
    */
   status?: ReactNode
-}) {
+}
+
+export function ModalHeader(props: ModalHeaderProps) {
   const title = props.render?.title ?? <Dialog.Title />
   const close = props.render?.close ?? <Dialog.Close />
 

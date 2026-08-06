@@ -19,7 +19,7 @@ import styles from './confirm.module.css'
 // asks a question and offers two answers; a third dismissal path in the
 // header would compete with the explicit Cancel beside the destructive
 // action.
-export function ConfirmDialog(props: {
+interface ConfirmDialogProps {
   open: boolean
   title: string
   children: ReactNode
@@ -38,7 +38,9 @@ export function ConfirmDialog(props: {
   tone?: 'destructive' | 'affirmative'
   onConfirm: () => void
   onCancel: () => void
-}) {
+}
+
+export function ConfirmDialog(props: ConfirmDialogProps) {
   return (
     <AlertDialog.Root
       open={props.open}

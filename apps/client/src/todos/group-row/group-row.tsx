@@ -1,6 +1,6 @@
 import { LuChevronRight, LuSparkles } from 'react-icons/lu'
 import { cx } from '../../styles/cx'
-import type { TodoGroup } from '../group-by-list/group-by-list'
+import type { TodoGroup } from '../lib/group-by-list'
 import styles from './group-row.module.css'
 
 /**
@@ -16,10 +16,12 @@ import styles from './group-row.module.css'
  * down into a panel, which is what the Completed accordion's own chevron
  * means a few rows below. The two must not look like the same control.
  */
-export function GroupRow(props: {
+interface GroupRowProps {
   group: TodoGroup
   onOpenList: (listId: string) => void
-}) {
+}
+
+export function GroupRow(props: GroupRowProps) {
   const count = props.group.todos.length
   // Struck through only when the whole group is finished. A part-done
   // group is still outstanding — the row stands for the errand, and the

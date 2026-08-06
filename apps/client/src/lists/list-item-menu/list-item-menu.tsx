@@ -8,7 +8,7 @@ import styles from './list-item-menu.module.css'
 // name. Base UI's Menu supplies the keyboard and focus behaviour
 // (open/close, arrow-key navigation, typeahead, Escape, focus restoration
 // to the trigger) rather than hand-rolling it.
-export function ListItemMenu(props: {
+interface ListItemMenuProps {
   displayName: string
   canMoveUp: boolean
   canMoveDown: boolean
@@ -16,7 +16,9 @@ export function ListItemMenu(props: {
   onMoveDown: () => void
   onEdit: () => void
   onDelete: () => void
-}) {
+}
+
+export function ListItemMenu(props: ListItemMenuProps) {
   return (
     <Menu.Root>
       <Menu.Trigger

@@ -17,18 +17,18 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
-} from '../../todos/today/today'
-import { useModifierHeld } from '../../shortcuts/use-modifier-held'
-import { useTheme } from '../../lib/use-theme'
+} from '../../todos/lib/today'
+import { useModifierHeld } from '../../shortcuts/hooks/use-modifier-held'
+import { useTheme } from '../../hooks/use-theme'
 import { ShortcutKeys } from '../../shortcuts/shortcut-keys/shortcut-keys'
-import { SHORTCUTS } from '../../shortcuts/shortcuts/shortcuts'
+import { SHORTCUTS } from '../../shortcuts/lib/shortcuts'
 import { ListItemMenu } from '../list-item-menu/list-item-menu'
-import { colourVar, markerColor } from '../list-color/list-color'
-import { type ListFilter, visibleLists } from '../list-filter/list-filter'
+import { colourVar, markerColor } from '../lib/list-color'
+import { type ListFilter, visibleLists } from '../lib/list-filter'
 import { HiddenListsRow } from '../list-filter-menu/list-filter-menu'
-import { listKindOf } from '../list-kind/list-kind'
-import { reorder } from '../list-order/list-order'
-import type { ListFormState } from '../use-list-form'
+import { listKindOf } from '../lib/list-kind'
+import { reorder } from '../lib/list-order'
+import type { ListFormState } from '../hooks/use-list-form'
 import styles from './list-nav.module.css'
 
 export function useLists() {
@@ -83,7 +83,7 @@ const VIEW_META: Record<string, { label: string; icon: IconType }> = {
 // nested (losing its backdrop) and would unmount at the breakpoint (losing
 // its state). See `lists/use-list-form.ts`.
 // *(changed 2026-08-04, issues #20 and #21.)*
-export function ListNav(props: {
+interface ListNavProps {
   selected: string | null
   onSelect: (listId: string) => void
   form: ListFormState
@@ -105,7 +105,9 @@ export function ListNav(props: {
    * trap the list forms are hoisted out of.
    */
   onRevealLists: () => void
-}) {
+}
+
+export function ListNav(props: ListNavProps) {
   const lists = useLists()
   const theme = useTheme()
   const { mutate } = props.form

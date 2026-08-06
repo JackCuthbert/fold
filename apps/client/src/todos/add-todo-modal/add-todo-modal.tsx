@@ -10,11 +10,11 @@ import { useEffect, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import { z } from 'zod'
-import { featuresOf } from '../../lists/list-kind/list-kind'
+import { featuresOf } from '../../lists/lib/list-kind'
 import { ModalHeader } from '../../ui/modal-header/modal-header'
 import { cx } from '../../styles/cx'
 import styles from './add-todo-modal.module.css'
-import { fieldsToDue } from '../due-fields/due-fields'
+import { fieldsToDue } from '../lib/due-fields'
 
 // docs/specs/todos.md — due times: a time needs a date, since DUE cannot
 // express one without the other. Caught here so the user sees an error
@@ -124,7 +124,7 @@ type AddTodoTarget =
       onAdd: (listId: string, todo: NewTodo) => void
     }
 
-export function AddTodoModal(props: {
+interface AddTodoModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   target: AddTodoTarget
@@ -137,7 +137,9 @@ export function AddTodoModal(props: {
   // button that opened the modal. Passing the trigger explicitly via
   // `finalFocus` removes the guesswork.
   triggerRef: RefObject<HTMLButtonElement | null>
-}) {
+}
+
+export function AddTodoModal(props: AddTodoModalProps) {
   const pickList = props.target.kind === 'global'
   const listOptions =
     props.target.kind === 'global'

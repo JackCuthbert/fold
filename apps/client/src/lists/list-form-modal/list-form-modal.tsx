@@ -9,7 +9,7 @@ import styles from './list-form-modal.module.css'
 // shape while open. Editing (triggered from the per-list kebab menu) reuses
 // this same shell — Dialog handles focus trapping, scroll locking,
 // Escape-to-close and focus restoration to the trigger either way.
-export function ListFormModal(props: {
+interface ListFormModalProps {
   open: boolean
   title: string
   // The form's own inferred type, not a second hand-written copy of it —
@@ -19,7 +19,9 @@ export function ListFormModal(props: {
   submitLabel: string
   onOpenChange: (open: boolean) => void
   onSubmit: (values: ListFormValues) => void
-}) {
+}
+
+export function ListFormModal(props: ListFormModalProps) {
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>

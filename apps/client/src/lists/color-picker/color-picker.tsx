@@ -46,10 +46,12 @@ export function commitValue(raw: string): ColorCommit {
  */
 const WHEEL_FALLBACK = '#7A5C3E'
 
-export function ColorPicker(props: {
+interface ColorPickerProps {
   value: string | undefined
   onChange: (color: string | undefined) => void
-}) {
+}
+
+export function ColorPicker(props: ColorPickerProps) {
   const hexId = useId()
   // Kept separate from `value` so a half-typed hex ("#1D9") doesn't clear
   // the colour on every keystroke.

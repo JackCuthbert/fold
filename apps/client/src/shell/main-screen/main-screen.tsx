@@ -9,11 +9,11 @@ import {
   serialiseListFilter,
   toggleList,
   visibleLists,
-} from '../../lists/list-filter/list-filter'
+} from '../../lists/lib/list-filter'
 import { hiddenCount } from '../../lists/list-filter-menu/list-filter-menu'
-import { kindExplanation } from '../../lists/list-kind/list-kind'
+import { kindExplanation } from '../../lists/lib/list-kind'
 import { useLists } from '../../lists/list-nav/list-nav'
-import { useListForm } from '../../lists/use-list-form'
+import { useListForm } from '../../lists/hooks/use-list-form'
 import styles from './main-screen.module.css'
 import { cx } from '../../styles/cx'
 import {
@@ -27,29 +27,29 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
-} from '../../todos/today/today'
+} from '../../todos/lib/today'
 import { TodayDetail } from '../../todos/today-pane/today-pane'
-import { useAddTodo } from '../../todos/use-add-todo'
-import { useGlobalAddTodo } from '../../todos/use-global-add-todo'
-import { useListActiveTodos } from '../../todos/use-list-active-todos'
-import { viewIndexOf } from '../../shortcuts/shortcuts/shortcuts'
-import { useShortcuts } from '../../shortcuts/use-shortcuts'
-import { useTodoActions } from '../../todos/use-todo-actions'
-import { useTodoDetailForm } from '../../todos/use-todo-detail-form/use-todo-detail-form'
-import { useViewCount } from '../../todos/use-view-count/use-view-count'
-import { AppModals } from '../app-modals'
+import { useAddTodo } from '../../todos/hooks/use-add-todo'
+import { useGlobalAddTodo } from '../../todos/hooks/use-global-add-todo'
+import { useListActiveTodos } from '../../todos/hooks/use-list-active-todos'
+import { viewIndexOf } from '../../shortcuts/lib/shortcuts'
+import { useShortcuts } from '../../shortcuts/hooks/use-shortcuts'
+import { useTodoActions } from '../../todos/hooks/use-todo-actions'
+import { useTodoDetailForm } from '../../todos/hooks/use-todo-detail-form'
+import { useViewCount } from '../../todos/hooks/use-view-count'
+import { AppModals } from '../app-modals/app-modals'
 import {
   ListFilterProvider,
   type ListFilterState,
-} from '../list-filter-context'
-import { OverlaysProvider, type Overlays } from '../overlays-context'
-import { SelectionProvider, type Selection } from '../selection-context'
-import { NavPanel } from '../nav-panel'
-import { ViewPane, type PaneKind } from '../view-pane'
-import { ViewHeader } from '../view-header'
-import { useDetailPanel } from '../use-detail-panel'
-import { useNavLayout } from '../use-nav-layout'
-import { useViewSelection } from '../use-view-selection'
+} from '../context/list-filter-context'
+import { OverlaysProvider, type Overlays } from '../context/overlays-context'
+import { SelectionProvider, type Selection } from '../context/selection-context'
+import { NavPanel } from '../nav-panel/nav-panel'
+import { ViewPane, type PaneKind } from '../view-pane/view-pane'
+import { ViewHeader } from '../view-header/view-header'
+import { useDetailPanel } from '../hooks/use-detail-panel'
+import { useNavLayout } from '../hooks/use-nav-layout'
+import { useViewSelection } from '../hooks/use-view-selection'
 
 /**
  * The title and the "what is this?" copy for each derived view.

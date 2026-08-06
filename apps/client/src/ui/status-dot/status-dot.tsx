@@ -27,7 +27,11 @@ const LABEL: Record<StatusKind, string> = {
  * colour alone — the label is real visible text, not just an sr-only
  * accessible name.
  */
-export function StatusDot(props: { kind: StatusKind }) {
+interface StatusDotProps {
+  kind: StatusKind
+}
+
+export function StatusDot(props: StatusDotProps) {
   const disconnected = props.kind === 'offline' || props.kind === 'server'
   return (
     <span className={styles['wrapper']} role="status">

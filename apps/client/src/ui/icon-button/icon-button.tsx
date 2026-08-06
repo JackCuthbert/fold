@@ -19,7 +19,7 @@ import styles from './icon-button.module.css'
  *
  * *(added 2026-08-04.)*
  */
-export function IconButton(props: {
+interface IconButtonProps {
   /** The control's name — shown on hover/focus and used as its label. */
   label: string
   icon: ReactNode
@@ -31,7 +31,9 @@ export function IconButton(props: {
    */
   className?: string | undefined
   disabled?: boolean
-}) {
+}
+
+export function IconButton(props: IconButtonProps) {
   return (
     <Tooltip.Root>
       <Tooltip.Trigger

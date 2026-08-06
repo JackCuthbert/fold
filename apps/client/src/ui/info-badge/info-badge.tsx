@@ -28,7 +28,7 @@ import styles from './info-badge.module.css'
  * Hover does not exist on touch, so the trigger is a real button and a tap
  * opens the same popover — no interaction is pointer-only.
  */
-export function InfoBadge(props: {
+interface InfoBadgeProps {
   /** The explanation. One or two sentences of prose. */
   children: ReactNode
   /** Accessible name for the trigger, e.g. "About list colours". */
@@ -44,7 +44,9 @@ export function InfoBadge(props: {
    * *(added 2026-08-05, issue #27.)*
    */
   icon?: IconType
-}) {
+}
+
+export function InfoBadge(props: InfoBadgeProps) {
   const Icon = props.icon ?? LuInfo
   return (
     <Popover.Root>

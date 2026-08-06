@@ -3,25 +3,21 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ConfirmDialog } from '../../ui/confirm/confirm'
-import { duplicateTodo } from '../duplicate-todo/duplicate-todo'
-import {
-  groupTodos,
-  isHealthTodo,
-  partitionHealth,
-} from '../group-by-list/group-by-list'
+import { duplicateTodo } from '../lib/duplicate-todo'
+import { groupTodos, isHealthTodo, partitionHealth } from '../lib/group-by-list'
 import { GroupRow } from '../group-row/group-row'
 import { HealthBlock } from '../health-block/health-block'
 import { useSound } from '../../sound/use-sound'
 import { cx } from '../../styles/cx'
-import { sortActiveTodos } from '../sort/sort'
+import { sortActiveTodos } from '../lib/sort'
 import styles from './today-pane.module.css'
-import { selectToday, selectTomorrow, sortByDueInstant } from '../today/today'
+import { selectToday, selectTomorrow, sortByDueInstant } from '../lib/today'
 import { TodoDetail } from '../todo-detail/todo-detail'
 import { TodoItem } from '../todo-item/todo-item'
 import paneStyles from '../todo-pane/todo-pane.module.css'
-import { useTodayTodos } from '../use-today-todos'
-import { useTodoActions } from '../use-todo-actions'
-import type { TodoDetailForm } from '../use-todo-detail-form/use-todo-detail-form'
+import { useTodayTodos } from '../hooks/use-today-todos'
+import { useTodoActions } from '../hooks/use-todo-actions'
+import type { TodoDetailForm } from '../hooks/use-todo-detail-form'
 
 // docs/specs/today-view.md. Deliberately *not* a mode inside TodoPane: the
 // two differ in where their todos come from (many lists vs one), how they
@@ -36,7 +32,7 @@ import type { TodoDetailForm } from '../use-todo-detail-form/use-todo-detail-for
 // copies of this component would have been a hundred duplicated lines that
 // drift the first time one of them is fixed, which is the opposite trade
 // from the TodoPane one above. *(added 2026-08-05.)*
-export function TodayPane(props: {
+interface TodayPaneProps {
   lists: readonly TodoList[]
   /** Which day's slice to show. Defaults to today. */
   day?: 'today' | 'tomorrow'
@@ -45,7 +41,9 @@ export function TodayPane(props: {
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
   /** Go to a list — what a grouped row does (docs/specs/list-kinds.md). */
   onOpenList: (listId: string) => void
-}) {
+}
+
+export function TodayPane(props: TodayPaneProps) {
   const { todos } = useTodayTodos(props.lists)
   const { playPop } = useSound()
   // docs/specs/today-view.md — completed: expanded by default here, unlike
@@ -217,7 +215,7 @@ export function TodayPane(props: {
  * Shared with the Summary view (docs/specs/summary-view.md), which has the
  * same cross-list problem.
  */
-export function TodayRow(props: {
+interface TodayRowProps {
   todo: Todo
   now: Date
   listName: string
@@ -225,7 +223,9 @@ export function TodayRow(props: {
   health?: boolean
   onOpen: (trigger: HTMLElement) => void
   onToggled?: () => void
-}) {
+}
+
+export function TodayRow(props: TodayRowProps) {
   const actions = useTodoActions(props.todo.listId)
   const { todo } = props
 
@@ -265,7 +265,7 @@ export function TodayRow(props: {
  * a component that unmounts at 768px.
  * *(changed 2026-08-03: was the whole action set.)*
  */
-export function TodayDetail(props: {
+interface TodayDetailProps {
   todo: Todo
   lists: readonly TodoList[]
   form: TodoDetailForm
@@ -278,7 +278,9 @@ export function TodayDetail(props: {
    */
   onDuplicated?: (copy: Todo) => void
   onClose: () => void
-}) {
+}
+
+export function TodayDetail(props: TodayDetailProps) {
   const actions = useTodoActions(props.todo.listId)
   // docs/specs/todos.md — deleting a todo asks first. A delete is
   // unrecoverable: the resource is removed from the server outright and

@@ -1,5 +1,5 @@
 import { MdOutlineKeyboardControlKey } from 'react-icons/md'
-import { shortcutLetter, type Shortcut } from '../shortcuts/shortcuts'
+import { shortcutLetter, type Shortcut } from '../lib/shortcuts'
 import { cx } from '../../styles/cx'
 import styles from './shortcut-keys.module.css'
 
@@ -21,7 +21,7 @@ import styles from './shortcut-keys.module.css'
  * the same reason the map itself lives in one constant
  * (docs/specs/ui.md — keyboard shortcuts).
  */
-export function ShortcutKeys(props: {
+interface ShortcutKeysProps {
   shortcut: Shortcut
   /**
    * True when the chord sits on a filled (accent) surface rather than on
@@ -29,7 +29,9 @@ export function ShortcutKeys(props: {
    * the page. See `.onFilled`.
    */
   onFilled?: boolean
-}) {
+}
+
+export function ShortcutKeys(props: ShortcutKeysProps) {
   // Sized in `em` throughout, so the caps track whatever the surrounding
   // text is set at: one component serves the help list and the nav button
   // without either passing a size.

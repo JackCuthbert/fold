@@ -36,10 +36,12 @@ function statusFor(
 // click-outside-to-close. MainScreen owns both modals and renders them as
 // siblings of the drawer; this component only reports that a button was
 // pressed. *(fixed 2026-08-01.)*
-export function NavFooter(props: {
+interface NavFooterProps {
   onOpenHelp: () => void
   onOpenSettings: () => void
-}) {
+}
+
+export function NavFooter(props: NavFooterProps) {
   const online = useOnline()
   const { pending, blocked } = useSyncStatus()
   const kind = statusFor(online, blocked, pending)
