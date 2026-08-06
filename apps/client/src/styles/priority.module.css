@@ -23,7 +23,7 @@
  * Usage (in a consuming .module.css):
  *
  *   .prioHigh {
- *     composes: high from '../styles/priority.module.css';
+ *     composes: high from './priority.module.css';
  *   }
  *
  * *(added 2026-08-03: the dropdown options that *set* a priority rendered

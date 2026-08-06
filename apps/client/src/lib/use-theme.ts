@@ -1,5 +1,5 @@
-import type { Theme } from '../lists/list-color'
-import { useMediaQuery } from '../lib/use-media-query'
+import type { Theme } from '../lists/list-color/list-color'
+import { useMediaQuery } from './use-media-query'
 
 /**
  * Which paper the app is currently on — needed by the list-colour

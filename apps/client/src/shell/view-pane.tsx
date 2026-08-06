@@ -1,12 +1,12 @@
 import type { TodoList } from '@fold/schemas'
-import { SearchPane } from '../todos/search-pane'
-import { SummaryPane } from '../todos/summary-pane'
-import { TodayPane } from '../todos/today-pane'
-import { TodoPane } from '../todos/todo-pane'
+import { SearchPane } from '../todos/search-pane/search-pane'
+import { SummaryPane } from '../todos/summary-pane/summary-pane'
+import { TodayPane } from '../todos/today-pane/today-pane'
+import { TodoPane } from '../todos/todo-pane/todo-pane'
 import type { useAddTodo } from '../todos/use-add-todo'
 import { useListFilter } from './list-filter-context'
 import { useSelection } from './selection-context'
-import styles from './main-screen.module.css'
+import styles from './main-screen/main-screen.module.css'
 
 /** Which pane the selected view resolves to. */
 export type PaneKind = 'today' | 'tomorrow' | 'summary' | 'search' | 'list'

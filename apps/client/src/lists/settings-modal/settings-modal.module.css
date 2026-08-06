@@ -1,0 +1,143 @@
+/*
+ * docs/specs/ui.md — Settings modal: sound and sign out live here rather
+ * than as loose nav controls. Same dimmed/animated overlay treatment as
+ * every other modal in the app (docs/specs/ui.md — overlays).
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: 40;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  /* No padding here — .title and .body below own it, so the scrollbar (if
+     .body ever needs to scroll) tracks the popup's true edge instead of
+     floating inset with content sliding under it (docs/specs/ui.md —
+     scrollbar gutters sit at the container edge; same fix as the detail
+     panel and add-todo modal). */
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css. *(changed 2026-08-03: this
+   module carried its own near-identical `.title` rule, one of five.)* */
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+/* docs/specs/ui.md — one left edge, left and right edges both: rows in a
+   panel — including the settings modal — align on both sides with the
+   modal's other content (the title and the Sign out button below). This row
+   previously carried its own --space-2 horizontal padding on top of
+   `.body`'s inset, narrowing it 8px inside its neighbours on both edges —
+   removed here; `.body`'s own padding is the only horizontal inset now.
+   *(changed 2026-07-31.)* */
+.serverUrl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  min-height: var(--hit-area);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-2);
+}
+
+.serverUrlValue {
+  font-size: var(--text-sm);
+  word-break: break-all;
+}
+
+/* docs/specs/ui.md — Settings: controls need breathing room from any
+   divider beneath them. *(changed 2026-07-31: there was no padding at all
+   between the sound toggle and this row's divider — the border sat flush
+   against the toggle's own box. padding-bottom now separates the control
+   from its divider before margin-bottom adds the gap to the next row.)*
+   docs/specs/ui.md — one left edge, left and right edges both: dropped the
+   row's own horizontal padding (--space-2 each side) — it made this row 8px
+   narrower than the title and Sign out button on both edges, all of
+   which rely solely on `.body`'s padding for their inset.
+   *(changed 2026-07-31.)* */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--hit-area);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.toggle[data-pressed] {
+  color: var(--accent);
+}
+
+.toggle:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+/* The only button in the footer now that the header's ✕ owns closing
+   (settings-modal.tsx). *(changed 2026-08-03: `.close` sat below this and
+   has gone with it.)* */
+.signOut {
+  composes: action destructive from '../../styles/button.module.css';
+  width: 100%;
+  margin-top: var(--space-2);
+}

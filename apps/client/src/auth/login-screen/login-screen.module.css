@@ -1,0 +1,59 @@
+.login {
+  max-width: 22rem;
+  margin: 15dvh auto 0;
+  padding: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  min-width: 0;
+}
+
+.field :global(input) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.submit {
+  composes: action primary from '../../styles/button.module.css';
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* Dev-only convenience for the local compose stack — secondary to Sign in
+   so it never competes with the real action (see login-screen.tsx). */
+.demo {
+  composes: action default from '../../styles/button.module.css';
+  width: 100%;
+}

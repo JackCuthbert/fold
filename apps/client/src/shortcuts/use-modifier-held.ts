@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { isTextEntryTarget } from '../shortcuts/shortcuts'
+import { isTextEntryTarget } from './shortcuts/shortcuts'
 
 /**
  * Whether the shortcut modifier (Ctrl) is currently held down.

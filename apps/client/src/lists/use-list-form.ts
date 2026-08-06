@@ -1,9 +1,9 @@
 import type { TodoList } from '@fold/schemas'
 import { useState } from 'react'
 import { queryClient, useSyncEngine } from '../providers'
-import { applyMutationToLists } from '../sync/optimistic'
-import type { ListFormValues } from './list-form'
-import { nextOrder } from './list-order'
+import { applyMutationToLists } from '../sync/optimistic/optimistic'
+import type { ListFormValues } from './list-form/list-form'
+import { nextOrder } from './list-order/list-order'
 
 /**
  * Which list surface is open, and everything needed to submit it.

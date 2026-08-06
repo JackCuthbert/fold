@@ -17,7 +17,7 @@
  * Usage (in a consuming .module.css):
  *
  *   .save {
- *     composes: action primary from '../styles/button.module.css';
+ *     composes: action primary from './button.module.css';
  *   }
  *
  * `.action` supplies the shared shape (border, radius, padding, hit area,

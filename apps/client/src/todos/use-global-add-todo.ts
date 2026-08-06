@@ -1,7 +1,7 @@
 import type { NewTodo, TodosResponse } from '@fold/schemas'
 import { useState } from 'react'
 import { queryClient, useSyncEngine } from '../providers'
-import { applyMutationToTodos } from '../sync/optimistic'
+import { applyMutationToTodos } from '../sync/optimistic/optimistic'
 
 /**
  * Creating a todo from outside any list (issue #15).

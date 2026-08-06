@@ -1,11 +1,11 @@
 import { LuOrigami } from 'react-icons/lu'
-import { ListFilterMenu } from '../lists/list-filter-menu'
-import { ListNav } from '../lists/list-nav'
-import { NavFooter } from '../lists/nav-footer'
+import { ListFilterMenu } from '../lists/list-filter-menu/list-filter-menu'
+import { ListNav } from '../lists/list-nav/list-nav'
+import { NavFooter } from '../lists/nav-footer/nav-footer'
 import { useListFilter } from './list-filter-context'
 import { useOverlays } from './overlays-context'
 import { useSelection } from './selection-context'
-import styles from './main-screen.module.css'
+import styles from './main-screen/main-screen.module.css'
 
 /**
  * The contents of the nav panel: the app mark, the list of lists, the

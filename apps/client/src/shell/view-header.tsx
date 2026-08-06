@@ -1,11 +1,11 @@
 import type { Todo, TodoList } from '@fold/schemas'
 import type { ReactNode } from 'react'
 import { LuMenu, LuSparkles } from 'react-icons/lu'
-import { BulkActions } from '../lists/bulk-actions'
-import type { kindExplanation } from '../lists/list-kind'
+import { BulkActions } from '../lists/bulk-actions/bulk-actions'
+import type { kindExplanation } from '../lists/list-kind/list-kind'
 import { cx } from '../styles/cx'
-import { InfoBadge } from '../ui/info-badge'
-import styles from './main-screen.module.css'
+import { InfoBadge } from '../ui/info-badge/info-badge'
+import styles from './main-screen/main-screen.module.css'
 
 /**
  * The sticky header above whatever pane is showing: the nav toggle, the

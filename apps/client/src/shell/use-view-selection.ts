@@ -1,6 +1,6 @@
 import type { TodoList } from '@fold/schemas'
 import { useEffect, useState } from 'react'
-import { isDerivedView, TODAY_VIEW, type ViewId } from '../todos/today'
+import { isDerivedView, TODAY_VIEW, type ViewId } from '../todos/today/today'
 
 const SELECTED_LIST_KEY = 'fold:selected-list'
 

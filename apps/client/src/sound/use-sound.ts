@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { playPop as pop } from './pop'
+import { playPop as pop } from './pop/pop'
 
 const KEY = 'fold-muted'
 const listeners = new Set<() => void>()

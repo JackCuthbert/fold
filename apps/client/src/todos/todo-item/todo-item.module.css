@@ -1,0 +1,189 @@
+/*
+ * docs/specs/ui.md — vertical rhythm: every row occupies a consistent
+ * height regardless of content. The title/checkbox row is a fixed-height
+ * line; the description (if present) is an additional line within the
+ * row rather than a nudge that misaligns neighbours.
+ */
+.todo {
+  display: flex;
+  align-items: flex-start;
+  /* Gap, not padding, between the checkbox and the body — a gap doesn't
+     add a leading inset before the first child, so the checkbox's visible
+     ring (pulled to the row's edge in checkbox.module.css) stays on the
+     shared column edge (docs/specs/ui.md — one left edge). */
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--line);
+  /* No per-row animation: the whole pane fades in together when you switch
+     lists (todo-pane.module.css's `.pane`), so rows don't each animate
+     independently — that read as a stagger of unrelated parts rather than
+     one view arriving. Individual rows still animate on add/remove via
+     their own enter/exit, not this. */
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* No press-transform anywhere — removed globally in global.css, so no
+     override is needed here (docs/specs/ui.md). */
+  /* Pin the title row to a fixed offset from the top (rather than
+     vertically centering the column) so it lands at the same position
+     whether or not a description follows. Centering the whole column
+     would shift the title line itself whenever a description makes the
+     column taller — breaking the "identical alignment" requirement in
+     docs/specs/ui.md. The offset below centers a single --text-base
+     (15px / 1.5 line-height = 22.5px box) line within the 44px hit area:
+     (44 - 22.5) / 2. */
+  justify-content: flex-start;
+  padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  /* docs/specs/ui.md — the row's top and bottom padding are equal, so a
+     row with a description stays visually balanced rather than top-heavy.
+     Without an explicit bottom padding a taller (with-description) row
+     only grew past `min-height` at the bottom, leaving 0 padding there
+     while the top kept its full offset — that's the imbalance. Mirroring
+     the same value here keeps both edges equal regardless of content. */
+  padding-bottom: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  /* docs/specs/ui.md — one left edge: the checkbox's hit area already pulls
+     itself back to the shared column edge (see checkbox.module.css), so
+     the body must not add its own left inset on top of that or the text
+     would be indented again. Keep a small trailing inset for symmetry with
+     the row's right edge. */
+  padding-inline: 0 var(--space-1);
+  text-align: left;
+  /* One line for the title row (matches the 44px checkbox hit area) plus
+     room for an optional description line — set on .body so the row
+     height is identical whether or not a description is present. */
+  min-height: var(--hit-area);
+  box-sizing: border-box;
+  /* docs/specs/ui.md — there is no gap between a title and its
+     description: the description sits directly beneath, as though it were
+     a wrapped line of the same block, not a separate line with air around
+     it. *(tightened 2026-07-31: even the 2px this used to carry read as
+     two separate things.)* */
+  gap: 0;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.summary {
+  font-size: var(--text-base);
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  /* Glyphs can paint outside their box (an "A"'s apex leans left), which
+     `overflow: hidden` would shave — see --ink-overhang in tokens.css. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+}
+
+.summary::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 1px;
+  width: 0;
+  background: var(--muted);
+  transition: width var(--duration-slow) var(--ease);
+}
+
+.todoCompleted .summary {
+  color: var(--muted);
+}
+
+.todoCompleted .summary::after {
+  width: 100%;
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* See .summary — same ink-overhang guard. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+}
+
+.meta {
+  margin-left: auto;
+  display: flex;
+  /* Centred, not the flex default of `stretch`. Everything here was text
+     of one size until a glyph joined it (the health heart), and a
+     stretched icon sits on its own box rather than on the text's optical
+     line — the heart read as sitting high against "Health  Aug 5" beside
+     it. Centring aligns the two properly, and nothing here is tall
+     enough for it to change the text's own position.
+     *(added 2026-08-05.)* */
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  flex: none;
+}
+
+.prio {
+  text-transform: capitalize;
+}
+
+/* docs/specs/todos.md — priority is colour-coded on the row, all three
+   levels, not just high — reusing the same semantic status tokens as sync
+   status (docs/specs/ui.md — status display) rather than a second palette.
+   The text label stays in all three cases, so meaning never depends on
+   colour alone.
+
+   The three colours themselves live in styles/priority.module.css, shared
+   with the Priority dropdowns in the detail panel and the add-todo modal,
+   so the option that sets a priority matches the row that displays it.
+   *(changed 2026-08-03: these three rules were declared here and needed by
+   two more modules.)* */
+/* docs/specs/list-kinds.md — the heart marking a health row.
+   *(added 2026-08-05, issue #27.)*
+
+   `--list-red` rather than `--danger`: the priority scale already owns
+   the alarm reds (see priority.module.css), and a health todo is not an
+   error or an overdue warning. The muted list red reads as a category.
+
+   No transform. A half-pixel nudge was standing in for the real problem —
+   `.meta` was stretching its children rather than centring them, so the
+   glyph sat on its own box instead of the text's line. Fixing the
+   container made the nudge an off-centre half pixel of its own.
+   *(fixed 2026-08-05.)* */
+.health {
+  flex: none;
+  color: var(--list-red);
+  fill: currentColor;
+}
+
+.prioHigh {
+  composes: high from '../../styles/priority.module.css';
+}
+
+.prioMedium {
+  composes: medium from '../../styles/priority.module.css';
+}
+
+.prioLow {
+  composes: low from '../../styles/priority.module.css';
+}
+
+.due {
+  white-space: nowrap;
+}
+
+.dueOverdue {
+  color: var(--danger);
+}

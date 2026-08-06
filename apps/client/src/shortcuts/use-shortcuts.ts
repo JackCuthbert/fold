@@ -5,7 +5,7 @@ import {
   matchShortcut,
   type ShortcutAction,
   type ShortcutContext,
-} from '../shortcuts/shortcuts'
+} from './shortcuts/shortcuts'
 
 /**
  * One app-level listener owning the whole shortcut map.

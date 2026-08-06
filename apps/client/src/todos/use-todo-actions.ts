@@ -6,7 +6,7 @@ import type {
   TodosResponse,
 } from '@fold/schemas'
 import { queryClient, useSyncEngine } from '../providers'
-import { applyMutationToTodos } from '../sync/optimistic'
+import { applyMutationToTodos } from '../sync/optimistic/optimistic'
 
 // Optimistic write path — docs/specs/sync-and-offline.md (writes).
 export function useTodoActions(listId: string) {

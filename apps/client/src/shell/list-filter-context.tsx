@@ -1,6 +1,6 @@
 import type { TodoList } from '@fold/schemas'
 import { createContext, use, type ReactNode } from 'react'
-import type { ListFilter } from '../lists/list-filter'
+import type { ListFilter } from '../lists/list-filter/list-filter'
 
 export interface ListFilterState {
   /** Which lists are hidden, or null when nothing is. */
