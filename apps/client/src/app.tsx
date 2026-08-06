@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { LoginScreen } from './auth'
-import { MainScreen } from './shell'
+import { LoginScreen } from './auth/login-screen/login-screen'
+import { MainScreen } from './shell/main-screen/main-screen'
 import { api, AppProviders } from './providers'
 import { StatusPill, ToastProvider } from './ui'
 

@@ -1,5 +1,5 @@
 import { ConfirmDialog } from '../../ui'
-import { HelpModal } from '../../help'
+import { HelpModal } from '../../help/help-modal/help-modal'
 import { ListFormModal } from '../../lists/list-form-modal/list-form-modal'
 import { RevealListsDialog } from '../../lists/list-filter-menu/list-filter-menu'
 import { SettingsModal } from '../../lists/settings-modal/settings-modal'
