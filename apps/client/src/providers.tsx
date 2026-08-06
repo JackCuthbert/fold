@@ -12,8 +12,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { createApi, type Api } from './api/client'
-import { withDeadline } from './lib/deadline'
+import { createApi, type Api } from './api'
+import { withDeadline } from './lib'
 import {
   createSyncEngine,
   type SyncEngine,
@@ -23,10 +23,10 @@ import {
   outboxKeyFor,
   readServerIdentity,
   subscribeServerIdentity,
-} from './lib/server-identity'
+} from './lib'
 import { openOutboxStorage } from './sync/idb-storage'
 import { classifyBlockReason, TaggedFatalError } from './sync/process'
-import { useToast } from './ui/toast/toast'
+import { useToast } from './ui'
 
 export const api: Api = createApi()
 

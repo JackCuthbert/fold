@@ -2,8 +2,8 @@ import { memoryStorage } from '@fold/outbox'
 import type { Mutation, TodosResponse } from '@fold/schemas'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
-import type { Api } from '../api/client'
-import { ApiError, NetworkError } from '../api/errors'
+import type { Api } from '../api'
+import { ApiError, NetworkError } from '../api'
 import { createSyncEngine } from './engine'
 
 const mutation: Mutation = {

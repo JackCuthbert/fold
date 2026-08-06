@@ -1,5 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { ModalHeader } from '../../ui/modal-header/modal-header'
+import { ModalHeader } from '../../ui'
 import { cx } from '../../styles/cx'
 import { ListForm, type ListFormValues } from '../list-form/list-form'
 import styles from './list-form-modal.module.css'

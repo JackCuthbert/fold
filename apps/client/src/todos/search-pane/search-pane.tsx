@@ -1,7 +1,7 @@
 import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
-import { useSound } from '../../sound/use-sound'
+import { useSound } from '../../sound'
 import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from '../lib/search'
 import styles from './search-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'

@@ -1,8 +1,8 @@
 import { FatalError, RetryableError } from '@fold/outbox'
 import type { Mutation, Todo } from '@fold/schemas'
 import { describe, expect, it, vi } from 'vitest'
-import type { Api } from '../api/client'
-import { ApiError, NetworkError } from '../api/errors'
+import type { Api } from '../api'
+import { ApiError, NetworkError } from '../api'
 import {
   classifyBlockReason,
   makeProcessMutation,

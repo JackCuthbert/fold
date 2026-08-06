@@ -7,9 +7,8 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Controller, useWatch } from 'react-hook-form'
 import { LuChevronDown, LuCopy } from 'react-icons/lu'
-import { InfoBadge } from '../../ui/info-badge/info-badge'
+import { InfoBadge, ModalHeader } from '../../ui'
 import { featuresOf } from '../../lists/lib/list-kind'
-import { ModalHeader } from '../../ui/modal-header/modal-header'
 import { cx } from '../../styles/cx'
 import {
   cycleTimeOf,

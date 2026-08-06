@@ -11,7 +11,7 @@ import {
   type TodosResponse,
 } from '@fold/schemas'
 import type { QueryClient } from '@tanstack/react-query'
-import type { Api } from '../api/client'
+import type { Api } from '../api'
 import { coalesceMutations } from './coalesce'
 import { byListOrder } from '../lists/lib/list-order'
 import {

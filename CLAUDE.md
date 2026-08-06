@@ -100,6 +100,19 @@ and sanctioned for exactly this. Both were removed.)_
   tree — `search.ts` and `search.test.ts` in the same directory. A separate
   tree makes an untested module look identical to a tested one.
   _(added 2026-08-06.)_
+- **A domain gets an `index.ts` barrel only if nothing it imports imports it
+  back.** Import it from _outside_ the domain (`from '../../ui'`); inside,
+  keep the direct path, or the domain routes through its own barrel.
+  `ui`, `shortcuts`, `help`, `shell`, `lib`, `auth`, `api` and `sound` have
+  one. `todos`, `lists`, `sync` and `hooks` deliberately do **not**:
+  `lists ↔ todos`, `lists ↔ sync` and `lists ↔ hooks` are already mutually
+  dependent, and while those cycles are harmless today — each direction
+  reaches only a `lib/` pure function, never a component — a barrel would
+  collapse them into whole-domain cycles, whose failure mode is
+  `undefined is not a function` at import time. Barrel those only after the
+  cross-dependencies are untangled. Measured before adopting: no bundle
+  cost (670.23 → 670.22 kB), since Rolldown tree-shakes the re-exports.
+  _(added 2026-08-06.)_
 - **Props are a named interface, never inline.** `interface TodoItemProps`
   above the component, `export function TodoItem(props: TodoItemProps)`.
   The shape gets a name that can be referenced, documented and read on its

@@ -1,7 +1,7 @@
 import { FatalError, RetryableError } from '@fold/outbox'
 import { conflictResponseSchema, type Mutation, type Todo } from '@fold/schemas'
-import type { Api } from '../api/client'
-import { ApiError, NetworkError } from '../api/errors'
+import type { Api } from '../api'
+import { ApiError, NetworkError } from '../api'
 
 const freshEtag = (error: ApiError): string | null => {
   const parsed = conflictResponseSchema.safeParse(error.body)

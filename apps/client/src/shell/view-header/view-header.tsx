@@ -4,7 +4,7 @@ import { LuMenu, LuSparkles } from 'react-icons/lu'
 import { BulkActions } from '../../lists/bulk-actions/bulk-actions'
 import type { kindExplanation } from '../../lists/lib/list-kind'
 import { cx } from '../../styles/cx'
-import { InfoBadge } from '../../ui/info-badge/info-badge'
+import { InfoBadge } from '../../ui'
 import styles from '../main-screen/main-screen.module.css'
 
 /**

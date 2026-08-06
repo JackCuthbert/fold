@@ -18,10 +18,8 @@ import {
   TODAY_VIEW,
   TOMORROW_VIEW,
 } from '../../todos/lib/today'
-import { useModifierHeld } from '../../shortcuts/hooks/use-modifier-held'
+import { SHORTCUTS, ShortcutKeys, useModifierHeld } from '../../shortcuts'
 import { useTheme } from '../../hooks/use-theme'
-import { ShortcutKeys } from '../../shortcuts/shortcut-keys/shortcut-keys'
-import { SHORTCUTS } from '../../shortcuts/lib/shortcuts'
 import { ListItemMenu } from '../list-item-menu/list-item-menu'
 import { colourVar, markerColor } from '../lib/list-color'
 import { type ListFilter, visibleLists } from '../lib/list-filter'

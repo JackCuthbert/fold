@@ -5,13 +5,13 @@ import { Form } from '@base-ui/react/form'
 import { Input } from '@base-ui/react/input'
 import { useMutation } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
-import { ApiError } from '../../api/errors'
+import { ApiError } from '../../api'
 import { api, persister, queryClient } from '../../providers'
 import {
   readServerIdentity,
   rememberServerIdentity,
   serverIdentity,
-} from '../../lib/server-identity'
+} from '../../lib'
 import styles from './login-screen.module.css'
 
 // docs/specs/authentication.md — login form, react-hook-form + zod.
