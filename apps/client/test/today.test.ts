@@ -161,11 +161,25 @@ describe('TOMORROW_VIEW sentinel', () => {
     // The order of this list decides both the nav's order and which digit
     // each view answers to (shortcuts.ts — VIEW_SHORTCUTS), so the
     // sequence is load-bearing rather than cosmetic.
-    expect([...DERIVED_VIEWS]).toEqual([
-      TODAY_VIEW,
-      TOMORROW_VIEW,
-      SUMMARY_VIEW,
-    ])
+    //
+    // Asserted as the *relative* order of the three day views rather than
+    // as the whole array. What matters is that they read forwards then
+    // back — the day you are in, the day next, then what is behind you —
+    // and a literal list said that while also silently claiming no view
+    // may ever be added. It broke the moment Search was appended, exactly
+    // as its own literal-count predecessors did in the help modal and the
+    // shortcut map. *(changed 2026-08-06, issue #6.)*
+    const order = [TODAY_VIEW, TOMORROW_VIEW, SUMMARY_VIEW].map((view) =>
+      DERIVED_VIEWS.indexOf(view),
+    )
+    expect(order).not.toContain(-1)
+    expect(order).toEqual([...order].toSorted((a, b) => a - b))
+  })
+
+  it('keeps Today first, since it is the default view', () => {
+    // Selection falls back here whenever a persisted list id no longer
+    // resolves (main-screen.tsx), and it takes Ctrl+Shift+1.
+    expect(DERIVED_VIEWS[0]).toBe(TODAY_VIEW)
   })
 })
 

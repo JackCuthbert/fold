@@ -5,7 +5,8 @@ at work, and your personal lists are nobody else's business.
 
 The **filter icon** at the top right of the sidebar, next to the Fold mark,
 opens a checkbox for each of your lists. Untick one and it disappears:
-from the sidebar, and from Today, Tomorrow and Summary.
+from the sidebar, and from Today, Tomorrow, Summary and
+[Search](./search.md).
 
 ## What it does and doesn't do
 
@@ -44,6 +45,11 @@ actually unticked, so it can never swallow something you made later.
 filter off instead of leaving you with an empty screen.
 
 **Opening a list directly still works.** The filter only affects the
-sidebar and the Today / Tomorrow / Summary views. If you hide the list
-you're currently reading, Fold moves you to Today — otherwise its todos
-would stay on screen with no sign of where they came from.
+sidebar and the Today / Tomorrow / Summary / Search views. If you hide the
+list you're currently reading, Fold moves you to Today — otherwise its
+todos would stay on screen with no sign of where they came from.
+
+**Searching won't find a hidden list either.** That's the one place this
+had to hold: a search box that surfaced the list you'd just hidden would
+undo the whole point of hiding it, in front of whoever you're sharing with.
+*(added 2026-08-06.)*

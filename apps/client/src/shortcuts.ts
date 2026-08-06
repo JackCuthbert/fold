@@ -1,5 +1,6 @@
 import {
   DERIVED_VIEWS,
+  SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
@@ -26,6 +27,7 @@ const VIEW_NAMES: Record<string, string> = {
   [TODAY_VIEW]: 'Today',
   [TOMORROW_VIEW]: 'Tomorrow',
   [SUMMARY_VIEW]: 'Summary',
+  [SEARCH_VIEW]: 'Search',
 }
 
 /**
@@ -96,9 +98,12 @@ const PRINTED_KEY: Record<string, string> = {
 /**
  * The whole map, in one place.
  *
- * `Cmd/Ctrl+F` for search is deliberately absent: it belongs to the search
- * view, which does not exist yet (issue #6), and binding it now would take
- * the browser's own find away and give nothing back.
+ * `Cmd/Ctrl+F` is still deliberately absent now that the search view exists
+ * (issue #6). It reaches the same place `Ctrl+Shift+4` does, so binding it
+ * would buy a second route to one view at the cost of the browser's own
+ * find — which is the right tool for "where is that word on this screen",
+ * a genuinely different question from the one the view answers.
+ * *(reconsidered 2026-08-06 when the view landed, and kept.)*
  */
 const BASE_SHORTCUTS: readonly Shortcut[] = [
   {

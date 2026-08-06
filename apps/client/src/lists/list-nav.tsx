@@ -1,11 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 import type { IconType } from 'react-icons'
-import { LuHistory, LuPlus, LuSparkles, LuSun, LuSunrise } from 'react-icons/lu'
+import {
+  LuHistory,
+  LuPlus,
+  LuSearch,
+  LuSparkles,
+  LuSun,
+  LuSunrise,
+} from 'react-icons/lu'
 import { api, useSyncEngine } from '../providers'
 import { cx } from '../styles/cx'
 import {
   DERIVED_VIEWS,
+  SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
@@ -62,6 +70,9 @@ const VIEW_META: Record<string, { label: string; icon: IconType }> = {
   // (CLAUDE.md — one icon collection). *(added 2026-08-05.)*
   [TOMORROW_VIEW]: { label: 'Tomorrow', icon: LuSunrise },
   [SUMMARY_VIEW]: { label: 'Summary', icon: LuHistory },
+  // The magnifier, which is the one icon in this set nobody has to learn.
+  // *(added 2026-08-06, issue #6.)*
+  [SEARCH_VIEW]: { label: 'Search', icon: LuSearch },
 }
 
 // docs/specs/lists.md — discover/create/rename/delete.

@@ -16,6 +16,8 @@ export const TODAY_VIEW = 'view:today' as const
 export const TOMORROW_VIEW = 'view:tomorrow' as const
 /** docs/specs/summary-view.md — finished work, grouped by day. */
 export const SUMMARY_VIEW = 'view:summary' as const
+/** docs/specs/search-view.md — fuzzy text search over everything. */
+export const SEARCH_VIEW = 'view:search' as const
 export type ViewId = string
 
 /**
@@ -42,8 +44,22 @@ export type ViewId = string
  * the alternative is permanent — a nav ordered Today, Summary, Tomorrow
  * would look wrong every day from now on to spare one relearned digit
  * once. *(changed 2026-08-05: Tomorrow inserted at position 2.)*
+ *
+ * Search goes last, and *appending* is the point: it takes `Ctrl+Shift+4`
+ * and leaves all three existing chords exactly where they are. Inserting it
+ * anywhere else would have shuffled digits again for a view that has no
+ * natural place among the other three — those are days, read in order,
+ * while search is a different kind of thing entirely. Last is also where it
+ * belongs by use: the day views are what you open by habit, search is what
+ * you reach for when they have not got what you want.
+ * *(changed 2026-08-06, issue #6: Search appended at position 4.)*
  */
-export const DERIVED_VIEWS = [TODAY_VIEW, TOMORROW_VIEW, SUMMARY_VIEW] as const
+export const DERIVED_VIEWS = [
+  TODAY_VIEW,
+  TOMORROW_VIEW,
+  SUMMARY_VIEW,
+  SEARCH_VIEW,
+] as const
 
 export const isTodayView = (view: ViewId | null): boolean => view === TODAY_VIEW
 
@@ -52,6 +68,9 @@ export const isTomorrowView = (view: ViewId | null): boolean =>
 
 export const isSummaryView = (view: ViewId | null): boolean =>
   view === SUMMARY_VIEW
+
+export const isSearchView = (view: ViewId | null): boolean =>
+  view === SEARCH_VIEW
 
 /** True for any derived view — i.e. anything that is not a real list. */
 export const isDerivedView = (view: ViewId | null): boolean =>

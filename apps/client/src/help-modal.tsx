@@ -208,6 +208,24 @@ export function HelpModal(props: {
                     different ways of looking at the todos you already have.
                   </p>
                 </Topic>
+                {/* docs/specs/search-view.md — issue #6. Its own topic
+                  rather than a line in the one above: the others are ways
+                  of slicing by *time*, and this one is not. */}
+                <Topic title="Search">
+                  <p>
+                    <UI>Search</UI> looks through every todo you have, from
+                    every list, matching both the title and the notes. It
+                    forgives typos, so you don&rsquo;t have to remember exactly
+                    what you called something.
+                  </p>
+                  <p>
+                    Finished todos are included, deliberately — the one
+                    you&rsquo;re hunting for is often something you already
+                    ticked off and half-forgot. Hidden lists are the one
+                    exception: if you&rsquo;ve hidden a list, searching
+                    won&rsquo;t bring it back.
+                  </p>
+                </Topic>
                 {/* docs/specs/lists.md — colours and ordering */}
                 <Topic title="Colours and ordering">
                   <p>
@@ -227,9 +245,10 @@ export function HelpModal(props: {
                   <p>
                     The filter icon at the top of the sidebar hides whichever
                     lists you untick. They go from the sidebar as well as from{' '}
-                    <UI>Today</UI>, <UI>Tomorrow</UI> and <UI>Summary</UI>.
-                    Handy when you&rsquo;re sharing your screen and your
-                    personal lists are nobody else&rsquo;s business.
+                    <UI>Today</UI>, <UI>Tomorrow</UI>, <UI>Summary</UI> and{' '}
+                    <UI>Search</UI> — a hidden list stays hidden even if you go
+                    looking for it. Handy when you&rsquo;re sharing your screen
+                    and your personal lists are nobody else&rsquo;s business.
                   </p>
                   <p>
                     Nothing is deleted or changed on your server, and it stays

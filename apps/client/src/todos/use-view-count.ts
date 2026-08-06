@@ -3,10 +3,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { countSummary } from './count-summary'
 import { useCacheVersion } from './use-cache-version'
 import { groupTodos } from './group-by-list'
+import { isSearchable, searchTodos } from './search'
 import { selectToday, selectTomorrow } from './today'
 
 /** Which view the count is describing. */
-export type CountedView = 'list' | 'today' | 'tomorrow' | 'summary'
+export type CountedView = 'list' | 'today' | 'tomorrow' | 'summary' | 'search'
 
 /**
  * What each view actually renders, out of every todo it can reach.
@@ -28,10 +29,16 @@ export type CountedView = 'list' | 'today' | 'tomorrow' | 'summary'
  *
  * *(fixed 2026-08-05, issue #27.)*
  */
-function sliceFor(view: CountedView, todos: Todo[], now: Date): Todo[] {
+function sliceFor(
+  view: CountedView,
+  todos: Todo[],
+  now: Date,
+  query: string,
+): Todo[] {
   if (view === 'today') return selectToday(todos, now)
   if (view === 'tomorrow') return selectTomorrow(todos, now)
   if (view === 'summary') return todos.filter((todo) => todo.completed)
+  if (view === 'search') return searchTodos(todos, query)
   return todos
 }
 
@@ -66,6 +73,8 @@ export function useViewCount(options: {
   listId: string | null
   view: CountedView
   now?: Date
+  /** The search query, when `view` is 'search' (docs/specs/search-view.md). */
+  query?: string
 }): string | null {
   const queryClient = useQueryClient()
 
@@ -92,16 +101,39 @@ export function useViewCount(options: {
   const anyKnown = entries.some((entry) => entry !== undefined)
   const pending = !options.listsLoaded || (keys.length > 0 && !anyKnown)
 
+  const query = options.query ?? ''
+  // Search says nothing until it has been asked something. "No todos" over
+  // an untouched field would answer a question nobody put — and it is not
+  // even true, since the todos exist and simply have not been searched.
+  // The pane carries the prompt instead (search-pane.tsx).
+  //
+  // Empty string, **not** `null`: the two mean different things to the
+  // header. `null` is "not known yet", which draws a loading skeleton — a
+  // grey bar that claims a fetch is in flight when nothing is loading and
+  // nothing is going to. `''` is "known, and there is nothing to say", so
+  // the line reserves its height and stays blank.
+  // *(fixed 2026-08-06: this returned null and the skeleton sat there
+  // until the first search.)*
+  if (options.view === 'search' && !isSearchable(query)) return ''
+
   const todos: Todo[] = entries.flatMap((entry) => entry?.todos ?? [])
   // Each view counts what it actually renders, not every todo it could
   // reach — see `sliceFor`.
-  const shown = sliceFor(options.view, todos, options.now ?? new Date())
+  const shown = sliceFor(options.view, todos, options.now ?? new Date(), query)
   // Grouping is a display decision, so it belongs to the count the same
   // way it belongs to the Summary day headings: a grouped list is one
   // row and counts once (docs/specs/list-kinds.md). A list view never
-  // groups, so its rows are its todos.
-  const counted =
-    options.view === 'list' ? shown : countableRows(shown, options.lists)
+  // groups, so its rows are its todos — and neither does search, which
+  // draws every match as its own row (docs/specs/search-view.md), so
+  // grouping here would under-report the results on screen.
+  const ungrouped = options.view === 'list' || options.view === 'search'
+  const counted = ungrouped ? shown : countableRows(shown, options.lists)
+  // A search that matched nothing says so in the pane, naming the query
+  // ("Nothing matched zzqqxx"). "No todos" above that is a second, vaguer
+  // statement of the same fact — and a misleading one, since there are
+  // todos, just none of them this. Blank rather than `null`, so the line
+  // still holds its height and draws no loading skeleton.
+  if (options.view === 'search' && counted.length === 0) return ''
   return countSummary(counted, { pending })
 }
 

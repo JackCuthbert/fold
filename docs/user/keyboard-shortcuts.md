@@ -11,11 +11,19 @@ worth remembering: making something, and getting somewhere.
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Tomorrow |
 | `Ctrl+Shift+3` | Go to Summary |
+| `Ctrl+Shift+4` | Go to [Search](./search.md) |
 | `Ctrl+/` | Open **Help**, which lists these |
 
 *(changed 2026-08-05: Tomorrow took `Ctrl+Shift+2`, moving Summary to
 `Ctrl+Shift+3`. The view chords are numbered by the order the sidebar shows
 them, and Tomorrow belongs between the other two.)*
+
+*(added 2026-08-06: Search took `Ctrl+Shift+4`. It went on the end rather
+than among the others, so nothing you had already learned moved.)*
+
+There's no `Ctrl+F` for search, on purpose — that would take the browser's
+own find away, and the two answer different questions: `Ctrl+Shift+4` looks
+through all your todos, `Ctrl+F` looks at the page in front of you.
 
 **`Ctrl` on every platform, including a Mac.** Most Mac apps would use `⌘`
 here, and Fold deliberately doesn't: the chords worth having kept colliding

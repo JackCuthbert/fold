@@ -1,0 +1,62 @@
+/* docs/specs/search-view.md — the search field and its three states. */
+
+/* The field, with the magnifier sitting inside its leading edge rather than
+   beside it as a separate element: a glyph in its own box would put the
+   input's left edge out of line with every todo summary below it
+   (docs/specs/ui.md — one left edge). Relative so the icon can be absolute
+   against it. */
+.fieldRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+/* Inset by the input's own horizontal padding, so the glyph sits exactly
+   where the text would have started. `pointer-events: none` because the
+   icon is decoration over a control — clicking it must focus the field, not
+   swallow the click. */
+.fieldIcon {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  color: var(--faint);
+  pointer-events: none;
+}
+
+/* Base styling comes from the global `input` rule (styles/global.css) —
+   border, radius, padding, and the >=16px size that stops iOS zooming on
+   focus. Only the leading padding changes here, to clear the icon: the
+   input's own --space-3, plus the glyph, plus a gap.
+
+   The trailing side gets the same treatment rather than being left alone.
+   Chrome and Safari draw a native clear button inside a `type="search"`
+   field, and matching the two sides keeps the text centred between them
+   instead of drifting under that button as the query grows. */
+.field {
+  padding-inline-start: calc(var(--space-3) + 16px + var(--space-2));
+  padding-inline-end: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+/* The prompt, the too-short nudge and the no-matches line all share this.
+   Quiet — muted rather than ink — because none of them is an error: not
+   having typed anything yet is the ordinary state of a search view, and
+   "nothing matched" is an answer rather than a fault.
+
+   Centred and given real space above it so it reads as a message about the
+   view rather than as the first row of a list of results. */
+.hint {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  text-align: center;
+  padding-block: var(--space-8);
+}
+
+/* The query, quoted back in the no-matches line. Ink rather than muted, so
+   the thing you typed is legible in a sentence that is otherwise quiet —
+   the whole point of the line is to show what was searched for, in case it
+   holds the typo. */
+.hint strong {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}

@@ -27,14 +27,17 @@ import { SettingsModal } from './lists/settings-modal'
 import { useListForm } from './lists/use-list-form'
 import styles from './main-screen.module.css'
 import { cx } from './styles/cx'
+import { SearchPane } from './todos/search-pane'
 import { SummaryPane } from './todos/summary-pane'
 import { TodayPane } from './todos/today-pane'
 import {
   DERIVED_VIEWS,
   isDerivedView,
+  isSearchView,
   isSummaryView,
   isTodayView,
   isTomorrowView,
+  SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
@@ -111,6 +114,17 @@ const DERIVED_INFO: Record<string, { title: string; about: string }> = {
       'What you’ve finished, grouped by day — handy for a standup. A view, ' +
       'not a list you can add to.',
   },
+  [SEARCH_VIEW]: {
+    title: 'Search',
+    // Says what it searches, because that is the surprising part: every
+    // list including hidden ones is *not* the rule (the filter still
+    // applies), but finished todos being included is — most search boxes
+    // quietly drop them (docs/specs/search-view.md).
+    about:
+      'Fuzzy search across every todo, matching both the summary and the ' +
+      'notes, and including ones you’ve already finished. A view, not a ' +
+      'list you can add to.',
+  },
 }
 
 export function MainScreen() {
@@ -149,6 +163,19 @@ export function MainScreen() {
   // for screensharing (list-filter-menu.tsx — RevealListsDialog). Owned
   // here so the dialog is never nested inside the mobile drawer.
   const [revealing, setRevealing] = useState(false)
+  // docs/specs/search-view.md — the search query.
+  //
+  // Here rather than in SearchPane for the reason the detail form is
+  // (use-todo-detail-form.ts): the pane lives inside `<main>`, which is
+  // rendered by two different trees either side of the 768px breakpoint, so
+  // a query owned there is destroyed by a resize.
+  //
+  // **Not persisted**, unlike the list filter and the selected view. A
+  // search is a question you are asking right now, and reopening the app to
+  // yesterday's half-remembered query — with results already on screen —
+  // would be answering something nobody asked. The issue settles this:
+  // transient is fine, it is just another view. *(added 2026-08-06.)*
+  const [searchQuery, setSearchQuery] = useState('')
 
   const changeFilter = (next: ListFilter): void => {
     setListFilter(next)
@@ -265,6 +292,7 @@ export function MainScreen() {
   const showingToday = isTodayView(active)
   const showingTomorrow = isTomorrowView(active)
   const showingSummary = isSummaryView(active)
+  const showingSearch = isSearchView(active)
   const showingDerived = isDerivedView(active)
   // Today and Tomorrow are the same pane over a different day
   // (docs/specs/tomorrow-view.md), so the places that only care "is this a
@@ -316,7 +344,12 @@ export function MainScreen() {
         ? 'tomorrow'
         : showingSummary
           ? 'summary'
-          : 'list',
+          : showingSearch
+            ? 'search'
+            : 'list',
+    // Only meaningful for the search view, which counts its matches
+    // (docs/specs/search-view.md). Every other view ignores it.
+    query: searchQuery,
   })
   // A derived view has no collection to add to, so the add path is bound
   // to '' — its trigger isn't rendered either way (docs/specs/today-view.md,
@@ -864,6 +897,16 @@ export function MainScreen() {
                   lists={shownLists}
                   onOpen={openDetail}
                   onOpenList={selectList}
+                />
+              ) : showingSearch ? (
+                // No `onOpenList`: search never groups, so it has no group
+                // row to click through (search-pane.tsx).
+                <SearchPane
+                  key={active}
+                  lists={shownLists}
+                  query={searchQuery}
+                  onQueryChange={setSearchQuery}
+                  onOpen={openDetail}
                 />
               ) : activeList ? (
                 <TodoPane
