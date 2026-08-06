@@ -7,7 +7,6 @@
  * barrel cannot create a cycle (CLAUDE.md — barrels).
  */
 export { ConfirmDialog } from './confirm/confirm'
-export { IconButton } from './icon-button/icon-button'
 export { InfoBadge } from './info-badge/info-badge'
 export { ModalHeader } from './modal-header/modal-header'
 export { StatusDot, type StatusKind } from './status-dot/status-dot'

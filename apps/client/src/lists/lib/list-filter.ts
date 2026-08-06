@@ -131,9 +131,6 @@ export function toggleList(
   return hidden
 }
 
-/** Clear the filter — the popover's "Show all". */
-export const clearFilter = (): ListFilter => null
-
 /**
  * Whether the filter is actually narrowing anything *right now*.
  *

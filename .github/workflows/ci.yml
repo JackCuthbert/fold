@@ -14,6 +14,9 @@ jobs:
       - run: bun run lint
       - run: bun run fmt:check
       - run: bun run typecheck
+      # Unused files, exports and dependencies. Dead code typechecks and
+      # passes every test, so nothing else here would catch it.
+      - run: bun run knip
       - run: bun run test
 
   integration:

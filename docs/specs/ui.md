@@ -532,11 +532,15 @@ over an undimmed background, so they didn't read as modal.)*
     `info-badge.tsx`, and the same distinction in the overlays section).
   - Reserve it for actions a single familiar glyph carries completely. A
     row of unlabelled icons is a guessing game.
-  *(added 2026-08-04. The rule stands, but nothing currently uses
-  `icon-button.tsx`: its one instance was Duplicate, which moved out of the
-  detail panel's actions row later the same day — being the only unlabelled
-  control in a row of labelled ones is exactly the "guessing game" this
-  warns about ([todos](./todos.md) — duplicating a todo).)*
+  *(added 2026-08-04. The rule stands; the component does not. Its one
+  instance was Duplicate, which moved out of the detail panel's actions row
+  later the same day — being the only unlabelled control in a row of
+  labelled ones is exactly the "guessing game" this warns about
+  ([todos](./todos.md) — duplicating a todo). `icon-button.tsx` was then
+  carried for two days with no caller, and **was deleted 2026-08-06** once
+  knip surfaced it. It is in history at `03cf4a9` if an icon-only action
+  ever earns its place — the reasoning above is the part worth keeping,
+  not the unused code.)*
 - **Warning is its own button role**, distinct from destructive: an action
   that is permitted but should give pause, like unlocking a completed todo
   for editing. Amber (`--status-syncing`), matching the notice it answers.

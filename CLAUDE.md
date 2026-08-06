@@ -33,11 +33,29 @@ and sanctioned for exactly this. Both were removed.)_
 - Always lint and format before committing: `bun run lint` and
   `bun run fmt`.
 - **Always invoke tooling through the root `bun run` scripts** — `lint`,
-  `fmt`, `fmt:check`, `typecheck`, `test`, `test:integration`, `test:e2e`.
-  Never call `oxlint`, `oxfmt`, `tsc`, or `vitest` binaries directly and
-  never improvise flags: the scripts are the single source of truth for how
-  these tools run. If a script doesn't do what a spec requires, fix the
-  script.
+  `fmt`, `fmt:check`, `typecheck`, `knip`, `test`, `test:integration`,
+  `test:e2e`. Never call `oxlint`, `oxfmt`, `tsc`, `knip` or `vitest`
+  binaries directly and never improvise flags: the scripts are the single
+  source of truth for how these tools run. If a script doesn't do what a
+  spec requires, fix the script.
+- **Run `bun run knip` before finishing a change, and act on what it
+  reports.** It finds unused files, exports and dependencies — the things
+  no other check sees, because dead code typechecks and passes tests
+  perfectly. Delete what is genuinely unused rather than leaving it: an
+  `IconButton` sat unreferenced for two days behind a spec note saying so,
+  which is how a codebase accumulates plausible-looking code nobody calls.
+  Prefer deleting to keeping-just-in-case — git has it, and a design _rule_
+  worth preserving belongs in the spec rather than in an uncalled
+  component.
+
+  **A finding against a barrel line means the barrel is too wide, not that
+  the code is dead.** A name consumed only inside its own domain has no
+  business being re-exported — narrow the barrel rather than deleting the
+  name or silencing the check (see the barrel rule below). Everything else
+  is worth a grep before acting, since knip cannot see a value used only
+  through a type position or a template string. It runs in CI's `checks`
+  job, so it must exit clean. _(added 2026-08-06.)_
+
 - Linting is **type-aware** (`bun run lint`), powered by
   [tsgolint](https://github.com/oxc-project/tsgolint) (installed as the
   `oxlint-tsgolint` dev dependency). Fix findings, don't suppress them.
@@ -112,7 +130,15 @@ and sanctioned for exactly this. Both were removed.)_
   `undefined is not a function` at import time. Barrel those only after the
   cross-dependencies are untangled. Measured before adopting: no bundle
   cost (670.23 → 670.22 kB), since Rolldown tree-shakes the re-exports.
-  _(added 2026-08-06.)_
+
+  **A barrel exports only what crosses its boundary**, not everything the
+  domain defines. `shell` publishes `MainScreen` and nothing else; its
+  parts, hooks and contexts are consumed internally by direct path. Two
+  reasons: re-exporting more makes internals look like public API, and
+  knip correctly reports every re-export nobody imports — so a
+  fully-populated barrel turns the dead-code check permanently red and
+  trains you to ignore it. _(added 2026-08-06.)_
+
 - **Props are a named interface, never inline.** `interface TodoItemProps`
   above the component, `export function TodoItem(props: TodoItemProps)`.
   The shape gets a name that can be referenced, documented and read on its

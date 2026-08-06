@@ -172,10 +172,6 @@ export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(engine.subscribe, engine.getStatus)
 }
 
-export function usePendingCount(): number {
-  return useSyncStatus().pending
-}
-
 const subscribeOnline = (onChange: () => void) => {
   window.addEventListener('online', onChange)
   window.addEventListener('offline', onChange)

@@ -30,9 +30,6 @@ function requireCaldavBase(): string {
 export const caldavUrlFor = (user: string): string =>
   `${requireCaldavBase()}/${user}/`
 
-/** Kept for anything that still wants the shared account. */
-export const CALDAV_URL = caldavUrlFor('e2e-user')
-
 /**
  * Sign in as a user of this **test's own**, derived from its title.
  *
