@@ -1,4 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // The tests read fixture files (`node:fs`, `node:path`,
+    // `import.meta.dirname`), so this package needs Node's types
+    // declared rather than inherited by luck. Without `types` TypeScript
+    // auto-includes whatever happens to be in node_modules/@types, which
+    // used to find them hoisted out of vitest's own tree — so pinning
+    // vitest to one version across the monorepo removed the duplicate
+    // tree and, with it, types nothing here had ever asked for.
+    // `@types/node` is now a devDependency of this package too.
+    // *(added 2026-08-06.)*
+    "types": ["node"]
+  },
   "include": ["src", "test"]
 }

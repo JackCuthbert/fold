@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "@fold/schemas": "workspace:*",
-    "ical.js": "^2.1.0"
+    "ical.js": "^2.2.1"
   },
   "devDependencies": {
-    "typescript": "^7.0.0",
-    "vitest": "^3.0.0"
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   }
 }

@@ -12,6 +12,18 @@ dependencies go in the repo's own `package.json` and nowhere else.
 **Test infrastructure runs in Docker.** A CalDAV server for tests comes
 from a container (see `compose.yml`), never a binary placed on `PATH`.
 
+**Version ranges name the version actually installed** — `^7.5.0`, never
+`^7.0.0` and never `latest`. A floor years below what is resolved tells you
+nothing about what you are running, and makes every Dependabot PR look like
+a no-op change to a range that already allowed it (`.github/dependabot.yml`).
+The same package must carry the **same** range in every manifest that
+declares it: vitest was `^4.1.10` in three and `^3.0.0` in three others,
+which quietly installed two vitest trees, and `packages/*` was borrowing
+`@types/node` from the duplicate. Collapsing that broke a typecheck nothing
+had touched. If a package uses Node APIs, it declares `@types/node` and sets
+`"types": ["node"]` rather than inheriting them by luck.
+_(added 2026-08-06.)_
+
 _(added 2026-07-31: an agent installed Radicale via pipx — and bootstrapped
 pipx itself — to run the integration suite. Docker was already available
 and sanctioned for exactly this. Both were removed.)_

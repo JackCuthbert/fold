@@ -1,4 +1,20 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `ReturnType<typeof setTimeout>` in sync-loop.ts is a `Timeout`
+    // object under Node and a number in the browser, and this package is
+    // used from both (the client bundles it). Declaring Node's types
+    // makes that resolve to something rather than `any` — which the
+    // type-aware lint correctly flagged, since an `any` in a union
+    // swallows every other member of it.
+    //
+    // Declared rather than inherited: without `types` TypeScript
+    // auto-includes whatever is in node_modules/@types, which used to
+    // find these hoisted out of vitest's own tree. Pinning vitest to one
+    // version across the monorepo collapsed that duplicate tree and took
+    // the accidental types with it. `@types/node` is now a devDependency
+    // of this package too. *(added 2026-08-06.)*
+    "types": ["node"]
+  },
   "include": ["src", "test"]
 }
