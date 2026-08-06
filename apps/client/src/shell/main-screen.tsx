@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import type { Todo } from '@fold/schemas'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami, LuSparkles } from 'react-icons/lu'
 import { ConfirmDialog } from '../ui/confirm'
 import { HelpModal } from '../help/help-modal'
@@ -53,31 +53,9 @@ import { useShortcuts } from '../shortcuts/use-shortcuts'
 import { useTodoActions } from '../todos/use-todo-actions'
 import { useTodoDetailForm } from '../todos/use-todo-detail-form'
 import { useViewCount } from '../todos/use-view-count'
-import { useMediaQuery } from '../lib/use-media-query'
-
-const SELECTED_LIST_KEY = 'fold:selected-list'
-// docs/specs/ui.md — the nav: collapsible on desktop too, pinned open by
-// default (chosen as the least disruptive default — the desktop nav has
-// always been visible, so opting *out* of it should be the explicit
-// action). Persisted so a deliberate collapse survives a reload.
-const NAV_PINNED_KEY = 'fold:nav-pinned'
-// Matches the `min-width: 768px` breakpoint in main-screen.module.css where
-// the nav switches from an overlay drawer to a permanently pinned sidebar.
-const DESKTOP_QUERY = '(min-width: 768px)'
-// docs/specs/ui.md — the nav: below this width, opening the detail panel
-// auto-collapses the nav rather than letting three fixed columns crush the
-// list. Derived, not chosen by eye: `.main`'s reading column is `--measure`
-// (34rem/544px) plus `--space-4` (16px) of padding either side = 576px, the
-// width at which it stops gaining any usable reading space. Add the two
-// fixed columns either side — the nav's 20rem (320px) and the detail
-// panel's 24rem (384px) — and 320 + 576 + 384 = 1280px is the narrowest
-// viewport where all three coexist without `.main` being squeezed below its
-// designed measure. Below it, something has to give, and the nav is the
-// column that is one tap away. *(added 2026-08-03: between 768px and this
-// threshold, `.main` fell to 96px at 800px and 396px at 1100px whenever a
-// todo was open — measured; todo rows begin clipping their summary below
-// roughly 440px.)*
-const THREE_COLUMN_QUERY = '(min-width: 1280px)'
+import { useDetailPanel } from './use-detail-panel'
+import { useNavLayout } from './use-nav-layout'
+import { useViewSelection } from './use-view-selection'
 
 /**
  * The title and the "what is this?" copy for each derived view.
@@ -129,10 +107,20 @@ const DERIVED_INFO: Record<string, { title: string; about: string }> = {
 
 export function MainScreen() {
   const lists = useLists()
-  const [selected, setSelected] = useState<string | null>(() =>
-    localStorage.getItem(SELECTED_LIST_KEY),
-  )
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  // Which view is open, its persistence, and the fallback when a persisted
+  // list no longer exists — see use-view-selection.ts.
+  const selection = useViewSelection(lists.data)
+  const active = selection.active
+  // Which todo the panel is showing, and where focus returns on close —
+  // see use-detail-panel.ts.
+  const detail = useDetailPanel()
+  const openTodo = detail.openTodo
+  // Where the nav is at this viewport, and what the ☰ does — see
+  // use-nav-layout.ts. It needs to know whether the panel is open, since
+  // below 1280px an open panel collapses the nav.
+  const nav = useNavLayout({ detailOpen: openTodo !== null })
+  const { isDesktop, desktopNavOpen, drawerAvailable, drawerOpen } = nav
+  const setDrawerOpen = nav.setDrawerOpen
   // Settings lives here, not in NavFooter, for the same reason the other
   // dialogs do: on mobile the footer renders inside the drawer's
   // Dialog.Popup, so a modal owned there is a *nested* dialog — Base UI
@@ -189,7 +177,7 @@ export function MainScreen() {
     // exact failure it exists to prevent. Today is where selection falls
     // back everywhere else (docs/specs/today-view.md — selection).
     // *(added 2026-08-05.)*
-    if (next !== null && selected !== null && next.has(selected)) {
+    if (next !== null && next.has(active)) {
       selectList(TODAY_VIEW)
     }
   }
@@ -199,96 +187,6 @@ export function MainScreen() {
   // resize, losing a half-typed list. MainScreen is mounted at every
   // viewport. *(added 2026-08-04, issues #20 and #21.)*
   const listForm = useListForm(lists.data ?? [])
-  // docs/specs/ui.md — the detail panel: on desktop the panel is a layout
-  // column, a sibling of `<main>` rather than a child, so which todo is
-  // open has to live here — a pane inside `<main>` cannot render a column
-  // beside it. Held as `{ uid, listId }` rather than a bare uid because
-  // Today and Summary draw rows from several lists at once, where a uid
-  // alone is ambiguous; that list's mutation actions are bound from it
-  // below (`detailActions`) and by TodayDetail.
-  // *(added 2026-08-03, issue #4.)*
-  const [openTodo, setOpenTodo] = useState<Todo | null>(null)
-  // Counts opens, so the panel can move focus into itself on every one —
-  // see `openDetail`.
-  const [openCount, setOpenCount] = useState(0)
-  // The row that opened the panel, so focus can go back to it on close.
-  // Explicit rather than inferred: the panel is not modal on desktop, so
-  // nothing restores focus for us, and a heuristic is untrustworthy once a
-  // save re-renders and reorders the list — the same reasoning as
-  // `triggerRef` in add-todo-modal.tsx.
-  const openTrigger = useRef<HTMLElement | null>(null)
-  const [navPinned, setNavPinned] = useState<boolean>(
-    () => localStorage.getItem(NAV_PINNED_KEY) !== '0',
-  )
-  // On desktop the nav is a permanently pinned sidebar, not a dialog — it's
-  // plain markup, CSS-driven exactly as before. On mobile it's a true
-  // overlay: Base UI's Dialog takes over the focus trap, scroll lock,
-  // Escape-to-close and focus restoration that were previously hand-rolled
-  // here (docs/specs/ui.md — prefer Base UI over hand-rolling focus
-  // management). The trigger is a Dialog.Trigger (rather than a plain
-  // button with manual state) so Base UI's floating tree knows about it —
-  // without that wiring, its focus guards can't redirect a Tab that
-  // reaches the trigger back into the trap.
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const hasRoomForThree = useMediaQuery(THREE_COLUMN_QUERY)
-
-  // docs/specs/ui.md — the nav: two distinct concepts, deliberately not one
-  // boolean. `navPinned` is what the user *wants* and is the only thing
-  // persisted; `desktopNavOpen` is what is *currently shown*.
-  //
-  // Below the three-column threshold, an open detail panel collapses the
-  // nav — three fixed columns don't fit, and the alternative measured at
-  // 96px of list. The collapse is never written to localStorage: it is a
-  // response to the current viewport, not a choice the user made, so it
-  // must not follow them to their next visit at a width where it would make
-  // no sense. It reverses on its own — close the panel or widen past the
-  // threshold and the nav returns, unless the user had collapsed it
-  // themselves, in which case `navPinned` is already false and there is
-  // nothing to restore. *(added 2026-08-03.)*
-  const autoCollapsed = !hasRoomForThree && openTodo !== null
-  const desktopNavOpen = isDesktop && navPinned && !autoCollapsed
-
-  // While auto-collapsed the ☰ opens the nav as the **drawer** — the same
-  // overlay used on mobile — rather than re-expanding the pinned column.
-  //
-  // Expanding the column here would defeat the whole point: it would take
-  // its 320px back out of a main column that was already too narrow, which
-  // is the crush this auto-collapse exists to prevent. Measured: forcing
-  // the column open at 1024px with a todo open dropped main to 320px, worse
-  // than the 639px it had while collapsed. An overlay costs main nothing.
-  //
-  // *(fixed 2026-08-03: the override re-expanded the pinned column.)*
-  const navAsDrawer = isDesktop && autoCollapsed
-
-  // Only reachable when the nav is a pinned column — while auto-collapsed
-  // the header renders the drawer's own trigger instead, so opening the nav
-  // there never touches the stored preference.
-  const toggleDesktopNav = (): void => {
-    const next = !navPinned
-    setNavPinned(next)
-    localStorage.setItem(NAV_PINNED_KEY, next ? '1' : '0')
-  }
-
-  // Close the drawer once the auto-collapse that prompted it lifts —
-  // closing the todo, or widening past the threshold — so a drawer opened
-  // for a narrow layout doesn't hang over a layout that no longer needs it.
-  useEffect(() => {
-    if (!autoCollapsed && drawerOpen && isDesktop) setDrawerOpen(false)
-  }, [autoCollapsed, drawerOpen, isDesktop])
-
-  // The persisted list may no longer exist (deleted here or elsewhere).
-  // Only trust it once we've actually seen the list index: assuming it's
-  // valid while `lists.data` is undefined made every load fetch todos for
-  // a possibly-deleted list, which 404s on every retry
-  // (docs/specs/api.md — error mapping).
-  // docs/specs/today-view.md — Today is the default view and the fallback
-  // when a persisted list id no longer exists, so selection never lands on
-  // an arbitrary list.
-  const selectedExists =
-    selected !== null &&
-    (isDerivedView(selected) ||
-      (lists.data?.some((l) => l.id === selected) ?? false))
-  const active = (selectedExists ? selected : null) ?? TODAY_VIEW
   const showingToday = isTodayView(active)
   const showingTomorrow = isTomorrowView(active)
   const showingSummary = isSummaryView(active)
@@ -431,44 +329,17 @@ export function MainScreen() {
     },
   )
 
-  // Drop a persisted id the server no longer knows about, so it can't come
-  // back on the next load.
-  useEffect(() => {
-    if (!lists.data || selected === null) return
-    // A derived view is not a collection, so it is never "missing" from
-    // the index (docs/specs/today-view.md, docs/specs/summary-view.md).
-    if (isDerivedView(selected)) return
-    if (!lists.data.some((list) => list.id === selected)) {
-      localStorage.removeItem(SELECTED_LIST_KEY)
-      setSelected(null)
-    }
-  }, [lists.data, selected])
-
   const selectList = (listId: string): void => {
-    // Clicking the list you are already in is not a switch. Closing the
-    // open todo there loses your place for no reason — the panel is still
-    // showing a todo from the list still on screen.
-    // *(fixed 2026-08-03.)*
-    const switching = listId !== active
-    setSelected(listId)
-    localStorage.setItem(SELECTED_LIST_KEY, listId)
+    const switching = selection.isSwitching(listId)
+    selection.select(listId)
     // Switching view drops the selection: the open todo may not exist in
     // the list being switched to, and a panel showing a todo from the view
     // you just left is worse than no panel.
-    if (switching) setOpenTodo(null)
+    if (switching) detail.close()
   }
 
-  const openDetail = (todo: Todo, trigger: HTMLElement | null): void => {
-    openTrigger.current = trigger
-    setOpenTodo(todo)
-    // Bumped on every open, including re-clicking the row that is already
-    // showing. The panel keys its focus effect on this rather than on the
-    // todo, because clicking the open row changes neither `openTodo` nor
-    // the `key` — so without it that click would leave focus out on the
-    // row while the panel sits there looking focused, and the next Escape
-    // would go to the row instead of closing the panel.
-    setOpenCount((count) => count + 1)
-  }
+  const openDetail = detail.open
+  const closeDetail = detail.close
 
   // Switch the panel to a freshly duplicated todo. The next action after
   // duplicating is almost always editing the copy, so landing on it saves
@@ -476,18 +347,7 @@ export function MainScreen() {
   // is unusual for this app, but it is the direct result of a click you
   // just made (issue #25).
   const openCopy = (copy: Todo): void => {
-    openDetail(copy, openTrigger.current)
-  }
-
-  const closeDetail = (): void => {
-    setOpenTodo(null)
-    // Return focus to the row that opened the panel. Deferred a frame so
-    // it lands after the panel has gone: focusing while the panel is still
-    // mounted and about to be made `inert` leaves focus nowhere, which
-    // drops the user back to the top of the document.
-    const trigger = openTrigger.current
-    openTrigger.current = null
-    if (trigger) requestAnimationFrame(() => trigger.focus())
+    detail.replace(copy)
   }
 
   // The detail form lives here, not in the panel, because *this* component
@@ -595,8 +455,7 @@ export function MainScreen() {
   // Rendered on mobile, and on desktop while the nav is auto-collapsed —
   // there the ☰ opens this overlay instead of re-expanding the pinned
   // column, which would take back the width the collapse just freed
-  // (see `navAsDrawer`).
-  const drawerAvailable = !isDesktop || navAsDrawer
+  // (see `navAsDrawer` in use-nav-layout.ts).
   const drawer = (
     <Dialog.Root
       open={drawerAvailable && drawerOpen}
@@ -766,7 +625,7 @@ export function MainScreen() {
                   className={cx(styles['menuTrigger'])}
                   aria-label="Lists"
                   aria-pressed={desktopNavOpen}
-                  onClick={toggleDesktopNav}
+                  onClick={nav.toggleDesktopNav}
                 >
                   <LuMenu aria-hidden="true" size={20} />
                 </button>
@@ -954,7 +813,7 @@ export function MainScreen() {
                   lists={lists.data ?? []}
                   form={detailForm}
                   mode="column"
-                  focusNonce={openCount}
+                  focusNonce={detail.openCount}
                   onDuplicated={openCopy}
                   onClose={closeDetail}
                 />
