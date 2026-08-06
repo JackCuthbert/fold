@@ -79,6 +79,26 @@ and sanctioned for exactly this. Both were removed.)_
   server/packages).
 - Forms use react-hook-form with `@hookform/resolvers/zod`, reusing
   `packages/schemas`.
+- **The root of `apps/client/src/` is for entry points only** — `main.tsx`,
+  `app.tsx`, `providers.tsx`. Everything else goes in a feature directory
+  (`todos/`, `lists/`, `sync/`, `auth/`, `sound/`), in `shell/` (the
+  app frame: nav, header, panes, modals), `ui/` (generic primitives with
+  no feature knowledge), `shortcuts/`, `help/`, `styles/`, or `lib/`
+  (framework-agnostic helpers). If none of those fits, that is the signal
+  to name a new directory rather than to drop a file at the root — 31 loose
+  files accumulated there before anyone noticed (issue #28).
+  _(added 2026-08-06.)_
+- **A soft ceiling of ~300 lines for a component file.** Not a lint rule —
+  a prompt to ask whether a second concern has crept in. When one has, the
+  fix is usually a hook (state plus its rules) or a child component (a
+  block of JSX that grows every time the feature does), not a mechanical
+  split. `main-screen.tsx` reached 786 lines holding five concerns;
+  `todo-detail.tsx` (639) and `add-todo-modal.tsx` (432) are the two still
+  over it. _(added 2026-08-06.)_
+- **Moving a file is not free: CSS Modules `composes: … from` paths are
+  resolved by postcss at build time**, so a stale one passes typecheck and
+  unit tests and only fails the build. `bun run test:e2e` builds the
+  client, which is what catches it. _(added 2026-08-06.)_
 - **Styles are co-located with their component** as CSS Modules
   (`component.module.css` beside `component.tsx`). Compile-time only —
   **no CSS-in-JS**, which costs runtime performance. Shared design tokens
