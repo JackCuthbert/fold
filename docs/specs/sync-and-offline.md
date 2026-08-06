@@ -179,6 +179,14 @@ history:
   its recovery budget is set between the measured before/after figures so a
   regression fails it rather than merely slowing it down.)*
 
+  The outage in that test is deliberately **shorter than the retry ladder**
+  and longer than a single retry, so recovery comes from the ladder itself
+  rather than from the 45s poll. An outage long enough to exhaust every
+  attempt is a truer reproduction of the captured failure, but it makes the
+  result depend on where the outage's end falls between attempts — which
+  moves with machine speed, and duly passed locally while timing out on
+  CI's slower runner. *(fixed 2026-08-06.)*
+
 ## Offline detection & UX
 
 - `navigator.onLine` + fetch failures.

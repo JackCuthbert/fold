@@ -17,28 +17,42 @@ import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
 /**
  * How long the fake outage lasts.
  *
- * Long enough to outlast the whole retry ladder (1+2+4+8s of backoff —
- * query-core's `defaultRetryDelay`), so the query genuinely lands in
- * `error` with nothing left to try. That is the state the failing run was
- * stuck in, and the only one worth asserting recovery from.
+ * **Longer than the old `retry: 1` could survive, shorter than the current
+ * ladder.** That window is the whole design of this test, and getting it
+ * wrong is what made the first version fail on CI.
+ *
+ * The attempts land at roughly 0.4s, 1.4s, 3.4s, 7.4s and 15.4s
+ * (query-core's `defaultRetryDelay` — 1/2/4/8/16s of backoff). At 5s the
+ * outage is past the second attempt, so `retry: 1` is spent and the old
+ * code has nothing left but the 45s poll; but attempts 3, 4 and 5 are
+ * still to come, so the current code recovers through its own ladder.
+ *
+ * The first version used 12s, chosen to outlast the *whole* ladder so the
+ * query genuinely reached `error`. That is a truer reproduction of the
+ * captured failure, but it made recovery depend on the 45s poll — and
+ * therefore on where the outage's end happened to fall between attempts,
+ * which moves with machine speed. It passed locally in ~17s and timed out
+ * on CI's slower single-core runner. A test whose result depends on that
+ * alignment is measuring the machine, not the fix.
+ * *(changed 2026-08-06 after CI 31086197736.)*
  */
-const OUTAGE_MS = 12_000
+const OUTAGE_MS = 5_000
 
 /**
  * How long recovery may take once the server is healthy again.
  *
- * Chosen from measurement, and deliberately tight enough to *fail* on the
- * old behaviour rather than merely pass on the new one. With the retry
- * ladder in providers.tsx, a cold list recovers in ~15.8s (attempts at
- * 0.4s, 1.4s, 3.4s, 7.4s, 15.4s). With the previous `retry: 1` it took
- * ~46.9s — two attempts a second apart, then nothing until the 45s poll.
+ * Deliberately tight enough to *fail* on the old behaviour rather than
+ * merely pass on the new one. With the ladder, the next attempt after a
+ * 5s outage is the one at ~7.4s, so recovery lands within a couple of
+ * seconds of the server returning. With `retry: 1` there is no next
+ * attempt at all — the earliest recovery is the 45s poll, and only if the
+ * tab is focused.
  *
- * 30s sits between the two: comfortable headroom over the real figure, and
- * still short enough that regressing the retry ladder turns this red
- * instead of merely slow. A budget of 70s would have passed either way,
- * which is how a test ends up proving nothing.
+ * 25s sits well clear of the first and well short of the second, with
+ * enough headroom for a slow runner. A budget past 45s would pass either
+ * way, which is how a test ends up proving nothing.
  */
-const RECOVERY_MS = 30_000
+const RECOVERY_MS = 25_000
 
 /**
  * Fail every todos read with a 502 for `OUTAGE_MS`, then stop.
