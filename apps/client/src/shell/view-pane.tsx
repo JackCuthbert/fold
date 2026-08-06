@@ -1,9 +1,11 @@
-import type { Todo, TodoList } from '@fold/schemas'
+import type { TodoList } from '@fold/schemas'
 import { SearchPane } from '../todos/search-pane'
 import { SummaryPane } from '../todos/summary-pane'
 import { TodayPane } from '../todos/today-pane'
 import { TodoPane } from '../todos/todo-pane'
 import type { useAddTodo } from '../todos/use-add-todo'
+import { useListFilter } from './list-filter-context'
+import { useSelection } from './selection-context'
 import styles from './main-screen.module.css'
 
 /** Which pane the selected view resolves to. */
@@ -25,31 +27,26 @@ export type PaneKind = 'today' | 'tomorrow' | 'summary' | 'search' | 'list'
  */
 export function ViewPane(props: {
   kind: PaneKind
-  /** The view id, used as the remount key. */
-  activeView: string
-  /**
-   * The lists this view may draw from — already narrowed by the list
-   * filter for a derived view, and the full set for a list view
-   * (docs/specs/list-filter.md).
-   */
-  lists: readonly TodoList[]
   activeList: TodoList | undefined
   add: ReturnType<typeof useAddTodo>
   searchQuery: string
   onSearchQueryChange: (query: string) => void
-  onOpen: (todo: Todo, trigger: HTMLElement | null) => void
-  onOpenList: (listId: string) => void
 }) {
+  const selection = useSelection()
+  // Already narrowed by the filter for a derived view, and the full set in
+  // a list view — the distinction is `shownLists`' whole job
+  // (list-filter-context.tsx).
+  const { shownLists } = useListFilter()
   // Today and Tomorrow are one pane over a different day window
   // (docs/specs/tomorrow-view.md).
   if (props.kind === 'today' || props.kind === 'tomorrow') {
     return (
       <TodayPane
-        key={props.activeView}
-        lists={props.lists}
+        key={selection.active}
+        lists={shownLists}
         {...(props.kind === 'tomorrow' ? { day: 'tomorrow' as const } : {})}
-        onOpen={props.onOpen}
-        onOpenList={props.onOpenList}
+        onOpen={selection.openDetail}
+        onOpenList={selection.select}
       />
     )
   }
@@ -57,10 +54,10 @@ export function ViewPane(props: {
   if (props.kind === 'summary') {
     return (
       <SummaryPane
-        key={props.activeView}
-        lists={props.lists}
-        onOpen={props.onOpen}
-        onOpenList={props.onOpenList}
+        key={selection.active}
+        lists={shownLists}
+        onOpen={selection.openDetail}
+        onOpenList={selection.select}
       />
     )
   }
@@ -70,11 +67,11 @@ export function ViewPane(props: {
     // click through (search-pane.tsx).
     return (
       <SearchPane
-        key={props.activeView}
-        lists={props.lists}
+        key={selection.active}
+        lists={shownLists}
         query={props.searchQuery}
         onQueryChange={props.onSearchQueryChange}
-        onOpen={props.onOpen}
+        onOpen={selection.openDetail}
       />
     )
   }
@@ -82,10 +79,10 @@ export function ViewPane(props: {
   if (props.activeList) {
     return (
       <TodoPane
-        key={props.activeView}
+        key={selection.active}
         listId={props.activeList.id}
         add={props.add}
-        onOpen={props.onOpen}
+        onOpen={selection.openDetail}
       />
     )
   }

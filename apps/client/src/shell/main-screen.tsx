@@ -10,6 +10,7 @@ import {
   toggleList,
   visibleLists,
 } from '../lists/list-filter'
+import { hiddenCount } from '../lists/list-filter-menu'
 import { kindExplanation } from '../lists/list-kind'
 import { useLists } from '../lists/list-nav'
 import { useListForm } from '../lists/use-list-form'
@@ -37,6 +38,9 @@ import { useTodoActions } from '../todos/use-todo-actions'
 import { useTodoDetailForm } from '../todos/use-todo-detail-form'
 import { useViewCount } from '../todos/use-view-count'
 import { AppModals } from './app-modals'
+import { ListFilterProvider, type ListFilterState } from './list-filter-context'
+import { OverlaysProvider, type Overlays } from './overlays-context'
+import { SelectionProvider, type Selection } from './selection-context'
 import { NavPanel } from './nav-panel'
 import { ViewPane, type PaneKind } from './view-pane'
 import { ViewHeader } from './view-header'
@@ -96,8 +100,8 @@ export function MainScreen() {
   const lists = useLists()
   // Which view is open, its persistence, and the fallback when a persisted
   // list no longer exists — see use-view-selection.ts.
-  const selection = useViewSelection(lists.data)
-  const active = selection.active
+  const view = useViewSelection(lists.data)
+  const active = view.active
   // Which todo the panel is showing, and where focus returns on close —
   // see use-detail-panel.ts.
   const detail = useDetailPanel()
@@ -311,9 +315,9 @@ export function MainScreen() {
       // carried on the action so the map stays a list of chords rather
       // than a list of view ids.
       const index = viewIndexOf(action)
-      const view = index === null ? undefined : DERIVED_VIEWS[index - 1]
-      if (view === undefined) return
-      selectList(view)
+      const target = index === null ? undefined : DERIVED_VIEWS[index - 1]
+      if (target === undefined) return
+      selectList(target)
       // Jumping to a view also closes the drawer: on mobile the nav is an
       // overlay, and landing on a view still behind it would hide the
       // thing you just navigated to. Same reason `onSelect` closes it.
@@ -322,8 +326,8 @@ export function MainScreen() {
   )
 
   const selectList = (listId: string): void => {
-    const switching = selection.isSwitching(listId)
-    selection.select(listId)
+    const switching = view.isSwitching(listId)
+    view.select(listId)
     // Switching view drops the selection: the open todo may not exist in
     // the list being switched to, and a panel showing a todo from the view
     // you just left is worse than no panel.
@@ -373,36 +377,7 @@ export function MainScreen() {
   // it is an overlay in its own right, and leaving it open behind a modal
   // would stack two scrims and two focus traps. On desktop `drawerOpen` is
   // already false, so each is a no-op there.
-  const navContent: ReactNode = (
-    <NavPanel
-      lists={allLists}
-      activeView={active}
-      filter={listFilter}
-      listForm={listForm}
-      newTodoRef={globalAddTrigger}
-      onToggleList={(listId) =>
-        changeFilter(toggleList(listFilter, allLists, listId))
-      }
-      onClearFilter={() => changeFilter(null)}
-      onRevealLists={() => setRevealing(true)}
-      onNewTodo={() => {
-        globalAdd.setOpen(true)
-        setDrawerOpen(false)
-      }}
-      onSelect={(listId) => {
-        selectList(listId)
-        setDrawerOpen(false)
-      }}
-      onOpenHelp={() => {
-        setDrawerOpen(false)
-        setHelpOpen(true)
-      }}
-      onOpenSettings={() => {
-        setDrawerOpen(false)
-        setSettingsOpen(true)
-      }}
-    />
-  )
+  const navContent: ReactNode = <NavPanel />
 
   // docs/specs/ui.md — overlays: every overlay dims the background.
   // Base UI never renders a nested dialog's backdrop (by design — see the
@@ -435,30 +410,52 @@ export function MainScreen() {
     </Dialog.Root>
   )
 
+  // The three contexts the shell's parts read from, rather than being
+  // handed everything through props. Each matches a concern that is
+  // *written* in one place and *read* in several — see the files
+  // themselves for why each earns a context rather than a prop.
+  const overlays: Overlays = {
+    drawerOpen,
+    setDrawerOpen,
+    settingsOpen,
+    setSettingsOpen,
+    helpOpen,
+    setHelpOpen,
+    revealing,
+    setRevealing,
+    listForm,
+    globalAdd,
+    globalAddTriggerRef: globalAddTrigger,
+    openOverDrawer: (open) => {
+      setDrawerOpen(false)
+      open()
+    },
+  }
+  const filterState: ListFilterState = {
+    filter: listFilter,
+    allLists,
+    shownLists,
+    toggle: (listId) => changeFilter(toggleList(listFilter, allLists, listId)),
+    clear: () => changeFilter(null),
+    hiddenCount: hiddenCount(allLists, listFilter),
+  }
+  const selection: Selection = {
+    active,
+    select: selectList,
+    openDetail,
+  }
+
   return (
-    <div className={styles['layout']}>
-      {/* Every modal in the app, as siblings of the drawer rather than
+    <OverlaysProvider value={overlays}>
+      <ListFilterProvider value={filterState}>
+        <SelectionProvider value={selection}>
+          <div className={styles['layout']}>
+            {/* Every modal in the app, as siblings of the drawer rather than
           inside it — see app-modals.tsx for the one reason they all live
           at this level. */}
-      <AppModals
-        lists={allLists}
-        activeListId={activeList?.id ?? null}
-        listFilter={listFilter}
-        listForm={listForm}
-        globalAdd={globalAdd}
-        globalAddTriggerRef={globalAddTrigger}
-        settingsOpen={settingsOpen}
-        onSettingsOpenChange={setSettingsOpen}
-        helpOpen={helpOpen}
-        onHelpOpenChange={setHelpOpen}
-        revealing={revealing}
-        onRevealingChange={setRevealing}
-        onClearFilter={() => changeFilter(null)}
-        onSelectList={selectList}
-        onCloseDrawer={() => setDrawerOpen(false)}
-      />
-      <div className={styles['body']}>
-        {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
+            <AppModals />
+            <div className={styles['body']}>
+              {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both
             sizes (`.nav`'s width in main-screen.module.css matches
             `.navOpen`'s `min(80vw, 20rem)` exactly). Plain markup, not a
@@ -471,20 +468,20 @@ export function MainScreen() {
             a width transition, not an instant mount/unmount; hidden from
             assistive tech and unreachable by Tab while collapsed, matching
             the mobile drawer's closed state. */}
-        {isDesktop && (
-          <aside
-            className={cx(
-              styles['nav'],
-              !desktopNavOpen && styles['navCollapsed'],
-            )}
-            aria-hidden={!desktopNavOpen}
-            inert={!desktopNavOpen}
-          >
-            <div className={styles['navInner']}>{navContent}</div>
-          </aside>
-        )}
-        <main className={styles['main']}>
-          {/* docs/specs/ui.md — mobile: the nav trigger sits beside the
+              {isDesktop && (
+                <aside
+                  className={cx(
+                    styles['nav'],
+                    !desktopNavOpen && styles['navCollapsed'],
+                  )}
+                  aria-hidden={!desktopNavOpen}
+                  inert={!desktopNavOpen}
+                >
+                  <div className={styles['navInner']}>{navContent}</div>
+                </aside>
+              )}
+              <main className={styles['main']}>
+                {/* docs/specs/ui.md — mobile: the nav trigger sits beside the
               list title, forming the top row of the content column,
               rather than a floating button in a corner. The title stays
               centred above the list on every viewport. On desktop a
@@ -492,34 +489,30 @@ export function MainScreen() {
               docs/specs/ui.md — scrolling: this header is sticky so the
               list title, nav toggle and "Add a todo" stay in view; only
               .mainScroll beneath it scrolls. */}
-          <ViewHeader
-            derivedInfo={derivedInfo}
-            activeList={activeList}
-            kindInfo={kindInfo}
-            viewCount={viewCount}
-            listActiveTodos={listActiveTodos}
-            drawer={drawer}
-            drawerAvailable={drawerAvailable}
-            desktopNavOpen={desktopNavOpen}
-            onToggleDesktopNav={nav.toggleDesktopNav}
-          />
-          <div className={styles['mainScroll']}>
-            <div className={styles['mainScrollInner']}>
-              <ViewPane
-                kind={paneKind}
-                activeView={active}
-                lists={shownLists}
-                activeList={activeList}
-                add={add}
-                searchQuery={searchQuery}
-                onSearchQueryChange={setSearchQuery}
-                onOpen={openDetail}
-                onOpenList={selectList}
-              />
-            </div>
-          </div>
-        </main>
-        {/* docs/specs/ui.md — the detail panel: on desktop it is a third
+                <ViewHeader
+                  derivedInfo={derivedInfo}
+                  activeList={activeList}
+                  kindInfo={kindInfo}
+                  viewCount={viewCount}
+                  listActiveTodos={listActiveTodos}
+                  drawer={drawer}
+                  drawerAvailable={drawerAvailable}
+                  desktopNavOpen={desktopNavOpen}
+                  onToggleDesktopNav={nav.toggleDesktopNav}
+                />
+                <div className={styles['mainScroll']}>
+                  <div className={styles['mainScrollInner']}>
+                    <ViewPane
+                      kind={paneKind}
+                      activeList={activeList}
+                      add={add}
+                      searchQuery={searchQuery}
+                      onSearchQueryChange={setSearchQuery}
+                    />
+                  </div>
+                </div>
+              </main>
+              {/* docs/specs/ui.md — the detail panel: on desktop it is a third
             column of the layout, after `<main>`, not an overlay over it.
             Mirrors the nav's collapse exactly — always mounted so opening
             and closing is a width transition rather than a mount, and
@@ -528,54 +521,57 @@ export function MainScreen() {
             single-user app whose owner knows what the panel is, and a
             permanent placeholder would spend a third of the screen saying
             nothing. *(added 2026-08-03, issue #4.)* */}
-        {isDesktop && (
-          <aside
-            className={cx(
-              styles['detail'],
-              !openTodo && styles['detailCollapsed'],
-            )}
-            aria-hidden={!openTodo}
-            inert={!openTodo}
-          >
-            <div className={styles['detailInner']}>
-              {openTodo && (
-                // Deliberately *no* `key={openTodo.uid}` here or on the
-                // sheet below. It used to force a remount when a different
-                // todo was opened, because the form's defaultValues were
-                // built once per mount — but the form no longer lives in
-                // this component, so a remount would no longer re-seed it,
-                // and the surfaces are now cheap to keep. Re-seeding on a
-                // new uid is the hook's job instead
-                // (use-todo-detail-form.ts).
-                <TodayDetail
-                  todo={openTodo}
-                  lists={lists.data ?? []}
-                  form={detailForm}
-                  mode="column"
-                  focusNonce={detail.openCount}
-                  onDuplicated={openCopy}
-                  onClose={closeDetail}
-                />
+              {isDesktop && (
+                <aside
+                  className={cx(
+                    styles['detail'],
+                    !openTodo && styles['detailCollapsed'],
+                  )}
+                  aria-hidden={!openTodo}
+                  inert={!openTodo}
+                >
+                  <div className={styles['detailInner']}>
+                    {openTodo && (
+                      // Deliberately *no* `key={openTodo.uid}` here or on the
+                      // sheet below. It used to force a remount when a different
+                      // todo was opened, because the form's defaultValues were
+                      // built once per mount — but the form no longer lives in
+                      // this component, so a remount would no longer re-seed it,
+                      // and the surfaces are now cheap to keep. Re-seeding on a
+                      // new uid is the hook's job instead
+                      // (use-todo-detail-form.ts).
+                      <TodayDetail
+                        todo={openTodo}
+                        lists={lists.data ?? []}
+                        form={detailForm}
+                        mode="column"
+                        focusNonce={detail.openCount}
+                        onDuplicated={openCopy}
+                        onClose={closeDetail}
+                      />
+                    )}
+                  </div>
+                </aside>
               )}
             </div>
-          </aside>
-        )}
-      </div>
-      {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
+            {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
           with its scrim, focus trap and Escape (docs/specs/ui.md —
           overlays). Rendered outside `.body` since it is an overlay, not a
           column, and as a sibling of the nav drawer's Dialog rather than
           inside it — see `settingsOpen` above. */}
-      {!isDesktop && openTodo && (
-        <TodayDetail
-          todo={openTodo}
-          lists={lists.data ?? []}
-          form={detailForm}
-          mode="sheet"
-          onDuplicated={openCopy}
-          onClose={closeDetail}
-        />
-      )}
-    </div>
+            {!isDesktop && openTodo && (
+              <TodayDetail
+                todo={openTodo}
+                lists={lists.data ?? []}
+                form={detailForm}
+                mode="sheet"
+                onDuplicated={openCopy}
+                onClose={closeDetail}
+              />
+            )}
+          </div>
+        </SelectionProvider>
+      </ListFilterProvider>
+    </OverlaysProvider>
   )
 }

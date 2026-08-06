@@ -1,11 +1,10 @@
-import type { TodoList } from '@fold/schemas'
-import type { RefObject } from 'react'
 import { LuOrigami } from 'react-icons/lu'
-import type { ListFilter } from '../lists/list-filter'
 import { ListFilterMenu } from '../lists/list-filter-menu'
 import { ListNav } from '../lists/list-nav'
 import { NavFooter } from '../lists/nav-footer'
-import type { ListFormState } from '../lists/use-list-form'
+import { useListFilter } from './list-filter-context'
+import { useOverlays } from './overlays-context'
+import { useSelection } from './selection-context'
 import styles from './main-screen.module.css'
 
 /**
@@ -25,20 +24,10 @@ import styles from './main-screen.module.css'
  * while the title and the footer stay anchored. `.navScroll` is the only
  * child that overflows.
  */
-export function NavPanel(props: {
-  lists: TodoList[]
-  activeView: string
-  filter: ListFilter
-  listForm: ListFormState
-  newTodoRef: RefObject<HTMLButtonElement | null>
-  onToggleList: (listId: string) => void
-  onClearFilter: () => void
-  onRevealLists: () => void
-  onNewTodo: () => void
-  onSelect: (listId: string) => void
-  onOpenHelp: () => void
-  onOpenSettings: () => void
-}) {
+export function NavPanel() {
+  const overlays = useOverlays()
+  const filter = useListFilter()
+  const selection = useSelection()
   return (
     <>
       {/* docs/specs/ui.md — the nav is headed by the app's own mark rather
@@ -60,26 +49,34 @@ export function NavPanel(props: {
             the same trap Settings and the list forms are hoisted out of.
             *(moved 2026-08-05.)* */}
         <ListFilterMenu
-          lists={props.lists}
-          filter={props.filter}
-          onToggle={props.onToggleList}
-          onClear={props.onClearFilter}
+          lists={filter.allLists}
+          filter={filter.filter}
+          onToggle={filter.toggle}
+          onClear={filter.clear}
         />
       </h2>
       <div className={styles['navScroll']}>
         <ListNav
-          selected={props.activeView}
-          form={props.listForm}
-          newTodoRef={props.newTodoRef}
-          filter={props.filter}
-          onRevealLists={props.onRevealLists}
-          onNewTodo={props.onNewTodo}
-          onSelect={props.onSelect}
+          selected={selection.active}
+          form={overlays.listForm}
+          newTodoRef={overlays.globalAddTriggerRef}
+          filter={filter.filter}
+          onRevealLists={() => overlays.setRevealing(true)}
+          onNewTodo={() =>
+            overlays.openOverDrawer(() => overlays.globalAdd.setOpen(true))
+          }
+          onSelect={(listId) =>
+            overlays.openOverDrawer(() => selection.select(listId))
+          }
         />
       </div>
       <NavFooter
-        onOpenHelp={props.onOpenHelp}
-        onOpenSettings={props.onOpenSettings}
+        onOpenHelp={() =>
+          overlays.openOverDrawer(() => overlays.setHelpOpen(true))
+        }
+        onOpenSettings={() =>
+          overlays.openOverDrawer(() => overlays.setSettingsOpen(true))
+        }
       />
     </>
   )

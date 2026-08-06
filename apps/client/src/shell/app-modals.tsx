@@ -1,14 +1,12 @@
-import type { TodoList } from '@fold/schemas'
 import { ConfirmDialog } from '../ui/confirm'
 import { HelpModal } from '../help/help-modal'
 import { ListFormModal } from '../lists/list-form-modal'
-import { hiddenCount, RevealListsDialog } from '../lists/list-filter-menu'
-import type { ListFilter } from '../lists/list-filter'
+import { RevealListsDialog } from '../lists/list-filter-menu'
 import { SettingsModal } from '../lists/settings-modal'
-import type { ListFormState } from '../lists/use-list-form'
 import { AddTodoModal } from '../todos/add-todo-modal'
-import type { useGlobalAddTodo } from '../todos/use-global-add-todo'
-import type { RefObject } from 'react'
+import { useListFilter } from './list-filter-context'
+import { useOverlays } from './overlays-context'
+import { useSelection } from './selection-context'
 
 /**
  * Every modal in the app, rendered as siblings at the top level.
@@ -32,42 +30,34 @@ import type { RefObject } from 'react'
  * components that trigger them only report that a button was pressed.
  * *(collected here 2026-08-06, issue #28.)*
  */
-export function AppModals(props: {
-  lists: TodoList[]
-  activeListId: string | null
-  listFilter: ListFilter
-  listForm: ListFormState
-  globalAdd: ReturnType<typeof useGlobalAddTodo>
-  globalAddTriggerRef: RefObject<HTMLButtonElement | null>
-  settingsOpen: boolean
-  onSettingsOpenChange: (open: boolean) => void
-  helpOpen: boolean
-  onHelpOpenChange: (open: boolean) => void
-  revealing: boolean
-  onRevealingChange: (revealing: boolean) => void
-  onClearFilter: () => void
-  onSelectList: (listId: string) => void
-  onCloseDrawer: () => void
-}) {
+export function AppModals() {
+  const overlays = useOverlays()
+  const filter = useListFilter()
+  const selection = useSelection()
+  const { listForm, globalAdd } = overlays
+  // The list the add-todo modal defaults to, when you are looking at one.
+  const activeList = filter.allLists.find(
+    (list) => list.id === selection.active,
+  )
   return (
     <>
-      {/* Siblings of `drawer`, never inside it — see `props.settingsOpen` above. */}
+      {/* Siblings of `drawer`, never inside it — see `overlays.settingsOpen` above. */}
       <SettingsModal
-        open={props.settingsOpen}
-        onOpenChange={props.onSettingsOpenChange}
+        open={overlays.settingsOpen}
+        onOpenChange={overlays.setSettingsOpen}
       />
-      <HelpModal open={props.helpOpen} onOpenChange={props.onHelpOpenChange} />
+      <HelpModal open={overlays.helpOpen} onOpenChange={overlays.setHelpOpen} />
       {/* docs/specs/list-filter.md — asking before every hidden list
           reappears. A sibling of the drawer for the same reason Settings
           is: it is opened from inside the nav, which is a Dialog on
           mobile. */}
       <RevealListsDialog
-        open={props.revealing}
-        count={hiddenCount(props.lists, props.listFilter)}
-        onCancel={() => props.onRevealingChange(false)}
+        open={overlays.revealing}
+        count={filter.hiddenCount}
+        onCancel={() => overlays.setRevealing(false)}
         onConfirm={() => {
-          props.onRevealingChange(false)
-          props.onClearFilter()
+          overlays.setRevealing(false)
+          filter.clear()
         }}
       />
       {/* The global add-todo modal (issue #15), opened by the sidebar
@@ -88,21 +78,21 @@ export function AppModals(props: {
           the answer, and re-picking it every time is friction.
           *(changed 2026-08-05.)* */}
       <AddTodoModal
-        open={props.globalAdd.open}
-        onOpenChange={props.globalAdd.setOpen}
+        open={globalAdd.open}
+        onOpenChange={globalAdd.setOpen}
         target={{
           kind: 'global',
-          lists: props.lists,
-          ...(props.activeListId ? { defaultListId: props.activeListId } : {}),
+          lists: filter.allLists,
+          ...(activeList ? { defaultListId: activeList.id } : {}),
           onAdd: (listId, todo) => {
-            props.globalAdd.add(listId, todo)
+            globalAdd.add(listId, todo)
             // Go to where the todo landed. Creating something and being
             // left looking at a view that may not contain it reads as a
             // failure.
-            props.onSelectList(listId)
+            selection.select(listId)
           },
         }}
-        triggerRef={props.globalAddTriggerRef}
+        triggerRef={overlays.globalAddTriggerRef}
       />
       {/* The list surfaces, here for the same reason and for one more —
           see `listForm` above (issues #20 and #21). Opening one closes the
@@ -110,45 +100,45 @@ export function AppModals(props: {
           open behind the modal would stack two scrims and two focus traps,
           exactly as Settings does. */}
       <ListFormModal
-        open={props.listForm.creating}
+        open={listForm.creating}
         title="New list"
         submitLabel="Create"
-        onOpenChange={props.listForm.setCreating}
+        onOpenChange={listForm.setCreating}
         onSubmit={(values) => {
-          props.onSelectList(props.listForm.submitCreate(values))
-          props.onCloseDrawer()
+          selection.select(listForm.submitCreate(values))
+          overlays.setDrawerOpen(false)
         }}
       />
       <ListFormModal
-        open={props.listForm.editing !== null}
+        open={listForm.editing !== null}
         title="Edit list"
-        {...(props.listForm.editing
+        {...(listForm.editing
           ? {
               initial: {
-                displayName: props.listForm.editing.displayName,
-                ...(props.listForm.editing.color !== undefined
-                  ? { color: props.listForm.editing.color }
+                displayName: listForm.editing.displayName,
+                ...(listForm.editing.color !== undefined
+                  ? { color: listForm.editing.color }
                   : {}),
               },
             }
           : {})}
         submitLabel="Save"
         onOpenChange={(open) => {
-          if (!open) props.listForm.closeEdit()
+          if (!open) listForm.closeEdit()
         }}
         onSubmit={(values) => {
-          props.listForm.submitEdit(values)
-          props.onCloseDrawer()
+          listForm.submitEdit(values)
+          overlays.setDrawerOpen(false)
         }}
       />
       <ConfirmDialog
-        open={props.listForm.deleting !== null}
-        title={`Delete "${props.listForm.deleting?.displayName ?? ''}"?`}
+        open={listForm.deleting !== null}
+        title={`Delete "${listForm.deleting?.displayName ?? ''}"?`}
         confirmLabel="Delete list"
-        onCancel={props.listForm.closeDelete}
+        onCancel={listForm.closeDelete}
         onConfirm={() => {
-          props.listForm.confirmDelete()
-          props.onCloseDrawer()
+          listForm.confirmDelete()
+          overlays.setDrawerOpen(false)
         }}
       >
         <p>This deletes the list and all its todos from the server.</p>
