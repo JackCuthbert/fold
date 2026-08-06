@@ -1,12 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog'
 import type { Todo } from '@fold/schemas'
 import { useRef, useState, type ReactNode } from 'react'
-import { LuMenu, LuOrigami, LuSparkles } from 'react-icons/lu'
-import { ConfirmDialog } from '../ui/confirm'
-import { HelpModal } from '../help/help-modal'
-import { InfoBadge } from '../ui/info-badge'
-import { ListFormModal } from '../lists/list-form-modal'
-import { BulkActions } from '../lists/bulk-actions'
+import { LuMenu } from 'react-icons/lu'
 import {
   LIST_FILTER_KEY,
   type ListFilter,
@@ -15,21 +10,11 @@ import {
   toggleList,
   visibleLists,
 } from '../lists/list-filter'
-import {
-  hiddenCount,
-  ListFilterMenu,
-  RevealListsDialog,
-} from '../lists/list-filter-menu'
 import { kindExplanation } from '../lists/list-kind'
-import { ListNav, useLists } from '../lists/list-nav'
-import { NavFooter } from '../lists/nav-footer'
-import { SettingsModal } from '../lists/settings-modal'
+import { useLists } from '../lists/list-nav'
 import { useListForm } from '../lists/use-list-form'
 import styles from './main-screen.module.css'
 import { cx } from '../styles/cx'
-import { SearchPane } from '../todos/search-pane'
-import { SummaryPane } from '../todos/summary-pane'
-import { TodayPane } from '../todos/today-pane'
 import {
   DERIVED_VIEWS,
   isDerivedView,
@@ -43,8 +28,6 @@ import {
   TOMORROW_VIEW,
 } from '../todos/today'
 import { TodayDetail } from '../todos/today-pane'
-import { TodoPane } from '../todos/todo-pane'
-import { AddTodoModal } from '../todos/add-todo-modal'
 import { useAddTodo } from '../todos/use-add-todo'
 import { useGlobalAddTodo } from '../todos/use-global-add-todo'
 import { useListActiveTodos } from '../todos/use-list-active-todos'
@@ -53,6 +36,10 @@ import { useShortcuts } from '../shortcuts/use-shortcuts'
 import { useTodoActions } from '../todos/use-todo-actions'
 import { useTodoDetailForm } from '../todos/use-todo-detail-form'
 import { useViewCount } from '../todos/use-view-count'
+import { AppModals } from './app-modals'
+import { NavPanel } from './nav-panel'
+import { ViewPane, type PaneKind } from './view-pane'
+import { ViewHeader } from './view-header'
 import { useDetailPanel } from './use-detail-panel'
 import { useNavLayout } from './use-nav-layout'
 import { useViewSelection } from './use-view-selection'
@@ -192,11 +179,16 @@ export function MainScreen() {
   const showingSummary = isSummaryView(active)
   const showingSearch = isSearchView(active)
   const showingDerived = isDerivedView(active)
-  // Today and Tomorrow are the same pane over a different day
-  // (docs/specs/tomorrow-view.md), so the places that only care "is this a
-  // day view" ask once rather than listing both and falling out of step
-  // with each other. *(added 2026-08-05.)*
-  const showingDay = showingToday || showingTomorrow
+  /** Which pane the selected view resolves to — see view-pane.tsx. */
+  const paneKind: PaneKind = showingToday
+    ? 'today'
+    : showingTomorrow
+      ? 'tomorrow'
+      : showingSummary
+        ? 'summary'
+        : showingSearch
+          ? 'search'
+          : 'list'
   /** Title and explanation when a derived view is showing; null in a list. */
   const derivedInfo = DERIVED_INFO[active] ?? null
   const allLists = lists.data ?? []
@@ -374,74 +366,42 @@ export function MainScreen() {
     onClose: closeDetail,
   })
 
-  // docs/specs/ui.md — the nav has a title above its list of lists, so the
-  // panel is labelled rather than starting abruptly. docs/specs/ui.md —
-  // overlays: a divider separates a title from its content in modals and
-  // side panels — `.navTitle`'s border-bottom is that divider.
-  // docs/specs/ui.md — scrolling: inside the nav, the list of lists scrolls
-  // while the title and footer (Settings, status) stay anchored.
-  // `.navScroll` is the only child that overflows.
+  // The nav's contents, rendered twice — inside the drawer on mobile and
+  // inside the pinned column on desktop. See nav-panel.tsx.
+  //
+  // Every handler that closes the drawer does so for one reason: on mobile
+  // it is an overlay in its own right, and leaving it open behind a modal
+  // would stack two scrims and two focus traps. On desktop `drawerOpen` is
+  // already false, so each is a no-op there.
   const navContent: ReactNode = (
-    <>
-      {/* docs/specs/ui.md — the nav is headed by the app's own mark rather
-          than a section label: with Today, Summary and the lists all below
-          it, "Lists" only described part of what follows. Origami for the
-          folded paper the name means. *(changed 2026-08-02.)* */}
-      <h2 className={styles['navTitle']}>
-        <LuOrigami aria-hidden="true" size={18} />
-        Fold
-        {/* docs/specs/list-filter.md — the list filter, as a ghost icon
-            button at the trailing edge of the title row. It costs no
-            vertical space, and the row was empty to the right of the
-            mark; every full-width shape tried before gave a
-            twice-a-day control the presence of a primary action.
-
-            Here rather than inside ListNav because it owns a
-            ConfirmDialog: on mobile ListNav renders inside the drawer's
-            Dialog, where a nested dialog gets no backdrop of its own —
-            the same trap Settings and the list forms are hoisted out of.
-            *(moved 2026-08-05.)* */}
-        <ListFilterMenu
-          lists={allLists}
-          filter={listFilter}
-          onToggle={(listId) =>
-            changeFilter(toggleList(listFilter, allLists, listId))
-          }
-          onClear={() => changeFilter(null)}
-        />
-      </h2>
-      <div className={styles['navScroll']}>
-        <ListNav
-          selected={active}
-          form={listForm}
-          newTodoRef={globalAddTrigger}
-          filter={listFilter}
-          onRevealLists={() => setRevealing(true)}
-          onNewTodo={() => {
-            globalAdd.setOpen(true)
-            setDrawerOpen(false)
-          }}
-          onSelect={(listId) => {
-            selectList(listId)
-            setDrawerOpen(false)
-          }}
-        />
-      </div>
-      <NavFooter
-        onOpenHelp={() => {
-          setDrawerOpen(false)
-          setHelpOpen(true)
-        }}
-        onOpenSettings={() => {
-          // Close the drawer first: on mobile it's an overlay in its own
-          // right, and leaving it open behind Settings would stack two
-          // scrims and two focus traps. On desktop the nav is plain markup
-          // and `drawerOpen` is already false, so this is a no-op there.
-          setDrawerOpen(false)
-          setSettingsOpen(true)
-        }}
-      />
-    </>
+    <NavPanel
+      lists={allLists}
+      activeView={active}
+      filter={listFilter}
+      listForm={listForm}
+      newTodoRef={globalAddTrigger}
+      onToggleList={(listId) =>
+        changeFilter(toggleList(listFilter, allLists, listId))
+      }
+      onClearFilter={() => changeFilter(null)}
+      onRevealLists={() => setRevealing(true)}
+      onNewTodo={() => {
+        globalAdd.setOpen(true)
+        setDrawerOpen(false)
+      }}
+      onSelect={(listId) => {
+        selectList(listId)
+        setDrawerOpen(false)
+      }}
+      onOpenHelp={() => {
+        setDrawerOpen(false)
+        setHelpOpen(true)
+      }}
+      onOpenSettings={() => {
+        setDrawerOpen(false)
+        setSettingsOpen(true)
+      }}
+    />
   )
 
   // docs/specs/ui.md — overlays: every overlay dims the background.
@@ -477,105 +437,26 @@ export function MainScreen() {
 
   return (
     <div className={styles['layout']}>
-      {/* Siblings of `drawer`, never inside it — see `settingsOpen` above. */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
-      {/* docs/specs/list-filter.md — asking before every hidden list
-          reappears. A sibling of the drawer for the same reason Settings
-          is: it is opened from inside the nav, which is a Dialog on
-          mobile. */}
-      <RevealListsDialog
-        open={revealing}
-        count={hiddenCount(allLists, listFilter)}
-        onCancel={() => setRevealing(false)}
-        onConfirm={() => {
-          setRevealing(false)
-          changeFilter(null)
-        }}
+      {/* Every modal in the app, as siblings of the drawer rather than
+          inside it — see app-modals.tsx for the one reason they all live
+          at this level. */}
+      <AppModals
+        lists={allLists}
+        activeListId={activeList?.id ?? null}
+        listFilter={listFilter}
+        listForm={listForm}
+        globalAdd={globalAdd}
+        globalAddTriggerRef={globalAddTrigger}
+        settingsOpen={settingsOpen}
+        onSettingsOpenChange={setSettingsOpen}
+        helpOpen={helpOpen}
+        onHelpOpenChange={setHelpOpen}
+        revealing={revealing}
+        onRevealingChange={setRevealing}
+        onClearFilter={() => changeFilter(null)}
+        onSelectList={selectList}
+        onCloseDrawer={() => setDrawerOpen(false)}
       />
-      {/* The global add-todo modal (issue #15), opened by the sidebar
-          button or Cmd/Ctrl+K. A sibling of the drawer for the same reason
-          Settings and Help are: on mobile the button lives inside the
-          drawer's Dialog, and a modal owned there would be nested and lose
-          its backdrop.
-
-          Passing `lists` is what turns on the picker (issue #15).
-
-          It defaults to the list you are looking at, and only demands a
-          choice when there isn't one — on Today or Summary, which are not
-          lists. The original rule was "never default", on the grounds
-          that filing a todo into a list you never looked at is worse than
-          asking; that reasoning is about the derived views and does not
-          survive contact with the case where you are *in* a list and
-          press the same shortcut. There, the list on screen is obviously
-          the answer, and re-picking it every time is friction.
-          *(changed 2026-08-05.)* */}
-      <AddTodoModal
-        open={globalAdd.open}
-        onOpenChange={globalAdd.setOpen}
-        target={{
-          kind: 'global',
-          lists: lists.data ?? [],
-          ...(activeList ? { defaultListId: activeList.id } : {}),
-          onAdd: (listId, todo) => {
-            globalAdd.add(listId, todo)
-            // Go to where the todo landed. Creating something and being
-            // left looking at a view that may not contain it reads as a
-            // failure.
-            selectList(listId)
-          },
-        }}
-        triggerRef={globalAddTrigger}
-      />
-      {/* The list surfaces, here for the same reason and for one more —
-          see `listForm` above (issues #20 and #21). Opening one closes the
-          drawer: on mobile it's an overlay in its own right, and leaving it
-          open behind the modal would stack two scrims and two focus traps,
-          exactly as Settings does. */}
-      <ListFormModal
-        open={listForm.creating}
-        title="New list"
-        submitLabel="Create"
-        onOpenChange={listForm.setCreating}
-        onSubmit={(values) => {
-          selectList(listForm.submitCreate(values))
-          setDrawerOpen(false)
-        }}
-      />
-      <ListFormModal
-        open={listForm.editing !== null}
-        title="Edit list"
-        {...(listForm.editing
-          ? {
-              initial: {
-                displayName: listForm.editing.displayName,
-                ...(listForm.editing.color !== undefined
-                  ? { color: listForm.editing.color }
-                  : {}),
-              },
-            }
-          : {})}
-        submitLabel="Save"
-        onOpenChange={(open) => {
-          if (!open) listForm.closeEdit()
-        }}
-        onSubmit={(values) => {
-          listForm.submitEdit(values)
-          setDrawerOpen(false)
-        }}
-      />
-      <ConfirmDialog
-        open={listForm.deleting !== null}
-        title={`Delete "${listForm.deleting?.displayName ?? ''}"?`}
-        confirmLabel="Delete list"
-        onCancel={listForm.closeDelete}
-        onConfirm={() => {
-          listForm.confirmDelete()
-          setDrawerOpen(false)
-        }}
-      >
-        <p>This deletes the list and all its todos from the server.</p>
-      </ConfirmDialog>
       <div className={styles['body']}>
         {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both
@@ -611,172 +492,30 @@ export function MainScreen() {
               docs/specs/ui.md — scrolling: this header is sticky so the
               list title, nav toggle and "Add a todo" stay in view; only
               .mainScroll beneath it scrolls. */}
-          <div className={styles['header']}>
-            <div className={styles['headerRow']}>
-              {/* The drawer's own trigger whenever the drawer is the
-                  surface the ☰ opens — on mobile, and on desktop while
-                  auto-collapsed. Base UI needs the trigger inside its
-                  `Dialog.Root` to wire focus restoration, so this is the
-                  same element either way, not a second button. */}
-              {drawerAvailable && drawer}
-              {!drawerAvailable && (
-                <button
-                  type="button"
-                  className={cx(styles['menuTrigger'])}
-                  aria-label="Lists"
-                  aria-pressed={desktopNavOpen}
-                  onClick={nav.toggleDesktopNav}
-                >
-                  <LuMenu aria-hidden="true" size={20} />
-                </button>
-              )}
-              <h1 className={styles['title']}>
-                {/* The dot and the name are wrapped together, and it is
-                    this shrink-to-fit box — not the full-width `.title` —
-                    that the info badge hangs off. Anchoring to `.title`
-                    would put the badge at the far edge of the header row,
-                    since `.title` is `flex: 1` and fills the space between
-                    the ☰ and `.headerSpacer`. See `.titleText`.
-                    *(added 2026-08-04.)* */}
-                <span className={styles['titleText']}>
-                  {/* docs/specs/lists.md — colours: the list's dot travels
-                      with its title, so the colour is still there while you
-                      are looking at the list (issue #12). Only for a real
-                      list, and only when it has a colour — a derived view is
-                      not a collection and has none, and an uncoloured list
-                      gets nothing rather than the nav's empty ring (see
-                      `.titleDot`). */}
-                  {activeList?.color !== undefined && (
-                    <span
-                      className={styles['titleDot']}
-                      style={{ background: activeList.color }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {derivedInfo?.title ?? activeList?.displayName ?? 'Todos'}
-                  {/* docs/specs/today-view.md, docs/specs/summary-view.md —
-                      the explanation of what a derived view *is* belongs
-                      beside that view's own title, where someone wondering
-                      what they are looking at is already looking. It used to
-                      hang off the nav row (list-nav.tsx), which made two of
-                      the nav's rows a different shape from all the others.
-
-                      Only the derived views get one: a list is a collection
-                      on the server with a name its owner chose, and nothing
-                      about it needs explaining.
-
-                      The wording is the nav's, verbatim — shorter than the
-                      help modal's on purpose, and saying the same thing
-                      (help-modal.tsx, "Today and Summary").
-                      *(moved 2026-08-04.)* */}
-                  {derivedInfo && (
-                    <span className={styles['titleInfo']}>
-                      <InfoBadge label={`About ${derivedInfo.title}`}>
-                        {derivedInfo.about}
-                      </InfoBadge>
-                    </span>
-                  )}
-                  {/* docs/specs/list-kinds.md — the sparkle. A list whose
-                      name Fold recognises behaves differently, and that is
-                      invisible until it surprises you; this is the thing
-                      you hover to find out why. The nav carries the same
-                      glyph as a bare marker, and this one carries the
-                      explanation. *(added 2026-08-05, issue #27.)* */}
-                  {kindInfo && (
-                    <span className={styles['titleInfo']}>
-                      <InfoBadge
-                        label={`About this ${kindInfo.label.toLowerCase()}`}
-                        icon={LuSparkles}
-                      >
-                        <strong>{kindInfo.label}.</strong>{' '}
-                        {kindInfo.description}
-                      </InfoBadge>
-                    </span>
-                  )}
-                </span>
-              </h1>
-              <span className={styles['headerSpacer']} aria-hidden="true" />
-            </div>
-            {/* docs/specs/ui.md — the header: how much is in this view,
-                under the title rather than beside it. Beside would break
-                the title's centring, which balances the ☰ against
-                `.headerSpacer` — a count of changing width ("3 todos" vs
-                "128 todos") would shift the title sideways every time a
-                todo was ticked. `role="status"` so the change is announced
-                rather than only seen. *(added 2026-08-04.)* */}
-            {/* Always rendered, so the header's height is the same before
-                and after the todos arrive — a conditional line pushed the
-                whole list down the moment it appeared. While the count is
-                unknown this is a skeleton bar of the same height, and the
-                text replaces it in place. *(added 2026-08-04.)* */}
-            <p className={styles['count']} role="status">
-              {viewCount ?? (
-                <span className={styles['countSkeleton']} aria-hidden="true" />
-              )}
-            </p>
-            {/* docs/specs/list-kinds.md — whole-list actions, under the
-                count rather than beside the title: like the count, they
-                describe the list rather than name it, and putting them on
-                the title row would unbalance its centring (see the note
-                on `.count`). Renders nothing for a list with no kind, or
-                one with nothing left to act on.
-                *(added 2026-08-05, issue #27.)* */}
-            {activeList && (
-              <BulkActions
-                listId={activeList.id}
-                listName={activeList.displayName}
-                active={listActiveTodos}
-              />
-            )}
-            {/* docs/specs/list-filter.md — the list filter is in the nav,
-                not here: it hides nav rows as well as todos, and this
-                header column was already title + count + actions deep.
-                *(moved 2026-08-05.)* */}
-          </div>
+          <ViewHeader
+            derivedInfo={derivedInfo}
+            activeList={activeList}
+            kindInfo={kindInfo}
+            viewCount={viewCount}
+            listActiveTodos={listActiveTodos}
+            drawer={drawer}
+            drawerAvailable={drawerAvailable}
+            desktopNavOpen={desktopNavOpen}
+            onToggleDesktopNav={nav.toggleDesktopNav}
+          />
           <div className={styles['mainScroll']}>
             <div className={styles['mainScrollInner']}>
-              {/* Keyed by view so switching remounts the pane, replaying
-                  its fade-in (todo-pane.module.css — `.pane`). Without this
-                  React reuses the same element and the animation only ever
-                  runs once, on first render. */}
-              {showingDay ? (
-                // One pane for both day views, given the day to show
-                // (docs/specs/tomorrow-view.md). `key={active}` already
-                // remounts it on the switch, so the two never share state.
-                <TodayPane
-                  key={active}
-                  lists={shownLists}
-                  {...(showingTomorrow ? { day: 'tomorrow' as const } : {})}
-                  onOpen={openDetail}
-                  onOpenList={selectList}
-                />
-              ) : showingSummary ? (
-                <SummaryPane
-                  key={active}
-                  lists={shownLists}
-                  onOpen={openDetail}
-                  onOpenList={selectList}
-                />
-              ) : showingSearch ? (
-                // No `onOpenList`: search never groups, so it has no group
-                // row to click through (search-pane.tsx).
-                <SearchPane
-                  key={active}
-                  lists={shownLists}
-                  query={searchQuery}
-                  onQueryChange={setSearchQuery}
-                  onOpen={openDetail}
-                />
-              ) : activeList ? (
-                <TodoPane
-                  key={active}
-                  listId={activeList.id}
-                  add={add}
-                  onOpen={openDetail}
-                />
-              ) : (
-                <p className={styles['empty']}>Create a list to get started.</p>
-              )}
+              <ViewPane
+                kind={paneKind}
+                activeView={active}
+                lists={shownLists}
+                activeList={activeList}
+                add={add}
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                onOpen={openDetail}
+                onOpenList={selectList}
+              />
             </div>
           </div>
         </main>
