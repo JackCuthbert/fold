@@ -54,7 +54,26 @@ export const queryClient = new QueryClient({
     queries: {
       gcTime: 7 * 24 * 60 * 60 * 1000,
       staleTime: 30_000,
-      retry: 1,
+      // docs/specs/sync-and-offline.md — status reflects current
+      // conditions, never latched history (issue #30).
+      //
+      // This was `retry: 1`, which gave a read exactly one extra attempt
+      // ~1s later and then left the query in `error` for good: a red
+      // "Disconnected" dot and a count line stuck as a skeleton, with no
+      // path back. The only automatic recovery a permanently-errored query
+      // otherwise has is `refetchInterval` — and that is gated on window
+      // focus (see `refetchIntervalInBackground` below), so a blip while
+      // the tab sat in the background was unrecoverable until the user
+      // came back and clicked something.
+      //
+      // Five attempts on query-core's default backoff (1s, 2s, 4s, 8s,
+      // 16s — `defaultRetryDelay`, capped at 30s) spans roughly half a
+      // minute of upstream trouble without any interaction. A CalDAV
+      // server that is merely slow to serve a freshly-created collection
+      // is well inside that; one that is genuinely down still settles into
+      // the error state, which is honest, and the interval below then
+      // keeps trying.
+      retry: 5,
       networkMode: 'offlineFirst',
       // docs/specs/sync-and-offline.md: refetch on window focus, reconnect,
       // after outbox drain, and on interval. Drain is handled by the sync
@@ -68,6 +87,20 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       refetchInterval: 45_000,
+      // The interval above is focus-gated by default: query-core only
+      // fires it when `focusManager.isFocused()` (queryObserver's
+      // `#updateRefetchInterval`), so a backgrounded tab does not poll at
+      // all. That is a sensible default for keeping data fresh — nobody is
+      // reading an unfocused tab — but it also removes the *only*
+      // remaining recovery path for a query that has exhausted its
+      // retries, which is what left a blip latched as "Disconnected"
+      // forever (issue #30).
+      //
+      // The cost is one conditional request per list per 45s in a
+      // background tab, and the ctag short-circuit makes each a cheap 304
+      // (docs/specs/caldav-compliance.md) — worth it to guarantee the app
+      // heals itself rather than waiting to be noticed.
+      refetchIntervalInBackground: true,
     },
   },
 })

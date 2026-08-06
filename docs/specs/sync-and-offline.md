@@ -162,6 +162,22 @@ history:
 - It is never shown when nothing is queued and nothing is failing.
 - A signed-in session against a reachable server must show the healthy
   state, regardless of any earlier transient failure.
+- **A failed read must keep trying, without being asked to.** A degraded
+  status has to be able to clear itself: if the only thing that would
+  re-evaluate it is the user clicking something, then "current conditions"
+  really means "conditions when you last interacted", which is latched
+  history wearing a different hat.
+  *(added 2026-08-06, issue #30: a read that exhausted its retries left the
+  view showing a red "Disconnected" dot and a count line stuck as a
+  skeleton, permanently. Two things had to hold for that to happen — the
+  query gave up after a single retry ~1s later, and the 45s refetch
+  interval that would otherwise have healed it is focus-gated by
+  TanStack Query, so it does not run in a background tab at all. Reads now
+  retry across the full backoff ladder (~30s) and the interval runs
+  unfocused. Covered by `e2e/tests/recovery.spec.ts`, which fails a read
+  for a fixed window and asserts the view comes back with no interaction —
+  its recovery budget is set between the measured before/after figures so a
+  regression fails it rather than merely slowing it down.)*
 
 ## Offline detection & UX
 
