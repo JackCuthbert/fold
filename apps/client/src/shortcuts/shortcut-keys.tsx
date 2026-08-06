@@ -1,6 +1,6 @@
 import { MdOutlineKeyboardControlKey } from 'react-icons/md'
-import { shortcutLetter, type Shortcut } from './shortcuts'
-import { cx } from './styles/cx'
+import { shortcutLetter, type Shortcut } from '../shortcuts/shortcuts'
+import { cx } from '../styles/cx'
 import styles from './shortcut-keys.module.css'
 
 /**

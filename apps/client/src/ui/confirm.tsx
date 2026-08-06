@@ -1,6 +1,6 @@
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { ReactNode } from 'react'
-import { cx } from './styles/cx'
+import { cx } from '../styles/cx'
 import styles from './confirm.module.css'
 
 // Base UI's AlertDialog handles focus trapping, scroll locking,

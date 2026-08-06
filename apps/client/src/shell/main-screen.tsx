@@ -2,11 +2,11 @@ import { Dialog } from '@base-ui/react/dialog'
 import type { Todo } from '@fold/schemas'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { LuMenu, LuOrigami, LuSparkles } from 'react-icons/lu'
-import { ConfirmDialog } from './confirm'
-import { HelpModal } from './help-modal'
-import { InfoBadge } from './info-badge'
-import { ListFormModal } from './lists/list-form-modal'
-import { BulkActions } from './lists/bulk-actions'
+import { ConfirmDialog } from '../ui/confirm'
+import { HelpModal } from '../help/help-modal'
+import { InfoBadge } from '../ui/info-badge'
+import { ListFormModal } from '../lists/list-form-modal'
+import { BulkActions } from '../lists/bulk-actions'
 import {
   LIST_FILTER_KEY,
   type ListFilter,
@@ -14,22 +14,22 @@ import {
   serialiseListFilter,
   toggleList,
   visibleLists,
-} from './lists/list-filter'
+} from '../lists/list-filter'
 import {
   hiddenCount,
   ListFilterMenu,
   RevealListsDialog,
-} from './lists/list-filter-menu'
-import { kindExplanation } from './lists/list-kind'
-import { ListNav, useLists } from './lists/list-nav'
-import { NavFooter } from './lists/nav-footer'
-import { SettingsModal } from './lists/settings-modal'
-import { useListForm } from './lists/use-list-form'
+} from '../lists/list-filter-menu'
+import { kindExplanation } from '../lists/list-kind'
+import { ListNav, useLists } from '../lists/list-nav'
+import { NavFooter } from '../lists/nav-footer'
+import { SettingsModal } from '../lists/settings-modal'
+import { useListForm } from '../lists/use-list-form'
 import styles from './main-screen.module.css'
-import { cx } from './styles/cx'
-import { SearchPane } from './todos/search-pane'
-import { SummaryPane } from './todos/summary-pane'
-import { TodayPane } from './todos/today-pane'
+import { cx } from '../styles/cx'
+import { SearchPane } from '../todos/search-pane'
+import { SummaryPane } from '../todos/summary-pane'
+import { TodayPane } from '../todos/today-pane'
 import {
   DERIVED_VIEWS,
   isDerivedView,
@@ -41,19 +41,19 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
-} from './todos/today'
-import { TodayDetail } from './todos/today-pane'
-import { TodoPane } from './todos/todo-pane'
-import { AddTodoModal } from './todos/add-todo-modal'
-import { useAddTodo } from './todos/use-add-todo'
-import { useGlobalAddTodo } from './todos/use-global-add-todo'
-import { useListActiveTodos } from './todos/use-list-active-todos'
-import { viewIndexOf } from './shortcuts'
-import { useShortcuts } from './use-shortcuts'
-import { useTodoActions } from './todos/use-todo-actions'
-import { useTodoDetailForm } from './todos/use-todo-detail-form'
-import { useViewCount } from './todos/use-view-count'
-import { useMediaQuery } from './use-media-query'
+} from '../todos/today'
+import { TodayDetail } from '../todos/today-pane'
+import { TodoPane } from '../todos/todo-pane'
+import { AddTodoModal } from '../todos/add-todo-modal'
+import { useAddTodo } from '../todos/use-add-todo'
+import { useGlobalAddTodo } from '../todos/use-global-add-todo'
+import { useListActiveTodos } from '../todos/use-list-active-todos'
+import { viewIndexOf } from '../shortcuts/shortcuts'
+import { useShortcuts } from '../shortcuts/use-shortcuts'
+import { useTodoActions } from '../todos/use-todo-actions'
+import { useTodoDetailForm } from '../todos/use-todo-detail-form'
+import { useViewCount } from '../todos/use-view-count'
+import { useMediaQuery } from '../lib/use-media-query'
 
 const SELECTED_LIST_KEY = 'fold:selected-list'
 // docs/specs/ui.md — the nav: collapsible on desktop too, pinned open by

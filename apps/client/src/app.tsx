@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { LoginScreen } from './auth/login-screen'
-import { MainScreen } from './main-screen'
+import { MainScreen } from './shell/main-screen'
 import { api, AppProviders } from './providers'
-import { StatusPill } from './status-pill'
-import { ToastProvider } from './toast'
+import { StatusPill } from './ui/status-pill'
+import { ToastProvider } from './ui/toast'
 
 function Gate() {
   // Always ask the server who we are — never assume from cache, and never

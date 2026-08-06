@@ -75,16 +75,16 @@
    (styles/button.module.css); each button composes the shared `action`
    shape plus exactly one role. */
 .cancel {
-  composes: action default from './styles/button.module.css';
+  composes: action default from '../styles/button.module.css';
 }
 
 .danger {
-  composes: action destructive from './styles/button.module.css';
+  composes: action destructive from '../styles/button.module.css';
 }
 
 /* The same dialog, asking about a sweeping but reversible change rather
    than a loss — see `.affirmative` in the shared button module for why
    this is not red. *(added 2026-08-05, issue #27.)* */
 .affirm {
-  composes: action affirmative from './styles/button.module.css';
+  composes: action affirmative from '../styles/button.module.css';
 }

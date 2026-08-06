@@ -4,7 +4,7 @@ import {
   readServerIdentity,
   rememberServerIdentity,
   serverIdentity,
-} from '../src/server-identity'
+} from '../src/lib/server-identity'
 
 const store = (): Storage => {
   const map = new Map<string, string>()

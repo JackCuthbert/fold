@@ -1,6 +1,6 @@
 import { unreadableStorage, type OutboxStorage } from '@fold/outbox'
 import { get, set } from 'idb-keyval'
-import { MOUNT_DEADLINE_MS, withDeadline } from '../deadline'
+import { MOUNT_DEADLINE_MS, withDeadline } from '../lib/deadline'
 
 export function idbStorage(key = 'fold-outbox'): OutboxStorage {
   return {

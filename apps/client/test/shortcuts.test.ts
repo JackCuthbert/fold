@@ -7,7 +7,7 @@ import {
   SHORTCUTS,
   viewIndexOf,
   type ShortcutContext,
-} from '../src/shortcuts'
+} from '../src/shortcuts/shortcuts'
 import { DERIVED_VIEWS } from '../src/todos/today'
 
 const press = (

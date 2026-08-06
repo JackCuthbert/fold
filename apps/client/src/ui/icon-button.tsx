@@ -1,6 +1,6 @@
 import { Tooltip } from '@base-ui/react/tooltip'
 import type { ReactNode } from 'react'
-import { cx } from './styles/cx'
+import { cx } from '../styles/cx'
 import styles from './icon-button.module.css'
 
 /**

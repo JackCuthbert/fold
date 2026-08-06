@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MOUNT_DEADLINE_MS } from '../src/deadline'
+import { MOUNT_DEADLINE_MS } from '../src/lib/deadline'
 import { openOutboxStorage } from '../src/sync/idb-storage'
 
 // Issue #17. `Outbox.open` awaits `load()`, `createSyncEngine` awaits that,

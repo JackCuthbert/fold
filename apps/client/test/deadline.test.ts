@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MOUNT_DEADLINE_MS, withDeadline } from '../src/deadline'
+import { MOUNT_DEADLINE_MS, withDeadline } from '../src/lib/deadline'
 
 // docs/specs/sync-and-offline.md — "Anything awaited before mount needs a
 // deadline". An IndexedDB read can hang forever instead of rejecting, and

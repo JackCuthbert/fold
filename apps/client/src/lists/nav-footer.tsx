@@ -1,6 +1,6 @@
 import { LuCircleHelp, LuSettings } from 'react-icons/lu'
 import { useOnline, useSyncStatus } from '../providers'
-import { StatusDot, type StatusKind } from '../status-dot'
+import { StatusDot, type StatusKind } from '../ui/status-dot'
 import styles from './nav-footer.module.css'
 
 // docs/specs/ui.md — status display: the dot plus its short label carry

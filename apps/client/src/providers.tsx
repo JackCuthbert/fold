@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createApi, type Api } from './api/client'
-import { withDeadline } from './deadline'
+import { withDeadline } from './lib/deadline'
 import {
   createSyncEngine,
   type SyncEngine,
@@ -23,10 +23,10 @@ import {
   outboxKeyFor,
   readServerIdentity,
   subscribeServerIdentity,
-} from './server-identity'
+} from './lib/server-identity'
 import { openOutboxStorage } from './sync/idb-storage'
 import { classifyBlockReason, TaggedFatalError } from './sync/process'
-import { useToast } from './toast'
+import { useToast } from './ui/toast'
 
 export const api: Api = createApi()
 

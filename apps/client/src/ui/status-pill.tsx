@@ -1,4 +1,4 @@
-import { useOnline, useSyncStatus } from './providers'
+import { useOnline, useSyncStatus } from '../providers'
 import styles from './status-pill.module.css'
 
 /**

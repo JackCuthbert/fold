@@ -288,7 +288,7 @@
    centred title has no such constraint, so an empty ring here would be a
    mark that means nothing. *(added 2026-08-03 — issue #12.)* */
 .titleDot {
-  composes: dot from './lists/list-dot.module.css';
+  composes: dot from '../lists/list-dot.module.css';
   --dot-size: 10px;
 }
 

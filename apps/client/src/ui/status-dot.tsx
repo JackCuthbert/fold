@@ -1,4 +1,4 @@
-import { cx } from './styles/cx'
+import { cx } from '../styles/cx'
 import styles from './status-dot.module.css'
 
 export type StatusKind = 'synced' | 'syncing' | 'offline' | 'server'

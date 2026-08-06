@@ -4,7 +4,7 @@ import { Input } from '@base-ui/react/input'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { InfoBadge } from '../info-badge'
+import { InfoBadge } from '../ui/info-badge'
 import { ColorPicker } from './color-picker'
 import styles from './list-form.module.css'
 

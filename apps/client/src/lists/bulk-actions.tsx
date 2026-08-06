@@ -1,7 +1,7 @@
 import type { Todo } from '@fold/schemas'
 import { useState } from 'react'
 import { LuCalendarClock, LuListChecks } from 'react-icons/lu'
-import { ConfirmDialog } from '../confirm'
+import { ConfirmDialog } from '../ui/confirm'
 import { fieldsToDue } from '../todos/due-fields'
 import { useTodoActions } from '../todos/use-todo-actions'
 import { featuresOf } from './list-kind'

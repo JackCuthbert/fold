@@ -94,7 +94,7 @@ never an empty writable one:
   What is lost is only durability across a reload, and the user is told so.
 
 *(added 2026-08-01: the project rename from `caldav-todo*` to `fold*` moved
-every persisted key — see `apps/client/src/storage-migration.ts`.)*
+every persisted key — see `apps/client/src/lib/storage-migration.ts`.)*
 
 ## Writes (the outbox)
 

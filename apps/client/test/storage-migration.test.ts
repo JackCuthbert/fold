@@ -4,7 +4,7 @@ import {
   migrateOutbox,
   type AsyncStore,
   type KeyValueStore,
-} from '../src/storage-migration'
+} from '../src/lib/storage-migration'
 
 const memoryStore = (initial: Record<string, string> = {}) => {
   const map = new Map(Object.entries(initial))

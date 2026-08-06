@@ -574,7 +574,7 @@ over an undimmed background, so they didn't read as modal.)*
   still work; the ✕ is an addition, not a replacement.
   - **One shared header, not one per modal.** The title row, its divider,
     its padding and the ✕ live in a single component
-    (`apps/client/src/modal-header.tsx`). Five modals previously each
+    (`apps/client/src/ui/modal-header.tsx`). Five modals previously each
     carried a near-identical `.title` rule, which is how they drifted apart
     and needed the same padding and divider fixes applied five times.
     - The header is also used by the **desktop detail column**, which is

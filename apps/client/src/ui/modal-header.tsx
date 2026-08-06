@@ -6,7 +6,7 @@ import {
   type RefObject,
 } from 'react'
 import { LuX } from 'react-icons/lu'
-import { cx } from './styles/cx'
+import { cx } from '../styles/cx'
 import styles from './modal-header.module.css'
 
 /**

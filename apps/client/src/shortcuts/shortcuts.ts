@@ -4,7 +4,7 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
-} from './todos/today'
+} from '../todos/today'
 
 /**
  * Keyboard shortcuts (docs/specs/ui.md — keyboard shortcuts, issue #5).

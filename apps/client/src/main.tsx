@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app'
-import { withDeadline } from './deadline'
-import { migrateStorageKeys } from './storage-migration'
+import { withDeadline } from './lib/deadline'
+import { migrateStorageKeys } from './lib/storage-migration'
 import './styles/global.css'
 import { publishScrollbarGutter } from './styles/scrollbar-gutter'
 

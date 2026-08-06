@@ -11,7 +11,7 @@ import {
   readServerIdentity,
   rememberServerIdentity,
   serverIdentity,
-} from '../server-identity'
+} from '../lib/server-identity'
 import styles from './login-screen.module.css'
 
 // docs/specs/authentication.md — login form, react-hook-form + zod.
