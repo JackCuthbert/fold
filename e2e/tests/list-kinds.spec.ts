@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { dueDateSwitch, setDueDate } from '../helpers/due'
 import {
   addTodo,
   createList,
@@ -81,7 +82,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   const today = dateFieldValue()
   for (const item of ['Eggs', 'Bread', 'Milk']) {
     await page.getByText(item, { exact: true }).click()
-    await page.getByLabel('Due', { exact: true }).fill(today)
+    await setDueDate(page, today)
     await page.getByRole('button', { name: 'Save', exact: true }).click()
   }
 
@@ -90,7 +91,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   await navRow(page, other).click()
   await addTodo(page, 'Write the report')
   await page.getByText('Write the report', { exact: true }).click()
-  await page.getByLabel('Due', { exact: true }).fill(today)
+  await setDueDate(page, today)
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await waitForSync(page)
 
@@ -213,14 +214,14 @@ test('a media list has no due dates, in either form', async ({ page }) => {
   await navRow(page, other).click()
   await page.getByRole('button', { name: 'Add a todo' }).click()
   await page.getByRole('button', { name: 'Advanced' }).click()
-  await expect(page.getByLabel('Due', { exact: true })).toBeVisible()
+  await expect(dueDateSwitch(page)).toBeVisible()
   await page.keyboard.press('Escape')
 
   // Gone on the media list — add form...
   await navRow(page, 'Reading').click()
   await page.getByRole('button', { name: 'Add a todo' }).click()
   await page.getByRole('button', { name: 'Advanced' }).click()
-  await expect(page.getByLabel('Due', { exact: true })).toBeHidden()
+  await expect(dueDateSwitch(page)).toBeHidden()
   // ...but priority stays, which is how you say what is next.
   await expect(page.getByLabel('Priority')).toBeVisible()
   const input = page.getByRole('textbox', { name: 'Add a todo' })
@@ -230,7 +231,7 @@ test('a media list has no due dates, in either form', async ({ page }) => {
 
   // ...and the detail panel.
   await page.getByText('Dune', { exact: true }).click()
-  await expect(page.getByLabel('Due', { exact: true })).toBeHidden()
+  await expect(dueDateSwitch(page)).toBeHidden()
   await expect(page.getByLabel('Priority')).toBeVisible()
 })
 
@@ -289,7 +290,7 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
 
   await addTodo(page, 'Take the tablets')
   await page.getByText('Take the tablets', { exact: true }).click()
-  await page.getByLabel('Due', { exact: true }).fill(today)
+  await setDueDate(page, today)
   await page.getByRole('button', { name: 'Save', exact: true }).click()
 
   // A *high priority* todo elsewhere, due the same day. The health todo
@@ -297,7 +298,7 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
   await navRow(page, other).click()
   await addTodo(page, 'Urgent work thing')
   await page.getByText('Urgent work thing', { exact: true }).click()
-  await page.getByLabel('Due', { exact: true }).fill(today)
+  await setDueDate(page, today)
   await page.getByLabel('Priority').click()
   await page.getByRole('option', { name: 'High' }).click()
   await page.getByRole('button', { name: 'Save', exact: true }).click()

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { setDueDate } from '../helpers/due'
 import {
   addTodo,
   createList,
@@ -44,7 +45,7 @@ test('hiding a list removes it from the nav and the derived views', async ({
     await addTodo(page, summary)
     await waitForSync(page)
     await page.getByText(summary, { exact: true }).click()
-    await page.getByLabel('Due', { exact: true }).fill(dateFieldValue())
+    await setDueDate(page, dateFieldValue())
     await page.getByRole('button', { name: 'Save', exact: true }).click()
   }
   await waitForSync(page)

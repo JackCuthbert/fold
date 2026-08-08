@@ -14,6 +14,7 @@ import { featuresOf } from '../../lists/lib/list-kind'
 import { ModalHeader } from '../../ui'
 import { cx } from '../../styles/cx'
 import styles from './add-todo-modal.module.css'
+import { DueControls } from '../due-controls/due-controls'
 import { fieldsToDue } from '../lib/due-fields'
 
 // docs/specs/todos.md — due times: a time needs a date, since DUE cannot
@@ -345,57 +346,32 @@ export function AddTodoModal(props: AddTodoModalProps) {
                       disabled — a greyed field invites "why can't I set
                       this?", while an absent one says the concept does
                       not apply. */}
+                  {/* Two Controllers, one control — see the detail panel's
+                      copy of this for why both fields must be in scope. */}
                   {!noDueDates && (
-                    <div className={styles['dueRow']}>
-                      <Controller
-                        name="due"
-                        control={control}
-                        render={({
-                          field: { ref, name, value, onBlur, onChange },
-                        }) => (
-                          <Field.Root
-                            className={cx(styles['field'], styles['dueDate'])}
-                            name={name}
-                          >
-                            <Field.Label>Due</Field.Label>
-                            <Input
-                              ref={ref}
-                              type="date"
-                              value={value}
-                              onBlur={onBlur}
-                              onValueChange={onChange}
+                    <Controller
+                      name="dueTime"
+                      control={control}
+                      render={({ field: time, fieldState: { error } }) => (
+                        <Controller
+                          name="due"
+                          control={control}
+                          render={({ field: date }) => (
+                            <DueControls
+                              date={date.value}
+                              time={time.value}
+                              onDateChange={date.onChange}
+                              onTimeChange={time.onChange}
+                              onDateBlur={date.onBlur}
+                              onTimeBlur={time.onBlur}
+                              dateRef={date.ref}
+                              timeRef={time.ref}
+                              error={error?.message}
                             />
-                          </Field.Root>
-                        )}
-                      />
-                      <Controller
-                        name="dueTime"
-                        control={control}
-                        render={({
-                          field: { ref, name, value, onBlur, onChange },
-                          fieldState: { error },
-                        }) => (
-                          <Field.Root
-                            className={cx(styles['field'], styles['dueTime'])}
-                            name={name}
-                          >
-                            <Field.Label>Time</Field.Label>
-                            <Input
-                              ref={ref}
-                              type="time"
-                              value={value}
-                              onBlur={onBlur}
-                              onValueChange={onChange}
-                            />
-                            {error?.message && (
-                              <Field.Error className={styles['error']} match>
-                                {error.message}
-                              </Field.Error>
-                            )}
-                          </Field.Root>
-                        )}
-                      />
-                    </div>
+                          )}
+                        />
+                      )}
+                    />
                   )}
                   <Controller
                     name="priority"

@@ -270,6 +270,9 @@ interface TodayDetailProps {
   lists: readonly TodoList[]
   form: TodoDetailForm
   mode: 'sheet' | 'column'
+  /** Sheet mode only — see TodoDetail, which explains why it must not
+      unmount on close. */
+  open?: boolean
   /** Column mode only — see TodoDetail. */
   focusNonce?: number
   /**
@@ -294,6 +297,7 @@ export function TodayDetail(props: TodayDetailProps) {
         lists={props.lists}
         form={props.form}
         mode={props.mode}
+        {...(props.open === undefined ? {} : { open: props.open })}
         {...(props.focusNonce === undefined
           ? {}
           : { focusNonce: props.focusNonce })}

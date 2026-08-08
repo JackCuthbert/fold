@@ -98,6 +98,23 @@ const DERIVED_INFO: Record<string, { title: string; about: string }> = {
   },
 }
 
+/**
+ * What the mobile sheet renders before any todo has been opened.
+ *
+ * The sheet stays mounted so Base UI has a closed state to animate *from*
+ * (see its use below), and `TodayDetail` requires a todo — so it needs
+ * something to hold until there is a real one. Never visible: the sheet is
+ * `open={false}` for as long as this is what it is showing.
+ */
+const PLACEHOLDER_TODO: Todo = {
+  uid: '',
+  listId: '',
+  href: '',
+  etag: '',
+  summary: '',
+  completed: false,
+}
+
 export function MainScreen() {
   const lists = useLists()
   // Which view is open, its persistence, and the fallback when a persisted
@@ -108,6 +125,14 @@ export function MainScreen() {
   // see use-detail-panel.ts.
   const detail = useDetailPanel()
   const openTodo = detail.openTodo
+  // The last todo the sheet showed, kept so it still has something to
+  // render while it slides *out*. The sheet stays mounted across close
+  // (see its `open` prop — a Dialog that unmounts on close has no exit
+  // transition to run), and `openTodo` is already null by then, so without
+  // this the sheet would animate away empty. *(added 2026-08-08.)*
+  const lastSheetTodo = useRef(openTodo)
+  if (openTodo) lastSheetTodo.current = openTodo
+  const sheetTodo = openTodo ?? lastSheetTodo.current
   // Where the nav is at this viewport, and what the ☰ does — see
   // use-nav-layout.ts. It needs to know whether the panel is open, since
   // below 1280px an open panel collapses the nav.
@@ -561,12 +586,21 @@ export function MainScreen() {
           overlays). Rendered outside `.body` since it is an overlay, not a
           column, and as a sibling of the nav drawer's Dialog rather than
           inside it — see `settingsOpen` above. */}
-            {!isDesktop && openTodo && (
+            {/* Mounted for the whole mobile session, shown and hidden by
+                `open`. Base UI animates the *transition* between those
+                states, so a `Dialog.Root` that appears already-open has
+                nothing to animate — which is why the sheet used to pop in
+                while every other overlay slid (docs/specs/ui.md —
+                overlays). `sheetTodo` holds the last todo so the sheet
+                still has content while it slides back out.
+                *(changed 2026-08-08.)* */}
+            {!isDesktop && (
               <TodayDetail
-                todo={openTodo}
+                todo={sheetTodo ?? PLACEHOLDER_TODO}
                 lists={lists.data ?? []}
                 form={detailForm}
                 mode="sheet"
+                open={openTodo !== null}
                 onDuplicated={openCopy}
                 onClose={closeDetail}
               />

@@ -35,6 +35,18 @@ const localTime = (date: Date): string =>
   `${pad(date.getHours())}:${pad(date.getMinutes())}`
 
 /**
+ * Today as the `yyyy-mm-dd` an `<input type="date">` expects.
+ *
+ * Seeded into the date field when the "Due date" switch is turned on
+ * (todos/due-controls) — turning the switch on means "this has a due
+ * date", so it must produce one rather than an empty required field.
+ * Shares `localDate` deliberately: the reason not to use `toISOString`
+ * here is the same one, and it should not be restated somewhere it can
+ * drift.
+ */
+export const todayDateValue = (): string => localDate(new Date())
+
+/**
  * Split a stored `TodoDue` into the date and time inputs.
  *
  * All-day todos yield an empty time, which is what keeps the time field

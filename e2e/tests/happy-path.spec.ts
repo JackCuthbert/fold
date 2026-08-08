@@ -1,7 +1,14 @@
 import { expect, test } from '@playwright/test'
 import {
+  clearDueDate,
+  dueDateInput,
+  dueDateSwitch,
+  setDueDate,
+} from '../helpers/due'
+import {
   addTodo,
   createList,
+  dateFieldValue,
   login,
   openListMenu,
   reloadFromServer,
@@ -472,4 +479,40 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await expect(addDialog).toBeHidden()
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
   await expect(page.getByText('Made from Today')).toBeVisible()
+})
+
+// docs/specs/todos.md — due times. Before the switches there was no way to
+// *clear* a due date: a native date input has no empty state of its own,
+// and on iOS no gesture reaches one, so a date set by mistake was
+// permanent. Switching off is that missing operation, and it has to
+// survive a round-trip to the server rather than only clearing the field.
+test('a due date can be set, then cleared again', async ({ page }) => {
+  await login(page)
+  await createList(page, uniqueName('due-clearing'))
+  await addTodo(page, 'Renew the registration')
+  await waitForSync(page)
+
+  await page.getByText('Renew the registration').click()
+  // No due date to begin with, so the pickers are absent entirely.
+  await expect(dueDateSwitch(page)).toHaveAttribute('aria-checked', 'false')
+  await expect(dueDateInput(page)).toBeHidden()
+
+  await setDueDate(page, dateFieldValue())
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await waitForSync(page)
+
+  // Reopen: the stored date is what comes back, with the switch on.
+  await page.getByText('Renew the registration').click()
+  await expect(dueDateSwitch(page)).toHaveAttribute('aria-checked', 'true')
+  await expect(dueDateInput(page)).toHaveValue(dateFieldValue())
+
+  await clearDueDate(page)
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await waitForSync(page)
+
+  // Cleared for good — not merely blanked in the form.
+  await page.reload()
+  await page.getByText('Renew the registration').click()
+  await expect(dueDateSwitch(page)).toHaveAttribute('aria-checked', 'false')
+  await expect(dueDateInput(page)).toBeHidden()
 })

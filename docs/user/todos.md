@@ -10,6 +10,19 @@
   show in red.
 - **Completed section:** collapsed by default with a count.
 
+## Due dates
+
+A todo doesn't have a due date until you give it one. Turn on **Due date**
+and the date picker appears, starting at today; adjust it from there.
+
+Turn on **Time** underneath it if the todo is due at a particular hour
+rather than simply that day. Without a time, it's an all-day todo and isn't
+overdue until the day is out.
+
+**To remove a due date, switch "Due date" off.** That's also how you undo a
+date set by accident. Switching off **Time** on its own leaves the date and
+makes it all-day again.
+
 A todo you've opened also shows a short history beneath its fields, once
 there's something to show: when it was **created**, when it was
 **completed**, how long it was open (**duration**), and — if it had a due

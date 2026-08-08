@@ -74,9 +74,40 @@ everywhere it appears; leaving it empty keeps the todo all-day.
   `<zone>` is the viewer's IANA zone from
   `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 - **A time requires a date.** Time-without-date is not expressible in
-  `DUE`, so the form rejects it rather than silently discarding the time.
+  `DUE`.
 - Clearing the time returns the todo to all-day; clearing the date clears
   `DUE` entirely.
+
+#### The date and time are behind switches
+
+*(added 2026-08-08: there was **no way to clear a due date once set**. A
+native date input has no empty state of its own — clearing it is a
+per-platform gesture, and on iOS there is none — so a date set by mistake
+was permanent.)*
+
+Both forms express the due date the way Apple Reminders does:
+
+- A **"Due date" switch** reveals the date picker. Switching it off is how
+  a due date is cleared, and clears any time with it.
+- A nested **"Time" switch** reveals the time picker. Switching it off
+  returns the todo to all-day.
+- Turning "Due date" on seeds **today**; turning "Time" on seeds **09:00**.
+  A switch that is on must produce a value, and an empty required field
+  would be an error state the user did not cause. A round hour reads as a
+  placeholder to adjust — the minute the switch happened to be flicked
+  never does.
+- The switches hold **no state of their own**: "on" is derived from the
+  field being non-empty, so revert and reset restore the switches along
+  with the values and a switch can never disagree with its field.
+
+The nesting makes the "a time requires a date" rule **unreachable rather
+than merely validated** — the time switch does not exist until a date is
+set. The schema still enforces it, since a form is not the only way values
+arrive.
+
+A secondary benefit on iOS: the pickers are absent entirely for a todo with
+no due date, which is the common case, so the platform's widest and least
+controllable control stays off screen unless it is wanted.
 
 The client emits no `VTIMEZONE` alongside the `TZID`, following the existing
 rule above — we neither require nor generate one. In practice Radicale

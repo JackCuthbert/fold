@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { setDueDate } from '../helpers/due'
 import { addTodo, login, waitForSync } from './helpers'
 
 /**
@@ -44,7 +45,7 @@ async function setDue(page: Page, days: number): Promise<void> {
     String(date.getMonth() + 1).padStart(2, '0'),
     String(date.getDate()).padStart(2, '0'),
   ].join('-')
-  await page.getByLabel('Due', { exact: true }).fill(value)
+  await setDueDate(page, value)
 }
 
 /**

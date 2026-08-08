@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { setDueDate } from '../helpers/due'
 import {
   addTodo,
   createList,
@@ -24,7 +25,7 @@ const navRow = (page: Page, name: string) =>
 /** Give an existing todo a due date through the ordinary edit path. */
 async function setDue(page: Page, summary: string, day: number): Promise<void> {
   await page.getByText(summary, { exact: true }).click()
-  await page.getByLabel('Due', { exact: true }).fill(dateFieldValue(day))
+  await setDueDate(page, dateFieldValue(day))
   await page.getByRole('button', { name: 'Save', exact: true }).click()
 }
 

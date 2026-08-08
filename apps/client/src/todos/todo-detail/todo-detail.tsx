@@ -16,6 +16,7 @@ import {
   type Punctuality,
 } from '../lib/punctuality'
 import { formatTimestamp } from '../lib/summary'
+import { DueControls } from '../due-controls/due-controls'
 import styles from './todo-detail.module.css'
 import type { TodoDetailForm } from '../hooks/use-todo-detail-form'
 
@@ -91,6 +92,16 @@ interface TodoDetailProps {
    * `isDesktop` media query the nav splits on (main-screen.tsx).
    */
   mode: 'sheet' | 'column'
+  /**
+   * Whether the sheet is showing. Sheet mode only.
+   *
+   * The caller must keep this component **mounted** and toggle this prop,
+   * rather than mounting it only while a todo is open: Base UI animates
+   * the closed→open transition, and a Dialog that mounts already-open has
+   * no transition to run. Defaults to `true` so column mode, which has no
+   * Dialog at all, is unaffected. *(added 2026-08-08.)*
+   */
+  open?: boolean
   /**
    * Changes on every open, so the column can move focus into itself even
    * when the same todo is re-opened — clicking the row that is already
@@ -247,57 +258,34 @@ export function TodoDetail(props: TodoDetailProps) {
                 field on a *completed* todo, and a second greyed-out
                 reason would be indistinguishable from that one.
                 *(added 2026-08-05, issue #27.)* */}
+        {/* Two Controllers, one control: the date switch clears the time
+            as well as the date, so both fields have to be in scope
+            together (todos/due-controls). */}
         {!noDueDates && (
-          <div className={styles['dueRow']}>
-            <Controller
-              name="due"
-              control={control}
-              render={({ field: { ref, name, value, onBlur, onChange } }) => (
-                <Field.Root
-                  className={cx(styles['field'], styles['dueDate'])}
-                  name={name}
-                  disabled={locked}
-                >
-                  <Field.Label>Due</Field.Label>
-                  <Input
-                    ref={ref}
-                    type="date"
-                    value={value}
-                    onBlur={onBlur}
-                    onValueChange={onChange}
+          <Controller
+            name="dueTime"
+            control={control}
+            render={({ field: time, fieldState: { error } }) => (
+              <Controller
+                name="due"
+                control={control}
+                render={({ field: date }) => (
+                  <DueControls
+                    date={date.value}
+                    time={time.value}
+                    onDateChange={date.onChange}
+                    onTimeChange={time.onChange}
+                    onDateBlur={date.onBlur}
+                    onTimeBlur={time.onBlur}
+                    dateRef={date.ref}
+                    timeRef={time.ref}
+                    error={error?.message}
+                    disabled={locked}
                   />
-                </Field.Root>
-              )}
-            />
-            <Controller
-              name="dueTime"
-              control={control}
-              render={({
-                field: { ref, name, value, onBlur, onChange },
-                fieldState: { error },
-              }) => (
-                <Field.Root
-                  className={cx(styles['field'], styles['dueTime'])}
-                  name={name}
-                  disabled={locked}
-                >
-                  <Field.Label>Time</Field.Label>
-                  <Input
-                    ref={ref}
-                    type="time"
-                    value={value}
-                    onBlur={onBlur}
-                    onValueChange={onChange}
-                  />
-                  {error?.message && (
-                    <Field.Error className={styles['error']} match>
-                      {error.message}
-                    </Field.Error>
-                  )}
-                </Field.Root>
-              )}
-            />
-          </div>
+                )}
+              />
+            )}
+          />
         )}
         <Controller
           name="priority"
@@ -584,11 +572,23 @@ export function TodoDetail(props: TodoDetailProps) {
   if (props.mode === 'sheet') {
     return (
       <Dialog.Root
-        open
+        // `props.open`, not a hardcoded `open`. Base UI animates the
+        // *transition* from closed to open, so a Root that mounts already
+        // open has nothing to animate — the sheet appeared instantly while
+        // every other overlay slid in (docs/specs/ui.md — overlays: every
+        // overlay animates in and out). The caller keeps this mounted and
+        // drives the prop, exactly as the nav drawer does.
+        // *(fixed 2026-08-08.)*
+        open={props.open ?? true}
         onOpenChange={(open) => {
           if (!open) props.onClose()
         }}
       >
+        {/* Deliberately *not* `keepMounted`: with the popup persisted in
+            the DOM, Base UI stops applying `data-starting-style` on open
+            and nothing animates at all. The Portal must mount its subtree
+            per-open; what matters is that `Dialog.Root` above stays
+            mounted so it has a closed state to transition *from*. */}
         <Dialog.Portal>
           <Dialog.Backdrop className={cx(styles['backdrop'])} />
           <Dialog.Popup className={cx(styles['popup'])}>{body}</Dialog.Popup>
