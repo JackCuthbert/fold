@@ -26,6 +26,23 @@
   /* Visual checkbox size, smaller than its hit area. */
   --checkbox-size: 20px;
 
+  /* Extra clearance above the bottom edge, for a display's *rounded
+     corners*. Distinct from the safe-area insets (styles/global.css —
+     `#root`), which describe hardware that intrudes — the landscape notch,
+     the home indicator — and say nothing about the curve of the screen.
+
+     **Bottom only, on purpose.** A corner intrudes furthest horizontally
+     at the very bottom, so the instinct is to inset the sides too; that
+     was tried and rejected. Side padding costs width on *every* row for a
+     curve that only bites at the last one, and reads as a margin rather
+     than as clearance. Lifting the bottom row into the straight part of
+     the edge fixes it without touching the layout above.
+
+     Zero here and raised only under `pointer: coarse` below — a browser
+     window has square corners, and spending space on a curve that does not
+     exist would waste height on every desktop pane. */
+  --corner-inset-block-end: 0px;
+
   /* Typographic scale — deliberately tight, hierarchy from weight. */
   --text-xs: 12px;
   --text-sm: 14px;
@@ -135,6 +152,19 @@
 @media (pointer: coarse) {
   :root {
     --hit-area: 44px;
+    /* Rounded display corners — see the token's definition above. This
+       lifts the bottom row out of the curve; nothing horizontal.
+       On the spacing scale rather than a literal: it is ordinary layout
+       space, and reads next to the padding it is added to.
+
+       Small, because `env(safe-area-inset-bottom)` already does most of
+       the work — this only covers the difference between clearing the home
+       indicator and clearing the *curve*, which reaches higher. Measured
+       on a 390×844 viewport, the drawer's status line ends up 24px above
+       the edge with this; at 0 it is 20px, where a ~55-62px corner radius
+       still cuts 13-16px into the row.
+       *(reduced 2026-08-08: 24px, then 8px, both read as a gap.)* */
+    --corner-inset-block-end: var(--space-1);
   }
 }
 

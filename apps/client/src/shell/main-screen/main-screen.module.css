@@ -4,14 +4,22 @@
    docs/specs/ui.md — scrolling: only the list scrolls, never the whole
    page. `.layout`/`.body` are a fixed-height (not min-height) flex chain
    down to the scrolling panes themselves, so the page's own box never
-   grows past the viewport and never scrolls. */
+   grows past the viewport and never scrolls.
+
+   `height: 100%`, not `100dvh`. `#root` is the element that owns the
+   viewport height and the safe-area insets (styles/global.css); measuring
+   `100dvh` here instead would ignore its padding, so the chain came to
+   `100dvh + top inset + bottom inset` and the whole page scrolled by
+   exactly the insets on a notched iPhone — the one thing this layout
+   exists to prevent. Filling the parent keeps that promise at every inset,
+   including zero. *(fixed 2026-08-08.)* */
 .layout {
-  height: 100dvh;
+  height: 100%;
 }
 
 .body {
   display: flex;
-  height: 100dvh;
+  height: 100%;
 }
 
 /* docs/specs/ui.md — the nav is collapsible on desktop too, opening to the
@@ -136,6 +144,18 @@
   border-right: 1px solid var(--line);
   z-index: 30;
   transition: transform var(--duration-base) var(--ease);
+  /* Portalled out of `#root` and `position: fixed`, so it resolves against
+     the viewport and `#root`'s safe-area padding never reaches it
+     (styles/global.css).
+
+     Only the *top* inset is here. The bottom clearance belongs to the
+     footer inside (nav-footer.module.css): padding it onto this element
+     shortens the drawer, which lifts the footer — and its border — clear
+     of the screen edge, leaving a band of bare paper below a line that is
+     supposed to sit at the bottom. *(changed 2026-08-08.)* */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  box-sizing: border-box;
 }
 
 .navOpen[data-starting-style],

@@ -89,6 +89,71 @@ both. The insets are zero in an ordinary browser tab, where Safari's own
 chrome already reserves the space — so this costs nothing when not
 installed.
 
+**The layout inside must absorb those insets, not add to them.**
+`#root` owns the viewport height (`height: 100dvh`) and the padding; the
+`.layout`/`.body` chain fills it with `height: 100%`. Measuring `100dvh`
+there instead — while sitting inside a padded parent — made the chain
+`100dvh + top + bottom`, so the whole page scrolled by exactly the insets:
+roughly 93px of scroll on an iPhone, in a view with nothing to scroll,
+breaking the one thing this layout exists to guarantee
+([ui](../specs/ui.md) — scrolling). *(fixed 2026-08-08.)*
+
+Chromium reports every inset as `0`, so no amount of testing at a mobile
+viewport reproduces this. `e2e/tests/safe-area.spec.ts` injects real
+iPhone inset values and asserts the page still cannot scroll while the
+list still can — it fails without the fix.
+
+### Rounded corners are a separate problem
+
+*(added 2026-08-08.)*
+
+`safe-area-inset-left` / `-right` describe hardware that **intrudes** — the
+notch, in landscape — and on a portrait iPhone they are both **0**. They
+say nothing about the display's rounded corners, so the bottom row of a
+view sat inside the curve, where it is widest.
+
+The fix is **extra bottom padding only**: `--corner-inset-block-end`, added
+to `env(safe-area-inset-bottom)` rather than `max()`-ed with it, since the
+home indicator and the curve are different obstacles that happen to share
+an edge. It is 0 by default and raised under `pointer: coarse`
+(`styles/tokens.css`) — a browser window has square corners.
+
+**Insetting the sides was tried and rejected.** A corner intrudes furthest
+horizontally at the very bottom, so padding the left and right edges looks
+like the obvious fix; it costs width on *every* row for a curve that only
+bites at the last one, and reads as a margin rather than as clearance.
+Lifting the bottom row into the straight part of the edge solves it without
+touching the layout above.
+
+### The overlays need it too
+
+`#root`'s padding **cannot reach a portalled, fixed-position overlay** —
+the mobile detail sheet and the nav drawer are both Base UI dialogs
+portalled to `<body>`, so they resolve against the viewport, not their DOM
+ancestor. Their bottom rows (the created/completed meta, the sync status
+line) sat in the corner no matter how large `#root`'s padding grew, which
+is why raising it appeared to do nothing at all.
+
+**The clearance goes on the scrolling element, or on the element actually
+pinned to the edge — never on the container that bounds them.** Padding the
+container shrinks it, which produces one of two artefacts:
+
+- On the detail sheet, padding `.popup` shortened the scroll *viewport*, so
+  the last field was clipped at a hard line instead of scrolling past it —
+  content appearing to emerge from nothing. It lives on `.form`, the
+  scroller, where it is scrollable space.
+- On the nav drawer, padding the drawer lifted the footer *and its top
+  border* off the screen edge, leaving a band of bare paper below a divider
+  meant to sit at the bottom. It lives on `.footer` itself, so the border
+  stays put and only the text moves up.
+
+Two further traps, both hit while fixing this:
+
+- A `padding: 0` shorthand later in the same rule silently resets the
+  safe-area padding. Order matters.
+- A test that only measures elements *inside* `#root` passes happily while
+  every overlay is broken.
+
 ## No service worker
 
 Fold deliberately ships **no service worker**, and is therefore not

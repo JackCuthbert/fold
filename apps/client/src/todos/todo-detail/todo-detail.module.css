@@ -39,9 +39,14 @@
   max-height: 85dvh;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border-top: 1px solid var(--line);
-  /* No padding here — the scrolling .form owns it, so the scrollbar tracks
-     the true panel edge instead of floating inset with content sliding
-     under it (docs/specs/ui.md — scrollbar gutters at the container edge). */
+  /* No padding here — the scrolling .form owns the content padding, so the
+     scrollbar tracks the true panel edge instead of floating inset with
+     content sliding under it (docs/specs/ui.md — scrollbar gutters at the
+     container edge). That includes the safe-area clearance: padding *this*
+     element shortens the scroll viewport, so the last field is clipped at
+     the padding line rather than scrolling through it — a hard edge with
+     content appearing to emerge from nothing. It lives on `.form` instead.
+     *(changed 2026-08-08.)* */
   padding: 0;
   transition:
     opacity var(--duration-base) var(--ease),
@@ -100,6 +105,17 @@
   /* The scroller owns the horizontal padding, so its scrollbar sits at the
      panel's true edge rather than inset with content sliding beneath it. */
   padding: var(--space-3);
+  /* Safe-area clearance goes *inside* the scroller, not on `.popup` around
+     it. This sheet is portalled out of `#root` and `position: fixed`, so
+     `#root`'s padding never reaches it (docs/architecture/pwa.md — safe
+     areas) — but padding the popup shortens the scroll viewport, clipping
+     the last field at a hard line instead of letting it scroll past. As
+     padding on the scroller it is scrollable space: content flows through
+     it and comes to rest clear of the rounded corner and the home
+     indicator. *(fixed 2026-08-08.)* */
+  padding-bottom: calc(
+    var(--space-3) + env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
   /* docs/specs/ui.md — inputs fit their container: without min-width: 0 a
      flex column's children default to min-width: auto, which can push a
      100%-wide input wider than the scrollable column and collide with the

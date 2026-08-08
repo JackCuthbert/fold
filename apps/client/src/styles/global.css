@@ -26,7 +26,13 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
+  /* A *definite* height, not `min-height`: the layout inside resolves its
+     own `height: 100%` against this box, and a `min-height` gives a
+     percentage nothing to resolve against — the chain collapses to content
+     height and the whole page scrolls. This is also the element that
+     absorbs the safe-area insets below, so it — and only it — measures the
+     viewport. *(changed 2026-08-08.)* */
+  height: 100dvh;
   /* docs/specs/ui.md — Base UI: isolates a new stacking context so
      portalled popups (dialogs, selects, drawers) stack correctly above
      app content regardless of z-index elsewhere in the tree. */
@@ -41,7 +47,21 @@ body {
      this element, and padding on `body` would leave them measuring a box
      that extends under the indicator. *(added 2026-08-08.)* */
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Summed, not `max()`, unlike the horizontal axis below. The home
+     indicator and the corner curve are *different* obstacles that happen
+     to share an edge: clearing the indicator leaves content level with the
+     bottom of the screen, which is exactly where the corner radius is
+     widest. Taking the larger of the two would clear one and ignore the
+     other. */
+  padding-bottom: calc(
+    env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
+  /* The OS insets only. Deliberately *no* extra horizontal allowance for
+     the display's rounded corners: pushing content in from the sides costs
+     width on every row for a curve that only bites at the very bottom, and
+     it reads as a margin rather than as clearance. Lifting the last row
+     with the bottom padding above is what actually solves it.
+     *(changed 2026-08-08, after side insets were tried and rejected.)* */
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;

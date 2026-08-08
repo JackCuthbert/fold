@@ -8,6 +8,17 @@
   margin-top: auto;
   padding-block: var(--space-2);
   padding-inline: var(--space-4);
+  /* Extra room *under* the status line for the display's rounded corner
+     and the home indicator (docs/architecture/pwa.md — safe areas). It
+     belongs here rather than on the drawer around it: padding the drawer
+     shortens it, which lifts this row and its top border clear of the
+     screen edge and leaves a band of bare paper below a line meant to sit
+     at the bottom. Padding the row instead keeps the border where it is
+     and only moves the text up. Zero on desktop, where both tokens
+     resolve to 0. *(added 2026-08-08.)* */
+  padding-bottom: calc(
+    var(--space-2) + env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
   border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
