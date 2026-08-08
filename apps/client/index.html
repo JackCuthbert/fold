@@ -2,13 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- `viewport-fit=cover` lets the page paint under the notch and the
+         home indicator when installed to the Home Screen; the safe-area
+         insets in styles/global.css are what keep content out from under
+         them (docs/architecture/pwa.md). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <!-- SVG first, so browsers that support it get the theme-aware mark
          (see public/favicon.svg); the PNG is the fallback for those that
          don't, Safari included. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- iOS reads these rather than the manifest's `display` and `name`
+         (docs/architecture/pwa.md — what iOS ignores). Without the first
+         one, "Add to Home Screen" opens an ordinary Safari tab with the
+         address bar showing, which is the whole thing being asked for. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fold" />
+    <!-- `default` keeps the status bar legible dark-on-light, matching the
+         paper the app actually paints. `black-translucent` would put white
+         glyphs over it and make the time unreadable in the light theme. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#faf9f6" />
     <title>Fold</title>
   </head>
   <body>

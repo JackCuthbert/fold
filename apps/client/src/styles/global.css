@@ -31,6 +31,20 @@ body {
      portalled popups (dialogs, selects, drawers) stack correctly above
      app content regardless of z-index elsewhere in the tree. */
   isolation: isolate;
+  /* docs/architecture/pwa.md — installed to the Home Screen the app fills
+     the whole display (`viewport-fit=cover` in index.html), which puts the
+     notch over the top of the page and the home indicator over the bottom.
+     These insets are zero in an ordinary browser tab, where Safari's own
+     chrome already reserves that space, so this costs nothing there.
+
+     On `#root` rather than `body`: the app's panes size themselves against
+     this element, and padding on `body` would leave them measuring a box
+     that extends under the indicator. *(added 2026-08-08.)* */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
 }
 
 h1,
