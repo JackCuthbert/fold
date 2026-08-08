@@ -1,7 +1,15 @@
 import { ZodError } from 'zod'
 import { CaldavError, CaldavUnreachableError } from '../caldav/errors'
+import { useSecureCookie } from '../config'
 import { HttpError } from '../http/errors'
-import { json, matchPath, type AppContext, type Route } from './route'
+import { sessionCookie } from '../session/cookie'
+import {
+  json,
+  matchPath,
+  type AppContext,
+  type RequestContext,
+  type Route,
+} from './route'
 
 // Error mapping per docs/specs/api.md.
 function toResponse(error: unknown): Response {
@@ -58,6 +66,51 @@ function toResponse(error: unknown): Response {
  */
 export const HANDLER_TIMEOUT_MS = 240_000
 
+/**
+ * Slide the session cookie's expiry forward on an authenticated response.
+ *
+ * docs/specs/authentication.md — session lifetime. `requireCredentials`
+ * flags the context; doing the re-issue here means every authenticated
+ * route renews without having to remember to, and a route added later
+ * inherits it.
+ *
+ * Skipped when the handler set its own `set-cookie` (sign-in and sign-out
+ * both do), so this can never overwrite a freshly minted cookie or
+ * resurrect one that `DELETE /api/session` just cleared.
+ *
+ * A failure to re-seal must not fail the request: the response is already
+ * correct, and the existing cookie remains valid until its original
+ * expiry. Worst case the session ends earlier than it might have.
+ */
+async function withRenewedSession(
+  response: Response,
+  ctx: RequestContext,
+): Promise<Response> {
+  const credentials = ctx.renewSession
+  if (!credentials) return response
+  if (response.headers.has('set-cookie')) return response
+  try {
+    const cookie = await sessionCookie(
+      credentials,
+      ctx.app.config.SESSION_SECRET,
+      useSecureCookie(ctx.app.config),
+    )
+    // Headers on a constructed Response are mutable, but a handler is free
+    // to return one that isn't (a redirect, or something proxied), so this
+    // copies rather than assuming.
+    const headers = new Headers(response.headers)
+    headers.set('set-cookie', cookie)
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
+  } catch (error) {
+    console.error('failed to renew session cookie', error)
+    return response
+  }
+}
+
 export function createRouter(
   routes: Route[],
   app: AppContext,
@@ -71,11 +124,14 @@ export function createRouter(
       const params = matchPath(route.path, pathname)
       if (!params) continue
       let timer: ReturnType<typeof setTimeout> | undefined
+      // Built once and shared: `requireCredentials` marks this object for
+      // session renewal, and the response path below reads that mark.
+      const ctx: RequestContext = { request, params, app }
       try {
         // A CalDAV request can hang rather than reject, so `catch` alone
         // never fires — the deadline has to be an explicit race.
-        return await Promise.race([
-          route.handle({ request, params, app }),
+        const response = await Promise.race([
+          route.handle(ctx),
           new Promise<never>((_, reject) => {
             timer = setTimeout(
               () =>
@@ -88,7 +144,11 @@ export function createRouter(
             )
           }),
         ])
+        return await withRenewedSession(response, ctx)
       } catch (error) {
+        // Deliberately no renewal on the error path. A 401 must not hand
+        // back a cookie, and the rest are upstream failures where saying
+        // nothing about the session is the honest answer.
         return toResponse(error)
       } finally {
         // The loser of the race is abandoned, not cancelled; clearing the

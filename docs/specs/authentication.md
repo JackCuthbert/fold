@@ -75,6 +75,40 @@ re-login, but only ever against the server they were made for. Signing into
 another server leaves the first server's queue intact rather than dropping
 it — no silent data loss, and no replay against the wrong host.
 
+## Session lifetime
+
+*(added 2026-08-08: the cookie carried no `Max-Age`, making it a browser
+**session** cookie. Desktop browsers keep a session alive for weeks, but
+iOS discards one as soon as Safari evicts a backgrounded tab — so the app
+appeared to log itself out on an iPhone while a desktop tab stayed signed
+in indefinitely. The cookie was doing exactly what it had been asked to.)*
+
+- The cookie carries an explicit **`Max-Age` of 7 days**, so it survives
+  the browser closing the tab, the app, or itself.
+- The expiry is **sliding**: every authenticated request re-issues the
+  cookie, so the 7 days measure *inactivity* rather than time since
+  sign-in. A session in daily use never ends mid-use; one left alone for a
+  week asks again.
+- Renewal happens in the router, not in each handler, so every
+  authenticated route gets it and a route added later inherits it. It is
+  skipped when the handler set its own `Set-Cookie` — otherwise signing out
+  would hand back a working session — and on the error path, since a 401
+  must never return a cookie.
+- Seven days is deliberately short for a "remember me": the cookie seals
+  the user's CalDAV credentials, so its lifetime is a *window of use on a
+  lost device*, not a convenience setting.
+
+`SameSite=Strict` is retained. It costs a login screen on the first load
+when arriving from an external link — the cookie is withheld until a
+same-site navigation — which `Lax` would avoid. Kept anyway: CSRF cover
+should not rest solely on the API being JSON-only and same-origin, and
+`Strict` stays correct if a route is ever reachable by a cross-site GET.
+*(reaffirmed 2026-08-08.)*
+
+An **installed PWA on iOS has its own cookie jar**, separate from Safari —
+signing in one place does not sign you in the other
+([pwa](../architecture/pwa.md)).
+
 ## Logout & expiry
 
 - `DELETE /api/session` clears the cookie.

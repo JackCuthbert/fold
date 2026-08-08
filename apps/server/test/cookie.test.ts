@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   clearSessionCookie,
   readSession,
+  SESSION_MAX_AGE_SECONDS,
   sessionCookie,
 } from '../src/session/cookie'
 
@@ -25,6 +26,16 @@ describe('session cookie', () => {
       headers: { cookie: `other=1; ${value}` },
     })
     expect(await readSession(request, SECRET)).toEqual(CREDS)
+  })
+
+  // The bug this guards: with no Max-Age the cookie was a *session* cookie,
+  // which iOS discards when it evicts a backgrounded tab — so returning to
+  // the app on an iPhone showed the login screen while a desktop tab that
+  // had never been closed stayed signed in.
+  it('outlives the browser session', async () => {
+    const setCookie = await sessionCookie(CREDS, SECRET, false)
+    expect(setCookie).toContain(`Max-Age=${SESSION_MAX_AGE_SECONDS}`)
+    expect(SESSION_MAX_AGE_SECONDS).toBe(7 * 24 * 60 * 60)
   })
 
   it('adds Secure only when asked', async () => {

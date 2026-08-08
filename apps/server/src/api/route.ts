@@ -3,7 +3,7 @@ import type { ZodType } from 'zod'
 import type { GatewayFactory } from '../caldav/gateway'
 import type { Config } from '../config'
 import { HttpError } from '../http/errors'
-import { readSession } from '../session/cookie'
+import { readSessionRecord, shouldRenew } from '../session/cookie'
 
 export interface AppContext {
   config: Config
@@ -14,6 +14,16 @@ export interface RequestContext {
   request: Request
   params: Record<string, string>
   app: AppContext
+  /**
+   * Set by `requireCredentials` when a request arrived with a valid
+   * session, so the router can slide the cookie's expiry forward
+   * (docs/specs/authentication.md — session lifetime).
+   *
+   * A mutable field on the context rather than a return value, because
+   * renewal has to happen for *every* authenticated route and threading it
+   * through nine handlers' return types would mean nine chances to forget.
+   */
+  renewSession?: Credentials
 }
 
 export interface Route {
@@ -46,12 +56,21 @@ export function matchPath(
 export async function requireCredentials(
   ctx: RequestContext,
 ): Promise<Credentials> {
-  const credentials = await readSession(
+  const record = await readSessionRecord(
     ctx.request,
     ctx.app.config.SESSION_SECRET,
   )
-  if (!credentials) throw new HttpError(401, 'unauthorized', 'Not signed in')
-  return credentials
+  if (!record) throw new HttpError(401, 'unauthorized', 'Not signed in')
+  // Mark the session for renewal, so the 7-day expiry measures *inactivity*
+  // rather than time since sign-in — otherwise a session in daily use would
+  // still end abruptly a week after it started.
+  //
+  // Only once the cookie is old enough to be worth re-issuing: renewing on
+  // every request lets a request that was already in flight when the
+  // session ended hand a working cookie back, undoing a sign-out. See
+  // `RENEW_AFTER_SECONDS`.
+  if (shouldRenew(record.issuedAt)) ctx.renewSession = record.credentials
+  return record.credentials
 }
 
 export const json = (
