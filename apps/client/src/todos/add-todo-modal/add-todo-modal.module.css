@@ -101,36 +101,6 @@
   font-size: var(--text-sm);
 }
 
-/* docs/specs/todos.md — due times: the date and its optional time read as
-   one "Due" control, so they share a row rather than stacking as two
-   unrelated fields. Same --space-3 gap the panel uses vertically, so the
-   rhythm is unchanged. The time is narrower — it holds "09:00", not a full
-   date — and both shrink rather than overflow on a narrow screen. */
-/* Due and Time side by side until they don't fit, then stacked — the
-   same rule and the same reason as the detail panel's row
-   (todo-detail.module.css): iOS gives its native date/time inputs a fixed
-   intrinsic width and will not shrink them, so a `0` basis overflowed the
-   sheet into a horizontal scroll. *(fixed 2026-08-04.)* */
-.dueRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: flex-start;
-}
-
-.dueDate,
-.dueTime {
-  min-width: 9rem;
-}
-
-.dueDate {
-  flex: 3 1 auto;
-}
-
-.dueTime {
-  flex: 2 1 auto;
-}
-
 /* docs/specs/ui.md — overlays: the title/content divider is for the
    *title* boundary only — dividers must not scatter between fields.
    *(changed 2026-07-31: removed the border-top that sat between the

@@ -938,6 +938,30 @@ All forms (login, todo detail, list create/rename) use react-hook-form with
 `@hookform/resolvers/zod`, reusing `packages/schemas` so one schema drives
 both validation and types.
 
+### Date and time inputs
+
+*(added 2026-08-08: on iOS the two due fields could not be made narrower
+than their own content, and pushed the detail sheet into a horizontal
+scroll on an iPhone 17 Pro.)*
+
+WebKit gives `<input type="date">` and `type="time"` an **intrinsic width**
+derived from their shadow DOM and treats it as a floor. `width: 100%` is
+honoured only down to that size, and `min-width` can never lower a floor —
+it only ever raises one. So a layout rule asking these fields to shrink was
+not being ignored; it was being overruled.
+
+`-webkit-appearance: none`, plus `min-width: 0` on the field and on
+`::-webkit-date-and-time-value`, removes the intrinsic sizing so the
+element sizes like any other input (`styles/global.css`). The native picker
+is unaffected — tapping still opens the platform wheel; only the *box*
+stops being self-sized.
+
+**Reach for this before a breakpoint.** The earlier fix wrapped the row and
+set a `9rem` minimum, which accommodated the floor rather than removing it
+and still overflowed on a narrow sheet. A media query would have been a
+guess at a width that is really about the platform's control, not the
+viewport.
+
 ## Destructive actions
 
 Delete list and clear completed require explicit confirmation.
