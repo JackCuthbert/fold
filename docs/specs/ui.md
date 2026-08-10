@@ -482,10 +482,99 @@ done"**, or **"No todos"** when it is empty.
     paint, so an empty list collection means "not loaded" as often as it
     means "none".
 
+## The todo row
+
+*(added 2026-08-09, issue #2.)*
+
+A row is **the summary on its own line, with a meta line beneath it**:
+which list, how urgent, when it is due. Those facts used to share the
+summary's line and compete with it for width, so a long summary truncated
+far earlier than the row needed. Giving the summary the full width and the
+facts their own line fixes both — the summary still ellipses at one line,
+deliberately, so row height stays predictable.
+
+**One layout at every width.** Desktop has room to put the meta back beside
+the title, but desktop width is the variable one — a pinned nav and an open
+detail panel both eat into it — so a single layout is what keeps the row
+recognisable. A row must not rearrange itself at a breakpoint.
+
+**A row with nothing to say renders no meta line at all**, so an unadorned
+todo keeps the height it would have had without this.
+
+### Two pill treatments, split by who owns the colour
+
+- **The list** is a hairline outline with its colour on an 8px dot. A
+  list's colour is arbitrary — it can arrive from Apple Reminders or a hex
+  field — and measured across the palette a tinted pill clears AA, but pure
+  yellow, near-paper and neon green fall under 2:1 as text on their own
+  tint. Confining the colour to a dot removes the problem rather than
+  managing it with a render-time contrast guard: a dot has no legibility
+  threshold, which is why the nav's has never needed one.
+- **Priority and due dates** are soft fills in colours the app itself
+  defines, so their contrast is known at build time.
+
+The dot is drawn whatever the colour, including none (an empty ring). It is
+the app's marker for *a list* — the same mark the nav uses — not merely a
+swatch, so the pill says "list" before it says which one.
+
+**The list pill appears only in derived views.** Inside a plain list every
+row belongs to the list you are already looking at, so naming it on each
+row would be noise.
+
+### Icons, not colour alone
+
+Overdue and high priority were both a red fill with red text, so a row
+reading "high · Aug 2" showed one treatment twice for two unrelated facts.
+A **clock** marks overdue (it is about time) and a **chevron** marks
+priority rank. The two are now told apart by shape as well as hue, which
+also makes them distinguishable to anyone who cannot separate the reds.
+
+Low priority keeps the neutral fill: it is the *absence* of urgency, and
+giving it a colour would make "not urgent" look like a claim. Its chevron
+is what distinguishes it from an unprioritised todo.
+
 ## Overlays
 
 *(added 2026-07-31: the delete-list confirm and the mobile sheet appeared
 over an undimmed background, so they didn't read as modal.)*
+
+### What stacks above what
+
+*(added 2026-08-09: seven overlays hard-coded the same `z-index: 40`/`41`,
+so two open at once were ordered by DOM position. The Move dialog opened
+from the mobile edit sheet drew its scrim *underneath* that sheet — the
+form behind it stayed undimmed, and the two read as one confused surface.)*
+
+Overlays sit at one of two **levels**, set from the tokens in
+`styles/tokens.css` and never as a literal:
+
+| level | tokens | what sits here |
+|---|---|---|
+| base | `--z-overlay-base-scrim` / `--z-overlay-base` | opened from the page — the nav drawer, the mobile detail sheet, the add-todo modal |
+| stacked | `--z-overlay-stacked-scrim` / `--z-overlay-stacked` | opened from *inside* another overlay — Move, Edit list, Settings, Help, any confirm |
+
+Above both: `--z-popover` for a menu or select launched from within an
+overlay, and `--z-float` for the status pill and toasts, which report on
+work an overlay may have started and so must clear it.
+
+**A stacked overlay dims what it covers, including the overlay beneath.**
+That is the whole point of the second level: its scrim sits directly below
+its own popup and above everything else, so the surface it interrupts
+visibly recedes.
+
+**A modal never closes the surface it was opened from.** Opening Settings
+from the nav leaves the drawer open behind it; dismissing Settings returns
+you to the nav, where you were. This was inconsistent for a while —
+Settings, Help and the global add closed the drawer first while Edit list
+(opened from the same drawer) stacked over it — and the closing version is
+worse: dismissing the modal dropped you somewhere you had never navigated
+to. *Choosing a list* is the exception, and is not a modal at all: it
+changes what is behind the drawer, so the drawer has done its job and
+closes (`openOverDrawer`).
+
+A third level is deliberately not defined. No flow in the app is three
+overlays deep; add one when a flow needs it rather than reserving numbers
+now.
 
 - **Every overlay dims the background** — nav drawer, bottom sheet, confirm
   dialogs, the add-todo modal, settings. Without exception: a modal surface

@@ -137,7 +137,7 @@
    popups 42, the toast 50 (docs/specs/ui.md — overlays). Matches the info
    badge's popover exactly. */
 .positioner {
-  z-index: 60;
+  z-index: var(--z-popover);
 }
 
 .popup {

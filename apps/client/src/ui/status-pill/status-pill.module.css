@@ -9,7 +9,7 @@
   bottom: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 45;
+  z-index: var(--z-float);
   max-width: calc(100vw - var(--space-8));
   background: var(--ink);
   color: var(--paper);

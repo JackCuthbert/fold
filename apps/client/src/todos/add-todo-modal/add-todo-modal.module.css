@@ -9,7 +9,7 @@
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  z-index: 40;
+  z-index: var(--z-overlay-base-scrim);
   transition: opacity var(--duration-base) var(--ease);
 }
 
@@ -23,7 +23,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 41;
+  z-index: var(--z-overlay-base);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
@@ -203,7 +203,7 @@
 }
 
 .selectPositioner {
-  z-index: 42;
+  z-index: var(--z-popover);
 }
 
 /* Match the trigger's width exactly: Base UI exposes the anchor's size

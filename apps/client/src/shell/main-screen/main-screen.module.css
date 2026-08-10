@@ -142,7 +142,7 @@
   inset: 0 auto 0 0;
   background: var(--paper);
   border-right: 1px solid var(--line);
-  z-index: 30;
+  z-index: var(--z-overlay-base);
   transition: transform var(--duration-base) var(--ease);
   /* Portalled out of `#root` and `position: fixed`, so it resolves against
      the viewport and `#root`'s safe-area padding never reaches it
@@ -172,7 +172,7 @@
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  z-index: 29;
+  z-index: var(--z-overlay-base-scrim);
   border: none;
   padding: 0;
   transition: opacity var(--duration-base) var(--ease);

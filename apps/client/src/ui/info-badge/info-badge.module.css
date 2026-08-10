@@ -38,7 +38,7 @@
 /* Above the dialog it opens inside: modals are 40 (backdrop) / 41 (popup)
    and their nested popups 42, the toast 50 (docs/specs/ui.md — overlays). */
 .positioner {
-  z-index: 60;
+  z-index: var(--z-popover);
 }
 
 /* Opening from the keyboard moves focus onto the popup so its prose is

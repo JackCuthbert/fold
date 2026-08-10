@@ -62,21 +62,21 @@ export function NavPanel() {
           newTodoRef={overlays.globalAddTriggerRef}
           filter={filter.filter}
           onRevealLists={() => overlays.setRevealing(true)}
-          onNewTodo={() =>
-            overlays.openOverDrawer(() => overlays.globalAdd.setOpen(true))
-          }
+          onNewTodo={() => overlays.globalAdd.setOpen(true)}
           onSelect={(listId) =>
             overlays.openOverDrawer(() => selection.select(listId))
           }
         />
       </div>
+      {/* docs/specs/ui.md — overlays: a modal opened from inside another
+          overlay stacks *above* it and leaves it open. Both of these used
+          to close the drawer first, which was inconsistent with Edit list
+          (opened from the same drawer, and it stacks) — and it meant
+          dismissing Settings dropped you on the bare list rather than back
+          in the nav where you were. *(changed 2026-08-09.)* */}
       <NavFooter
-        onOpenHelp={() =>
-          overlays.openOverDrawer(() => overlays.setHelpOpen(true))
-        }
-        onOpenSettings={() =>
-          overlays.openOverDrawer(() => overlays.setSettingsOpen(true))
-        }
+        onOpenHelp={() => overlays.setHelpOpen(true)}
+        onOpenSettings={() => overlays.setSettingsOpen(true)}
       />
     </>
   )

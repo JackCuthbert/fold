@@ -20,15 +20,21 @@ export interface Overlays {
   /** So the add-todo modal can restore focus to the button that opened it. */
   globalAddTriggerRef: RefObject<HTMLButtonElement | null>
   /**
-   * Close the drawer, then run `open`.
+   * Close the drawer, then run `act`.
    *
-   * Every surface opened from inside the nav needs this: on mobile the
-   * drawer is an overlay in its own right, and leaving it open behind a
-   * modal stacks two scrims and two focus traps. On desktop the drawer is
-   * already closed, so it costs nothing. Bundled here so the rule lives in
-   * one place rather than being remembered at each of the five call sites.
+   * **For navigation, not for modals.** Choosing a list from the nav
+   * changes what is behind the drawer, so the drawer has done its job and
+   * should get out of the way.
+   *
+   * A *modal* opened from the nav does the opposite: it stacks above the
+   * drawer and leaves it open (docs/specs/ui.md — overlays). This used to
+   * be applied to Settings, Help and the global add too, on the reasoning
+   * that two scrims and two focus traps was a problem — but Edit list has
+   * always stacked without one, and closing the drawer meant dismissing
+   * the modal dropped you somewhere you had not navigated to.
+   * *(narrowed 2026-08-09.)*
    */
-  openOverDrawer: (open: () => void) => void
+  openOverDrawer: (act: () => void) => void
 }
 
 const OverlaysContext = createContext<Overlays | null>(null)

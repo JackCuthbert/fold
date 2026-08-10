@@ -89,6 +89,35 @@
   --line: #e5e1d8;
   --scrim: rgb(0 0 0 / 0.3);
 
+  /* Overlay stacking — docs/specs/ui.md (overlays: what stacks above what).
+     *(added 2026-08-09.)*
+
+     Every modal used to hard-code `z-index: 40` for its scrim and `41` for
+     its popup. With seven of them on the same two numbers, two open at once
+     were ordered by **DOM position** — which is arbitrary. The visible bug:
+     the Move dialog opened over the mobile edit sheet drew its scrim
+     *underneath* that sheet, so the form behind it stayed undimmed and the
+     two read as one confused surface rather than a stack.
+
+     Two levels, because that is what the app actually has: a **base**
+     overlay (the nav drawer, the detail sheet, any modal opened from the
+     page) and a **stacked** one opened from inside it (Move from the sheet,
+     Edit list or Settings from the drawer, a confirm from a form). Each
+     level's scrim sits directly below its own popup, so a stacked overlay
+     always dims what it covers — including the overlay beneath.
+
+     A third level would mean three overlays deep, which no flow reaches;
+     add it when one does rather than reserving numbers for it now. */
+  --z-overlay-base-scrim: 40;
+  --z-overlay-base: 41;
+  --z-overlay-stacked-scrim: 50;
+  --z-overlay-stacked: 51;
+  /* Above every overlay: a popover launched *from* one (a Select inside a
+     modal) has to clear its own popup, and the status pill floats over
+     everything. */
+  --z-popover: 60;
+  --z-float: 70;
+
   /* Semantic status colours (docs/specs/ui.md — status display): green
      succeeded, amber in progress, red broken. Muted enough to sit in a
      restrained palette rather than reading as traffic lights. */
