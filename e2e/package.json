@@ -8,7 +8,8 @@
     "screenshot": "bun run --filter @fold/client build && playwright test --project screenshot",
     "favicons": "node build-favicons.mjs",
     "typecheck": "tsc --noEmit",
-    "seed:history": "bun seed-history.mjs"
+    "seed:history": "bun seed-history.mjs",
+    "seed:all": "bun seed-all.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
