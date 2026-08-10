@@ -2,12 +2,20 @@ import type { Credentials } from '@fold/schemas'
 import type { ZodType } from 'zod'
 import type { GatewayFactory } from '../caldav/gateway'
 import type { Config } from '../config'
+import type { UpdateChecker } from '../version/check'
 import { HttpError } from '../http/errors'
 import { readSessionRecord, shouldRenew } from '../session/cookie'
 
 export interface AppContext {
   config: Config
   makeGateway: GatewayFactory
+  /**
+   * Asks whether a newer release exists, or resolves null when the check
+   * is off — the default (docs/specs/releases.md). Injected rather than
+   * imported so the version route can be tested without a network, and so
+   * one cache is shared across requests.
+   */
+  checkForUpdate: UpdateChecker
 }
 
 export interface RequestContext {

@@ -4,6 +4,7 @@ import { createRouter } from './api/router'
 import { routes } from './api/routes'
 import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
+import { makeUpdateChecker } from './version/check'
 import { outcomeFor, writeAccessLog } from './observability/access-log'
 import { resolveStaticPath } from './static/resolve-path'
 
@@ -11,6 +12,9 @@ const config = loadConfig(process.env)
 const handleApi = createRouter(routes, {
   config,
   makeGateway: makeTsdavGateway,
+  // One checker for the process, so its cache is shared across requests
+  // rather than rebuilt per call (docs/specs/releases.md).
+  checkForUpdate: makeUpdateChecker({ enabled: config.CHECK_FOR_UPDATES }),
 })
 
 const clientDist = resolve(import.meta.dirname, '../../client/dist')

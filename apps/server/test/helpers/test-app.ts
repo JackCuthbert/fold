@@ -27,7 +27,10 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
       SESSION_SECRET: TEST_SECRET,
       NODE_ENV: 'development',
       ALLOW_INSECURE_COOKIE: false,
+      CHECK_FOR_UPDATES: false,
     },
     makeGateway: () => ({ ...base, ...gateway }),
+    // Off, matching the default: a unit test must never reach the network.
+    checkForUpdate: () => Promise.resolve(null),
   }
 }

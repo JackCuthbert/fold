@@ -31,6 +31,21 @@ const configSchema = z.object({
   // the operator they typo'd, and refusing to boot over a stray empty
   // value would turn a shrug into an outage.
   ALLOW_INSECURE_COOKIE: z.stringbool().catch(false),
+  /**
+   * Check GitHub for a newer release (docs/specs/releases.md).
+   *
+   * **Off by default, deliberately.** Fold otherwise talks to exactly one
+   * host — the user's own CalDAV server — and a self-hosted app should not
+   * quietly acquire a second one. A deployment that wants to be told about
+   * upgrades opts in; one that does not makes no outbound call.
+   *
+   * `.catch(false)` for the same reason as `ALLOW_INSECURE_COOKIE`: an
+   * absent, empty or unparseable value means "not asked for", and refusing
+   * to boot over a stray value would turn a shrug into an outage.
+   *
+   * *(added 2026-08-10.)*
+   */
+  CHECK_FOR_UPDATES: z.stringbool().catch(false),
 })
 
 export type Config = z.infer<typeof configSchema>

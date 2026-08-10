@@ -10,6 +10,7 @@ import { createTodo } from './todos/create'
 import { listTodos } from './todos/list'
 import { removeTodo } from './todos/remove'
 import { updateTodo } from './todos/update'
+import { getVersion } from './version/get'
 
 export const routes: Route[] = [
   createSession,
@@ -23,4 +24,5 @@ export const routes: Route[] = [
   createTodo,
   updateTodo,
   removeTodo,
+  getVersion,
 ]

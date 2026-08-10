@@ -58,7 +58,8 @@ hand.
 
 ## Version in the app
 
-The running version is shown in **Settings**, read from the root
+The running version is shown in the **Help modal**, in its own section
+between the keyboard shortcuts and "How Fold works", read from the root
 `package.json` — which the runtime image already contains, so there is no
 build argument to forget and no way for the displayed version to disagree
 with what is running.
@@ -74,8 +75,8 @@ When enabled, the **server** performs the check and caches the result; the
 browser never contacts GitHub. That keeps the client's request pattern
 unchanged and means one call per deployment rather than one per user.
 
-**It appears in Settings and nowhere else.** No badge, no toast, no dot on
-an icon. The product's stated intent is "no notifications, no badges, no
+**It appears in the Help modal and nowhere else.** No badge, no toast, no
+dot on an icon. The product's stated intent is "no notifications, no badges, no
 streaks" ([overview](./overview.md)), and an upgrade prompt that follows
 you around the app would contradict it. Someone who wants to know goes and
 looks; someone who doesn't is never interrupted.
