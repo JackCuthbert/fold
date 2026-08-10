@@ -1,0 +1,100 @@
+# Releases, and the image self-hosters run (docs/specs/releases.md).
+#
+# Two jobs, in order:
+#
+# 1. **release-please** keeps a rolling "chore: release X.Y.Z" PR open,
+#    accumulating the changelog from Conventional Commit messages as they
+#    land on main. Nothing is released until that PR is merged, which is
+#    the deliberate gate: merging it tags the version and cuts a GitHub
+#    Release.
+# 2. **publish** then builds the image and pushes it to ghcr.io — but only
+#    on the run where a release was actually created, hence the `if` on
+#    `needs.release.outputs.released`.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+# The default GITHUB_TOKEN is enough for both jobs, so there is no PAT to
+# rotate. Each job narrows to what it needs.
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag, and commit the changelog
+      pull-requests: write # open and update the release PR
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+      attestations: write # provenance, see below
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # arm64 matters here: a lot of self-hosters run this on a Raspberry
+      # Pi or an ARM NAS, and an amd64-only image simply will not start
+      # there. Building arm64 under QEMU is slow, but this runs once per
+      # release rather than on every push.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lowercased because ghcr.io rejects uppercase in a repository name
+      # and the owner here is `JackCuthbert`.
+      - name: Resolve image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ steps.image.outputs.name }}
+          # `0.2.1`, `0.2`, and `latest`. No bare major tag while under
+          # 1.0: `0` would move across breaking changes, since semver
+          # gives 0.x no compatibility promise (docs/specs/releases.md).
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag }}
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v6
+        id: push
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Signed provenance, so someone pulling the image can verify it was
+      # built by this workflow from this repo rather than pushed by hand.
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

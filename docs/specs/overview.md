@@ -115,4 +115,5 @@ supplies an IndexedDB implementation).
 | [ui](./ui.md) | Views, visual design, micro-interactions, sound |
 | [testing](./testing.md) | Test layers, tools, and rules |
 | [deployment](./deployment.md) | Docker image, configuration, HTTPS, health |
+| [releases](./releases.md) | Semver, changelog, the published image, version in the app |
 | [backlog](./backlog.md) | Pointer to GitHub Issues, plus why shipped features were settled as they were |
