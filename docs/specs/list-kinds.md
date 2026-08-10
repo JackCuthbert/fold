@@ -208,6 +208,26 @@ section — where nothing else marks them.
 *(changed 2026-08-05: was on every health row, including inside the
 block. Only visible once rendered.)*
 
+**It trails the summary line, in its own column at the row's edge.**
+*(changed 2026-08-10; two placements were tried and measured first.)*
+
+The meta line is pills — facts about the todo, in one shared shape — and a
+bare glyph among them read as a pill that had lost its background. So the
+heart moved onto the summary's line, where it is a mark on the todo rather
+than another property of it.
+
+Leading that line was wrong for a different reason: it sat *inside* the text
+flow, so a health row's summary started 16px right of every ordinary row's
+and a mixed list no longer shared one left edge (docs/specs/ui.md — one left
+edge). Measured, not guessed.
+
+Trailing it in its own column fixes both. `margin-inline-start: auto` pushes
+the heart to the row's edge, so the summary starts on the shared edge and
+every health row marks itself in the same column rather than at whatever x
+its text happens to end. The summary ellipsises beside it: measured at
+390px with an overflowing summary, the text truncates and the heart keeps
+its 12px column with an 8px gap.
+
 Drawn in the muted `--list-red`, not a priority red: this is a category,
 not an alarm. Where the block exists its heading names it in words, so
 neither colour nor iconography is ever the only signal
@@ -256,7 +276,7 @@ detail panel.
 Same shape as bulk complete: a confirm naming the count, one `updateTodo`
 per todo, no new mutation kind.
 
-## The sparkle
+## The kind marks
 
 A list with a recognised kind is marked with a sparkle
 (`LuSparkles`, from the one icon set — CLAUDE.md), in **both** the nav
@@ -265,6 +285,13 @@ row and the list's own title.
 It has to be visible in both places. The behaviour is otherwise invisible
 until it surprises you, and the glyph is what makes "why is my list doing
 that?" answerable — it is the thing you hover or tap to find out.
+
+- On a **collapsed grocery row** in Today and Summary, the mark is a
+  **carrot** (`LuCarrot`) rather than the sparkle.
+  *(changed 2026-08-10.)* The sparkle stands for “this list has a kind” and
+  covers all four, so it has to be abstract. That row does not: only a
+  grocery list groups (`groups: true` is set by that kind alone), so the
+  mark there can name what the row actually is instead of gesturing at it.
 
 - In the **title**, the sparkle is an `InfoBadge` trigger
   ([ui](./ui.md) — a popover, not a tooltip) whose prose names the kind

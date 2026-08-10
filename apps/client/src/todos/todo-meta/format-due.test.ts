@@ -1,6 +1,6 @@
 import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
-import { formatDue } from './todo-item'
+import { formatDue } from '../todo-meta/todo-meta'
 
 const todo = (due: Todo['due']): Todo => ({
   uid: 'u',

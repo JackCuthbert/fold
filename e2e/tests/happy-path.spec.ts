@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
   clearDueDate,
   dueDateInput,
@@ -515,4 +515,123 @@ test('a due date can be set, then cleared again', async ({ page }) => {
   await page.getByText('Renew the registration').click()
   await expect(dueDateSwitch(page)).toHaveAttribute('aria-checked', 'false')
   await expect(dueDateInput(page)).toBeHidden()
+})
+
+/** The row's own rendering of "due today" — see todo-meta.tsx. */
+const dueLabel = () =>
+  new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+
+// `.first()` because the nav renders twice at a desktop viewport — once in
+// the mobile drawer, once in the pinned column.
+const navList = (page: Page, name: string) =>
+  page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('button', { name, exact: true })
+    .first()
+
+// docs/specs/todos.md — moving a todo between lists. A deliberate action
+// with its own dialog rather than a field on the edit form (issue #38):
+// the point is that it cannot happen as a side effect of saving an edit.
+test('a todo moves between lists from its own dialog', async ({ page }) => {
+  await login(page)
+  const from = uniqueName('from')
+  const to = uniqueName('to')
+  await createList(page, from)
+  await createList(page, to)
+
+  await navList(page, from).click()
+  await addTodo(page, 'Pack the boxes')
+  await waitForSync(page)
+
+  await page.getByText('Pack the boxes').click()
+  await page.getByRole('button', { name: 'Move to another list' }).click()
+  // The todo's own list is not offered — moving it to where it already is
+  // has no meaning.
+  const dialog = page.getByRole('dialog').filter({ hasText: 'Move to…' })
+  await expect(dialog.getByRole('button', { name: from })).toHaveCount(0)
+  await dialog.getByRole('button', { name: to }).click()
+  await waitForSync(page)
+
+  // Gone from the list it left...
+  await expect(page.getByText('Pack the boxes')).toBeHidden()
+  // ...and present in the one it landed in, after a real round-trip.
+  await navList(page, to).click()
+  await expect(page.getByText('Pack the boxes')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Pack the boxes')).toBeVisible()
+})
+
+// docs/specs/todos.md — clearing completed todos. The dialog is the
+// chooser: bulk clearing came back only because the safe path (older than
+// the retention window) cannot destroy anything Summary still shows, and
+// the heavier path has to be picked deliberately (issue #1).
+test('clearing completed work asks which clear you mean', async ({ page }) => {
+  await login(page)
+  await createList(page, uniqueName('clearing'))
+  await addTodo(page, 'Finished this today')
+  await waitForSync(page)
+
+  await page
+    .getByRole('checkbox', { name: 'Mark "Finished this today" done' })
+    .click()
+  await waitForSync(page)
+  await page.getByRole('button', { name: 'Completed (1)' }).click()
+
+  await page.getByRole('button', { name: 'Clear completed…' }).click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+
+  // Everything here was finished today, so there is nothing safely
+  // clearable — only the heavier action is offered, and it says what it
+  // costs rather than leaving the user to guess.
+  await expect(
+    dialog.getByRole('button', { name: /Clear old completed/ }),
+  ).toHaveCount(0)
+  await expect(dialog.getByText(/Summary is still showing/)).toBeVisible()
+
+  // Cancelling changes nothing — the point of the gate.
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByText('Finished this today')).toBeVisible()
+
+  // Choosing the heavier path really does delete, and it survives a
+  // round-trip rather than only disappearing optimistically.
+  await page.getByRole('button', { name: 'Clear completed…' }).click()
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: /Clear everything completed/ })
+    .click()
+  await waitForSync(page)
+  await expect(page.getByText('Finished this today')).toBeHidden()
+  await page.reload()
+  await expect(page.getByText('Finished this today')).toBeHidden()
+})
+
+// docs/specs/ui.md — the todo row. The meta line names the list only where
+// that is worth saying: inside a plain list every row belongs to the list
+// you are looking at, so repeating it would be noise (issue #2).
+test('a row names its list in derived views, not inside the list', async ({
+  page,
+}) => {
+  await login(page)
+  const list = uniqueName('rowmeta')
+  await createList(page, list)
+  await addTodo(page, 'Sweep the porch')
+  await waitForSync(page)
+  await page.getByText('Sweep the porch').click()
+  await setDueDate(page, dateFieldValue())
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await waitForSync(page)
+
+  const row = page.getByRole('listitem').filter({ hasText: 'Sweep the porch' })
+
+  // Inside the list: no list pill, but the due date still shows.
+  await expect(row.getByText(list, { exact: true })).toHaveCount(0)
+  await expect(row.getByText(dueLabel())).toBeVisible()
+
+  // In Today, which draws from every list, the row says where it came from.
+  await navList(page, 'Today').click()
+  const todayRow = page
+    .getByRole('listitem')
+    .filter({ hasText: 'Sweep the porch' })
+  await expect(todayRow.getByText(list, { exact: true })).toBeVisible()
 })

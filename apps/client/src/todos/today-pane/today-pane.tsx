@@ -10,7 +10,8 @@ import { HealthBlock } from '../health-block/health-block'
 import { useSound } from '../../sound'
 import { cx } from '../../styles/cx'
 import { sortActiveTodos } from '../lib/sort'
-import styles from './today-pane.module.css'
+import { rowListFor } from '../lib/row-list'
+import type { RowList } from '../todo-meta/todo-meta'
 import { selectToday, selectTomorrow, sortByDueInstant } from '../lib/today'
 import { TodoDetail } from '../todo-detail/todo-detail'
 import { TodoItem } from '../todo-item/todo-item'
@@ -74,8 +75,7 @@ export function TodayPane(props: TodayPaneProps) {
   )
   const completed = sortByDueInstant(due.filter((todo) => todo.completed))
 
-  const listName = (listId: string): string =>
-    props.lists.find((list) => list.id === listId)?.displayName ?? ''
+  const rowList = (listId: string) => rowListFor(props.lists, listId)
 
   // docs/specs/list-kinds.md — health leads, in its own block. Split
   // before grouping: the two rules do not interact (no kind both leads and
@@ -112,7 +112,7 @@ export function TodayPane(props: TodayPaneProps) {
             key={todo.uid}
             todo={todo}
             now={now}
-            listName={listName(todo.listId)}
+            list={rowList(todo.listId)}
             onOpen={(trigger) => props.onOpen(todo, trigger)}
             onToggled={playPop}
           />
@@ -132,7 +132,7 @@ export function TodayPane(props: TodayPaneProps) {
               key={row.todo.uid}
               todo={row.todo}
               now={now}
-              listName={listName(row.todo.listId)}
+              list={rowList(row.todo.listId)}
               onOpen={(trigger) => props.onOpen(row.todo, trigger)}
               onToggled={playPop}
             />
@@ -185,7 +185,7 @@ export function TodayPane(props: TodayPaneProps) {
                     key={row.todo.uid}
                     todo={row.todo}
                     now={now}
-                    listName={listName(row.todo.listId)}
+                    list={rowList(row.todo.listId)}
                     {...(isHealthTodo(row.todo, props.lists)
                       ? { health: true }
                       : {})}
@@ -218,7 +218,8 @@ export function TodayPane(props: TodayPaneProps) {
 interface TodayRowProps {
   todo: Todo
   now: Date
-  listName: string
+  /** The row's source list — named and coloured on the row (issue #2). */
+  list: RowList | undefined
   /** Marks the row as health — docs/specs/list-kinds.md. */
   health?: boolean
   onOpen: (trigger: HTMLElement) => void
@@ -234,11 +235,7 @@ export function TodayRow(props: TodayRowProps) {
       todo={todo}
       now={props.now}
       {...(props.health ? { health: true } : {})}
-      badge={
-        props.listName ? (
-          <span className={styles['listBadge']}>{props.listName}</span>
-        ) : null
-      }
+      {...(props.list ? { list: props.list } : {})}
       onToggle={() => {
         actions.update(todo, { completed: !todo.completed })
         if (!todo.completed) props.onToggled?.()

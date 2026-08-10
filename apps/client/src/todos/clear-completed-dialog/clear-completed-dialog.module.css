@@ -1,0 +1,151 @@
+/* docs/specs/ui.md — overlays: every overlay dims the background and
+   animates in/out. Matches confirm.module.css, since this is the same kind
+   of interruption — an irreversible action asking first. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  /* Wider than the plain confirm: each choice carries a sentence
+     explaining what it costs, and those wrap badly at 22rem. */
+  max-width: 26rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3);
+}
+
+.lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}
+
+/* Each action is a *block*, not a bare button: the label says what it does
+   and the note under it says what it costs, which is the whole point of
+   the dialog. A row of two same-sized buttons would put that cost in a
+   tooltip or nowhere. */
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.choice:hover {
+  border-color: var(--accent);
+}
+
+/* docs/specs/ui.md — focus changes the border, never adds an outline. */
+.choice:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.primary {
+  composes: choice;
+}
+
+/* The heavier path carries the danger ink — it is the one that destroys
+   history the user can still see. Not disabled or hidden: it is a real
+   choice, just not the default one.
+
+   Border, ink and hover all come from the shared destructive rule
+   (styles/button.module.css) rather than being restated here: Delete in
+   the detail panel is the same kind of control, and two destructive
+   affordances that respond differently to a hover read as two different
+   levels of danger. This block is a *choice* rather than a button, so it
+   keeps `choice`'s own shape and takes only the danger treatment.
+   *(fixed 2026-08-09: it had a lighter resting border and no hover
+   background at all, so it felt tentative next to Delete.)* */
+.destructive {
+  composes: choice;
+  composes: destructive from '../../styles/button.module.css';
+}
+
+.actionLabel {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.actionNote {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: var(--line-normal);
+}
+
+/* The destructive block's note stays muted rather than inheriting the
+   danger ink: red on red reads as one shouting paragraph, and the label
+   already carries the warning. */
+.destructive .actionNote {
+  color: var(--muted);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.cancel {
+  composes: action default from '../../styles/button.module.css';
+}

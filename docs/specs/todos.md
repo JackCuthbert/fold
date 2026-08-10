@@ -245,21 +245,68 @@ Rules:
 
 *(added 2026-08-02.)*
 
-**There is no bulk "clear completed".** It was removed the day `COMPLETED`
-started being captured, because the two cannot coexist safely: a completed
-todo carries the only record that the work was ever done, and the
-[Summary](./summary-view.md) view is built entirely from those records.
-Deleting a list's completed section is therefore destroying history, not
-tidying up — and it was a single click behind one confirm dialog.
+*(restored 2026-08-09, issue #1. It was removed on 2026-08-02, the day
+`COMPLETED` capture landed: a completed todo carries the only record that
+the work was ever done, the [Summary](./summary-view.md) view is built
+entirely from those records, and clearing a list's completed section was a
+single click behind one confirm. What brings it back is not a heavier
+confirm but a **bounded** one — see below.)*
+
+Clearing is available on every list, from a quiet "Clear completed…" control
+at the foot of the completed section. It opens a dialog that makes the user
+choose *which* clear they mean, because the two are not equally destructive:
+
+- **Clear old completed** — everything finished more than
+  [30 days](./summary-view.md#the-retention-window) ago. Summary has
+  already stopped showing these, so this path **cannot destroy visible
+  history**. It is the primary action, and safe by construction rather than
+  by warning.
+- **Clear everything completed** — takes recent work as well, and says how
+  many todos that is and that Summary is still showing them. Styled as the
+  destructive choice it is.
+
+The dialog is the chooser, not merely a confirm. One button whose
+consequences depend on data the user cannot see is exactly what was removed
+in the first place; two named choices with their costs stated is what makes
+the action honest.
+
+**A completed todo with no `COMPLETED` timestamp is never cleared** by
+either path. It has no age, so it cannot be shown to be old, and treating a
+missing timestamp as "ancient" would delete work that may have been
+finished minutes ago by another client. The dialog says how many are being
+left alone, so a "clear everything" that visibly leaves rows behind reads
+as deliberate rather than broken. They are surfaced on the row and in the
+detail panel — see [below](#undated-completed-todos).
 
 Individual todos can still be deleted from the detail sheet, one at a time,
 and each one asks first (see below). That is deliberate friction: losing one
 todo is a small mistake, losing a quarter's worth is not.
 
-A gated bulk action — a heavy confirmation naming what is destroyed, or a
-retention policy that only offers items older than some age — is wanted, but
-needs designing rather than inheriting. See
-[issue #1](https://github.com/JackCuthbert/fold/issues/1).
+## Undated completed todos
+
+*(added 2026-08-09, issue #39.)*
+
+RFC 5545 does not require `COMPLETED` alongside `STATUS:COMPLETED`, so a
+todo finished in another client can arrive marked done with no date. Fold
+never invents one — a guessed timestamp would be indistinguishable from a
+real one, and it is the only record of when the work happened.
+
+Such a todo is therefore excluded from Summary
+([summary-view](./summary-view.md#what-it-contains)) and left alone by both
+Clear actions, since neither can tell how old it is. That made it invisible
+in the one place it was mentioned: a count of todos with no way to find
+them.
+
+So it is marked where the todo actually lives:
+
+- **On the row**, a *No completion date* pill in the meta line.
+- **In the detail panel**, the Completed row reads "Date unknown — finished
+  in another app. It won't appear in Summary."
+
+Both are deliberately neutral — the app's muted ink and a questioning glyph,
+never the danger colour. The todo is fine and the work was done; only the
+date is unknown, and styling it as an error would suggest something is wrong
+with the todo itself.
 
 ## Deleting a todo asks first
 
@@ -373,9 +420,26 @@ So:
 
 *(added 2026-08-02.)*
 
-The detail view has a **List** dropdown alongside Priority. Choosing a
-different list and saving moves the todo there; it applies on Save with
-every other edit, not on selection, so nothing commits until the user does.
+Moving is a **deliberate action with its own dialog** — "Move to another
+list", beside Duplicate in the detail view — not a field on the form.
+Choosing a target applies the move immediately and closes the panel.
+
+*(changed 2026-08-09, issue #38: it was a **List** dropdown alongside
+Priority, applied on Save with every other edit. That made it look and
+behave exactly like changing the priority, so a stray tap sent the todo out
+of the list you were reading. A dialog is also reachable from somewhere
+other than the form, which a field never is — see the command palette,
+issue #26.)*
+
+The dialog lists every **other** list as a row to tap; the todo's current
+list is absent rather than inert, since moving a todo to where it already
+is has no meaning. There is no separate confirm step: opening the dialog is
+the deliberate act, and cancelling changes nothing.
+
+Because the move no longer rides along with the form's save, there is no
+ordering to get right between them. While both were submitted together the
+save had to be queued *first*, or the update would land on a resource the
+move had already deleted.
 
 A move is not a property edit. A todo's list is the *collection its resource
 lives in* ([lists](./lists.md)), so moving it changes the resource's URL —

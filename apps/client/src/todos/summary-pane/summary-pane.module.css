@@ -47,17 +47,3 @@
   font-weight: var(--weight-regular);
   color: var(--faint);
 }
-
-/* `.empty` was here too, for copy that has since gone: the count line
-   already says "No todos" (summary-pane.tsx).
-   *(removed 2026-08-05.)* */
-.undated {
-  color: var(--muted);
-  font-size: var(--text-sm);
-  padding-block: var(--space-2);
-}
-
-.undated {
-  margin-top: var(--space-6);
-  color: var(--faint);
-}

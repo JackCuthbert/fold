@@ -156,7 +156,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // passing one — which is most of why the CI failure above was confusing.
   expect(edges.groupGlyph).not.toBeNull()
   expect(edges.checkbox).not.toBeNull()
-  // The sparkle lands on the same column the checkbox ring does.
+  // The kind glyph lands on the same column the checkbox ring does.
   expect(edges.groupGlyph).toBe(edges.checkbox)
 
   // The row navigates to the list rather than expanding in place.
@@ -383,4 +383,52 @@ test('renaming a list gives it a kind, and takes it away again', async ({
   // Chores get both bulk actions; groceries get only the one.
   await addTodo(page, 'Bins')
   await expect(page.getByRole('button', { name: 'Schedule all' })).toBeVisible()
+})
+
+// docs/specs/list-kinds.md — the health heart trails the summary line.
+// *(added 2026-08-10.)*
+//
+// A layout assertion, which is the only layer that can make it: the heart's
+// placement typechecks and unit-tests identically wherever it sits, and two
+// earlier placements shipped before anyone noticed what they did to the row.
+// The rule being guarded is docs/specs/ui.md — one left edge.
+test('a health row keeps its summary on the shared left edge', async ({
+  page,
+}) => {
+  await login(page)
+
+  // The kind comes from the name — see the kind table in list-kind.ts.
+  await createList(page, 'Health')
+  await navRow(page, 'Health').click()
+  await addTodo(page, 'Book the dentist')
+  await page.getByRole('checkbox', { name: /Book the dentist/ }).click()
+
+  const plain = uniqueName('work')
+  await createList(page, plain)
+  await navRow(page, plain).click()
+  await addTodo(page, 'Pay the water bill')
+  await page.getByRole('checkbox', { name: /Pay the water bill/ }).click()
+  await waitForSync(page)
+
+  // Summary, not Today: an *active* health todo goes in Today's bordered
+  // block, and rows inside the block deliberately carry no heart (the
+  // heading already names it). Completed health work sits in an ordinary
+  // run of rows, which is exactly where the heart appears — so this is the
+  // row whose placement the left-edge rule has to hold for.
+  await navRow(page, 'Summary').click()
+
+  const left = async (text: string) => {
+    const box = await page
+      .getByText(text, { exact: true })
+      .first()
+      .boundingBox()
+    return Math.round(box?.x ?? -1)
+  }
+
+  const healthLeft = await left('Book the dentist')
+  const plainLeft = await left('Pay the water bill')
+
+  // Exactly equal, not approximately: the heart leading the line pushed the
+  // health summary 16px right, so any drift here is the bug returning.
+  expect(healthLeft).toBe(plainLeft)
 })

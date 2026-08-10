@@ -1,42 +1,8 @@
-import type { Todo, TodoPriority } from '@fold/schemas'
-import type { ReactNode } from 'react'
+import type { Todo } from '@fold/schemas'
 import { LuHeart } from 'react-icons/lu'
-import { cx } from '../../styles/cx'
 import { Checkbox } from '../checkbox/checkbox'
-import { dueInstant, isOverdue } from '../lib/sort'
+import { TodoMeta, type RowList } from '../todo-meta/todo-meta'
 import styles from './todo-item.module.css'
-
-// docs/specs/todos.md — priority is colour-coded on the row, all three
-// levels: high red/urgent, medium amber/cautionary, low green/calm.
-const PRIO_CLASS: Record<TodoPriority, string> = {
-  high: styles['prioHigh'] ?? '',
-  medium: styles['prioMedium'] ?? '',
-  low: styles['prioLow'] ?? '',
-}
-
-/** Exported for unit testing — the all-day/timed distinction is subtle. */
-export const formatDue = (todo: Todo): string | null => {
-  const due = todo.due
-  if (!due) return null
-  // dueInstant resolves all four forms consistently — see
-  // docs/specs/todos.md#ordering-and-overdue-comparison.
-  const instant = new Date(dueInstant(todo))
-  const date = instant.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  })
-  // docs/specs/todos.md — due times: only a timed todo shows a time. An
-  // all-day `date` resolves to 23:59:59 for ordering, so formatting the
-  // instant unconditionally would label every all-day todo "11:59 pm".
-  if (due.kind === 'date') return date
-  // The locale's own short time. No hand-trimming: dropping ":00" reads as
-  // a bare "9" in 24-hour locales, which is ambiguous beside a date.
-  const time = instant.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  return `${date} ${time}`
-}
 
 interface TodoItemProps {
   todo: Todo
@@ -52,26 +18,33 @@ interface TodoItemProps {
    */
   onOpen: (trigger: HTMLElement) => void
   /**
-   * Optional marker rendered in the meta row, before priority and due.
-   * The Today view uses it to name each row's source list, since its rows
-   * come from several (docs/specs/today-view.md). Lists pass nothing.
+   * The list this todo belongs to, when that is worth saying.
+   *
+   * Derived views pass one, since their rows come from several
+   * (docs/specs/today-view.md). A plain list passes nothing: every row on
+   * screen is already in the list you are looking at, so naming it on each
+   * would be noise. *(was `badge`, a ReactNode, until issue #2 — the pill
+   * needs the list's colour, so the row takes the data and renders it.)*
    */
-  badge?: ReactNode
+  list?: RowList | undefined
   /**
    * Marks this row as health (docs/specs/list-kinds.md — health first).
    *
-   * A heart in the meta cluster rather than another word: the row already
-   * names its list there, and "Health ♥" would say the same thing twice.
-   * Colour is not the only signal — the glyph has an accessible label, and
-   * the block's own heading names it.
+   * A heart on the summary line rather than another word: the row already
+   * names its list in the meta, and "Health ♥" would say the same thing
+   * twice. Colour is not the only signal — the glyph has an accessible
+   * label, and the block's own heading names it.
+   *
+   * Deliberately *not* in the meta cluster. Those are pills — facts about
+   * the todo, in a shared shape. This is a mark on the todo itself, of a
+   * kind nothing else in the row shares, and among the pills it read as a
+   * pill that had lost its background. *(moved 2026-08-10.)*
    */
   health?: boolean
 }
 
 export function TodoItem(props: TodoItemProps) {
   const { todo } = props
-  const overdue = !todo.completed && isOverdue(todo, props.now)
-  const due = formatDue(todo)
   return (
     <li
       className={
@@ -90,35 +63,37 @@ export function TodoItem(props: TodoItemProps) {
         className={styles['body']}
         onClick={(event) => props.onOpen(event.currentTarget)}
       >
-        <span className={styles['titleRow']}>
+        {/* docs/specs/ui.md — the todo row: the summary owns its own line
+            and ellipses there. It used to share the line with the meta
+            cluster, which competed for width and truncated a long summary
+            far earlier than the row needed to (issue #2). */}
+        <span className={styles['summaryLine']}>
           <span className={styles['summary']}>{todo.summary}</span>
-          <span className={styles['meta']}>
-            {/* First in the cluster, before the list name it qualifies —
-                docs/specs/list-kinds.md. Filled, not outlined: an outline
-                heart reads as "favourite this", which is a control. */}
-            {props.health && (
-              <LuHeart
-                className={styles['health']}
-                size={12}
-                aria-label="Health"
-              />
-            )}
-            {props.badge}
-            {todo.priority && (
-              <span className={cx(styles['prio'], PRIO_CLASS[todo.priority])}>
-                {todo.priority}
-              </span>
-            )}
-            {due && (
-              <span className={overdue ? styles['dueOverdue'] : styles['due']}>
-                {due}
-              </span>
-            )}
-          </span>
+          {/* Trails the line, in its own column at the row's edge
+              (docs/specs/list-kinds.md — health first).
+
+              Leading the line put it *inside* the text flow, which pushed
+              the summary 16px right of every ordinary row's — so a mixed
+              list no longer shared one left edge (docs/specs/ui.md).
+              Measured across the alternatives: this and the meta-cluster
+              placement were the only ones that held the edge, and the meta
+              made it read as a pill that had lost its background.
+              *(moved 2026-08-10.)* */}
+          {props.health && (
+            <span className={styles['health']}>
+              <LuHeart size={12} aria-hidden="true" />
+              <span className={styles['srOnly']}>Health</span>
+            </span>
+          )}
         </span>
         {todo.description && (
           <span className={styles['description']}>{todo.description}</span>
         )}
+        <TodoMeta
+          todo={todo}
+          now={props.now}
+          {...(props.list ? { list: props.list } : {})}
+        />
       </button>
     </li>
   )

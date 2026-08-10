@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
 import { useSound } from '../../sound'
 import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from '../lib/search'
+import { rowListFor } from '../lib/row-list'
 import styles from './search-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'
 import paneStyles from '../todo-pane/todo-pane.module.css'
@@ -53,8 +54,7 @@ export function SearchPane(props: SearchPaneProps) {
   const results = searchTodos(todos, props.query)
   const searched = isSearchable(props.query)
 
-  const listName = (listId: string): string =>
-    props.lists.find((list) => list.id === listId)?.displayName ?? ''
+  const rowList = (listId: string) => rowListFor(props.lists, listId)
 
   return (
     <div className={paneStyles['pane']}>
@@ -108,7 +108,7 @@ export function SearchPane(props: SearchPaneProps) {
               key={`${todo.listId}:${todo.uid}`}
               todo={todo}
               now={new Date()}
-              listName={listName(todo.listId)}
+              list={rowList(todo.listId)}
               onOpen={(trigger) => props.onOpen(todo, trigger)}
               onToggled={playPop}
             />

@@ -81,6 +81,10 @@ It replaces any due date those todos already have, so it asks first too.
 **Rename the list.** A list called "Chores" that you don't want behaving
 like one can be called "Household" instead, and the sparkle disappears.
 
+When a grocery list is collapsed into a single row in Today or Summary, that
+row carries a **carrot** 🥕 rather than the sparkle — the sparkle means "this
+list is special", and on that row Fold can be specific about *how*.
+
 There's no per-list off switch yet. The names Fold matches are specific
 enough that this rarely comes up — you have to name a list *exactly*
 "chores" to get chores behaviour.

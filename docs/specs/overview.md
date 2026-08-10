@@ -107,7 +107,7 @@ supplies an IndexedDB implementation).
 | [tomorrow-view](./tomorrow-view.md) | The derived Tomorrow view: the day ahead, nothing overdue |
 | [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |
 | [search-view](./search-view.md) | The derived Search view: fuzzy text search across every todo |
-| [list-kinds](./list-kinds.md) | Behaviour a list's name unlocks: grouping, bulk actions, the sparkle |
+| [list-kinds](./list-kinds.md) | Behaviour a list's name unlocks: grouping, bulk actions, the kind marks |
 | [sync-and-offline](./sync-and-offline.md) | Outbox, sync loop, conflicts, offline UX |
 | [api](./api.md) | JSON API surface, handler convention, error mapping |
 | [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |

@@ -1,0 +1,134 @@
+/* docs/specs/ui.md — the todo row: which list, how urgent, when it is due,
+   on their own line beneath the summary. *(added 2026-08-09, issue #2.)* */
+.meta {
+  display: flex;
+  align-items: center;
+  /* Wraps rather than overflowing: a long list name beside a timed due
+     date can exceed a narrow phone, and the row must give way vertically
+     rather than clip. */
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  min-width: 0;
+}
+
+/* The shared pill shape. The two treatments below differ only in ground
+   and border — everything about size, alignment and type is common, so a
+   new kind of fact inherits the right shape by default. */
+.pill,
+.list {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  /* Sans, never the body serif: these are annotations on the todo, not
+     part of its text, and the serif at 12px reads as shrunken prose.
+     Matches the keycaps' reasoning (shortcut-keys.module.css). */
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1.4;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* The list: a hairline outline, with its colour on the dot alone.
+
+   A list's colour is arbitrary — it can arrive from Apple Reminders or a
+   hex field — so it must never end up behind text. Measured across the
+   eight-swatch palette a 12% tint clears AA comfortably, but pure yellow,
+   near-paper and neon green collapse to under 2:1, which would need a
+   contrast guard at render time. Confining the colour to an 8px dot
+   removes the problem rather than managing it: a dot has no legibility
+   threshold, which is why the nav's has never needed one.
+   *(measured 2026-08-09 — see the notes in list-color.ts for the same
+   reasoning applied to the selection marker.)* */
+.list {
+  padding: 1px var(--space-2) 1px 6px;
+  background: none;
+  border: var(--border-width) solid var(--line);
+  color: var(--muted);
+}
+
+.dot {
+  composes: dot from '../../lists/list-dot.module.css';
+}
+
+.dotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
+
+/* Everything else: a soft fill in a colour the app owns, so its contrast
+   is known at build time rather than measured per render. */
+.pill {
+  padding: 2px var(--space-2) 2px 6px;
+  border: none;
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+}
+
+/* Capitalised for display only, and **only here**. `priority` is stored
+   lowercase ('high') because it is a schema value rather than a label, so
+   the casing belongs in the presentation instead of a table of
+   hand-written strings that could drift from the union type.
+
+   Scoped to the priority pills rather than `.pill`: `capitalize` acts on
+   every word, so on the due pill it turned the locale's "9:00 am" into
+   "9:00 Am". A one-word label is the only safe subject for it.
+   *(fixed 2026-08-09.)* */
+.high,
+.medium,
+.low {
+  text-transform: capitalize;
+}
+
+/* docs/specs/todos.md — priority is colour-coded, all three levels: high
+   urgent, medium cautionary, low calm. The chevron carries the *rank*, so
+   the meaning survives for anyone who cannot separate the hues — and, more
+   commonly, distinguishes priority from the overdue pill beside it, which
+   was previously the same red fill with the same red text. */
+.high {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+.medium {
+  background: color-mix(in srgb, var(--list-amber) 15%, transparent);
+  color: color-mix(in srgb, var(--list-amber) 70%, var(--ink));
+}
+
+/* Low is deliberately the neutral fill: it is the *absence* of urgency, so
+   giving it a colour of its own would make "not urgent" look like a claim.
+   The chevron is what distinguishes it from an unprioritised todo. */
+.low {
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+}
+
+.due {
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+}
+
+/* Overdue carries the clock. Same red as high priority — both are the
+   app's "this needs attention" ink, and inventing a second red to separate
+   them would be worse than the icon that already does. */
+.overdue {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* A completed todo carrying no COMPLETED stamp (docs/specs/summary-view.md
+   — Summary excludes it, and issue #39). Deliberately *not* an alarm: the
+   todo is fine and the work was done, it is only its date that is unknown.
+   So it takes the neutral ground with a questioning glyph rather than the
+   danger ink, which would suggest something is wrong with the todo itself.
+
+   This is the whole reason Summary's "not shown above" count is now
+   findable — that count named todos with no way to reach them.
+   *(added 2026-08-09.)* */
+.undated {
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+  font-style: italic;
+}

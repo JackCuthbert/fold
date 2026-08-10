@@ -1,7 +1,14 @@
 import type { Todo, TodoList } from '@fold/schemas'
+import { useState } from 'react'
+import { ClearCompletedDialog } from '../clear-completed-dialog/clear-completed-dialog'
+import { useClearCompleted } from '../hooks/use-clear-completed'
+import { countClearable, retentionCutoff, todosToClear } from '../lib/retention'
+import { ViewNote } from '../view-note/view-note'
 import { groupTodos, isHealthTodo, partitionHealth } from '../lib/group-by-list'
 import { GroupRow } from '../group-row/group-row'
+import { RETENTION_DAYS } from '../lib/retention'
 import { dayLabel, summariseCompleted } from '../lib/summary'
+import { rowListFor } from '../lib/row-list'
 import styles from './summary-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'
 import paneStyles from '../todo-pane/todo-pane.module.css'
@@ -24,12 +31,16 @@ interface SummaryPaneProps {
 
 export function SummaryPane(props: SummaryPaneProps) {
   const { todos } = useTodayTodos(props.lists)
+  const clearCompleted = useClearCompleted()
+  const [clearing, setClearing] = useState(false)
+  // One instant for the render, so every row is judged against the same
+  // cutoff rather than drifting as the list is walked.
+  const cutoff = retentionCutoff()
 
   const now = new Date()
-  const { days, undated } = summariseCompleted(todos)
+  const { days, undated, beyondWindow } = summariseCompleted(todos)
 
-  const listName = (listId: string): string =>
-    props.lists.find((list) => list.id === listId)?.displayName ?? ''
+  const rowList = (listId: string) => rowListFor(props.lists, listId)
 
   return (
     <div className={paneStyles['pane']}>
@@ -81,7 +92,7 @@ export function SummaryPane(props: SummaryPaneProps) {
                     key={row.todo.uid}
                     todo={row.todo}
                     now={now}
-                    listName={listName(row.todo.listId)}
+                    list={rowList(row.todo.listId)}
                     {...(isHealthTodo(row.todo, props.lists)
                       ? { health: true }
                       : {})}
@@ -98,12 +109,40 @@ export function SummaryPane(props: SummaryPaneProps) {
           stamp can't be placed on a day. Say so rather than under-report
           silently. */}
       {undated > 0 && (
-        <p className={styles['undated']}>
+        <ViewNote>
           {undated} completed {undated === 1 ? 'todo has' : 'todos have'} no
-          completion date, so {undated === 1 ? "it isn't" : "they aren't"} shown
-          above.
-        </p>
+          completion date, so {undated === 1 ? "it can't" : "they can't"} be
+          placed on a day here. Look for the <em>No completion date</em> mark on
+          the row in its own list.
+        </ViewNote>
       )}
+      {/* docs/specs/summary-view.md — the retention window. Older work is
+          still on the server and still in its list; saying so keeps the
+          edge of the view from reading as the edge of the history. */}
+      {beyondWindow > 0 && (
+        <ViewNote
+          actionLabel="Clear completed…"
+          onAction={() => setClearing(true)}
+        >
+          {beyondWindow} older {beyondWindow === 1 ? 'todo' : 'todos'} finished
+          more than {RETENTION_DAYS} days ago{' '}
+          {beyondWindow === 1 ? 'is' : 'are'} still in{' '}
+          {beyondWindow === 1 ? 'its list' : 'their lists'}, beyond what this
+          view shows.
+        </ViewNote>
+      )}
+
+      {/* docs/specs/todos.md — clearing completed todos. From here the
+          clear reaches *every* list, since this view gathers finished work
+          from all of them — the dialog says so, because the blast radius
+          is what the user is consenting to. */}
+      <ClearCompletedDialog
+        open={clearing}
+        counts={countClearable(todos, cutoff)}
+        scope="all"
+        onOpenChange={setClearing}
+        onClear={(which) => clearCompleted(todosToClear(todos, cutoff, which))}
+      />
     </div>
   )
 }

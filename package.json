@@ -17,7 +17,8 @@
     "test:integration": "bun run --filter @fold/server test:integration",
     "test:e2e": "bun run --filter @fold/e2e test",
     "screenshot": "bun run --filter @fold/e2e screenshot",
-    "favicons": "bun run --filter @fold/e2e favicons"
+    "favicons": "bun run --filter @fold/e2e favicons",
+    "seed:history": "bun run --filter @fold/e2e seed:history"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

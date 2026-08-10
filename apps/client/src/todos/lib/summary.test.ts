@@ -1,5 +1,6 @@
 import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
+import { retentionCutoff } from './retention'
 import {
   dayLabel,
   formatTimestamp,
@@ -78,7 +79,11 @@ describe('summariseCompleted', () => {
   })
 
   it('is empty when nothing is completed', () => {
-    expect(summariseCompleted([open('a')])).toEqual({ days: [], undated: 0 })
+    expect(summariseCompleted([open('a')])).toEqual({
+      days: [],
+      undated: 0,
+      beyondWindow: 0,
+    })
   })
 })
 
@@ -125,5 +130,29 @@ describe('dayLabel', () => {
   it('names the year only when it differs from now', () => {
     expect(dayLabel('2026-08-01', now)).not.toContain('2026')
     expect(dayLabel('2025-08-01', now)).toContain('2025')
+  })
+})
+
+// docs/specs/summary-view.md — the retention window. Summary is bounded so
+// that "Clear old completed" can only ever delete what it has already
+// stopped showing (docs/specs/todos.md — clearing completed todos).
+describe('the retention window', () => {
+  const now = new Date('2026-08-09T10:00:00.000Z')
+  const daysAgo = (days: number): string => {
+    const when = new Date(now)
+    when.setDate(when.getDate() - days)
+    return when.toISOString()
+  }
+
+  it('omits work completed before the cutoff, and counts it', () => {
+    const result = summariseCompleted(
+      [done('recent', daysAgo(2)), done('ancient', daysAgo(90))],
+      retentionCutoff(now),
+    )
+
+    expect(result.beyondWindow).toBe(1)
+    expect(result.days.flatMap((day) => day.todos.map((t) => t.uid))).toEqual([
+      'recent',
+    ])
   })
 })

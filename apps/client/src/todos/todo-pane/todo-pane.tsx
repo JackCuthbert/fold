@@ -7,6 +7,8 @@ import { api, queryClient, useSyncEngine } from '../../providers'
 import { useSound } from '../../sound'
 import { cx } from '../../styles/cx'
 import { AddTodoTrigger } from '../add-todo-trigger/add-todo-trigger'
+import { ClearCompletedDialog } from '../clear-completed-dialog/clear-completed-dialog'
+import { countClearable, retentionCutoff, todosToClear } from '../lib/retention'
 import { sortActiveTodos } from '../lib/sort'
 import { TodoItem } from '../todo-item/todo-item'
 import styles from './todo-pane.module.css'
@@ -52,6 +54,10 @@ export function TodoPane(props: TodoPaneProps) {
   const { actions } = props.add
   const { playPop } = useSound()
   const [showCompleted, setShowCompleted] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  // One instant for the whole render, so every row is judged against the
+  // same cutoff rather than drifting as the list is walked.
+  const cutoff = retentionCutoff()
 
   // docs/specs/todos.md — ordering: sorting happens here, on read, so the
   // list is always in sorted order — including the moment a todo is created.
@@ -121,16 +127,39 @@ export function TodoPane(props: TodoPaneProps) {
                 />
               ))}
             </ul>
-            {/* docs/specs/todos.md — clearing completed todos: there is no
-                bulk delete. A completed todo carries the only record that
-                the work was done (its COMPLETED stamp, which the Summary
-                view groups by day), so wiping a list's completed section
-                destroys history rather than tidying it. Individual todos
-                can still be deleted from the detail sheet.
-                *(removed 2026-08-02.)* */}
+            {/* docs/specs/todos.md — clearing completed todos. Behind a
+                dialog that makes the user choose *which* clear they mean:
+                the old-only path can never destroy what Summary still
+                shows, and the heavier one says what it costs. Removed
+                entirely on 2026-08-02 when it was a single confirm over
+                every completed todo; restored 2026-08-09 gated this way
+                (issue #1). */}
+            <button
+              type="button"
+              className={styles['clearCompleted']}
+              onClick={() => setClearing(true)}
+            >
+              Clear completed…
+            </button>
           </Collapsible.Panel>
         </Collapsible.Root>
       )}
+
+      {/* docs/specs/todos.md — clearing completed todos. One `deleteTodo`
+          per todo through the ordinary optimistic path, like the other
+          bulk actions (bulk-actions.tsx): the outbox already coalesces and
+          retries these, so a dedicated bulk mutation would need its own
+          conflict handling for no benefit. */}
+      <ClearCompletedDialog
+        open={clearing}
+        counts={countClearable(completed, cutoff)}
+        onOpenChange={setClearing}
+        onClear={(scope) => {
+          for (const todo of todosToClear(completed, cutoff, scope)) {
+            actions.remove(todo)
+          }
+        }}
+      />
     </div>
   )
 }

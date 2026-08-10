@@ -30,6 +30,47 @@ day of that timestamp.
   todos it could not place.
 - Rows show their source list, since they come from several.
 
+## Notes about what is not shown
+
+*(added 2026-08-09: both counts existed but neither could be acted on.)*
+
+Summary omits two kinds of finished work — todos with no `COMPLETED` stamp,
+and work older than the retention window — and states a count for each at
+the foot of the view.
+
+**A note that names something must let you reach it.** A count on its own
+told the user that todos existed somewhere, with no way to see or act on
+them. So each note is a block with a rule and a tinted ground rather than a
+trailing paragraph, and carries an action where one exists:
+
+- The **undated** note points at the mark on the row. Those todos are not
+  lost — they sit in their own lists, where the row carries a *No completion
+  date* pill and the detail panel says the date is unknown
+  ([todos](./todos.md#undated-completed-todos)). Nothing to act on here:
+  the todo is fine, only its date is unknown.
+- The **older-work** note opens the same Clear completed dialog the list
+  view uses, scoped across **every** list, since this view gathers finished
+  work from all of them. The dialog names that wider blast radius, because
+  it is what the user is consenting to
+  ([todos](./todos.md#clearing-completed-todos)).
+
+## The retention window
+
+*(added 2026-08-09, issue #1.)*
+
+Summary shows the last **30 days** of finished work. Todos completed before
+that are still on the server and still in their lists — they are simply
+out of view here, and the view says how many there are rather than implying
+nothing older was ever done.
+
+**The window is not configurable.** It is one number that has to mean the
+same thing in two places: how much history this view shows, and what
+"Clear old completed" is allowed to delete
+([todos](./todos.md#clearing-completed-todos)). The safety of that action
+comes entirely from the two matching — *old* is defined as *no longer
+visible here* — so a per-user setting would let them drift apart and the
+guarantee would hold only for whoever had not changed it.
+
 ## History depends on retention
 
 Summary can only show todos that still exist on the server. **Deleting a
@@ -40,7 +81,8 @@ data.
 That makes bulk deletion of completed work a destructive act against the
 historical record, not routine tidying. See
 [todos](./todos.md#clearing-completed-todos) for how "Clear completed" is
-gated as a result.
+gated as a result: it offers a safe path bounded by the window above, and a
+heavier one that states what it costs.
 
 ## Reading
 

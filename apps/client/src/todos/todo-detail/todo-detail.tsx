@@ -503,6 +503,22 @@ export function TodoDetail(props: TodoDetailProps) {
                 </dd>
               </div>
             )}
+            {/* Completed, but by a client that wrote no COMPLETED stamp —
+                RFC 5545 does not require one (docs/specs/summary-view.md).
+                Said plainly rather than by omitting the row: a missing
+                "Completed" line is indistinguishable from a bug, and this
+                todo is also absent from Summary and skipped by Clear
+                completed, neither of which is obvious from the row alone.
+                *(added 2026-08-09, issue #39.)* */}
+            {todo.completed && !todo.completedAt && (
+              <div className={styles['metaRow']}>
+                <dt className={styles['metaLabel']}>Completed</dt>
+                <dd className={cx(styles['metaValue'], styles['metaUnknown'])}>
+                  Date unknown — finished in another app. It won’t appear in
+                  Summary.
+                </dd>
+              </div>
+            )}
             {/* CREATED to COMPLETED. Uncoloured: unlike punctuality
                     there is no good or bad duration, so this is context
                     rather than a verdict. */}

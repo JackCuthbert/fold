@@ -1,4 +1,5 @@
 import type { Todo } from '@fold/schemas'
+import { retentionCutoff } from './retention'
 
 // docs/specs/summary-view.md — finished work, grouped by the local day it
 // was finished.
@@ -11,6 +12,13 @@ export interface CompletedDay {
 
 export interface SummaryResult {
   days: CompletedDay[]
+  /**
+   * Completed todos older than the retention window, so deliberately not
+   * shown (docs/specs/summary-view.md — the retention window). Counted so
+   * the view can say history continues past its edge rather than implying
+   * nothing older was ever done.
+   */
+  beyondWindow: number
   /**
    * Completed todos carrying no `completedAt`, so they cannot be placed on
    * a day. RFC 5545 does not require COMPLETED alongside
@@ -37,9 +45,13 @@ export const localDayOf = (instant: Date): string =>
  * completed comes first — a standup reads backwards from now
  * (docs/specs/summary-view.md — ordering).
  */
-export function summariseCompleted(todos: readonly Todo[]): SummaryResult {
+export function summariseCompleted(
+  todos: readonly Todo[],
+  cutoff: Date = retentionCutoff(),
+): SummaryResult {
   const byDay = new Map<string, Todo[]>()
   let undated = 0
+  let beyondWindow = 0
 
   for (const todo of todos) {
     if (!todo.completed) continue
@@ -51,6 +63,15 @@ export function summariseCompleted(todos: readonly Todo[]): SummaryResult {
     // A malformed stamp is as unplaceable as a missing one.
     if (Number.isNaN(instant.getTime())) {
       undated += 1
+      continue
+    }
+    // Past the window: still on the server, deliberately out of view
+    // (docs/specs/summary-view.md — the retention window). Bounding what
+    // Summary shows is also what makes "Clear old completed" safe — the
+    // two share one cutoff, so the safe action can only ever delete what
+    // this view has already stopped showing.
+    if (instant.getTime() < cutoff.getTime()) {
+      beyondWindow += 1
       continue
     }
     const day = localDayOf(instant)
@@ -69,7 +90,7 @@ export function summariseCompleted(todos: readonly Todo[]): SummaryResult {
       ),
     }))
 
-  return { days, undated }
+  return { days, undated, beyondWindow }
 }
 
 /**
