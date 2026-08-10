@@ -1,4 +1,4 @@
-import { LuChevronRight, LuSparkles } from 'react-icons/lu'
+import { LuCarrot, LuChevronRight } from 'react-icons/lu'
 import { cx } from '../../styles/cx'
 import type { TodoGroup } from '../lib/group-by-list'
 import styles from './group-row.module.css'
@@ -39,7 +39,7 @@ export function GroupRow(props: GroupRowProps) {
         {/* Wrapped, not styled directly: the span is the checkbox-sized
             column that positions the row's text, and the glyph is
             centred inside it — sizing the SVG itself to --hit-area would
-            draw a 44px sparkle.
+            draw a 44px glyph.
 
             Drawn at the checkbox's own size rather than a smaller
             annotation size. Both are centred in the same 44px column, so
@@ -47,8 +47,8 @@ export function GroupRow(props: GroupRowProps) {
             20px ring the two left edges were 3px apart — measured in the
             e2e spec, invisible until you look for it.
             *(fixed 2026-08-05.)* */}
-        <span className={styles['sparkle']} aria-hidden="true">
-          <LuSparkles className={styles['sparkleGlyph']} />
+        <span className={styles['kindMark']} aria-hidden="true">
+          <LuCarrot className={styles['kindGlyph']} />
         </span>
         {/* Two boxes, not one: the outer takes the row's slack (so the
             count sits at the trailing edge) and the inner hugs the text

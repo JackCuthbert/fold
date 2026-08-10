@@ -33,9 +33,15 @@
    but sits among content.
    *(removed 2026-08-05.)* */
 
-/* The marker that ties this row back to the sparkle on the list's nav row
-   and title — the same glyph in all three places, so "this is one of
-   those special lists" is one thing to learn rather than three.
+/* The marker for a collapsed grocery list.
+
+   A carrot, not the sparkle the nav row and title carry. Those two mark
+   "this list has a kind" and stand for any of the four, so they need an
+   abstract glyph. This row is different: only a grocery list groups
+   (`groups: true` in list-kind.ts is set by that kind alone), so the mark
+   here can name what the row actually is. The sparkle was doing the more
+   abstract job in the one place it did not have to.
+   *(changed 2026-08-10: was LuSparkles.)*
 
    docs/specs/ui.md — one left edge. This stands in the checkbox's column,
    so it has to reproduce the checkbox's geometry exactly rather than just
@@ -43,11 +49,11 @@
    difference between the visible ring and that box, which puts the
    *visible* glyph on the shared edge while the 44px column still governs
    where the text begins. A plain `width: var(--hit-area)` (the first
-   attempt) skipped the pull, so the sparkle sat 12px left of the
+   attempt) skipped the pull, so the glyph sat 12px left of the
    checkboxes above it and the name 12px right of their titles — the row
    was misaligned at both ends at once.
    *(fixed 2026-08-05.)* */
-.sparkle {
+.kindMark {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,7 +67,7 @@
 /* The checkbox's size, not a smaller annotation size — see group-row.tsx.
    Two glyphs centred in the same column only share a left edge when they
    are the same width. */
-.sparkleGlyph {
+.kindGlyph {
   width: var(--checkbox-size);
   height: var(--checkbox-size);
 }
