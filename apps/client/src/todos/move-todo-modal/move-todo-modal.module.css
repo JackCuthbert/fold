@@ -1,0 +1,117 @@
+/* docs/specs/ui.md — overlays: every overlay dims the background and
+   animates in/out; the scrim fades with the popup. Matches the other
+   modals exactly (list-form-modal.module.css) — this is the same kind of
+   surface, so it should not read as a different one. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* The scroller, so a long list of targets scrolls inside the dialog rather
+   than growing it past the viewport. Owns the padding for the same reason
+   every other modal's scroller does: the scrollbar then tracks the popup's
+   true edge instead of floating inset (docs/specs/ui.md — scrollbar
+   gutters at the container edge). */
+.body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-3);
+  /* Clears the display's rounded corner when installed to the Home Screen
+     (docs/architecture/pwa.md — safe areas). On the scroller, not the
+     popup, so content scrolls through it rather than being clipped. */
+  padding-bottom: calc(
+    var(--space-3) + env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
+}
+
+.targets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* A full-width row, like the nav's list rows — this is the same choice
+   ("which list?") presented in a different place, so it should look
+   familiar rather than like a menu of buttons. */
+.target {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.target:hover {
+  background: var(--line);
+}
+
+/* docs/specs/ui.md — focus changes the border, never adds an outline: an
+   outline would be clipped by the scroller's edge. */
+.target:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dot {
+  composes: dot from '../../lists/list-dot.module.css';
+}
+
+.dotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}

@@ -28,7 +28,6 @@ const formFor = (todo: Todo, over: Partial<DetailForm> = {}): DetailForm => {
     dueTime: fields.time,
     description: todo.description ?? '',
     priority: todo.priority ?? '',
-    listId: todo.listId,
     ...over,
   }
 }

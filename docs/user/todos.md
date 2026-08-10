@@ -28,10 +28,24 @@ there's something to show: when it was **created**, when it was
 **completed**, how long it was open (**duration**), and — if it had a due
 date — whether it was finished on time, early, or late (**timing**).
 
-There's no bulk "Clear completed" — a completed todo's timestamp is the
-only record that the work was ever done, so deleting it is a deliberate,
-one-at-a-time action from inside that todo's own details, not a sweep of
-the whole section.
+## Clearing completed work
+
+A completed todo's timestamp is the only record that the work was ever
+done — it's what the Summary view is built from — so clearing is
+deliberate rather than a one-click sweep.
+
+**Clear completed…** at the foot of the completed section asks which you
+mean:
+
+- **Clear old completed** removes work finished more than 30 days ago.
+  Summary only looks back 30 days, so this never deletes anything you can
+  still see there.
+- **Clear everything completed** takes recent work too. It tells you how
+  many todos that is, and how many of them Summary is still showing.
+
+Anything completed without a recorded date is left alone by both — there's
+no way to tell how old it is. You can still delete todos one at a time from
+their own details.
 
 Everything you do is saved to your CalDAV server immediately — or queued
 if you're offline ([offline](./offline.md)).

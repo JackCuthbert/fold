@@ -37,6 +37,7 @@ import { useTodoActions } from '../../todos/hooks/use-todo-actions'
 import { useTodoDetailForm } from '../../todos/hooks/use-todo-detail-form'
 import { useViewCount } from '../../todos/hooks/use-view-count'
 import { AppModals } from '../app-modals/app-modals'
+import { MoveTodoModal } from '../../todos/move-todo-modal/move-todo-modal'
 import {
   ListFilterProvider,
   type ListFilterState,
@@ -384,18 +385,24 @@ export function MainScreen() {
   //
   // `useTodoActions` is keyed by list, so it binds to the open todo's own
   // list — todos here may come from any of them (Today and Summary draw
-  // from several at once). Delete stays with TodayDetail; only Save and
-  // Move are needed by the form.
+  // from several at once). Delete stays with TodayDetail; the form itself
+  // now needs only Save, since moving is its own action.
   const detailActions = useTodoActions(openTodo?.listId ?? '')
   const detailForm = useTodoDetailForm(openTodo, {
     onSave: (changes) => {
       if (openTodo) detailActions.update(openTodo, changes)
     },
-    onMove: (targetListId) => {
-      if (openTodo) detailActions.move(openTodo, targetListId)
-    },
     onClose: closeDetail,
   })
+  // docs/specs/todos.md — moving a todo between lists. Its own action and
+  // its own dialog rather than a field on the form above (issue #38), so
+  // it applies on its own and needs no ordering against a save.
+  const [movingTodo, setMovingTodo] = useState<Todo | null>(null)
+  // Keyed to the *moving* todo's list, which is not necessarily the open
+  // one: the dialog outlives the panel it was opened from (moving closes
+  // the panel), and a move must be queued against the collection the todo
+  // is actually leaving.
+  const moveActions = useTodoActions(movingTodo?.listId ?? '')
 
   // The nav's contents, rendered twice — inside the drawer on mobile and
   // inside the pinned column on desktop. See nav-panel.tsx.
@@ -574,6 +581,7 @@ export function MainScreen() {
                         mode="column"
                         focusNonce={detail.openCount}
                         onDuplicated={openCopy}
+                        onMove={() => setMovingTodo(openTodo)}
                         onClose={closeDetail}
                       />
                     )}
@@ -581,6 +589,24 @@ export function MainScreen() {
                 </aside>
               )}
             </div>
+            {/* docs/specs/todos.md — moving a todo between lists. A sibling
+                of the other overlays for the same reason they are: nested
+                inside the sheet's Dialog it would lose its own backdrop
+                (issue #38). */}
+            <MoveTodoModal
+              open={movingTodo !== null}
+              todo={movingTodo}
+              lists={lists.data ?? []}
+              onOpenChange={(open) => {
+                if (!open) setMovingTodo(null)
+              }}
+              onMove={(targetListId) => {
+                if (movingTodo) {
+                  moveActions.move(movingTodo, targetListId)
+                  closeDetail()
+                }
+              }}
+            />
             {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
           with its scrim, focus trap and Escape (docs/specs/ui.md —
           overlays). Rendered outside `.body` since it is an overlay, not a
@@ -602,6 +628,7 @@ export function MainScreen() {
                 mode="sheet"
                 open={openTodo !== null}
                 onDuplicated={openCopy}
+                onMove={() => setMovingTodo(sheetTodo)}
                 onClose={closeDetail}
               />
             )}

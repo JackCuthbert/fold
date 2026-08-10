@@ -17,7 +17,7 @@
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  z-index: 40;
+  z-index: var(--z-overlay-base-scrim);
   transition: opacity var(--duration-base) var(--ease);
 }
 
@@ -28,7 +28,7 @@
 
 .popup {
   position: fixed;
-  z-index: 41;
+  z-index: var(--z-overlay-base);
   background: var(--paper);
   display: flex;
   flex-direction: column;
@@ -228,7 +228,7 @@
 }
 
 .selectPositioner {
-  z-index: 42;
+  z-index: var(--z-popover);
 }
 
 /* Match the trigger's width exactly: Base UI exposes the anchor's size
@@ -433,6 +433,13 @@
    *(added 2026-08-04.)* */
 .secondaryActions {
   display: flex;
+  /* Wraps rather than crowding: these are link-styled actions with no
+     chrome to separate them, so on a narrow panel they stack instead of
+     running together. The row held a single action until Move joined it
+     (issue #38), which is why it had no gap at all.
+     *(changed 2026-08-09.)* */
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
   margin-top: calc(var(--space-1) * -1);
   margin-bottom: var(--space-3);
 }
@@ -480,4 +487,12 @@
 .duplicate:focus-visible {
   color: var(--ink);
   text-decoration-color: currentColor;
+}
+
+/* A completion whose date the server never recorded (issue #39). Italic and
+   muted: it is an explanation rather than a value, and the row would
+   otherwise read as though "Date unknown" were the timestamp itself. */
+.metaUnknown {
+  font-style: italic;
+  color: var(--faint);
 }

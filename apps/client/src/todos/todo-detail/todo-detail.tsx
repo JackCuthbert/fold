@@ -5,8 +5,8 @@ import { Input } from '@base-ui/react/input'
 import { Select } from '@base-ui/react/select'
 import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Controller, useWatch } from 'react-hook-form'
-import { LuChevronDown, LuCopy } from 'react-icons/lu'
+import { Controller } from 'react-hook-form'
+import { LuChevronDown, LuCopy, LuFolderInput } from 'react-icons/lu'
 import { InfoBadge, ModalHeader } from '../../ui'
 import { featuresOf } from '../../lists/lib/list-kind'
 import { cx } from '../../styles/cx'
@@ -81,7 +81,11 @@ const PRIO_CLASS: Record<string, string | undefined> = {
 // rewrites it — as an all-day 'date', or as 'zoned' once a time is given.
 interface TodoDetailProps {
   todo: Todo
-  /** Every list, for the move dropdown (docs/specs/todos.md). */
+  /**
+   * Every list. Used to resolve this todo's own list — a media list has
+   * no due dates (docs/specs/list-kinds.md) — and to offer targets for
+   * the Move action.
+   */
   lists: readonly TodoList[]
   /** The hoisted form — see use-todo-detail-form.ts. */
   form: TodoDetailForm
@@ -113,6 +117,8 @@ interface TodoDetailProps {
   onDelete: () => void
   /** Create a copy of this todo as new, active work (issue #25). */
   onDuplicate: () => void
+  /** Open the move dialog (issue #38). */
+  onMove: () => void
   onClose: () => void
 }
 
@@ -121,31 +127,26 @@ export function TodoDetail(props: TodoDetailProps) {
   const { control, isDirty, onSubmit, locked } = props.form
   // docs/specs/list-kinds.md — a media list has no due dates anywhere.
   //
-  // Read from the form's *pending* list, not the todo's stored one: the
-  // panel can move a todo between lists, and the fields have to follow
-  // the choice as it is made. Reading `todo.listId` meant moving a book
-  // out of Reading left the due fields hidden until after a save — the
-  // one moment you would want to set a date.
+  // Read from the todo's own list. This used to follow the form's
+  // *pending* list, because the panel could move a todo while you edited
+  // it and the fields had to track that choice as it was made. Moving is
+  // now its own action (move-todo-modal.tsx, issue #38): it applies
+  // immediately and closes the panel, so there is no pending list to
+  // follow — the todo is only ever in one list while this form is open.
   //
   // Resolved from a list rather than the surrounding view for the same
   // reason it is per-todo at all: Today and Summary show todos from
   // several lists at once.
-  // *(added 2026-08-05, issue #27; broadened to the pending list the
-  // same day.)*
-  const pendingListId = useWatch({ control, name: 'listId' })
+  // *(added 2026-08-05, issue #27; simplified 2026-08-09, issue #38.)*
   const noDueDates = featuresOf(
-    props.lists.find((list) => list.id === (pendingListId || props.todo.listId))
-      ?.displayName ?? '',
+    props.lists.find((list) => list.id === props.todo.listId)?.displayName ??
+      '',
   ).noDueDates
   // Captured once so every row in the metadata footer resolves "Today"
   // against the same instant.
   const now = new Date()
   const punctuality = punctualityOf(todo)
   const cycleTime = cycleTimeOf(todo)
-  const listOptions = props.lists.map((list) => ({
-    label: list.displayName,
-    value: list.id,
-  }))
 
   // The two things the header can say about this panel, and they cannot
   // co-occur: a locked form has nothing to save, and a dirty form is
@@ -342,57 +343,6 @@ export function TodoDetail(props: TodoDetailProps) {
             </Field.Root>
           )}
         />
-        {/* docs/specs/todos.md — moving a todo between lists: a List
-                dropdown alongside Priority, applied on Save with every
-                other edit. Only rendered when there's somewhere to move
-                to; with a single list the control would be inert. */}
-        {props.lists.length > 1 && (
-          <Controller
-            name="listId"
-            control={control}
-            render={({ field: { name, value, onChange } }) => (
-              <Field.Root
-                className={styles['field']}
-                name={name}
-                disabled={locked}
-              >
-                <Field.Label>List</Field.Label>
-                <Select.Root
-                  items={listOptions}
-                  value={value}
-                  onValueChange={onChange}
-                >
-                  <Select.Trigger className={styles['selectTrigger']}>
-                    <Select.Value />
-                    <Select.Icon className={styles['selectIcon']}>
-                      <LuChevronDown aria-hidden="true" size={14} />
-                    </Select.Icon>
-                  </Select.Trigger>
-                  <Select.Portal>
-                    <Select.Positioner
-                      className={styles['selectPositioner']}
-                      side="bottom"
-                      sideOffset={4}
-                      alignItemWithTrigger={false}
-                    >
-                      <Select.Popup className={styles['selectPopup']}>
-                        {listOptions.map((option) => (
-                          <Select.Item
-                            key={option.value}
-                            value={option.value}
-                            className={styles['selectItem']}
-                          >
-                            <Select.ItemText>{option.label}</Select.ItemText>
-                          </Select.Item>
-                        ))}
-                      </Select.Popup>
-                    </Select.Positioner>
-                  </Select.Portal>
-                </Select.Root>
-              </Field.Root>
-            )}
-          />
-        )}
         <Controller
           name="description"
           control={control}
@@ -502,6 +452,28 @@ export function TodoDetail(props: TodoDetailProps) {
             <LuCopy aria-hidden="true" size={14} />
             Duplicate this todo
           </button>
+          {/* docs/specs/todos.md — moving a todo between lists. An action
+              beside Duplicate rather than a field in the form above: a
+              move deletes the resource from one collection and recreates
+              it in another, which is not the same kind of thing as
+              editing a field, and as a dropdown it was one stray tap away
+              (issue #38).
+
+              Hidden with a single list, where there is nowhere to move
+              to — unlike the bulk actions, this is not part of what a
+              todo *is*, so an inert row would be noise. Locked todos keep
+              it: a completed todo can be filed somewhere else without
+              reopening it, and moving destroys nothing. */}
+          {props.lists.length > 1 && (
+            <button
+              type="button"
+              className={styles['duplicate']}
+              onClick={props.onMove}
+            >
+              <LuFolderInput aria-hidden="true" size={14} />
+              Move to another list
+            </button>
+          )}
         </div>
 
         {/* docs/specs/todos.md — metadata: facts *about* the todo rather
@@ -513,7 +485,7 @@ export function TodoDetail(props: TodoDetailProps) {
                 there is something to show — an open todo has no completion
                 date, and a completed one written by another client may not
                 carry one either (docs/specs/summary-view.md). */}
-        {(todo.created || todo.completedAt) && (
+        {(todo.created || todo.completedAt || todo.completed) && (
           <dl className={styles['meta']}>
             {todo.created && (
               <div className={styles['metaRow']}>

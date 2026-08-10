@@ -14,9 +14,6 @@ export const detailSchema = z
     dueTime: z.string(), // '' or HH:mm from <input type="time">
     description: z.string(),
     priority: z.union([todoPrioritySchema, z.literal('')]),
-    // The list the todo should end up in. Changing it moves the todo
-    // (docs/specs/todos.md — moving a todo between lists).
-    listId: z.string(),
   })
   .refine((values) => values.dueTime === '' || values.due !== '', {
     path: ['dueTime'],
@@ -30,7 +27,6 @@ const defaultsFor = (todo: Todo, fields: DueFields): DetailForm => ({
   dueTime: fields.time,
   description: todo.description ?? '',
   priority: todo.priority ?? '',
-  listId: todo.listId,
 })
 
 /** Seed values while no todo is open — never rendered, never submitted. */
@@ -40,7 +36,6 @@ const EMPTY_FORM: DetailForm = {
   dueTime: '',
   description: '',
   priority: '',
-  listId: '',
 }
 
 /**
@@ -122,7 +117,6 @@ export function useTodoDetailForm(
   todo: Todo | null,
   handlers: {
     onSave: (changes: TodoChanges) => void
-    onMove: (targetListId: string) => void
     onClose: () => void
   },
 ): TodoDetailForm {
@@ -185,13 +179,14 @@ export function useTodoDetailForm(
   const submit = (values: DetailForm): void => {
     if (!todo) return
     const changes = detailChanges(values, todo, initialFields.current)
-    // Save first, then move. The outbox folds a pending update into the
-    // move's payload (sync/coalesce.ts), so ordering this way means the
-    // copy written to the target list carries this edit — the reverse
-    // would queue an update against a resource the move has already
-    // deleted (docs/specs/todos.md — moving a todo between lists).
+    // No move to order against any more: moving is its own action, applied
+    // immediately (todos/move-todo-modal, issue #38). This used to have to
+    // call `onSave` *before* `onMove`, because the outbox folds a pending
+    // update into the move's payload (sync/coalesce.ts) and the reverse
+    // would queue an update against a resource the move had already
+    // deleted. The two are no longer submitted together, so the ordering
+    // constraint is gone with the field that created it.
     handlers.onSave(changes)
-    if (values.listId !== todo.listId) handlers.onMove(values.listId)
     handlers.onClose()
   }
 

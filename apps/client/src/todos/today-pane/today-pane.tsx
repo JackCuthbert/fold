@@ -280,6 +280,8 @@ interface TodayDetailProps {
    * selection can omit it (issue #25).
    */
   onDuplicated?: (copy: Todo) => void
+  /** Open the move dialog for this todo (issue #38). */
+  onMove: () => void
   onClose: () => void
 }
 
@@ -297,6 +299,7 @@ export function TodayDetail(props: TodayDetailProps) {
         lists={props.lists}
         form={props.form}
         mode={props.mode}
+        onMove={props.onMove}
         {...(props.open === undefined ? {} : { open: props.open })}
         {...(props.focusNonce === undefined
           ? {}
