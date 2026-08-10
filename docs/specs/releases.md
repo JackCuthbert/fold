@@ -52,9 +52,13 @@ self-hosters run this on a Raspberry Pi or an ARM NAS, where an amd64-only
 image simply will not start. arm64 is emulated under QEMU and is slow to
 build, which is affordable because it runs once per release.
 
-Each image carries **signed build provenance**, so a puller can verify it
-was built by this workflow from this repository rather than pushed by
-hand.
+**Signed build provenance is written but disabled.** The step is in the
+workflow, commented out: attestations are not available for user-owned
+*private* repositories, and it fails after the image has already pushed —
+failing the run without failing the publish. Re-enable it when the
+repository goes public, along with the `attestations: write` and
+`id-token: write` permissions it needs.
+*(disabled 2026-08-10, on the first release.)*
 
 ## Version in the app
 
