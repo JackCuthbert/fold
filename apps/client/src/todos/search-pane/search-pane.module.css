@@ -60,3 +60,26 @@
   color: var(--ink);
   font-weight: var(--weight-medium);
 }
+
+/* docs/specs/search-view.md — open work and finished work, shown apart.
+
+   Composes Summary's day heading rather than restating it: that rule
+   carries a measured indent reproducing the row's checkbox offset so the
+   heading lands on the same left edge as the summaries beneath it
+   (docs/specs/ui.md — one left edge). Copying the calc() here would mean
+   two places to fix when the checkbox changes size.
+   *(added 2026-08-10.)* */
+.groupHeading {
+  composes: dayHeading from '../summary-pane/summary-pane.module.css';
+}
+
+.groupCount {
+  composes: dayCount from '../summary-pane/summary-pane.module.css';
+}
+
+/* Air between the two groups, matching the gap Summary puts between days —
+   the boundary has to be legible while scanning, which is the whole point
+   of separating them. */
+.group + .group {
+  margin-top: var(--space-6);
+}

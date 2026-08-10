@@ -105,6 +105,32 @@ export function searchTodos(todos: readonly Todo[], query: string): Todo[] {
   return fuse.search(trimmed).map((result) => result.item)
 }
 
+/**
+ * Search results split into open work and finished work.
+ *
+ * docs/specs/search-view.md — the two are ranked together and shown apart.
+ * Interleaved, a finished todo scoring fractionally higher pushes live work
+ * down the list, and the strikethrough is the only thing distinguishing
+ * them — a difference you have to read each row to notice. Whether a todo
+ * is still to do is the coarsest fact about it, so it separates the
+ * results rather than decorating them.
+ *
+ * **Ranking is untouched.** This partitions an already-sorted list, so
+ * within each group the order is exactly what `searchTodos` returned: the
+ * grouping decides where a result appears, never how well it matched.
+ */
+export interface SearchGroups {
+  open: Todo[]
+  done: Todo[]
+}
+
+export function groupSearchResults(results: readonly Todo[]): SearchGroups {
+  return {
+    open: results.filter((todo) => !todo.completed),
+    done: results.filter((todo) => todo.completed),
+  }
+}
+
 /** Whether a query is long enough to have been run at all. */
 export const isSearchable = (query: string): boolean =>
   query.trim().length >= MIN_QUERY_LENGTH

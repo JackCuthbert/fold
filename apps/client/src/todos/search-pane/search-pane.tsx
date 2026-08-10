@@ -2,7 +2,12 @@ import type { Todo, TodoList } from '@fold/schemas'
 import { useEffect, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
 import { useSound } from '../../sound'
-import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from '../lib/search'
+import {
+  groupSearchResults,
+  isSearchable,
+  MIN_QUERY_LENGTH,
+  searchTodos,
+} from '../lib/search'
 import { rowListFor } from '../lib/row-list'
 import styles from './search-pane.module.css'
 import { TodayRow } from '../today-pane/today-pane'
@@ -54,7 +59,38 @@ export function SearchPane(props: SearchPaneProps) {
   const results = searchTodos(todos, props.query)
   const searched = isSearchable(props.query)
 
+  // docs/specs/search-view.md — ranked together, shown apart. Interleaved,
+  // a finished todo scoring fractionally higher pushed live work down the
+  // page, with a strikethrough as the only thing telling them apart.
+  const groups = groupSearchResults(results)
+
   const rowList = (listId: string) => rowListFor(props.lists, listId)
+
+  const renderGroup = (label: string, group: readonly Todo[]) =>
+    group.length === 0 ? null : (
+      <section className={styles['group']}>
+        {/* Only labelled when both groups are present: a heading over the
+            sole group states a distinction the results do not make. */}
+        {groups.open.length > 0 && groups.done.length > 0 && (
+          <h2 className={styles['groupHeading']}>
+            {label}
+            <span className={styles['groupCount']}>{group.length}</span>
+          </h2>
+        )}
+        <ul className={paneStyles['list']}>
+          {group.map((todo) => (
+            <TodayRow
+              key={`${todo.listId}:${todo.uid}`}
+              todo={todo}
+              now={new Date()}
+              list={rowList(todo.listId)}
+              onOpen={(trigger) => props.onOpen(todo, trigger)}
+              onToggled={playPop}
+            />
+          ))}
+        </ul>
+      </section>
+    )
 
   return (
     <div className={paneStyles['pane']}>
@@ -102,18 +138,15 @@ export function SearchPane(props: SearchPaneProps) {
           Nothing matched <strong>{props.query.trim()}</strong>.
         </p>
       ) : (
-        <ul className={paneStyles['list']}>
-          {results.map((todo) => (
-            <TodayRow
-              key={`${todo.listId}:${todo.uid}`}
-              todo={todo}
-              now={new Date()}
-              list={rowList(todo.listId)}
-              onOpen={(trigger) => props.onOpen(todo, trigger)}
-              onToggled={playPop}
-            />
-          ))}
-        </ul>
+        <>
+          {renderGroup('To do', groups.open)}
+          {/* No "Clear completed" here, unlike a list. This view is a lens
+              over every list at once, and a destructive action scoped to
+              whatever a query happened to match is not a scope anyone can
+              hold in their head (docs/specs/todos.md — clearing completed
+              todos). Clearing belongs where the todos live. */}
+          {renderGroup('Done', groups.done)}
+        </>
       )}
     </div>
   )

@@ -1,6 +1,11 @@
 import type { Todo } from '@fold/schemas'
 import { describe, expect, it } from 'vitest'
-import { isSearchable, MIN_QUERY_LENGTH, searchTodos } from './search'
+import {
+  isSearchable,
+  MIN_QUERY_LENGTH,
+  groupSearchResults,
+  searchTodos,
+} from './search'
 
 const todo = (uid: string, extra: Partial<Todo> = {}): Todo => ({
   uid,
@@ -108,5 +113,46 @@ describe('isSearchable', () => {
     expect(isSearchable('m')).toBe(false)
     expect(isSearchable('mi')).toBe(true)
     expect(isSearchable(' '.repeat(MIN_QUERY_LENGTH))).toBe(false)
+  })
+})
+
+// docs/specs/search-view.md — ranked together, shown apart.
+describe('groupSearchResults', () => {
+  it('separates finished work from open work', () => {
+    const groups = groupSearchResults([
+      todo('a'),
+      todo('b', { completed: true }),
+      todo('c'),
+    ])
+
+    expect(groups.open.map((t) => t.uid)).toEqual(['a', 'c'])
+    expect(groups.done.map((t) => t.uid)).toEqual(['b'])
+  })
+
+  it('preserves the ranking within each group', () => {
+    // The grouping decides where a result appears, never how well it
+    // matched — so a lower-ranked open todo must not overtake a higher one
+    // just because a completed todo was removed from between them.
+    // Ranked best-first, but named so that *alphabetical* order is the
+    // reverse — otherwise a sort() creeping in would leave this order
+    // untouched and the test would pass against the bug it exists for.
+    const groups = groupSearchResults([
+      todo('zebra-best-match'),
+      todo('middle-done', { completed: true }),
+      todo('alpha-worst-match'),
+    ])
+
+    expect(groups.open.map((t) => t.uid)).toEqual([
+      'zebra-best-match',
+      'alpha-worst-match',
+    ])
+  })
+
+  it('leaves a group empty rather than absent', () => {
+    // The pane checks both lengths to decide whether to label the groups
+    // at all, so an all-open result set must still answer `.done`.
+    const groups = groupSearchResults([todo('a')])
+
+    expect(groups.done).toEqual([])
   })
 })

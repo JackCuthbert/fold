@@ -94,11 +94,30 @@ that already say it; here the count line is deliberately silent, and
 
 **Best match first**, which is Fuse's score order.
 
-**No grouping**, unlike Today and Summary. Grouping collapses a list's
-todos into one row, which is right when scanning a day — eight things to
-buy is one errand — and wrong when searching: you asked for a specific todo
-by name, and hiding it inside a "Groceries (8)" row would answer a question
-you did not ask. Every match is its own row, and the count counts them.
+**No grouping by list**, unlike Today and Summary. Grouping collapses a
+list's todos into one row, which is right when scanning a day — eight things
+to buy is one errand — and wrong when searching: you asked for a specific
+todo by name, and hiding it inside a "Groceries (8)" row would answer a
+question you did not ask. Every match is its own row, and the count counts
+them.
+
+**Split into "To do" and "Done".** *(added 2026-08-10.)* Results are ranked
+together and then shown apart. Interleaved, a finished todo scoring
+fractionally higher pushed live work down the page, with a strikethrough as
+the only thing telling them apart — a difference you have to read each row
+to notice. Whether a todo is still to do is the coarsest fact about it, so
+it separates the results rather than decorating them.
+
+This is not the list grouping rejected above: nothing is collapsed and no
+match is hidden. Every result is still its own row, in score order, within
+its group. The headings appear only when both groups are non-empty — a
+heading over the sole group states a distinction the results do not make.
+
+**No "Clear completed" here**, unlike a list. This view is a lens over every
+list at once, and a destructive action scoped to whatever a query happened
+to match is not a scope anyone can hold in their head
+([todos](./todos.md#clearing-completed-todos)). Clearing belongs where the
+todos live.
 
 ## State
 

@@ -150,3 +150,48 @@ test('the search view has a chord, in nav order', async ({ page }) => {
   await page.keyboard.press('Control+Shift+Digit1')
   await expect(page.getByRole('heading', { name: /^Today/ })).toBeVisible()
 })
+
+// docs/specs/search-view.md — ordering and grouping. *(added 2026-08-10.)*
+//
+// The partition itself is unit-tested (groupSearchResults). What only this
+// layer proves is that the pane renders the two groups in the right order
+// with their headings, and that a finished todo cannot appear above open
+// work — the actual complaint, which no unit test of a pure function sees.
+test('finished work sits below open work, under its own heading', async ({
+  page,
+}) => {
+  await login(page)
+
+  const list = uniqueName('split')
+  await createList(page, list)
+  await nav(page).getByRole('button', { name: list, exact: true }).click()
+
+  // A shared word so one query matches both, and the completed one is
+  // added *first* — the bug this guards is a finished todo ranking above
+  // live work, so it has to be the earlier row before grouping applies.
+  await addTodo(page, 'Sharedword finished')
+  await addTodo(page, 'Sharedword pending')
+  await page
+    .getByRole('checkbox', { name: /Sharedword finished/ })
+    .first()
+    .click()
+  await waitForSync(page)
+
+  await nav(page).getByRole('button', { name: 'Search', exact: true }).click()
+  await field(page).fill('Sharedword')
+
+  await expect(page.getByRole('heading', { name: /To do/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Done/ })).toBeVisible()
+
+  // Order on the page, not merely presence: both rows are visible either
+  // way, so only their relative position distinguishes grouped from
+  // interleaved.
+  const rows = page.getByRole('listitem').filter({ hasText: 'Sharedword' })
+  await expect(rows.first()).toContainText('pending')
+  await expect(rows.last()).toContainText('finished')
+
+  // Clearing belongs where the todos live, never behind a query.
+  await expect(
+    page.getByRole('button', { name: /Clear completed/ }),
+  ).toBeHidden()
+})
