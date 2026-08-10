@@ -2,6 +2,11 @@ import { ZodError } from 'zod'
 import { CaldavError, CaldavUnreachableError } from '../caldav/errors'
 import { useSecureCookie } from '../config'
 import { HttpError } from '../http/errors'
+import {
+  outcomeFor,
+  writeAccessLog,
+  type LogSink,
+} from '../observability/access-log'
 import { sessionCookie } from '../session/cookie'
 import {
   json,
@@ -54,15 +59,22 @@ function toResponse(error: unknown): Response {
 /**
  * How long a handler may run before we answer on its behalf.
  *
- * This must stay *below* `Bun.serve`'s `idleTimeout` (see index.ts). Bun's
- * timeout severs the socket before any of the mapping above can run, so the
+ * This must stay *below* whatever ceiling the host imposes, because that
+ * ceiling severs the request before any of the mapping above can run: the
  * client gets a hang-up — indistinguishable from "the BFF is broken" — for
  * what is really just a slow upstream. Answering first keeps the failure on
  * the documented 502 path (docs/specs/api.md — error mapping), which the
  * client already understands as "server unreachable, keep the queue".
  *
+ * The ceiling differs per deployment target (`Bun.serve`'s `idleTimeout` in
+ * the container, the platform's function limit on Vercel), so the real
+ * value is derived from config — `handlerTimeoutMs` in config.ts — and
+ * passed in by app.ts. This remains only as the default for a router built
+ * without one, which in practice means the unit tests.
+ *
  * *(added 2026-08-04: a real CalDAV server slower than Bun's 10s default
- * failed every request as a socket hang up / 500.)*
+ * failed every request as a socket hang up / 500. Moved to config
+ * 2026-08-10, when Vercel added a second, lower ceiling.)*
  */
 export const HANDLER_TIMEOUT_MS = 240_000
 
@@ -114,15 +126,44 @@ async function withRenewedSession(
 export function createRouter(
   routes: Route[],
   app: AppContext,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; logSink?: LogSink | null } = {},
 ) {
   const timeoutMs = options.timeoutMs ?? HANDLER_TIMEOUT_MS
+  // `null` disables logging outright — the unit tests take that path so a
+  // suite run doesn't print a few hundred JSON lines. `undefined` means
+  // "use the default sink", which is what both real entry points want.
+  const logSink = options.logSink === undefined ? console.log : options.logSink
   return async (request: Request): Promise<Response> => {
     const { pathname } = new URL(request.url)
+    // Monotonic, so a clock adjustment mid-request cannot produce a
+    // negative or wildly wrong duration.
+    const startedAt = performance.now()
+    // The *pattern* of whatever route matched, which is what gets logged —
+    // never `pathname`, which carries list and todo ids. Stays null when
+    // nothing matches, so a 404's arbitrary path is never recorded.
+    let matchedRoute: string | null = null
+
+    const finish = (response: Response): Response => {
+      if (logSink !== null) {
+        writeAccessLog(
+          {
+            method: request.method,
+            route: matchedRoute,
+            status: response.status,
+            outcome: outcomeFor(response.status),
+            durationMs: Math.round(performance.now() - startedAt),
+          },
+          logSink,
+        )
+      }
+      return response
+    }
+
     for (const route of routes) {
       if (route.method !== request.method) continue
       const params = matchPath(route.path, pathname)
       if (!params) continue
+      matchedRoute = route.path
       let timer: ReturnType<typeof setTimeout> | undefined
       // Built once and shared: `requireCredentials` marks this object for
       // session renewal, and the response path below reads that mark.
@@ -144,18 +185,18 @@ export function createRouter(
             )
           }),
         ])
-        return await withRenewedSession(response, ctx)
+        return finish(await withRenewedSession(response, ctx))
       } catch (error) {
         // Deliberately no renewal on the error path. A 401 must not hand
         // back a cookie, and the rest are upstream failures where saying
         // nothing about the session is the honest answer.
-        return toResponse(error)
+        return finish(toResponse(error))
       } finally {
         // The loser of the race is abandoned, not cancelled; clearing the
         // timer keeps a won race from holding the process awake.
         clearTimeout(timer)
       }
     }
-    return json({ error: 'not_found', message: 'No such route' }, 404)
+    return finish(json({ error: 'not_found', message: 'No such route' }, 404))
   }
 }
