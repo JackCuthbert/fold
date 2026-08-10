@@ -344,3 +344,55 @@
   margin-top: var(--space-3);
   color: var(--faint);
 }
+
+/* The version line: dot, version, release notes — one row rather than the
+   two sentences this started as. Colour carries whether an upgrade exists,
+   so the text only has to name the versions.
+   *(added 2026-08-10.)* */
+.versionLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Same size and semantic colours as the sync dot in the nav footer
+   (ui/status-dot), so green and amber mean here what they mean there.
+   Green: this is the current release. */
+.versionDot {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--status-synced);
+}
+
+/* Amber, matching "syncing" rather than "offline": a newer release is a
+   nudge, not a fault. Running behind is a choice, and red would make the
+   modal look like something had broken. */
+.versionDotStale {
+  background: var(--status-syncing);
+}
+
+/* Pushed to the trailing edge, so the link sits where the eye already
+   goes for actions rather than mid-sentence. */
+.versionLink {
+  margin-inline-start: auto;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* The dot's meaning, for anyone who cannot see it — the app's rule is
+   that state is never carried by colour alone (ui/status-dot). Visually
+   hidden rather than shown, because on screen the colour already says it
+   and a second copy would be the extra text this design removed. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

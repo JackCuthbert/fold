@@ -6,6 +6,7 @@ import { LuChevronRight } from 'react-icons/lu'
 import { ModalHeader } from '../../ui'
 import { SHORTCUTS, ShortcutKeys } from '../../shortcuts'
 import { cx } from '../../styles/cx'
+import { useVersion } from '../use-version'
 import styles from './help-modal.module.css'
 
 /**
@@ -81,6 +82,83 @@ interface HelpModalProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface VersionSectionProps {
+  open: boolean
+}
+
+/**
+ * Which version is running, and whether a newer one exists
+ * (docs/specs/releases.md).
+ *
+ * **Here, and nowhere else in the app.** No badge, no toast, no dot on an
+ * icon: the product's stated intent is "no notifications, no badges, no
+ * streaks" (docs/specs/overview.md), and an upgrade prompt that followed
+ * you around would contradict it. Someone who wants to know comes and
+ * looks; someone who doesn't is never interrupted.
+ *
+ * Renders **nothing** until the version arrives, and nothing at all if the
+ * request fails. A failed check is not a problem the reader can act on,
+ * and an error where the version should be would be worse than no line.
+ *
+ * The update line only appears when the server was asked to look
+ * (`CHECK_FOR_UPDATES`) *and* found something newer — off by default, so
+ * most deployments see the version alone.
+ */
+function VersionSection(props: VersionSectionProps) {
+  const version = useVersion(props.open)
+  if (!version) return null
+
+  return (
+    <section className={styles['section']}>
+      <h3 className={styles['heading']}>Version</h3>
+      <p className={styles['versionLine']}>
+        {/* The dot carries the state, so the sentence does not have to —
+            the same green/amber vocabulary as the sync indicator in the
+            nav footer (docs/specs/ui.md — status display). Green is "this
+            is the current release", amber is "there is a newer one",
+            which is a nudge rather than a warning: running behind is a
+            choice, not a fault. */}
+        <span
+          className={cx(
+            styles['versionDot'],
+            version.updateAvailable && styles['versionDotStale'],
+          )}
+          aria-hidden="true"
+        />
+        <span>
+          Fold <UI>{version.current}</UI>
+          {version.updateAvailable && version.latest !== null && (
+            <>
+              {' · '}
+              <UI>{version.latest}</UI> available
+            </>
+          )}
+        </span>
+        {/* Named for what it is rather than what it answers: someone
+            clicking here wants the notes, whether or not they are
+            behind. */}
+        <a
+          className={cx(styles['link'], styles['versionLink'])}
+          href="https://github.com/JackCuthbert/fold/releases"
+          target="_blank"
+          // `noreferrer` alongside `noopener`: the release page has no
+          // business knowing which page linked to it.
+          rel="noopener noreferrer"
+        >
+          Release notes
+        </a>
+      </p>
+      {/* The state is carried by colour, which a screen reader cannot see
+          — so it is said once, here, and nowhere on screen. */}
+      <span className={styles['srOnly']}>
+        {version.updateAvailable
+          ? 'A newer version is available.'
+          : 'This is the current version.'}
+      </span>
+    </section>
+  )
+}
+
 export function HelpModal(props: HelpModalProps) {
   // This is the only modal in the app whose body genuinely scrolls, and Base
   // UI's default initial focus is the first tabbable element — which was
@@ -130,6 +208,12 @@ export function HelpModal(props: HelpModalProps) {
                 ))}
               </dl>
             </section>
+            {/* Between the shortcuts and the topics: shorter than either,
+                and the one thing here that is about the *installation*
+                rather than the app, so it reads as a note between two
+                bodies of documentation rather than an item in either.
+                *(added 2026-08-10.)* */}
+            <VersionSection open={props.open} />
             {/* Everything else, folded away — see `Topic`. `multiple` so
                 opening one topic does not close the one you were
                 comparing it with.

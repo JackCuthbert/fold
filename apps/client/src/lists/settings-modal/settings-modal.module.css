@@ -28,7 +28,12 @@
   border-radius: var(--radius-md);
   background: var(--paper);
   color: var(--ink);
-  max-width: 22rem;
+  /* Matched to the help modal's 26rem. The two are the app's only
+     full-page overlays and open from adjacent controls in the same nav
+     footer, so a 4rem difference read as one of them being wrong rather
+     than as two sizes — and the wider box gives the palette and typeface
+     cards room to breathe. *(changed 2026-08-10.)* */
+  max-width: 26rem;
   width: calc(100% - var(--space-8));
   max-height: 85dvh;
   outline: none;

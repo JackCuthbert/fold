@@ -110,9 +110,17 @@ export const queryClient = new QueryClient({
 // while the cookie was already gone — empty lists, then a 401 on the first
 // write (docs/specs/authentication.md — the session is never served from
 // cache). Todos and lists still persist so the app works offline.
+//
+// ['version'] is excluded for a related reason: it describes the server
+// that is running *now*, so a persisted copy would survive an upgrade and
+// report the version the user had before they pulled the new image — the
+// one moment the number actually matters (docs/specs/releases.md).
+const EPHEMERAL_QUERIES = new Set(['session', 'version'])
+
 const dehydrateOptions = {
   shouldDehydrateQuery: (query: { queryKey: readonly unknown[] }): boolean =>
-    query.queryKey[0] !== 'session',
+    typeof query.queryKey[0] !== 'string' ||
+    !EPHEMERAL_QUERIES.has(query.queryKey[0]),
 }
 
 const storagePersister = createAsyncStoragePersister({

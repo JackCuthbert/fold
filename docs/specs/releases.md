@@ -76,7 +76,30 @@ browser never contacts GitHub. That keeps the client's request pattern
 unchanged and means one call per deployment rather than one per user.
 
 **It appears in the Help modal and nowhere else.** No badge, no toast, no
-dot on an icon. The product's stated intent is "no notifications, no badges, no
-streaks" ([overview](./overview.md)), and an upgrade prompt that follows
-you around the app would contradict it. Someone who wants to know goes and
-looks; someone who doesn't is never interrupted.
+dot on an icon anywhere in the app frame. The product's stated intent is
+"no notifications, no badges, no streaks" ([overview](./overview.md)), and
+an upgrade prompt that follows you around would contradict it. Someone who
+wants to know goes and looks; someone who doesn't is never interrupted.
+
+**Colour carries the state, not prose.** One line — a dot, the version, and
+a *Release notes* link:
+
+```
+● Fold 0.1.0                                        Release notes
+● Fold 0.1.0 · v0.3.0 available                     Release notes
+```
+
+Green means this is the current release; amber means a newer one exists.
+The same two tokens as the sync dot in the nav footer, so the colours mean
+the same thing in both places — and **amber rather than red**, because
+running a version behind is a choice, not a fault. Red is reserved for
+"disconnected", where something is actually broken.
+
+Nothing explains *how* to upgrade: someone self-hosting a container knows
+how to pull an image, and the release notes are one click away. The link
+is named for what it is rather than what it answers, so it reads correctly
+whether or not there is an update.
+
+The dot's meaning is also carried by a visually-hidden sentence, because
+the app's rule is that state is never conveyed by colour alone
+(`ui/status-dot`). *(added 2026-08-10.)*

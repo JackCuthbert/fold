@@ -4,12 +4,14 @@ import {
   todoListSchema,
   todoSchema,
   todosResponseSchema,
+  versionSchema,
   type Credentials,
   type NewTodo,
   type Session,
   type Todo,
   type TodoChanges,
   type TodoList,
+  type VersionInfo,
   type TodosResponse,
 } from '@fold/schemas'
 import { ApiError, NetworkError } from './errors'
@@ -59,6 +61,8 @@ export function createApi() {
         throw error
       }
     },
+    getVersion: async (): Promise<VersionInfo> =>
+      versionSchema.parse(await call('/api/version', 'GET')),
     getLists: async (): Promise<TodoList[]> =>
       listsResponseSchema.parse(await call('/api/lists', 'GET')),
     createList: async (

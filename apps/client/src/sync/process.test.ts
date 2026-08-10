@@ -32,6 +32,7 @@ const fakeApi = (overrides: Partial<Api>): Api => ({
   login: vi.fn(),
   logout: vi.fn(),
   getSession: vi.fn(),
+  getVersion: vi.fn(),
   getLists: vi.fn(),
   createList: vi.fn(),
   patchList: vi.fn(),
