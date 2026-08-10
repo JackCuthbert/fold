@@ -1,10 +1,9 @@
 import { credentialsSchema, type Credentials } from '@fold/schemas'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Field } from '@base-ui/react/field'
 import { Form } from '@base-ui/react/form'
-import { Input } from '@base-ui/react/input'
 import { useMutation } from '@tanstack/react-query'
-import { Controller, useForm } from 'react-hook-form'
+import { LuOrigami } from 'react-icons/lu'
+import { useForm } from 'react-hook-form'
 import { ApiError } from '../../api'
 import { api, persister, queryClient } from '../../providers'
 import {
@@ -12,14 +11,15 @@ import {
   rememberServerIdentity,
   serverIdentity,
 } from '../../lib'
+import { FoldArtwork } from '../fold-artwork/fold-artwork'
+import { PaletteSelect } from '../../theme/palette-select/palette-select'
+import { LoginField } from '../login-field/login-field'
 import styles from './login-screen.module.css'
 
 // docs/specs/authentication.md — login form, react-hook-form + zod.
-// docs/specs/ui.md — every interactive element comes from Base UI: Form,
-// Field and Input supply the accessible wiring (labels, ARIA, validation
-// messages); react-hook-form + zod remain the state/validation layer, wired
-// together via Controller per the Base UI + react-hook-form integration
-// pattern (bundled docs: react/handbook/forms.md).
+// docs/specs/ui.md — every interactive element comes from Base UI; the
+// per-field wiring lives in login-field.tsx.
+//
 // The local compose stack (docs/user/local-caldav-server.md). Dev-only:
 // these credentials exist on nobody's real server, so the button must not
 // appear in a production build.
@@ -76,112 +76,114 @@ export function LoginScreen() {
         : null
 
   return (
-    <main className={styles['login']}>
-      <h1 className={styles['heading']}>Fold</h1>
-      <p className={styles['hint']}>Sign in to your CalDAV server</p>
-      <Form
-        className={styles['form']}
-        onSubmit={handleSubmit((credentials) => login.mutate(credentials))}
-      >
-        <Controller
-          name="serverUrl"
-          control={control}
-          render={({
-            field: { ref, name, value, onBlur, onChange },
-            fieldState: { invalid, error },
-          }) => (
-            <Field.Root
-              className={styles['field']}
-              name={name}
-              invalid={invalid}
+    // docs/specs/ui.md — login: a full-screen split, the artwork on one
+    // half and the mark, the blurb and the form on the other. The two
+    // halves are siblings of one grid rather than a floating card on a
+    // background, so neither can overlap the other at any width, and the
+    // form half owns its own scrolling when the viewport is short.
+    <div className={styles['page']}>
+      {/* Decorative, and the first thing in the DOM would put it ahead of
+          the form for a screen reader — so it is `aria-hidden` (see
+          fold-artwork.tsx) and the form half carries everything that is
+          read. */}
+      <div className={styles['canvas']}>
+        <FoldArtwork />
+      </div>
+      <main className={styles['panel']}>
+        <div className={styles['content']}>
+          <div className={styles['intro']}>
+            <p className={styles['mark']}>
+              {/* The same origami mark the nav is headed by, so the app
+                  introduces itself with the face it keeps
+                  (docs/specs/ui.md — the nav is headed by the app's
+                  mark). */}
+              <LuOrigami aria-hidden="true" size={20} />
+              <span className={styles['wordmark']}>Fold</span>
+            </p>
+            <h1 className={styles['heading']}>
+              A calm todo list, kept on your own server.
+            </h1>
+            {/* docs/specs/overview.md — product intent: only the features
+                its owner needs, calm and unhurried, and offline-resilient.
+                Three sentences at most: a login page is a door, not a
+                landing page. */}
+            <p className={styles['blurb']}>
+              Fold is a todo client for any CalDAV server. Your todos stay yours
+              — no account, no sync service, nothing that nags. It keeps working
+              offline and catches up when you are back.
+            </p>
+          </div>
+
+          <Form
+            className={styles['form']}
+            onSubmit={handleSubmit((credentials) => login.mutate(credentials))}
+          >
+            <LoginField
+              control={control}
+              name="serverUrl"
+              label="Server URL"
+              type="url"
+              autoComplete="url"
+              placeholder="https://dav.example.com/username/"
+              fallbackError="Enter a valid URL"
+            />
+            <LoginField
+              control={control}
+              name="username"
+              label="Username"
+              autoComplete="username"
+              fallbackError="Required"
+            />
+            <LoginField
+              control={control}
+              name="password"
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              fallbackError="Required"
+            />
+            {submitError && (
+              <p className={styles['submitError']} role="alert">
+                {submitError}
+              </p>
+            )}
+            <button
+              type="submit"
+              className={styles['submit']}
+              disabled={isSubmitting || login.isPending}
             >
-              <Field.Label>Server URL</Field.Label>
-              <Input
-                ref={ref}
-                type="url"
-                placeholder="https://dav.example.com/username/"
-                autoComplete="url"
-                value={value ?? ''}
-                onBlur={onBlur}
-                onValueChange={onChange}
-              />
-              <Field.Error className={styles['error']} match={!!error}>
-                {error?.message ?? 'Enter a valid URL'}
-              </Field.Error>
-            </Field.Root>
-          )}
-        />
-        <Controller
-          name="username"
-          control={control}
-          render={({
-            field: { ref, name, value, onBlur, onChange },
-            fieldState: { invalid, error },
-          }) => (
-            <Field.Root
-              className={styles['field']}
-              name={name}
-              invalid={invalid}
-            >
-              <Field.Label>Username</Field.Label>
-              <Input
-                ref={ref}
-                autoComplete="username"
-                value={value ?? ''}
-                onBlur={onBlur}
-                onValueChange={onChange}
-              />
-              <Field.Error className={styles['error']} match={!!error}>
-                {error?.message ?? 'Required'}
-              </Field.Error>
-            </Field.Root>
-          )}
-        />
-        <Controller
-          name="password"
-          control={control}
-          render={({
-            field: { ref, name, value, onBlur, onChange },
-            fieldState: { invalid, error },
-          }) => (
-            <Field.Root
-              className={styles['field']}
-              name={name}
-              invalid={invalid}
-            >
-              <Field.Label>Password</Field.Label>
-              <Input
-                ref={ref}
-                type="password"
-                autoComplete="current-password"
-                value={value ?? ''}
-                onBlur={onBlur}
-                onValueChange={onChange}
-              />
-              <Field.Error className={styles['error']} match={!!error}>
-                {error?.message ?? 'Required'}
-              </Field.Error>
-            </Field.Root>
-          )}
-        />
-        {submitError && (
-          <p className={styles['error']} role="alert">
-            {submitError}
-          </p>
-        )}
-        <button
-          type="submit"
-          className={styles['submit']}
-          disabled={isSubmitting || login.isPending}
-        >
-          Sign in
-        </button>
-        {import.meta.env.DEV && (
-          <button type="button" className={styles['demo']} onClick={fillDemo}>
-            Use demo server
-          </button>
-        )}
-      </Form>
-    </main>
+              Sign in
+            </button>
+            {import.meta.env.DEV && (
+              <button
+                type="button"
+                className={styles['demo']}
+                onClick={fillDemo}
+              >
+                Use demo server
+              </button>
+            )}
+          </Form>
+
+          {/* The one piece of reassurance worth the space: the password is
+              the user's own server's, and this app is where it stops
+              (docs/specs/authentication.md — the client never sees the
+              password again after submission). */}
+          <div className={styles['foot']}>
+            <p className={styles['footnote']}>
+              Credentials go to your server and are held only in an encrypted
+              session cookie.
+            </p>
+            {/* The theme is browser-local (docs/specs/themes.md), so it can
+                be set before there is an account — and someone who wants
+                dark paper at night should not have to sign in to get it.
+                Beside the footnote rather than near the form: it is the
+                quietest thing on the page and belongs with the other
+                quiet thing. *(added 2026-08-10.)* */}
+            <PaletteSelect />
+          </div>
+        </div>
+      </main>
+    </div>
   )
 }

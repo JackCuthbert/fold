@@ -68,16 +68,35 @@
 
   --measure: 34rem;
 
-  --serif: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif;
+  /* Self-hosted and variable (styles/fonts.css) rather than assumed: the
+     previous stack led with Charter, which is absent on most Linux systems
+     and silently became Georgia there. *(changed 2026-08-10.)* */
+  --serif: Lora, Georgia, Cambria, serif;
   /* Keyboard keycaps only, so far (shortcut-keys.tsx). The body face is
      the serif above and stays that way — a keycap is a picture of a
      physical key, not prose, and a serif "K" beside a geometric ⌘ glyph
      reads as two different systems. System UI stack rather than a webfont:
      it costs nothing and already matches the OS the key belongs to.
      *(added 2026-08-04.)* */
+  /* Cabin leads, self-hosted and variable (styles/fonts.css), with the
+     system stack behind it only as a load failure fallback.
+
+     It has to be a font we ship, not the platform's. The meta pills nudge
+     their dots and icons to the cap band by a fixed em offset
+     (todo-meta.module.css), and that offset was measured against one set of
+     metrics — leaving the face to the OS would mean the correction is right
+     on macOS and wrong on Linux, which is the same class of bug that made
+     Charter a problem. *(changed 2026-08-10.)* */
   --sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    Cabin, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* The face for annotations on a todo — the meta pills and the keycaps.
+     Its own token rather than `--sans` directly, so the question "should
+     these follow the body face?" is one line to answer rather than a
+     find-and-replace. *(added 2026-08-10.)* */
+  --meta: var(--sans);
 
   --paper: #faf9f6;
   --surface: #ffffff;

@@ -48,7 +48,7 @@
   overflow: hidden;
   /* Sans, never the body serif: the modifier glyphs are geometric, and a
      serif letterform beside them looks like a different system. */
-  font-family: var(--sans);
+  font-family: var(--meta);
   /* Fixed for the same reason as the box above. --text-xs is the app's
      smallest step, which is the right weight for an annotation. */
   font-size: var(--text-xs);

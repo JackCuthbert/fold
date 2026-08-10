@@ -60,47 +60,117 @@
   padding: var(--space-3);
 }
 
-/* docs/specs/ui.md — one left edge, left and right edges both: rows in a
-   panel — including the settings modal — align on both sides with the
-   modal's other content (the title and the Sign out button below). This row
-   previously carried its own --space-2 horizontal padding on top of
-   `.body`'s inset, narrowing it 8px inside its neighbours on both edges —
-   removed here; `.body`'s own padding is the only horizontal inset now.
-   *(changed 2026-07-31.)* */
-.serverUrl {
+/* Titled sections, matching the help modal's structure (help-modal.module.css
+   — `.section`, `.heading`, `.subheading`). Composed rather than restated so
+   the two modals cannot drift into looking like different apps.
+
+   A column here, unlike the help modal's: Settings holds *controls* rather
+   than prose, and a flex column is what lets one of them (Sign out) sit at
+   the trailing edge instead of stretching. *(added 2026-08-10.)* */
+.section {
+  composes: section from '../../help/help-modal/help-modal.module.css';
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.heading {
+  composes: heading from '../../help/help-modal/help-modal.module.css';
+}
+
+.subheading {
+  composes: subheading from '../../help/help-modal/help-modal.module.css';
+}
+
+/* The explanatory line under a heading — where a setting is stored, what
+   signing out does. Same register as the help modal's prose. */
+.note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+/* One family of palettes, with its label. */
+.paletteGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.paletteGroup + .paletteGroup {
+  margin-top: var(--space-2);
+}
+
+/* Quieter than `.subheading`, which names the whole setting — this only
+   divides its options, so it must not read as a second heading.
+
+   No inline padding: the cards below now carry a border in every state, so
+   the label sits on their outer edge. It was indented by --space-2 to match
+   a borderless row's text, which put it a border-width off once the cards
+   gained edges. *(fixed 2026-08-10.)* */
+.groupLabel {
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  color: var(--faint);
+  padding-block-end: 2px;
+}
+
+.palettes,
+.typefaces {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding-block: var(--space-2);
+}
+
+/* A segmented row: three mutually exclusive options that read as one
+   control, so the group is bordered and the buttons share its edges rather
+   than each carrying their own. */
+.modes {
+  display: flex;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.mode {
+  flex: 1 1 0;
   min-height: var(--hit-area);
-  border-bottom: 1px solid var(--line);
-  margin-bottom: var(--space-2);
-}
-
-.serverUrlValue {
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
   font-size: var(--text-sm);
-  word-break: break-all;
+  cursor: pointer;
 }
 
-/* docs/specs/ui.md — Settings: controls need breathing room from any
-   divider beneath them. *(changed 2026-07-31: there was no padding at all
-   between the sound toggle and this row's divider — the border sat flush
-   against the toggle's own box. padding-bottom now separates the control
-   from its divider before margin-bottom adds the gap to the next row.)*
-   docs/specs/ui.md — one left edge, left and right edges both: dropped the
-   row's own horizontal padding (--space-2 each side) — it made this row 8px
-   narrower than the title and Sign out button on both edges, all of
-   which rely solely on `.body`'s padding for their inset.
-   *(changed 2026-07-31.)* */
+.mode + .mode {
+  border-inline-start: var(--border-width) solid var(--line);
+}
+
+.mode:hover {
+  color: var(--ink);
+}
+
+.mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.mode[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+/* One setting and its control, side by side. */
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--hit-area);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--line);
-  margin-bottom: var(--space-2);
 }
 
 .label {
@@ -108,36 +178,64 @@
   color: var(--muted);
 }
 
-.toggle {
+.serverUrl {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-2);
+  min-width: 0;
+}
+
+/* The URL is data, not prose: monospace, and allowed to wrap rather than
+   ellipsise — a truncated server URL cannot be checked, which is the only
+   reason it is shown. */
+.serverUrlValue {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.toggle {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+  background: none;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-full);
   color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--ink);
 }
 
 .toggle[data-pressed] {
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .toggle:focus-visible {
-  outline: none;
-  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
-   surface/border/radius/focus/disabled treatment lives in one place
-   (styles/button.module.css); each button composes the shared `action`
-   shape plus exactly one role. */
-/* The only button in the footer now that the header's ✕ owns closing
-   (settings-modal.tsx). *(changed 2026-08-03: `.close` sat below this and
-   has gone with it.)* */
+/* The same button every other destructive action in the app is: `action`
+   for the shared chrome, `destructive` for the role — exactly what the
+   detail panel's Delete composes (todo-detail.module.css).
+
+   It previously composed `destructive` alone, which took the red ink and
+   border but *none* of `.action`'s surface, padding, hit area or hover — so
+   it was the only button in the app without button chrome. It also carried
+   `width: 100%`, and the app has no full-width buttons outside the nav's
+   own `navAction` rows. *(fixed 2026-08-10.)* */
 .signOut {
   composes: action destructive from '../../styles/button.module.css';
-  width: 100%;
-  margin-top: var(--space-2);
+  /* Trailing edge, like the detail panel's Delete: a destructive action
+     sits away from the reading edge rather than under the text it follows. */
+  align-self: flex-end;
 }

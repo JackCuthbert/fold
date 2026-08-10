@@ -19,7 +19,8 @@
     "screenshot": "bun run --filter @fold/e2e screenshot",
     "favicons": "bun run --filter @fold/e2e favicons",
     "seed:history": "bun run --filter @fold/e2e seed:history",
-    "seed:all": "bun run --filter @fold/e2e seed:all"
+    "seed:all": "bun run --filter @fold/e2e seed:all",
+    "fonts:convert": "bun scripts/convert-fonts.mjs"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
@@ -30,6 +31,7 @@
     "oxlint": "^1.77.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wawoff2": "^2.0.1"
   }
 }

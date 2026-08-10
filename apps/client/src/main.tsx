@@ -1,13 +1,21 @@
 import { createRoot } from 'react-dom/client'
 import { App } from './app'
 import { migrateStorageKeys, withDeadline } from './lib'
+import './styles/fonts.css'
 import './styles/global.css'
+import './styles/palettes.css'
+import { startTheme } from './theme/use-theme'
 import { publishScrollbarGutter } from './styles/scrollbar-gutter'
 
 // Measure the platform's scrollbar width before first paint so the sticky
 // header can reserve the same gutter its scrolling sibling does
 // (docs/specs/ui.md — one left edge).
 publishScrollbarGutter()
+
+// Put the stored palette and mode on <html> before the tree mounts, so the
+// first paint is already in the right theme rather than flashing the
+// default (docs/specs/themes.md).
+startTheme()
 
 const root = document.getElementById('root')
 if (root) {
