@@ -145,6 +145,44 @@ browser cookie involved.
 cookie holds your CalDAV credentials, so anyone who can watch the network
 can copy it. Only on a network you trust.
 
+### Repeated sign-in failures are blocked
+
+Fold's sign-in is the one thing an unauthenticated visitor can make it act
+on: it takes a server URL and credentials and goes and tries them. Left
+open, that turns your Fold into an anonymous way to guess passwords against
+whatever it can reach on your network — with your server's address on the
+requests, not the guesser's.
+
+So after **5 failed attempts** against the same server-and-username, Fold
+refuses more for 15 minutes and answers `429`. The count is per target, so
+one locked account never blocks another, and a successful sign-in clears
+it — mistyping twice and then getting it right costs you nothing. A CalDAV
+server that is merely _down_ doesn't count against you either, or an
+outage would lock you out of the app waiting for it to come back.
+
+If you see "Too many failed attempts" and it wasn't you, someone is
+guessing. Nothing is exposed by it — they still need working credentials —
+but it is worth knowing.
+
+### Browser-side hardening
+
+Every response carries a strict `Content-Security-Policy`, plus
+`X-Content-Type-Options`, `Referrer-Policy: no-referrer` and
+`X-Frame-Options: DENY`. Fold serves its own client from its own origin and
+self-hosts its fonts, so the policy can forbid outright what most apps have
+to allow: no inline scripts, no third-party anything, and no framing.
+
+`Referrer-Policy` earns its place here specifically — your Fold hostname is
+itself identifying, and no referrer is ever sent.
+
+**HSTS is deliberately not sent**, and you should not add it to Fold. If
+you terminate TLS in front of it, set HSTS _there_. Fold cannot know
+whether your deployment has a certificate — `ALLOW_INSECURE_COOKIE` exists
+because some don't — and an HSTS header would pin browsers to HTTPS with no
+way to undo it from the app.
+
+Detail and reasoning: [docs/specs/security.md](docs/specs/security.md).
+
 ### What it does not do
 
 - **No sub-tasks and no recurring todos.** Existing `RRULE` properties are
