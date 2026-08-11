@@ -9,7 +9,13 @@
   position: fixed;
   inset: 0;
   background: var(--scrim);
-  z-index: var(--z-overlay-base-scrim);
+  /* Stacked, not base: New todo is opened from *inside* the nav drawer
+     (list-nav.tsx) and leaves it open, like New list beside it. At the
+     base level this scrim landed on the drawer's own layer — both at
+     z-index 40 — so the modal shared the drawer's dimming instead of
+     dimming it, and the drawer's contents drew straight over the popup.
+     docs/specs/ui.md — overlays. *(fixed 2026-08-11.)* */
+  z-index: var(--z-overlay-stacked-scrim);
   transition: opacity var(--duration-base) var(--ease);
 }
 
@@ -23,7 +29,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: var(--z-overlay-base);
+  z-index: var(--z-overlay-stacked);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
