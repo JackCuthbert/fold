@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.2.0](https://github.com/JackCuthbert/fold/compare/v0.1.0...v0.2.0) (2026-08-11)
+
+
+### Features
+
+* **server:** cap failed sign-in attempts per target ([b3b8893](https://github.com/JackCuthbert/fold/commit/b3b8893a3b95eb145368577840b425e3deba7dfc))
+* **server:** restrict which CalDAV hosts sign-in may reach ([2d0e5d7](https://github.com/JackCuthbert/fold/commit/2d0e5d7ad2a36a9f4b000b0d65a4cbc6ec12904b))
+* **server:** send a strict CSP and security headers on every response ([27f1d67](https://github.com/JackCuthbert/fold/commit/27f1d67b6607890726a4f56d56def0d410073d78))
+
+
+### Bug Fixes
+
+* **client:** stack the New todo modal above the nav drawer ([90d86cc](https://github.com/JackCuthbert/fold/commit/90d86cc79fe02ee7eb41662e1289fa69279c48d4))
+* stop oxfmt formatting the generated CHANGELOG.md ([bfe90c4](https://github.com/JackCuthbert/fold/commit/bfe90c4dbfed1224e8e8e8b3e74e2e576bcbb458))
+* **vtodo:** name the project Fold in PRODID, with its version ([1072497](https://github.com/JackCuthbert/fold/commit/1072497965410af2a5cf1c77e247408072218e39))
+
+
+### Documentation
+
+* consolidate agent rules into CLAUDE.md ([73d1d5a](https://github.com/JackCuthbert/fold/commit/73d1d5afcb8f2238ab7d970bd2acd5500d6aeab9))
+* fix the broken clone URL and the stale "no image published" claim ([2f1f692](https://github.com/JackCuthbert/fold/commit/2f1f692f27e91b09c64ab263115d97c804cbd906))
+* tell self-hosters about the attempt cap and the headers ([d5d28fe](https://github.com/JackCuthbert/fold/commit/d5d28fe72e9f549b065a22fb4b123f8524844a6d))
+
+
+### Build and dependencies
+
+* **deps-dev:** bump the minor-and-patch group across 2 directories with 3 updates ([a3e1e36](https://github.com/JackCuthbert/fold/commit/a3e1e36b6b8c3fd7e133beba58cbaf8ee527e4e2))
+* **deps-dev:** re-resolve the lockfile Dependabot left stale ([18f3ae6](https://github.com/JackCuthbert/fold/commit/18f3ae67e63c63e37eb29cd65109b031497d3dd4))
+
 ## 0.1.0 (2026-08-10)
 
 The first published release, and the first image you can pull rather than
