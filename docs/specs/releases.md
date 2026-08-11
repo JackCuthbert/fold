@@ -36,6 +36,24 @@ Commit types map to changelog sections in `release-please-config.json`.
 `refactor`, `test`, `ci` and `chore` are hidden — real changes to the
 project, but not ones a person deciding whether to upgrade needs to read.
 
+### `CHANGELOG.md` is not formatted by oxfmt
+
+It is listed in `.oxfmtrc.json`'s `ignorePatterns`, alongside `docs`.
+
+release-please writes it, and writes it in its own house style: `*` list
+bullets and a blank line after each heading. oxfmt wants `-` and no blank
+line. Neither is wrong, but the file is regenerated on every release, so
+the disagreement is permanent — the release PR failed `fmt:check` on
+0.2.0 for exactly this, and would have failed on every release after it.
+
+The alternatives were worse. Reformatting by hand is undone by the next
+release. A CI step that reformats after generation adds a commit to a PR
+whose whole value is being predictable. And the thing being argued over is
+a bullet character in a generated file, which is not what the format check
+exists to protect.
+
+*(added 2026-08-11, from the 0.2.0 release PR.)*
+
 ## The image
 
 Published to **`ghcr.io/jackcuthbert/fold`** on release, from the same
