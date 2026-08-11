@@ -53,6 +53,54 @@ test('mobile: the New list modal has its own scrim over the drawer', async ({
   expect(await dimmers()).toBeGreaterThan(withDrawerOnly)
 })
 
+// The New todo modal had a backdrop of its own — so the layer *count*
+// above was satisfied — but it sat at the base level, the drawer's own
+// layer. Both landed on z-index 40, so instead of dimming the drawer the
+// modal shared its dimming, and the drawer's contents painted over the
+// popup. Counting layers cannot see that; ordering can.
+// docs/specs/ui.md — overlays. *(added 2026-08-11.)*
+test('mobile: a modal opened from the drawer stacks above it', async ({
+  page,
+}) => {
+  await login(page)
+
+  /** Every painted full-viewport layer, as z-index, lowest first. */
+  const layers = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('body *')]
+        .filter((element) => {
+          const style = getComputedStyle(element)
+          return (
+            style.position === 'fixed' &&
+            style.inset === '0px' &&
+            style.zIndex !== 'auto'
+          )
+        })
+        .map((element) => Number(getComputedStyle(element).zIndex))
+        .toSorted((a, b) => a - b),
+    )
+
+  await page.getByRole('button', { name: 'Lists' }).click()
+  const newTodo = page.getByRole('button', { name: /^New todo/ })
+  await expect(newTodo).toBeVisible()
+
+  const drawerOnly = await layers()
+  expect(drawerOnly).toHaveLength(1)
+
+  await newTodo.click()
+  // By role, not placeholder: the placeholder uses a real ellipsis, and
+  // the helpers already locate this field this way.
+  await expect(page.getByRole('textbox', { name: 'Add a todo' })).toBeVisible()
+
+  const withModal = await layers()
+  expect(withModal).toHaveLength(2)
+
+  // The whole point: the modal's scrim is *above* the drawer's, so the
+  // drawer visibly recedes. Equal values are the bug.
+  const [drawerScrim, modalScrim] = withModal
+  expect(modalScrim).toBeGreaterThan(drawerScrim ?? 0)
+})
+
 // Issue #21. ListNav is rendered by two different trees either side of
 // 768px, so a modal owned there unmounted on a resize: a half-typed list
 // vanished and reopening started from scratch. A layout change is not a

@@ -550,8 +550,16 @@ Overlays sit at one of two **levels**, set from the tokens in
 
 | level | tokens | what sits here |
 |---|---|---|
-| base | `--z-overlay-base-scrim` / `--z-overlay-base` | opened from the page — the nav drawer, the mobile detail sheet, the add-todo modal |
-| stacked | `--z-overlay-stacked-scrim` / `--z-overlay-stacked` | opened from *inside* another overlay — Move, Edit list, Settings, Help, any confirm |
+| base | `--z-overlay-base-scrim` / `--z-overlay-base` | opened from the page — the nav drawer, the mobile detail sheet |
+| stacked | `--z-overlay-stacked-scrim` / `--z-overlay-stacked` | opened from *inside* another overlay — New todo, New list, Move, Edit list, Settings, Help, any confirm |
+
+*(corrected 2026-08-11: this table listed the add-todo modal as base, and
+the CSS matched it. But New todo is opened from the nav drawer — beside
+New list, which stacks — and leaves it open, so base put its scrim on the
+drawer's own layer: both landed on z-index 40, so instead of dimming the
+drawer the modal shared its dimming, and the drawer's contents drew over
+the popup. The rule below already said what should happen; only these two
+disagreed.)*
 
 Above both: `--z-popover` for a menu or select launched from within an
 overlay, and `--z-float` for the status pill and toasts, which report on
