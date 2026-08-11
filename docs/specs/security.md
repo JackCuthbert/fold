@@ -96,6 +96,71 @@ HTTPS belongs to whatever terminates TLS in front of Fold, and so does
 HSTS. An operator running Fold behind a reverse proxy with a real
 certificate should set it there.
 
+## The sign-in attempt cap
+
+`POST /api/session` is the only route that acts on an **unauthenticated**
+caller's instructions: it takes a `serverUrl` and credentials from whoever
+asks, and goes and tries them. That makes Fold usable as an anonymous
+credential-testing relay positioned inside the network the container runs
+on — the attacker's own address never reaches the CalDAV server, so its
+rate limiting and its logs see only Fold.
+
+After **5 failed attempts** against one target, further attempts are
+refused with `429` and a `Retry-After` for **15 minutes**.
+
+- **The slot is taken before the upstream call, not after it fails.** This
+  is the difference between a cap that works and one that looks like it
+  does. Counting on failure leaves every request in a concurrent burst
+  reading the counter before any has written to it: measured against the
+  first implementation, **40 parallel guesses all reached the CalDAV
+  server** past a cap of 5. Reserving up front, the same burst gets 5
+  through and 35 refused. An in-flight attempt therefore holds a slot,
+  which `release` hands back when the attempt proved nothing.
+- **Keyed per target** — an opaque FNV-1a hash of the normalized server URL
+  plus the username, so one locked account never affects another. Hashed,
+  not stored raw, because this map is process state that can reach a heap
+  dump: the same reasoning that keeps the URL and username out of the
+  access log (docs/specs/observability.md).
+- **Only credential rejections keep the slot.** A `401` from CalDAV keeps
+  it; an unreachable or slow server gets it back. A server that is merely
+  down says nothing about whether the password was right, and holding
+  those against the user would let an outage lock out the very person
+  waiting for it to recover.
+- **Success forgives.** A correct sign-in clears the counter, so someone
+  who mistyped twice and then got it right does not carry a count toward a
+  lockout they would never understand.
+- **The map is bounded** (10,000 entries, evicting oldest first). The key
+  comes from a request body, so an unbounded map would turn a brute-force
+  defence into a memory-exhaustion vector.
+
+State is in-memory and per-process, which suits one container running one
+process (docs/specs/deployment.md). A restart clears it: an attacker cannot
+force one, and a locked-out legitimate user benefits.
+
+### Why a cap and not a delay
+
+Slowing failed logins is the reflex, and here it would be **actively
+harmful**. Measured against Radicale with bcrypt hashing:
+
+```
+wrong password: min 1925ms, median 2148ms, max 2313ms
+right password: min  118ms, median  146ms, max  153ms
+```
+
+The ranges do not overlap, so response time already classifies a guess on
+its own — a timing oracle, caused upstream by bcrypt running only when the
+password is wrong. Adding latency to failures would *widen* the gap an
+attacker reads.
+
+Delay also bounds nothing: 20 guesses fired in parallel complete in the
+time of one. A cap bounds the total however the attempts are issued, and
+costs a legitimate user nothing.
+
+The timing oracle itself is left open. Closing it means padding every
+sign-in to a fixed floor above the slow path — roughly 2s on every correct
+login — and it only reveals whether a guess was right, which the status
+code reveals anyway. The cap is what bounds the guessing.
+
 ## What these headers do not address
 
 They are defence in depth, not the fix for a specific known hole. The audit

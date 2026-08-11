@@ -1,5 +1,6 @@
 import type { Credentials } from '@fold/schemas'
 import type { ZodType } from 'zod'
+import type { AttemptLimiter } from '../auth/attempt-limit'
 import type { GatewayFactory } from '../caldav/gateway'
 import type { Config } from '../config'
 import type { UpdateChecker } from '../version/check'
@@ -16,6 +17,13 @@ export interface AppContext {
    * one cache is shared across requests.
    */
   checkForUpdate: UpdateChecker
+  /**
+   * Bounds failed sign-in attempts (docs/specs/security.md). Lives here
+   * rather than in the handler's module scope so its state is shared
+   * across requests but rebuilt per app — otherwise one test's lockout
+   * would leak into the next.
+   */
+  signInAttempts: AttemptLimiter
 }
 
 export interface RequestContext {

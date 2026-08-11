@@ -47,6 +47,7 @@ composes them. No monolithic route files.
 | CalDAV server unreachable | 502 | "server unreachable" pill, keep queueing |
 | CalDAV server too slow to answer | 502 | as unreachable — see below |
 | Invalid request body | 400 + structured error | toast + error logging |
+| Too many failed sign-ins for one target | 429 + `Retry-After` | login screen says to wait — see [security](./security.md) |
 
 *(added 2026-07-31: the router previously flattened **every** non-401/412
 `CaldavError` to 502, so a 404 for a deleted list was reported as "server
