@@ -12,12 +12,88 @@
      ring (pulled to the row's edge in checkbox.module.css) stays on the
      shared column edge (docs/specs/ui.md — one left edge). */
   gap: var(--space-1);
-  border-bottom: 1px solid var(--line);
+  /* **No hairline between rows.** *(removed 2026-08-11, issue #40.)* The
+     rule existed because a row had no boundary of its own — nothing but
+     the line said where one ended and the next began. Now every row has a
+     shape: the wash below gives it one on hover, when its menu is open,
+     and while it is the todo in the panel. A line *and* a shape is two
+     answers to one question, and the lines were the louder of them in a
+     pane whose whole argument is restraint (docs/specs/ui.md).
+
+     What separates the rows now is the space they already had — the
+     padding that centres a single line inside `--hit-area` (see `.body`),
+     which is why removing the rule needed no compensating margin. */
   /* No per-row animation: the whole pane fades in together when you switch
      lists (todo-pane.module.css's `.pane`), so rows don't each animate
      independently — that read as a stagger of unrelated parts rather than
      one view arriving. Individual rows still animate on add/remove via
      their own enter/exit, not this. */
+}
+
+/* docs/specs/ui.md — the todo row: its states. *(added 2026-08-11, issue
+   #40 — the row was interactive but nothing about it responded to a
+   pointer, and nothing tied the detail panel back to the row it came
+   from.)*
+
+   **All three states are the same ground wash at different strengths**,
+   rather than a fill for hover and a marker for the current row. A leading
+   accent rail was built and rejected on sight: it puts a second vertical
+   edge beside the checkbox column, which is the "one left edge" property
+   the pane is built around, and every later alignment decision would have
+   had to work around it. The row is a quiet thing in a restrained pane —
+   one ground, three strengths, no new geometry.
+   *(rail removed 2026-08-11, before it shipped.)*
+
+   The strengths are ordered by how much the state claims: passing over it
+   < it is showing in the panel < its menu is open right now. */
+.todo {
+  transition: background-color var(--duration-fast) var(--ease);
+  /* Breathing room *inside* the wash, without moving the content: the
+     padding is cancelled by an equal negative margin, so the row's box
+     grows outward into the pane's own padding while the checkbox and text
+     stay exactly where they were. The shared left edge is a property of
+     where the content sits (docs/specs/ui.md — one left edge), and this
+     leaves that untouched — the same trick the checkbox uses to pull its
+     hit area back to the column (checkbox.module.css).
+
+     Without it the wash stopped dead at the first glyph and the last
+     pixel of the meta line, which read as a highlight applied to the text
+     rather than as the row being lit.
+     *(added 2026-08-11, issue #40, once the row had states to show.)* */
+  padding-inline: var(--space-1);
+  margin-inline: calc(-1 * var(--space-1));
+  border-radius: var(--radius-sm);
+}
+
+/* Guarded by `hover: hover` so a touch device never gets a stuck wash
+   after a tap — touch reports hover on the last-tapped element and leaves
+   it there. */
+@media (hover: hover) {
+  .todo:hover {
+    background: color-mix(in srgb, var(--line) 22%, transparent);
+  }
+}
+
+/* The row showing in the detail panel. Desktop only: on mobile the panel
+   is a full-screen sheet, so the list is not visible while a todo is open
+   and this would only ever mark the last thing you looked at. The
+   breakpoint matches the one that makes the panel a column
+   (shell/main-screen). */
+@media (min-width: 768px) {
+  .todoCurrent {
+    background: color-mix(in srgb, var(--line) 30%, transparent);
+  }
+}
+
+/* Base UI puts `data-popup-open` on the context-menu trigger, which *is*
+   this row (todos/todo-context-menu) — so the open row marks itself with
+   no React state and no re-render of the list.
+
+   Last, and strongest, so it wins over both of the above: while a menu is
+   open this row is the subject of whatever you pick next, and that matters
+   more than either of the other two. */
+.todo[data-popup-open] {
+  background: color-mix(in srgb, var(--line) 44%, transparent);
 }
 
 .body {
@@ -66,6 +142,20 @@
      two separate things.)* */
   gap: 0;
   min-width: 0;
+}
+
+/* docs/specs/ui.md — accessibility: the row body is a button, and until
+   now keyboard users got only global.css's fallback outline. That outline
+   is drawn *outside* the box with a 2px offset, so on a full-width row it
+   is clipped by the pane's own `overflow-y: auto` — visible on the top and
+   bottom edges, cut off at the sides. An inset shadow reads as a border
+   without adding layout width and cannot be clipped, which is the same
+   reason list-item-menu's trigger uses one. *(added 2026-08-11, issue
+   #40.)* */
+.body:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+  border-radius: var(--radius-sm);
 }
 
 /* The summary's line: the text, then the health mark at the row's edge.

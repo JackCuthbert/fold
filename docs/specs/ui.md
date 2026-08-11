@@ -521,6 +521,84 @@ swatch, so the pill says "list" before it says which one.
 row belongs to the list you are already looking at, so naming it on each
 row would be noise.
 
+### Its states
+
+*(added 2026-08-11, issue #40: a row was a button that did not respond to
+the pointer, had no keyboard focus style of its own, and nothing tied the
+detail panel back to the row it came from.)*
+
+Four states, **all of them the same ground wash at different strengths**:
+
+| state | strength | when |
+|---|---|---|
+| hover | 22% | the pointer is over it — desktop only (`hover: hover`) |
+| current | 30% | this todo is open in the detail panel — desktop only |
+| menu open | 44% | its context menu is showing right now |
+
+Plus **focus-visible**, which is an inset accent border rather than a wash,
+because it answers a different question ("where is the keyboard?") and has
+to be legible on top of any of the three.
+
+**One axis, not two.** A leading accent rail for the current row was built
+first, on the reasoning that "selection looks like selection, not hover"
+(the nav rule above) meant the two states needed different *kinds* of
+treatment. Seen in place it was wrong: the rail put a second vertical edge
+beside the checkbox column, which is the one-left-edge property the pane is
+built on, and every later alignment decision would have had to work around
+it. Ordering by strength separates the states without adding geometry —
+and the ordering is meaningful, since each says more than the one below it.
+
+**The strengths are ordered, so the strongest wins.** `[data-popup-open]`
+is written last in the stylesheet: with equal specificity, source order
+decides, and right-clicking the row that is already open must still show
+the menu-open state.
+
+**Hover is guarded by `hover: hover`.** A touch device reports hover on the
+last-tapped element and leaves it there, so without the guard a tap left a
+row washed until you tapped another.
+
+**The wash needs room.** The row carries `--space-1` of inline padding
+cancelled by an equal negative margin, so the box grows outward into the
+pane's padding while the content does not move — the same trick the
+checkbox uses to pull its hit area back to the column edge. Without it the
+wash stopped at the first glyph and read as a highlight on the text rather
+than as the row being lit.
+
+**The current state is desktop-only.** On mobile the detail panel is a
+full-screen sheet, so the list is not visible while a todo is open and the
+mark would only ever label the last thing you looked at.
+
+**No React state, and no re-render.** The menu-open wash hangs off the
+`data-popup-open` attribute Base UI already writes onto the context-menu
+trigger — which *is* the row (see [todos](./todos.md) — row actions).
+
+### Rows are separated by space, not by lines
+
+*(changed 2026-08-11, issue #40: every row had a `border-bottom` hairline.)*
+
+The rules existed because a row had no boundary of its own — nothing but
+the line said where one ended and the next began. The states above give it
+one: on hover, while its menu is open, and while it is the todo in the
+panel, the row has a visible shape. A line *and* a shape are two answers to
+one question, and the lines were the louder of them in a pane whose whole
+argument is restraint.
+
+**Removing them exposed how tight the rhythm was.** With a rule between
+them, rows could sit as close as the padding that centres one line in the
+hit area; with nothing between them they read as a single dense block. So
+the list carries a `gap` — space *between* the washes, where the eye reads
+it as separation.
+
+The gap belongs to the **list**, not the row. A row's own padding sets its
+height and its hit area, so buying separation there would make every row a
+larger target than the 44px it is designed around, and would stretch the
+hover wash with it.
+
+**Every row in the list loses the line together** — the todo rows, the
+"Add a todo" ghost row, and a grouped list's collapsed row. Each was
+written to mirror the todo row, so one keeping its hairline would be the
+only rule left on screen.
+
 ### Icons, not colour alone
 
 Overdue and high priority were both a red fill with red text, so a row

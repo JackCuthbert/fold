@@ -550,6 +550,44 @@ test('a todo moves between lists from its own dialog', async ({ page }) => {
   const dialog = page.getByRole('dialog').filter({ hasText: 'Move to…' })
   await expect(dialog.getByRole('button', { name: from })).toHaveCount(0)
   await dialog.getByRole('button', { name: to }).click()
+
+  // And it is *still* not offered while the dialog animates away. The
+  // caller clears its `movingTodo` as soon as a target is chosen, so the
+  // filter had nothing to exclude and the source list flashed back in
+  // before fading out with the rest (move-todo-modal.tsx holds the last
+  // todo for exactly this).
+  //
+  // Sampled rather than asserted with `expect`: Playwright retries a
+  // locator assertion until it passes, and the dialog unmounts shortly
+  // after — so `toHaveCount(0)` went green against the bug too, simply by
+  // waiting it out. A flash is only observable by looking *during* the
+  // transition.
+  //
+  // Sampled in one `evaluate` rather than across eight awaited round
+  // trips: the loop version spent ~200ms of the exit window driving the
+  // CDP connection, which on CI (5-6x slower than this Mac — CLAUDE.md)
+  // pushed the assertions after it past the optimistic update they were
+  // waiting on. This reads the DOM directly on animation frames, so it
+  // costs the page nothing. *(added 2026-08-11; made cheap the same day
+  // after it failed on CI and passed locally.)*
+  const flashed = await dialog.evaluate((popup, listName) => {
+    return new Promise<boolean>((resolve) => {
+      let seen = false
+      let frames = 0
+      const sample = (): void => {
+        const labels = [...popup.querySelectorAll('button')].map(
+          (button) => button.textContent ?? '',
+        )
+        if (labels.some((label) => label.includes(listName))) seen = true
+        frames += 1
+        if (frames < 12) requestAnimationFrame(sample)
+        else resolve(seen)
+      }
+      requestAnimationFrame(sample)
+    })
+  }, from)
+  expect(flashed).toBe(false)
+
   await waitForSync(page)
 
   // Gone from the list it left...

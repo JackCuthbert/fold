@@ -1,6 +1,9 @@
 import type { Todo } from '@fold/schemas'
 import { LuHeart } from 'react-icons/lu'
+import { useSelection } from '../../shell/context/selection-context'
+import { cx } from '../../styles/cx'
 import { Checkbox } from '../checkbox/checkbox'
+import { TodoContextMenu } from '../todo-context-menu/todo-context-menu'
 import { TodoMeta, type RowList } from '../todo-meta/todo-meta'
 import styles from './todo-item.module.css'
 
@@ -45,13 +48,20 @@ interface TodoItemProps {
 
 export function TodoItem(props: TodoItemProps) {
   const { todo } = props
+  // docs/specs/ui.md — the todo row: its states. Read here rather than
+  // passed in, so none of the three panes that render rows has to carry a
+  // value it never reads itself (CLAUDE.md — prefer a context to threading
+  // a prop through a component that does not use it).
+  // *(added 2026-08-11, issue #40.)*
+  const { openTodoUid } = useSelection()
   return (
-    <li
-      className={
-        todo.completed
-          ? `${styles['todo']} ${styles['todoCompleted']}`
-          : styles['todo']
-      }
+    <TodoContextMenu
+      todo={todo}
+      className={cx(
+        styles['todo'],
+        todo.completed && styles['todoCompleted'],
+        openTodoUid === todo.uid && styles['todoCurrent'],
+      )}
     >
       <Checkbox
         checked={todo.completed}
@@ -95,6 +105,6 @@ export function TodoItem(props: TodoItemProps) {
           {...(props.list ? { list: props.list } : {})}
         />
       </button>
-    </li>
+    </TodoContextMenu>
   )
 }

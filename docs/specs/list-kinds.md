@@ -167,8 +167,8 @@ priority is how you say what is next.
 
 ### Health first — `HEALTH_LIST`
 
-Health todos **lead every derived view**, and in Today they sit in a
-bordered block of their own above everything else.
+Health todos **lead every derived view**, and in Today they sit under a
+heading of their own above everything else.
 
 **Unconditional, not a weighting.** A high-priority chore does not outrank
 a health todo. An earlier design had health win only at equal priority
@@ -179,34 +179,46 @@ category where "I'll get to it" is the wrong outcome, so it is not
 competing on the same scale as everything else.
 *(decided 2026-08-05: the issue comment proposed priority weighting.)*
 
-**A border around the block, not around each row.** One bordered row would
-be the loudest thing in a pane built on restraint ([ui](./ui.md)); a single
-outline around several reads as a section — effectively its own small list
-pinned above the rest, which is what it is. The tint inside is barely
-there, and exists only so the block still groups where the border is
-ambiguous against the row hairlines inside it.
+**A heading and space, not a box.** *(changed 2026-08-11, issue #40: it was
+a bordered, tinted block from 2026-08-05.)* The box did two things badly
+once rows gained hover and current states. Its tint sat under those washes,
+so a hovered health row showed a third colour rather than the same feedback
+every other row gives; and its padding pushed its rows off the left edge
+every other row shares ([ui](./ui.md) — one left edge), which the states
+then made obvious rather than merely tolerable.
+
+What carries the section now is what was always carrying its *meaning*: the
+heading. The ordinary rows below get a peer heading — **"Everything else"**
+— so the two read as sections of equal standing told apart by their titles
+and the space between them. Health's precedence is expressed by being
+**first**, not by being louder, which is the honest encoding of an
+unconditional rule: it does not need to shout if nothing can outrank it.
+
+The peer heading appears **only when there is a health section above it**.
+With nothing to be distinguished from, "Everything else" would label the
+only thing on screen.
 
 - **Not collapsible.** The Completed accordion below folds away because it
   is a record of work already done. This is work still to do, and the point
   of lifting it is that it cannot be left unseen.
-- **Ordered normally within the block** — by due instant, like any other
-  Today row. Leading the view is about which block a todo is in, not about
-  its time.
+- **Ordered normally within the section** — by due instant, like any other
+  Today row. Leading the view is about which section a todo is in, not
+  about its time.
 - **Completed health todos are not lifted.** A finished one needs no
   chasing, so it joins the ordinary Completed section.
-- **Summary leads within each day, without the block.** That view is a
+- **Summary leads within each day, without the section.** That view is a
   record read by date, so lifting a health todo up the page would file it
   under the wrong heading; and the rows there are already done, so the
-  block's "don't miss this" argument does not apply. The heart alone
+  section's "don't miss this" argument does not apply. The heart alone
   carries the category.
 
-**A heart, but only where there is no block.** In Today's health block the
-heading already says "Health" and each row names its list in the meta
+**A heart, but only where there is no heading.** In Today's health section
+the heading already says "Health" and each row names its list in the meta
 cluster, so a heart there was the same fact stated three times. It appears
-on the rows that sit *outside* a block — Summary, and Today's Completed
-section — where nothing else marks them.
+on the rows that sit *outside* that section — Summary, and Today's
+Completed section — where nothing else marks them.
 *(changed 2026-08-05: was on every health row, including inside the
-block. Only visible once rendered.)*
+section. Only visible once rendered.)*
 
 **It trails the summary line, in its own column at the row's edge.**
 *(changed 2026-08-10; two placements were tried and measured first.)*
@@ -229,24 +241,26 @@ its text happens to end. The summary ellipsises beside it: measured at
 its 12px column with an 8px gap.
 
 Drawn in the muted `--list-red`, not a priority red: this is a category,
-not an alarm. Where the block exists its heading names it in words, so
+not an alarm. Where the section exists its heading names it in words, so
 neither colour nor iconography is ever the only signal
 ([ui](./ui.md) — accessibility).
 
-**The block stays inside the pane's measure, and its rows are allowed to
-be indented.** Equal padding on all four edges; the border does not break
-out of the reading column to make the rows inside line up with the todos
-below.
+**Health rows share the left edge with every other row.** No exception, and
+an e2e test measures it (`list-kinds.spec.ts`).
 
-This is a deliberate exception to [ui](./ui.md)'s one-left-edge rule, and
-the second attempt at it. The first indented the rows *without* saying so,
-which read as a mistake. The second pulled the border outward into the
-pane's padding so the rows shared the checkbox column — which fixed the
-alignment but broke the container's max width, trading a real edge for a
-notional one. The block is a section of its own, so it may be indented
-like one; what it must not do is escape the column everything else
-respects.
-*(changed 2026-08-05, twice.)*
+This took three attempts, and is worth recording because the first two were
+spent working *around* the box rather than questioning it. Attempt one
+indented the rows without saying so, which read as a mistake. Attempt two
+pulled the border outward into the pane's padding so the rows shared the
+checkbox column — fixing the alignment but breaking the container's max
+width, trading a real edge for a notional one. Attempt three accepted the
+indent and wrote it into this spec as a deliberate exception to
+[ui](./ui.md)'s one-left-edge rule.
+
+Removing the box removed the problem: with nothing to pad, the rows sit
+where every other row sits, and the exception this section used to claim is
+gone. *(changed 2026-08-05 twice; resolved 2026-08-11 by dropping the box,
+issue #40.)*
 
 **No bulk actions.** Health todos are ordinary todos in their own list;
 everything about this kind is where they appear.
@@ -258,7 +272,7 @@ second kind setting a `first` flag would silently inherit a red heart and
 prose about health. A specific name cannot be misread that way, and
 `partitionHealth` / `isHealthTodo` match it.
 
-The day a second kind wants a leading block of its own, generalise it
+The day a second kind wants a leading section of its own, generalise it
 *then* — with two real cases to design the label, glyph and tone against
 rather than one imagined one. Until then this is honestly one kind's
 behaviour, the same way `groups` is honestly grocery-shaped.

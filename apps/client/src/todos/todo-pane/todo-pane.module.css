@@ -29,6 +29,36 @@
    own. */
 .list {
   margin-top: 0;
+  /* Air between rows, now that no hairline separates them
+     (todo-item.module.css). Without the lines the rows read as one dense
+     block: the only thing between two summaries was the padding that
+     centres a single line in the hit area, which is enough when a rule
+     divides them and not nearly enough when nothing does.
+
+     A `gap` on the list rather than padding on the row, deliberately. The
+     row's own padding sets its height and its hit area — inflating that
+     to buy separation would make every row a bigger target than the 44px
+     it is designed around, and would stretch the hover wash to match. A
+     gap puts the space *between* the washes, where the eye reads it as
+     separation rather than as rows getting taller.
+     *(added 2026-08-11, issue #40.)* */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* docs/specs/list-kinds.md — health first: the ordinary rows' own heading,
+   the peer of the health section's (health-block.module.css). Same size
+   and weight, deliberately — they are two sections of equal standing, and
+   health's precedence is carried by being *first*, not by being louder.
+   Only the colour differs: health names a category and takes the category
+   colour; this one is the default group, so it stays neutral rather than
+   claiming a colour of its own. *(added 2026-08-11, issue #40.)* */
+.sectionHeading {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
 }
 
 /* Set off from the open todos above it. */

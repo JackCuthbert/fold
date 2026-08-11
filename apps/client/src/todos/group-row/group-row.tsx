@@ -29,8 +29,12 @@ export function GroupRow(props: GroupRowProps) {
   // completed by definition, so the row always strikes there; in Today's
   // active half it never does.
   const done = props.group.todos.every((todo) => todo.completed)
+  // No `.row` class: it held only the hairline every row lost on
+  // 2026-08-11 (issue #40), and a CSS Module returns `undefined` for a
+  // class it no longer defines — which `cx` drops silently, so a stale
+  // reference would sit here looking meaningful forever.
   return (
-    <li className={cx(styles['row'], done && styles['done'])}>
+    <li className={cx(done && styles['done'])}>
       <button
         type="button"
         className={styles['button']}

@@ -1,5 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import type { Todo, TodoList } from '@fold/schemas'
+import { useRef } from 'react'
 import { ModalHeader } from '../../ui'
 import { cx } from '../../styles/cx'
 import styles from './move-todo-modal.module.css'
@@ -36,7 +37,25 @@ export interface MoveTodoModalProps {
  * *(added 2026-08-09, issue #38.)*
  */
 export function MoveTodoModal(props: MoveTodoModalProps) {
-  const targets = props.lists.filter((list) => list.id !== props.todo?.listId)
+  // The last todo this was opened for, kept so the dialog still has one
+  // while it animates *out*.
+  //
+  // The caller clears its `movingTodo` the moment a target is chosen, but
+  // the dialog stays mounted for the length of its exit transition
+  // (docs/specs/ui.md — overlays animate). With `props.todo` already null,
+  // the filter below had nothing to exclude, so the list the todo was
+  // being moved *from* reappeared in the list and then faded away with the
+  // rest — a flash of the one option that must never be offered.
+  //
+  // Held here rather than by the caller, so every caller gets it: this is
+  // a property of a dialog that outlives its subject, not of one screen.
+  // The same shape as `lastSheetTodo` in shell/main-screen, for the same
+  // reason. *(added 2026-08-11.)*
+  const lastTodo = useRef(props.todo)
+  if (props.todo) lastTodo.current = props.todo
+  const todo = props.todo ?? lastTodo.current
+
+  const targets = props.lists.filter((list) => list.id !== todo?.listId)
 
   return (
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>

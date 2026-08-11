@@ -280,3 +280,20 @@
 .cancel {
   composes: action default from '../../styles/button.module.css';
 }
+
+/* The priority glyph beside its label, in the trigger and each option —
+   see the same class in todo-detail.module.css. *(added 2026-08-11.)* */
+.selectValue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The glyph's ground, from the shared source — the same box the row's meta
+   pill and the context menu's choices use (styles/priority.module.css), so
+   one choice has one treatment wherever it is offered.
+   *(added 2026-08-11.)* */
+.prioSwatch {
+  composes: swatch from '../../styles/priority.module.css';
+}

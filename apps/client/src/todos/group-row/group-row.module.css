@@ -1,14 +1,12 @@
 /* docs/specs/list-kinds.md — a grouping list collapsed to one row in a
    derived view. See group-row.tsx.
 
-   It shares the todo row's hairline and height so a mixed view reads as
+   It shares the todo row's height and spacing so a mixed view reads as
    one list of rows rather than two kinds of thing stacked together — the
    grouping is meant to make Today shorter, not to introduce a new
    component with its own rhythm.
-   *(added 2026-08-05, issue #27.)* */
-.row {
-  border-bottom: 1px solid var(--line);
-}
+   *(added 2026-08-05, issue #27; the hairline it also used to share went
+   on 2026-08-11 with every other row's — see todo-item.module.css.)* */
 
 .button {
   display: flex;

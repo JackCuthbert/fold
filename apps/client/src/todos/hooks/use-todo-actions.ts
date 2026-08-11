@@ -8,10 +8,35 @@ import type {
 import { queryClient, useSyncEngine } from '../../providers'
 import { applyMutationToTodos } from '../../sync/optimistic'
 
+/**
+ * The same write path, for a caller that does not know its list until it
+ * has the todo in hand.
+ *
+ * A row's context menu is the case (docs/specs/todos.md — row actions):
+ * Today, Tomorrow, Summary and Search draw rows from several lists at
+ * once, so `useTodoActions(activeView)` would queue every write against
+ * the wrong collection. Hooks cannot be called per row, so this returns a
+ * *builder* instead — one hook call, a writer per todo.
+ *
+ * *(added 2026-08-11, issue #40.)*
+ */
+export function useTodoActionsFor(): (listId: string) => TodoActions {
+  const engine = useSyncEngine()
+  return (listId) => buildTodoActions(listId, engine)
+}
+
 // Optimistic write path — docs/specs/sync-and-offline.md (writes).
 export function useTodoActions(listId: string) {
   const engine = useSyncEngine()
+  return buildTodoActions(listId, engine)
+}
 
+export type TodoActions = ReturnType<typeof buildTodoActions>
+
+function buildTodoActions(
+  listId: string,
+  engine: ReturnType<typeof useSyncEngine>,
+) {
   // A move touches two caches (source and target); everything else touches
   // one (docs/specs/todos.md — moving a todo between lists).
   const mutate = (mutation: Mutation, ...alsoUpdate: string[]): void => {

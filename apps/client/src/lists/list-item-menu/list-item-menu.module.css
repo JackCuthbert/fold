@@ -64,58 +64,19 @@
   z-index: var(--z-popover);
 }
 
+/* The shared menu look (styles/menu.module.css) — the popup, the items and
+   their states. Extracted there on 2026-08-11 when the todo row's context
+   menu started sharing it: `composes` across a domain boundary *copies*
+   the rules rather than referencing them, so the two menus were rendering
+   from two independent sets and a fix to one did not reach the other. */
 .popup {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
-  padding: var(--space-1);
-  min-width: 9rem;
-  outline: none;
+  composes: popup from '../../styles/menu.module.css';
 }
 
 .item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--hit-area);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-base);
-  color: var(--ink);
-  cursor: pointer;
+  composes: item from '../../styles/menu.module.css';
 }
 
-.item[data-highlighted] {
-  background: var(--line);
-}
-
-/* docs/specs/lists.md — ordering: the top list has nothing to move up
-   past and the bottom nothing to move down past, so those items are
-   disabled rather than absent — a menu whose entries appear and vanish by
-   row position is harder to learn than one whose shape is constant. Muted
-   ink and the default cursor say "not now" without removing it; Base UI
-   already blocks activation and skips it in arrow-key navigation. */
-.item[data-disabled] {
-  color: var(--muted);
-  cursor: default;
-}
-
-/* docs/specs/ui.md — accessibility: destructive controls need a focus
-   state at least as legible as any other. Base UI's Menu.Item has no
-   native :focus-visible of its own — the popup keeps DOM focus and marks
-   the active item with data-highlighted on both hover and arrow-key
-   navigation, so that's the correct hook here, same as Rename above. But
-   sharing Rename's plain `--line` tint would make Delete's "focused" state
-   indistinguishable from any other item's, which is exactly the gap the
-   spec calls out. A danger-tinted background keeps the same mechanism
-   while making it unmistakably a destructive selection. */
 .destructive {
-  color: var(--danger);
-}
-
-.destructive[data-highlighted] {
-  /* Matches the destructive button's hover tint (button.module.css) so
-     the two feel like one treatment. */
-  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  composes: destructive from '../../styles/menu.module.css';
 }

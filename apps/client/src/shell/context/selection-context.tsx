@@ -14,6 +14,18 @@ export interface Selection {
   select: (id: string) => void
   /** Open a todo in the detail panel, remembering the row for focus. */
   openDetail: (todo: Todo, trigger: HTMLElement | null) => void
+  /**
+   * The uid of the todo the detail panel is showing, if any.
+   *
+   * Travels with `openDetail` for the same reason it does: every pane
+   * needs it, and only to hand it to a row, which marks itself as the
+   * current one (docs/specs/ui.md — the todo row: its states).
+   *
+   * A uid rather than the todo: the row already has its own copy, and
+   * comparing identity would mark nothing after any edit re-created the
+   * object. *(added 2026-08-11, issue #40.)*
+   */
+  openTodoUid: string | null
 }
 
 const SelectionContext = createContext<Selection | null>(null)

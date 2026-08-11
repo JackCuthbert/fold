@@ -174,6 +174,11 @@ const LISTS = [
 // date, and lives in the list the screenshot lands on.
 const FEATURED = 'Replace the kitchen tap washer'
 
+// The row whose context menu is opened for the shot. Below the featured
+// one, so the menu opens downward into empty space instead of over the
+// todo the detail panel is showing. *(added 2026-08-11, issue #40.)*
+const MENU_ROW = 'Ring the landlord about the gutter'
+
 test('README screenshot', async ({ page }) => {
   // 16:10 at 2x — a shape that sits well in a README without the browser
   // chrome that a full-page capture of a narrow viewport would imply.
@@ -239,17 +244,41 @@ test('README screenshot', async ({ page }) => {
     }
   })
 
-  // Rest the pointer on Today, so its keyboard shortcut is revealed
-  // (docs/specs/ui.md — keyboard shortcuts: the chords are hidden until
-  // hovered or until Ctrl is held). A screenshot of the nav at rest shows
-  // no chords at all, which would say the app has none — this is the one
-  // frame where a hover state is the honest one.
-  // *(added 2026-08-04.)*
-  await page.getByRole('button', { name: 'Today', exact: true }).hover()
+  // Open a row's context menu, and rest the pointer on a priority choice
+  // (docs/specs/todos.md — row actions). Right-click is invisible until
+  // you try it: there is no affordance that can advertise it, so a
+  // screenshot is the one place it can be shown at all.
+  //
+  // On a row *below* the featured one, so the menu opens into empty space
+  // rather than over the todo whose detail panel is the other half of the
+  // picture. The pointer lands on the label's right-hand end for the same
+  // reason — a menu anchored at the summary's first character would cover
+  // the text it belongs to.
+  //
+  // This replaced hovering Today to reveal its keyboard chord: only one
+  // element can be hovered per frame, and the menu says more about the app
+  // than a shortcut hint the help modal also lists.
+  // *(changed 2026-08-11, issue #40.)*
+  const menuRow = page.getByText(MENU_ROW, { exact: true })
+  const box = await menuRow.boundingBox()
+  if (!box) throw new Error(`no bounding box for ${MENU_ROW}`)
+  // Base UI anchors the menu at the pointer, so where this clicks decides
+  // where two popups land. Just past the label's end: on the text, the
+  // menu covered the last word of the summary it belongs to; much further
+  // right, the submenu opened across the detail panel's notes field. This
+  // clears the summary and still leaves room for both popups.
+  await menuRow.click({
+    button: 'right',
+    position: { x: box.width + 8, y: box.height / 2 },
+  })
+  await expect(page.getByRole('menu').first()).toBeVisible()
+  await page.getByRole('menuitem', { name: /^Priority/ }).hover()
+  await expect(page.getByRole('menu')).toHaveCount(2)
+  await page.getByRole('menuitemradio', { name: 'High' }).hover()
 
   // Let any open/settle transition finish (docs/specs/ui.md — overlays
-  // animate), including the hint's own fade. Fixed rather than polled:
-  // there is no state change to wait on, only paint.
+  // animate). Fixed rather than polled: there is no state change to wait
+  // on, only paint.
   await page.waitForTimeout(500)
 
   await page.screenshot({ path: '../docs/screenshot.png' })
