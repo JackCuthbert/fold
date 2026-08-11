@@ -75,6 +75,16 @@ Docker-only. _(added 2026-08-11.)_
   feature spans several commits. Incremental commits record the working
   order, which nobody needs, rather than the change a reviewer wants to
   read. _(added 2026-08-11.)_
+- **A commit message is short: what it adds, what it does, why.** Aim for
+  a subject and a handful of short paragraphs — if it runs past roughly 20
+  lines, the detail belongs in the PR body instead. The full account of
+  the work — every bug found on the way, each rejected design and the
+  measurement that killed it, how a test was made to fail first — is
+  genuinely worth writing, and a PR is where someone reads it. Nobody
+  wants it in `git log`. The commit answers "what changed and why"; the PR
+  answers "how did we get here". Do not put the second in the first.
+  _(added 2026-08-11, after a commit body ran to sixty lines and had to be
+  rewritten before merge.)_
 - **The repo's formatting conventions stop at the repo boundary.** The
   80-column rule below applies to files in an editor. GitHub issue and PR
   bodies are _rendered markdown_ in a web textarea: do not hard-wrap prose
