@@ -6,6 +6,7 @@ import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
 import { makeUpdateChecker } from './version/check'
 import { outcomeFor, writeAccessLog } from './observability/access-log'
+import { withSecurityHeaders } from './http/security-headers'
 import { resolveStaticPath } from './static/resolve-path'
 
 const config = loadConfig(process.env)
@@ -66,10 +67,16 @@ Bun.serve({
   // with a 502 the client understands, and this only catches what escapes
   // it (docs/specs/api.md — error mapping).
   idleTimeout: 255,
-  fetch: (request) => {
+  // Security headers are applied *here*, at the one seam every response
+  // passes through, rather than inside the router and the static handler
+  // separately (docs/specs/security.md). Two call sites is two chances for
+  // a later branch to return early and miss them.
+  fetch: async (request) => {
     const { pathname } = new URL(request.url)
-    if (pathname.startsWith('/api/')) return handleApi(request)
-    return serveStaticLogged(pathname)
+    const response = pathname.startsWith('/api/')
+      ? await handleApi(request)
+      : await serveStaticLogged(pathname)
+    return withSecurityHeaders(response)
   },
 })
 
