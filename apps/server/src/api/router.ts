@@ -19,7 +19,12 @@ import {
 // Error mapping per docs/specs/api.md.
 function toResponse(error: unknown): Response {
   if (error instanceof HttpError) {
-    return json({ error: error.code, message: error.message }, error.status)
+    return json(
+      { error: error.code, message: error.message },
+      error.status,
+      // `Retry-After` on a 429, for instance — see HttpError.
+      error.headers,
+    )
   }
   if (error instanceof ZodError) {
     return json({ error: 'invalid_request', message: error.message }, 400)

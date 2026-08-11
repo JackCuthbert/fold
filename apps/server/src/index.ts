@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createRouter } from './api/router'
 import { routes } from './api/routes'
+import { makeAttemptLimiter } from './auth/attempt-limit'
 import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
 import { makeUpdateChecker } from './version/check'
@@ -16,6 +17,10 @@ const handleApi = createRouter(routes, {
   // One checker for the process, so its cache is shared across requests
   // rather than rebuilt per call (docs/specs/releases.md).
   checkForUpdate: makeUpdateChecker({ enabled: config.CHECK_FOR_UPDATES }),
+  // One limiter for the process, for the same reason: its counters are the
+  // whole point, and a per-request instance would count to one forever
+  // (docs/specs/security.md).
+  signInAttempts: makeAttemptLimiter(),
 })
 
 const clientDist = resolve(import.meta.dirname, '../../client/dist')

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CaldavError } from '../../src/caldav/errors'
+import { MAX_ATTEMPTS } from '../../src/auth/attempt-limit'
+import { CaldavError, CaldavUnreachableError } from '../../src/caldav/errors'
 import { createRouter } from '../../src/api/router'
 import { routes } from '../../src/api/routes'
 import { testApp, TEST_SECRET } from '../helpers/test-app'
@@ -57,6 +58,95 @@ describe('POST /api/session', () => {
     const handle = createRouter(routes, testApp())
     const res = await handle(loginRequest({ serverUrl: 'not a url' }))
     expect(res.status).toBe(400)
+  })
+})
+
+// docs/specs/security.md — sign-in is the one route that acts on an
+// unauthenticated caller's instructions, so failures against a target are
+// capped (issue #43).
+describe('POST /api/session — the attempt cap', () => {
+  it('refuses further attempts once the cap is reached', async () => {
+    const login = vi.fn(() => Promise.reject(new CaldavError(401)))
+    const handle = createRouter(routes, testApp({ login }))
+
+    for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
+      expect((await handle(loginRequest(CREDS))).status).toBe(401)
+    }
+
+    const blocked = await handle(loginRequest(CREDS))
+    expect(blocked.status).toBe(429)
+    expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/)
+    // The upstream is no longer being asked — which is the point: the BFF
+    // has stopped relaying guesses.
+    expect(login).toHaveBeenCalledTimes(MAX_ATTEMPTS)
+  })
+
+  it('does not count an unreachable server toward the cap', async () => {
+    // A CalDAV server that is merely down says nothing about whether the
+    // password was right. Counting those would let an outage lock out the
+    // very user trying to sign in once it recovers.
+    const login = vi.fn(() =>
+      Promise.reject(new CaldavUnreachableError('down')),
+    )
+    const handle = createRouter(routes, testApp({ login }))
+
+    for (let i = 0; i < MAX_ATTEMPTS + 3; i += 1) {
+      expect((await handle(loginRequest(CREDS))).status).toBe(502)
+    }
+    expect(login).toHaveBeenCalledTimes(MAX_ATTEMPTS + 3)
+  })
+
+  it('lets a different account through while one is locked', async () => {
+    const handle = createRouter(
+      routes,
+      testApp({ login: () => Promise.reject(new CaldavError(401)) }),
+    )
+    for (let i = 0; i < MAX_ATTEMPTS; i += 1) await handle(loginRequest(CREDS))
+    expect((await handle(loginRequest(CREDS))).status).toBe(429)
+
+    // Same server, different principal — an unrelated user must not be
+    // collateral damage.
+    const other = await handle(
+      loginRequest({ ...CREDS, username: 'someone-else' }),
+    )
+    expect(other.status).toBe(401)
+  })
+
+  it('clears the count after a successful sign-in', async () => {
+    let succeed = false
+    const handle = createRouter(
+      routes,
+      testApp({
+        login: () =>
+          succeed ? Promise.resolve() : Promise.reject(new CaldavError(401)),
+      }),
+    )
+
+    // Fumble, then get it right.
+    for (let i = 0; i < MAX_ATTEMPTS - 1; i += 1)
+      await handle(loginRequest(CREDS))
+    succeed = true
+    expect((await handle(loginRequest(CREDS))).status).toBe(200)
+
+    // The earlier failures are forgiven, so a fresh run of failures gets
+    // the full allowance rather than locking out immediately.
+    succeed = false
+    for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
+      expect((await handle(loginRequest(CREDS))).status).toBe(401)
+    }
+    expect((await handle(loginRequest(CREDS))).status).toBe(429)
+  })
+
+  it('never echoes the credentials it refused', async () => {
+    const handle = createRouter(
+      routes,
+      testApp({ login: () => Promise.reject(new CaldavError(401)) }),
+    )
+    for (let i = 0; i < MAX_ATTEMPTS; i += 1) await handle(loginRequest(CREDS))
+    const body = await (await handle(loginRequest(CREDS))).text()
+    expect(body).not.toContain(CREDS.password)
+    expect(body).not.toContain(CREDS.username)
+    expect(body).not.toContain(CREDS.serverUrl)
   })
 })
 

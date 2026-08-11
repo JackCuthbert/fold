@@ -1,4 +1,5 @@
 import type { AppContext } from '../../src/api/route'
+import { makeAttemptLimiter } from '../../src/auth/attempt-limit'
 import type { CaldavGateway } from '../../src/caldav/gateway'
 
 export const TEST_SECRET = 'a-test-secret-at-least-16-chars'
@@ -32,5 +33,8 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
     makeGateway: () => ({ ...base, ...gateway }),
     // Off, matching the default: a unit test must never reach the network.
     checkForUpdate: () => Promise.resolve(null),
+    // A fresh limiter per app, so one test's failed sign-ins can never
+    // lock out the next (docs/specs/security.md).
+    signInAttempts: makeAttemptLimiter(),
   }
 }

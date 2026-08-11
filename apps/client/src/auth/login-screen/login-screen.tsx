@@ -68,12 +68,18 @@ export function LoginScreen() {
     },
   })
 
+  // A 429 is the BFF's own attempt cap, not the CalDAV server
+  // (docs/specs/security.md). It has to be named separately or it falls
+  // into "could not reach the server", which is both wrong and unhelpful:
+  // the server was reached, and waiting is the fix.
   const submitError =
-    login.error instanceof ApiError && login.error.status === 401
-      ? 'The CalDAV server rejected these credentials.'
-      : login.error
-        ? 'Could not reach the server. Check the URL and try again.'
-        : null
+    login.error instanceof ApiError && login.error.status === 429
+      ? 'Too many failed attempts. Wait a few minutes and try again.'
+      : login.error instanceof ApiError && login.error.status === 401
+        ? 'The CalDAV server rejected these credentials.'
+        : login.error
+          ? 'Could not reach the server. Check the URL and try again.'
+          : null
 
   return (
     // docs/specs/ui.md — login: a full-screen split, the artwork on one
