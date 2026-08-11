@@ -150,6 +150,76 @@ describe('POST /api/session — the attempt cap', () => {
   })
 })
 
+// docs/specs/security.md — the opt-in CalDAV host allowlist (issue #43).
+describe('POST /api/session — the CalDAV host allowlist', () => {
+  it('signs in normally when no allowlist is set', async () => {
+    // The default. Upgrading Fold must not break an existing deployment.
+    const login = vi.fn().mockResolvedValue(undefined)
+    const handle = createRouter(routes, testApp({ login }))
+    expect((await handle(loginRequest(CREDS))).status).toBe(200)
+  })
+
+  it('refuses a host that is not on the list, without calling out', async () => {
+    const login = vi.fn().mockResolvedValue(undefined)
+    const handle = createRouter(
+      routes,
+      testApp({ login }, { allowedCaldavHosts: ['dav.example.com'] }),
+    )
+    const res = await handle(loginRequest(CREDS))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toMatchObject({ error: 'server_not_allowed' })
+    // The point of the whole feature: no request left the process.
+    expect(login).not.toHaveBeenCalled()
+    expect(res.headers.get('set-cookie')).toBeNull()
+  })
+
+  it('lets an allowed host through', async () => {
+    const login = vi.fn().mockResolvedValue(undefined)
+    const handle = createRouter(
+      routes,
+      testApp({ login }, { allowedCaldavHosts: ['dav.example.com'] }),
+    )
+    const res = await handle(
+      loginRequest({ ...CREDS, serverUrl: 'https://dav.example.com/jack/' }),
+    )
+    expect(res.status).toBe(200)
+    expect(login).toHaveBeenCalled()
+  })
+
+  it('does not spend an attempt on a refused host', async () => {
+    // A refused host never reaches the network, so it is not a failed
+    // sign-in — otherwise a misconfigured client hammering a disallowed
+    // URL would lock out the legitimate one.
+    const login = vi.fn(() => Promise.reject(new CaldavError(401)))
+    const handle = createRouter(
+      routes,
+      testApp({ login }, { allowedCaldavHosts: ['dav.example.com'] }),
+    )
+    for (let i = 0; i < MAX_ATTEMPTS + 5; i += 1) {
+      expect((await handle(loginRequest(CREDS))).status).toBe(403)
+    }
+    // The allowed host still has its full allowance.
+    const allowed = { ...CREDS, serverUrl: 'https://dav.example.com/jack/' }
+    for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
+      expect((await handle(loginRequest(allowed))).status).toBe(401)
+    }
+    expect((await handle(loginRequest(allowed))).status).toBe(429)
+  })
+
+  it('does not leak the allowlist in the refusal', async () => {
+    // Telling an attacker which hosts *are* reachable would undo some of
+    // the benefit of refusing.
+    const handle = createRouter(
+      routes,
+      testApp(undefined, {
+        allowedCaldavHosts: ['secret-internal.example.com'],
+      }),
+    )
+    const body = await (await handle(loginRequest(CREDS))).text()
+    expect(body).not.toContain('secret-internal')
+  })
+})
+
 describe('DELETE /api/session', () => {
   it('clears the cookie', async () => {
     const handle = createRouter(routes, testApp())

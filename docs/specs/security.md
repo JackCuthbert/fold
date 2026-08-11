@@ -171,4 +171,84 @@ repository goes public rather than after.
 
 The one finding it does **not** address is SSRF via a user-supplied
 `serverUrl`: that is a server-side request, made by the BFF, and no
-browser-facing header touches it.
+browser-facing header touches it. See the allowlist below.
+
+## Which CalDAV hosts sign-in may reach
+
+`CALDAV_ALLOWED_HOSTS` restricts the addresses `POST /api/session` will
+send credentials to. A `serverUrl` that does not match is refused with
+`403 server_not_allowed` **before any request leaves the process**.
+
+```
+CALDAV_ALLOWED_HOSTS=dav.example.com, *.example.org, 192.168.1.10:5232
+```
+
+Comma-separated. Each entry is a hostname, optionally with a port, and
+optionally with a leading `*.` wildcard:
+
+| Entry | Matches | Does not match |
+|---|---|---|
+| `dav.example.com` | that host, any port | `evil.com`, `notdav.example.com` |
+| `dav.example.com:5232` | that host on 5232 only | the same host on 8080 |
+| `*.example.com` | `dav.example.com`, `a.b.example.com` | `example.com`, `evil-example.com` |
+
+The wildcard deliberately does **not** match its own parent domain, the
+same way a TLS wildcard behaves — and, more importantly, a naive
+suffix match would have accepted `evil-example.com`, which anyone can
+register.
+
+### Off by default, and why
+
+**An empty value means no restriction**, and that is the shipped default.
+This is the one place in the codebase that deliberately fails *open*.
+
+Pointing Fold at a private address is the **normal** self-hosting case:
+`http://192.168.1.10:5232/`, a `.local` name, a Tailscale address. A
+blanket private-IP block — the obvious fix — would break the product for
+exactly the people it is for. Making the restriction opt-in means
+upgrading Fold never silently breaks an existing deployment's sign-in.
+
+Set it when the login page is reachable by people other than the operator.
+A single-user deployment behind Tailscale or on a home LAN does not need
+it.
+
+### What it prevents
+
+`serverUrl` arrives from an **unauthenticated** caller, and the server then
+makes requests to it. Without a restriction, anyone who can reach the login
+page can make Fold issue requests to whatever its container can reach —
+loopback services, other hosts on the LAN, cloud metadata endpoints — with
+the attacker's chosen credentials attached and Fold's address on the
+packets rather than theirs (issue #43).
+
+Verified end-to-end rather than in unit tests alone. With a listener
+standing in for an internal service:
+
+- **no allowlist** — the BFF touched it 3 times, as before
+- **allowlist not naming it** — touched **0 times**, every attempt `403`
+
+including the bypasses worth checking: `http://dav.example.com@127.0.0.1/`
+(userinfo is not the host), `http://evil-dav.example.com/`, `file:///`,
+`http://[::1]:5232/` and `169.254.169.254`. A legitimate allowlisted LAN
+Radicale still signs in normally, and the same box on a different port is
+still refused.
+
+### Ordering, and why it matters
+
+The host check runs **before** the attempt cap reserves a slot. A refused
+host never reaches the network, so it is not a failed sign-in and must not
+consume one of the five — otherwise a misconfigured client hammering a
+disallowed URL would lock out the legitimate one.
+
+The refusal does not name the allowed hosts. Telling an attacker which
+hosts *are* reachable would give back some of what refusing them earns.
+
+### What it does not fix
+
+The relay is narrowed, not removed. An operator who allowlists nothing is
+in exactly the position the audit described, and one who allowlists their
+own CalDAV server can still have guesses relayed at *that* server — which
+is what the attempt cap above bounds. The two work together: the allowlist
+limits *where*, the cap limits *how many*.
+
+*(added 2026-08-11, closing the SSRF finding in issue #43.)*

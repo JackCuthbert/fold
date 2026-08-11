@@ -1,5 +1,6 @@
 import { credentialsSchema } from '@fold/schemas'
 import { attemptKey } from '../../auth/attempt-limit'
+import { isHostAllowed } from '../../caldav/allowed-hosts'
 import { CaldavError } from '../../caldav/errors'
 import { useSecureCookie } from '../../config'
 import { HttpError } from '../../http/errors'
@@ -12,6 +13,19 @@ export const createSession: Route = {
   path: '/api/session',
   handle: async (ctx) => {
     const credentials = credentialsSchema.parse(await ctx.request.json())
+
+    // Checked *before* the attempt cap below, deliberately. A refused host
+    // never reaches the network, so it is not a failed sign-in attempt and
+    // must not burn one of the five: otherwise a misconfigured client
+    // hammering a disallowed URL would lock out the legitimate one.
+    // Empty allowlist means unrestricted (docs/specs/security.md).
+    if (!isHostAllowed(credentials.serverUrl, ctx.app.allowedCaldavHosts)) {
+      throw new HttpError(
+        403,
+        'server_not_allowed',
+        "This server is not in this deployment's allowed CalDAV hosts.",
+      )
+    }
 
     // Sign-in is the only route that acts on an unauthenticated caller's
     // instructions — it takes an arbitrary `serverUrl` and goes and tries

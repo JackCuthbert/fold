@@ -36,6 +36,16 @@ services:
       # Changing it invalidates every existing session, which is also how
       # you sign everyone out.
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      # Which CalDAV servers sign-in may be pointed at. Left unset it
+      # restricts nothing, which is the default and what most self-hosted
+      # deployments want — a LAN address is a perfectly normal CalDAV
+      # server. Set it when your login page is reachable by people other
+      # than you: without it, anyone who can load that page can make this
+      # container issue requests to anything it can reach
+      # (docs/specs/security.md). Comma-separated; entries may carry a port
+      # or a `*.` wildcard.
+      # CALDAV_ALLOWED_HOSTS: 'dav.example.com, *.example.org'
+      #
       # Uncomment ONLY if you cannot put TLS in front of this. It drops
       # `Secure` from the session cookie so plain HTTP works — and that
       # cookie seals your CalDAV credentials, so anyone who can watch the
