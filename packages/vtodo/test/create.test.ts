@@ -68,4 +68,32 @@ describe('createTodoIcs', () => {
     const line = ics.split('\r\n').find((l) => l.startsWith('DUE'))
     expect(line).toBe(expected)
   })
+
+  // RFC 5545 §3.7.3. Nothing reads PRODID, so these guard the two ways it
+  // can go wrong without anything else noticing: naming a project that no
+  // longer exists, and reporting a version that stopped tracking releases.
+  describe('PRODID', () => {
+    const prodid = (): string =>
+      createTodoIcs({ uid: 'p', summary: 's' }, NOW)
+        .split('\r\n')
+        .find((line) => line.startsWith('PRODID:')) ?? ''
+
+    it('names the project as it is actually published', () => {
+      // `caldav-todo-client` was the pre-rename name, and the repository at
+      // that name 404s — a reader of the .ics could find nothing.
+      expect(prodid()).toContain('Fold')
+      expect(prodid()).not.toContain('caldav-todo-client')
+    })
+
+    it('carries the released version, not this package.json being stale', () => {
+      // The value is only useful for "did some past release mangle this?",
+      // which needs a version that moves. packages/vtodo/package.json is
+      // bumped by release-please (release-please-config.json extra-files);
+      // if it is ever dropped from that list this pins at 0.1.0 and the
+      // label silently lies forever.
+      expect(prodid()).toMatch(
+        /^PRODID:-\/\/JackCuthbert\/\/Fold \d+\.\d+\.\d+\/\/EN$/,
+      )
+    })
+  })
 })
