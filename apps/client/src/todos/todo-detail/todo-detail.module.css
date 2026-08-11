@@ -496,3 +496,22 @@
   font-style: italic;
   color: var(--faint);
 }
+
+/* The priority glyph beside its label, in the trigger and in each option
+   (todos/lib/priority-choices). The icon inherits the row's priority ink
+   from `.prioHigh`/`.prioMedium`/`.prioLow` above, so glyph and text always
+   agree. *(added 2026-08-11.)* */
+.selectValue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The glyph's ground, from the shared source — the same box the row's meta
+   pill and the context menu's choices use (styles/priority.module.css), so
+   one choice has one treatment wherever it is offered.
+   *(added 2026-08-11.)* */
+.prioSwatch {
+  composes: swatch from '../../styles/priority.module.css';
+}

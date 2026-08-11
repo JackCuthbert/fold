@@ -282,20 +282,11 @@
   scrollbar-width: thin;
 }
 
-/* Health tints are derived from --list-red against --surface, so they
-   follow whichever palette is active without being restated (tokens.css).
-   Repeated here only because the dark variants are selected by a media
-   query there, which a data-attribute palette must override. */
+/* The health tints that used to be restated here went with the health
+   block's border and tint on 2026-08-11 (issue #40) — see tokens.css. */
 [data-theme='dark'] {
-  --health-edge: color-mix(in srgb, #e0705f 34%, var(--surface));
-  --health-wash: color-mix(in srgb, #e0705f 4%, var(--surface));
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.03);
   --status-synced: #7fa87f;
   --status-syncing: #d9a441;
   --status-offline: #e0705f;
-}
-
-[data-theme='light'] {
-  --health-edge: color-mix(in srgb, var(--list-red) 28%, var(--surface));
-  --health-wash: color-mix(in srgb, var(--list-red) 2%, var(--surface));
 }

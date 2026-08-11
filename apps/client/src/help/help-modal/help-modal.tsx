@@ -278,6 +278,16 @@ export function HelpModal(props: HelpModalProps) {
                     and finished, how long it was open, and whether it made its
                     deadline.
                   </p>
+                  {/* docs/specs/todos.md — row actions. Said here because a
+                      right-click menu is invisible until you try it: there
+                      is no affordance that can advertise it, which is
+                      exactly the kind of thing this modal is for.
+                      *(added 2026-08-11, issue #40.)* */}
+                  <p>
+                    Right-click a todo (or press and hold on a phone) for the
+                    quick things: tick it off, push it to today or tomorrow, set
+                    a priority, move it to another list, or delete it.
+                  </p>
                 </Topic>
                 {/* docs/specs/lists.md */}
                 <Topic title="Lists">

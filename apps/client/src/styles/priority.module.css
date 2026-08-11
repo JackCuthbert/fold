@@ -42,3 +42,44 @@
 .low {
   color: var(--status-synced);
 }
+
+/*
+ * The glyph's ground — the soft fill the row's meta pill uses, so a choice
+ * looks like the pill it will produce rather than like a loose icon.
+ *
+ * Here rather than in one consumer because all three surfaces that offer
+ * this choice need it: the row's context menu, the detail panel's dropdown
+ * and the add-todo modal's. It first landed in the context menu alone, on
+ * the reasoning that a dropdown row inside a bordered field needed less —
+ * which was a rationalisation, not a design decision. One choice, one
+ * treatment.
+ *
+ * Compose `.swatch` for the box and, alongside it, the rank class above
+ * for the ink — the ground follows from a `.high`/`.medium` *ancestor*, so
+ * the two must sit on the same element or on a parent of the swatch.
+ *
+ * *(added 2026-08-11.)*
+ */
+.swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  /* The neutral ground. Low and None keep it: low is the *absence* of
+     urgency, and a colour would make "not urgent" look like a claim
+     (docs/specs/ui.md). Matches `.pill` in todo-meta.module.css. */
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+}
+
+.high .swatch,
+.swatch.high {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.medium .swatch,
+.swatch.medium {
+  background: color-mix(in srgb, var(--list-amber) 15%, transparent);
+}

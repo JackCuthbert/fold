@@ -1,45 +1,26 @@
-/* docs/specs/list-kinds.md — health todos lead every derived view, in a
-   block of their own. See health-block.tsx.
+/* docs/specs/list-kinds.md — health todos lead every derived view, under a
+   heading of their own. See health-block.tsx.
    *(added 2026-08-05, issue #27.)*
 
-   A border around the *block*, not around each row. One row with a border
-   would be the loudest thing in a pane whose whole argument is restraint
-   (docs/specs/ui.md); a single outline around several rows reads as a
-   section — which is what this is, effectively its own small list pinned
-   above the rest.
+   **No border and no tint.** It had both until 2026-08-11, when rows
+   gained hover and current states (issue #40) and the two treatments
+   started fighting: a wash inside a tinted, bordered box reads as a third
+   colour rather than as the same feedback every other row gives, and the
+   box's padding pushed its rows off the left edge every other row shares
+   (docs/specs/ui.md — one left edge), which the states then made obvious.
 
-   The tint is barely there. It exists so the block still groups when the
-   border alone is ambiguous against the row hairlines inside it, not to
-   colour the rows. */
-/* The heading plus the box. The section owns the gap to the list below;
-   the box owns its own padding, and holds nothing but rows.
-   *(added 2026-08-05, when the heading moved outside the box.)* */
+   What replaces it is what was already carrying the meaning: the heading.
+   The ordinary rows below now have one too, so the two read as peer
+   sections told apart by their titles and the space between them, rather
+   than by one being in a box. Health still leads, which is the part that
+   matters — it is first, and it is named.
+   *(changed 2026-08-11, issue #40.)* */
 .section {
   /* Clear of the list below, so this reads as its own section rather than
-     as the first few rows of that list. */
-  margin-block-end: var(--space-4);
-}
-
-.block {
-  border: var(--border-width) solid var(--health-edge);
-  border-radius: var(--radius-sm);
-  background: var(--health-wash);
-  /* Equal on all four edges. The block stays *within* the pane's measure
-     rather than being pulled out into its padding: a box that breaks the
-     reading column to line its rows up with the ones outside it trades a
-     real edge for a notional one. Its rows sitting a padding further in
-     than the todos below is accepted — the block is a section of its own,
-     and is allowed to be indented like one.
-     *(changed 2026-08-05: previously `margin-inline` pulled the border
-     outward so the rows shared the checkbox column, which broke the
-     container's max width.)* */
-  padding: var(--space-3);
-}
-
-/* The last row's hairline would sit a padding's width above the block's
-   own bottom edge — two parallel lines that read as a mistake. */
-.block > ul > li:last-child {
-  border-bottom: none;
+     as the first few rows of that list. Carries the whole separation now
+     that there is no border to draw the line — the same gap the Completed
+     section uses (todo-pane.module.css), since it is the same job. */
+  margin-block-end: var(--space-6);
 }
 
 /* Names the block, so the heart is never the only thing carrying the

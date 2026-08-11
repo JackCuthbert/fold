@@ -9,7 +9,10 @@
   /* Gap, not padding — same reason as `.todo`: a leading inset would push
      the circle off the column's shared left edge. */
   gap: var(--space-1);
-  border-bottom: 1px solid var(--line);
+  /* No hairline, following `.todo` — see todo-item.module.css for why they
+     went. This row mirrors a todo row, so it has to lose the line with
+     them or it would be the only rule left in the list.
+     *(removed 2026-08-11, issue #40.)* */
 }
 
 /* The whole row is one target, so there is no dead space between the

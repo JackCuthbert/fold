@@ -10,6 +10,7 @@ import { LuChevronDown, LuCopy, LuFolderInput } from 'react-icons/lu'
 import { InfoBadge, ModalHeader } from '../../ui'
 import { featuresOf } from '../../lists/lib/list-kind'
 import { cx } from '../../styles/cx'
+import { PRIORITY_CHOICES, priorityChoice } from '../lib/priority-choices'
 import {
   cycleTimeOf,
   punctualityOf,
@@ -29,12 +30,26 @@ const PUNCTUALITY_CLASS: Record<Punctuality, string> = {
   late: styles['metaLate'] ?? '',
 }
 
-const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
-  { label: 'None', value: '' },
-  { label: 'High', value: 'high' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Low', value: 'low' },
-]
+/**
+ * The dropdown's options, from the shared list
+ * (todos/lib/priority-choices) so this and the context menu cannot drift.
+ *
+ * The empty string is this Select's "none" — it predates the shared list
+ * and is what the form field stores, so the mapping happens here rather
+ * than changing what the form holds.
+ *
+ * **The order is the shared list's**, unchanged: High, Medium, Low, None.
+ * This briefly floated None to the top on the reasoning that clearing is
+ * what you go looking for, which left the dropdown and the context menu
+ * offering the same four choices in two different orders.
+ * *(sourced from the shared list 2026-08-11; reorder reverted the same
+ * day.)*
+ */
+const PRIORITY_OPTIONS = PRIORITY_CHOICES.map((choice) => ({
+  label: choice.label,
+  value: choice.value ?? '',
+  icon: choice.icon,
+}))
 
 // docs/specs/todos.md — priority is colour-coded: the option that sets a
 // priority uses the same ink as the row that displays it. Keyed by option
@@ -306,7 +321,15 @@ export function TodoDetail(props: TodoDetailProps) {
                 <Select.Trigger
                   className={cx(styles['selectTrigger'], PRIO_CLASS[value])}
                 >
-                  <Select.Value />
+                  {/* The glyph beside the value, so the trigger reads the
+                      same way the row's pill and the context menu do
+                      (todos/lib/priority-choices). */}
+                  <span className={styles['selectValue']}>
+                    <span className={styles['prioSwatch']}>
+                      {priorityChoice(value === '' ? null : value).icon}
+                    </span>
+                    <Select.Value />
+                  </span>
                   <Select.Icon className={styles['selectIcon']}>
                     <LuChevronDown aria-hidden="true" size={14} />
                   </Select.Icon>
@@ -333,7 +356,12 @@ export function TodoDetail(props: TodoDetailProps) {
                             PRIO_CLASS[option.value],
                           )}
                         >
-                          <Select.ItemText>{option.label}</Select.ItemText>
+                          <span className={styles['selectValue']}>
+                            <span className={styles['prioSwatch']}>
+                              {option.icon}
+                            </span>
+                            <Select.ItemText>{option.label}</Select.ItemText>
+                          </span>
                         </Select.Item>
                       ))}
                     </Select.Popup>

@@ -308,6 +308,156 @@ never the danger colour. The todo is fine and the work was done; only the
 date is unknown, and styling it as an error would suggest something is wrong
 with the todo itself.
 
+## Row actions
+
+*(added 2026-08-11, issue #40.)*
+
+**Right-click a todo row — or long-press it on touch — for its actions.**
+The common edits should not require opening the detail panel, reading a
+form and closing it again.
+
+Base UI's `ContextMenu` supplies both gestures, including the parts that
+are easy to get wrong: a long-press timer that cancels if the finger moves
+more than 10px, so scrolling a list never fires a menu, and suppression of
+iOS's own text callout that would otherwise appear over ours.
+
+The inventory:
+
+| action | behaviour |
+|---|---|
+| Mark as done / active | exactly what the row's checkbox does, including the sound |
+| Schedule | Today, Today 5pm, Tomorrow, Tomorrow 9am, Clear due date — in a submenu |
+| Priority | High / Medium / Low / None, in a submenu |
+| Move to… | opens the existing Move dialog |
+| Delete | opens the existing confirmation |
+
+### Schedule and Priority are submenus
+
+Flat, their two groups took six of the menu's ten rows for questions most
+opens do not ask, and Delete sat below all of it. A submenu costs one hover
+to the person who wants it and nothing to the person who doesn't; the top
+level is five rows. *(nested 2026-08-11.)*
+
+Both triggers are a plain label. Priority briefly showed its current value
+("Priority   High"), so that nesting would not hide it — but the value's
+width varies with the word, so the row's chevron moved as the priority
+changed. The row already shows its priority as a pill, and the tick inside
+the submenu is where the answer belongs.
+
+### One list of priority choices, one order, everywhere
+
+`todos/lib/priority-choices` holds the four — label, glyph, order — and the
+context menu, the detail panel's dropdown and the add-todo modal's all read
+from it. Two of those previously kept their own copy of the option list,
+which is the drift `styles/priority.module.css` already exists to prevent
+for the colour. *(unified 2026-08-11.)*
+
+- **High, Medium, Low, None** — a descending scale, so None is last. It was
+  briefly floated to the top of the dropdowns on the reasoning that
+  clearing is what you go looking for, which left one set of choices
+  offered in two different orders.
+- **"None" is one of the four**, not the absence of a choice. It is a value
+  you set — without it the only way back from High is the detail panel —
+  and having it means something is always marked.
+- **The glyph sits on the meta pill's own ground** — a 20px swatch in the
+  same soft fill, from `styles/priority.module.css` — so a choice looks
+  like the pill it will produce. Low and None keep the neutral ground: low
+  is the *absence* of urgency, and a colour would make "not urgent" look
+  like a claim.
+- **Sizes differ by glyph on purpose.** Measured in the browser, the
+  chevrons paint 12×6 of their 24-unit viewBox while a circle paints 20×20,
+  so a nominal 14px circle towered over the ranks beside it. None's is
+  stepped to 10px to match their weight rather than their box.
+
+In the menu they are `menuitemradio`, so arrow keys, Escape and the checked
+state work as they do anywhere else. The tick **trails** the label: the
+leading column already carries the rank glyph, and a tick beside it put two
+marks on one row for two different jobs.
+
+### Quick times, and when they are not offered
+
+Beside the plain Today/Tomorrow, the submenu offers **Today 5pm** and
+**Tomorrow 9am**. The plain pair move the date and keep whatever time the
+todo had; the timed pair set it. Both shapes earn their place — pulling a
+9am meeting forward should stay at 9am, while "deal with this by tonight"
+is a time you are choosing. *(added 2026-08-11.)*
+
+09:00 is the app's existing default, the one the Time switch seeds, so the
+morning option reuses a convention rather than inventing one. Neither time
+is offered on the other day of the pair: "Today 9am" is in the past for
+most of a working day, and "Tomorrow 5pm" is far enough off to be a date
+you would rather pick.
+
+**Labels are locale-formatted**, not literal "9am" — that is wrong in every
+24-hour locale. They read from the same `toLocaleTimeString` options as the
+row's due pill, so the label and the pill it produces agree.
+
+Two rules take an option away, both for the same reason: an action that
+would do nothing useful is worse than no action.
+
+- **"Today 5pm" goes quiet once 5pm has passed.** Offering it would set a
+  due time in the past — an instantly-overdue todo. Tomorrow is right
+  there.
+- **An option that would write back the value the todo already has goes
+  quiet too.** "Today" on a todo already due today changed nothing, cost a
+  CalDAV round-trip, and read as a broken button. This compares the whole
+  `TodoDue`, not just the date, so "Today 5pm" on a todo due today at 9am
+  stays live — adding a time *is* a change.
+
+**No option ever unsets a time.** "Today" means *move the date*; removing a
+due date entirely is what Clear due date is for.
+
+### A submenu's trigger stays marked while it is open
+
+`data-highlighted` follows the pointer, so a submenu trigger went flat the
+moment you moved into the submenu — leaving the popup unanchored, with
+nothing saying which row it belonged to. The trigger uses
+`data-popup-open` instead, the same attribute the nav kebab already uses
+for the same job. *(added 2026-08-11.)*
+
+### A disabled item does not respond to the pointer
+
+Clear due date on an undated todo is disabled rather than absent, so the
+menu keeps one shape wherever it is opened. It shows muted ink and a
+`not-allowed` cursor, and — the part that needs saying — **no hover wash**.
+Base UI sets `data-highlighted` on a disabled item anyway, since the
+attribute follows the pointer rather than whether the item can be used, so
+without an explicit rule the row lit up exactly like a live one and
+promised a click that does nothing. *(fixed 2026-08-11.)*
+what you see and what a screen reader hears cannot disagree.
+
+**Scheduling moves the date and never the time.** A todo due tomorrow at
+9am pulled forward to today is still due at 9am. Dropping the time would
+silently discard what the row is displaying, and re-adding it would mean
+opening the panel — the thing this exists to avoid. An all-day todo stays
+all-day.
+
+The date arithmetic mutates a local `Date` rather than adding 86,400,000ms:
+across a daylight-saving boundary a day is 23 or 25 hours, so millisecond
+arithmetic lands on the wrong calendar day. On the night a clock springs
+forward, "tomorrow" computed the naive way skips a day entirely.
+
+**Clear due date is disabled, not hidden, on an undated todo**, so the menu
+keeps one shape wherever it is opened — the same reasoning as Move up/Move
+down in a list's kebab ([lists](./lists.md) — ordering).
+
+**Delete is confirmed, like everywhere else.** A long-press can land on the
+wrong row, so the confirmation names the todo rather than saying "this
+todo" — see below.
+
+**Move and Delete only *ask*.** Both need an overlay, and Base UI renders
+no backdrop for a *nested* dialog; on mobile a row sits inside the nav
+drawer's own dialog, so a dialog owned by the row would lose its scrim
+entirely. The row raises a request and the app frame owns the surface —
+the same rule the whole overlay stack follows ([ui](./ui.md) — overlays).
+The direct actions have no such problem: they are cache writes with no
+surface of their own.
+
+**Copy as Markdown is deliberately not here.** It belongs with the list
+export ([issue #16](https://github.com/JackCuthbert/fold/issues/16)), which
+already owns the question of what a Markdown todo includes; answering it in
+two places is how the two answers drift apart.
+
 ## Deleting a todo asks first
 
 *(added 2026-08-04: Delete in the detail panel destroyed the todo on the
@@ -334,6 +484,9 @@ be one click.
   inside it. On mobile the panel is itself a dialog, and a nested dialog
   gets no backdrop of its own — the confirm would float on the panel's
   scrim with nothing dimming the panel behind it.
+- **The row's context menu deletes through the same confirmation**, for the
+  same reasons and with more force: a long-press can land on a row you did
+  not mean. *(added 2026-08-11, issue #40.)*
 
 ## A completed todo is read-only until unlocked
 

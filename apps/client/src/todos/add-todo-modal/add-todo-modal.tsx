@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { featuresOf } from '../../lists/lib/list-kind'
 import { ModalHeader } from '../../ui'
 import { cx } from '../../styles/cx'
+import { PRIORITY_CHOICES, priorityChoice } from '../lib/priority-choices'
 import styles from './add-todo-modal.module.css'
 import { DueControls } from '../due-controls/due-controls'
 import { fieldsToDue } from '../lib/due-fields'
@@ -52,12 +53,19 @@ const globalAddTodoSchema = addTodoSchema.refine(
 )
 type AddTodoForm = z.infer<typeof addTodoSchema>
 
-const PRIORITY_OPTIONS: ReadonlyArray<{ label: string; value: string }> = [
-  { label: 'None', value: '' },
-  { label: 'High', value: 'high' },
-  { label: 'Medium', value: 'medium' },
-  { label: 'Low', value: 'low' },
-]
+/**
+ * The dropdown's options — the same shared list, in the same order, that
+ * the detail panel and the row's context menu use
+ * (todos/lib/priority-choices), so the three cannot drift. The empty
+ * string is this Select's "none", which is what the form field stores.
+ * *(sourced from the shared list 2026-08-11: this file and todo-detail.tsx
+ * each held their own copy.)*
+ */
+const PRIORITY_OPTIONS = PRIORITY_CHOICES.map((choice) => ({
+  label: choice.label,
+  value: choice.value ?? '',
+  icon: choice.icon,
+}))
 
 // docs/specs/todos.md — priority is colour-coded: the option that sets a
 // priority uses the same ink as the row that displays it. Keyed by option
@@ -390,7 +398,15 @@ export function AddTodoModal(props: AddTodoModalProps) {
                               PRIO_CLASS[value],
                             )}
                           >
-                            <Select.Value />
+                            <span className={styles['selectValue']}>
+                              <span className={styles['prioSwatch']}>
+                                {
+                                  priorityChoice(value === '' ? null : value)
+                                    .icon
+                                }
+                              </span>
+                              <Select.Value />
+                            </span>
                             <Select.Icon className={styles['selectIcon']}>
                               <LuChevronDown aria-hidden="true" size={14} />
                             </Select.Icon>
@@ -414,9 +430,14 @@ export function AddTodoModal(props: AddTodoModalProps) {
                                       PRIO_CLASS[option.value],
                                     )}
                                   >
-                                    <Select.ItemText>
-                                      {option.label}
-                                    </Select.ItemText>
+                                    <span className={styles['selectValue']}>
+                                      <span className={styles['prioSwatch']}>
+                                        {option.icon}
+                                      </span>
+                                      <Select.ItemText>
+                                        {option.label}
+                                      </Select.ItemText>
+                                    </span>
                                   </Select.Item>
                                 ))}
                               </Select.Popup>

@@ -1,0 +1,99 @@
+/*
+ * The look of a menu of actions — the popup, its items, and their states.
+ *
+ * Two menus share it: a list's kebab in the nav (lists/list-item-menu) and
+ * a todo row's context menu (todos/todo-context-menu). Both are "actions
+ * for one row", so giving them two looks would say they are two different
+ * kinds of thing.
+ *
+ * **Here, in `styles/`, rather than in one of them.** The context menu
+ * originally composed the kebab's module directly, across a domain
+ * boundary. That looked like sharing, but CSS Modules `composes` *copies*
+ * a rule into the consumer's own scope: the browser ended up with two
+ * complete sets of these rules under different generated names, and the
+ * two menus rendered from different copies. So a fix applied to the
+ * original — a disabled item that must not light up under the pointer —
+ * silently did nothing in the context menu, which was reading the other
+ * copy. Anything composed by more than one domain belongs in a neutral
+ * module, the same reason `priority.module.css` lives here.
+ * *(extracted 2026-08-11, issue #40.)*
+ */
+
+.popup {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-1);
+  min-width: 9rem;
+  outline: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Base UI marks the item under the pointer *and* the one reached by arrow
+   keys with `data-highlighted`, so this covers both. */
+.item[data-highlighted] {
+  background: var(--line);
+}
+
+/* A submenu trigger whose submenu is open. Base UI marks it with
+   `data-popup-open`, the same attribute the nav kebab's trigger uses for
+   the same job (lists/list-item-menu).
+
+   Without this the parent went flat the moment the pointer moved into the
+   submenu — `data-highlighted` follows the pointer, so it left the popup
+   looking unanchored, with nothing saying which row it belonged to. The
+   plain highlight wash rather than something louder: the row is still the
+   one you are on, it is not a separate state. *(added 2026-08-11.)* */
+.item[data-popup-open] {
+  background: var(--line);
+}
+
+/* An item that cannot be used right now — the kebab's Move up at the top
+   of the list (docs/specs/lists.md — ordering), Clear due date on an
+   undated todo (docs/specs/todos.md — row actions). Disabled rather than
+   absent, so a menu's shape stays constant wherever it is opened; Base UI
+   already blocks activation and skips it in arrow-key navigation. */
+.item[data-disabled] {
+  color: var(--muted);
+  /* `not-allowed`, matching every other disabled control in the app
+     (styles/button.module.css, the Select trigger). */
+  cursor: not-allowed;
+}
+
+/* **And no hover wash.** Base UI sets `data-highlighted` on a disabled
+   item anyway — the attribute follows the pointer, not whether the item
+   can be used — so without this the row lit up exactly like a live one,
+   promising a click that does nothing. After the rule it overrides, so it
+   wins on source order at equal specificity. *(added 2026-08-11.)* */
+.item[data-disabled][data-highlighted] {
+  background: transparent;
+}
+
+/* docs/specs/ui.md — accessibility: destructive controls need a focus
+   state at least as legible as any other. Base UI's items keep DOM focus
+   in the popup and mark the active one with `data-highlighted`, so that is
+   the correct hook — but sharing the plain `--line` tint would make
+   Delete's "focused" state indistinguishable from any other item's, which
+   is exactly the gap the spec calls out. A danger-tinted background keeps
+   the mechanism and makes it unmistakably destructive. */
+.destructive {
+  color: var(--danger);
+}
+
+.destructive[data-highlighted] {
+  /* Matches the destructive button's hover tint (button.module.css) so the
+     two feel like one treatment. */
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+}

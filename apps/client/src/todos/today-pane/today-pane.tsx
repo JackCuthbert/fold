@@ -119,6 +119,19 @@ export function TodayPane(props: TodayPaneProps) {
         ))}
       </HealthBlock>
 
+      {/* docs/specs/list-kinds.md — health first. A peer heading for the
+          ordinary rows, so the two sections are told apart by their titles
+          rather than by health's being in a box — the box was removed on
+          2026-08-11 (issue #40) because its tint fought the rows' own
+          hover and current states.
+
+          Only when there *is* a health section above: with nothing to be
+          distinguished from, "Everything else" would label the only thing
+          on screen, which says nothing. */}
+      {healthActive.length > 0 && activeRows.length > 0 && (
+        <h2 className={paneStyles['sectionHeading']}>Everything else</h2>
+      )}
+
       <ul className={paneStyles['list']}>
         {activeRows.map((row) =>
           row.kind === 'group' ? (

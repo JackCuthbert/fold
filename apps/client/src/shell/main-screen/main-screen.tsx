@@ -28,12 +28,22 @@ import {
   TODAY_VIEW,
   TOMORROW_VIEW,
 } from '../../todos/lib/today'
+import { useSound } from '../../sound'
+import { ConfirmDialog } from '../../ui'
 import { TodayDetail } from '../../todos/today-pane/today-pane'
 import { useAddTodo } from '../../todos/hooks/use-add-todo'
 import { useGlobalAddTodo } from '../../todos/hooks/use-global-add-todo'
 import { useListActiveTodos } from '../../todos/hooks/use-list-active-todos'
 import { useShortcuts, viewIndexOf } from '../../shortcuts'
-import { useTodoActions } from '../../todos/hooks/use-todo-actions'
+import {
+  useTodoActions,
+  useTodoActionsFor,
+} from '../../todos/hooks/use-todo-actions'
+import { scheduledDue } from '../../todos/lib/schedule'
+import {
+  TodoActionsProvider,
+  type TodoRowActions,
+} from '../context/todo-actions-context'
 import { useTodoDetailForm } from '../../todos/hooks/use-todo-detail-form'
 import { useViewCount } from '../../todos/hooks/use-view-count'
 import { AppModals } from '../app-modals/app-modals'
@@ -403,6 +413,13 @@ export function MainScreen() {
   // the panel), and a move must be queued against the collection the todo
   // is actually leaving.
   const moveActions = useTodoActions(movingTodo?.listId ?? '')
+  // docs/specs/todos.md — row actions: deleting from the row's context
+  // menu is confirmed, like every other destructive action in the app
+  // (delete list, clear completed). A long-press landing on an immediate
+  // delete is how a todo is lost by accident.
+  const [deletingTodo, setDeletingTodo] = useState<Todo | null>(null)
+  const rowActionsFor = useTodoActionsFor()
+  const { playPop } = useSound()
 
   // The nav's contents, rendered twice — inside the drawer on mobile and
   // inside the pinned column on desktop. See nav-panel.tsx.
@@ -477,19 +494,52 @@ export function MainScreen() {
     active,
     select: selectList,
     openDetail,
+    openTodoUid: openTodo?.uid ?? null,
+  }
+
+  // docs/specs/todos.md — row actions. Everything a row's context menu can
+  // do, in one place. Move and Delete only *request*: their dialogs are
+  // owned here, as siblings of the other overlays, because a dialog nested
+  // inside the row's menu would render without a backdrop (issue #38,
+  // issue #50). See shell/context/todo-actions-context.tsx.
+  //
+  // Keyed to each todo's own list rather than the active view: Today,
+  // Tomorrow, Summary and Search all draw rows from several lists at once,
+  // so a write bound to the *view* would queue against the wrong
+  // collection. `rowActionsFor` builds the writer per call, which is why
+  // this is a plain function and not a hook.
+  const rowActions: TodoRowActions = {
+    toggle: (todo) => {
+      rowActionsFor(todo.listId).update(todo, { completed: !todo.completed })
+      if (!todo.completed) playPop()
+    },
+    schedule: (todo, offset, time) => {
+      rowActionsFor(todo.listId).update(todo, {
+        due: scheduledDue(todo.due, new Date(), offset, time),
+      })
+    },
+    unschedule: (todo) => {
+      rowActionsFor(todo.listId).update(todo, { due: null })
+    },
+    setPriority: (todo, priority) => {
+      rowActionsFor(todo.listId).update(todo, { priority })
+    },
+    requestMove: (todo) => setMovingTodo(todo),
+    requestDelete: (todo) => setDeletingTodo(todo),
   }
 
   return (
     <OverlaysProvider value={overlays}>
       <ListFilterProvider value={filterState}>
         <SelectionProvider value={selection}>
-          <div className={styles['layout']}>
-            {/* Every modal in the app, as siblings of the drawer rather than
+          <TodoActionsProvider value={rowActions}>
+            <div className={styles['layout']}>
+              {/* Every modal in the app, as siblings of the drawer rather than
           inside it — see app-modals.tsx for the one reason they all live
           at this level. */}
-            <AppModals />
-            <div className={styles['body']}>
-              {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
+              <AppModals />
+              <div className={styles['body']}>
+                {/* docs/specs/ui.md — the nav is collapsible on desktop too, not
             only on mobile, opening to the same comfortable width at both
             sizes (`.nav`'s width in main-screen.module.css matches
             `.navOpen`'s `min(80vw, 20rem)` exactly). Plain markup, not a
@@ -502,20 +552,20 @@ export function MainScreen() {
             a width transition, not an instant mount/unmount; hidden from
             assistive tech and unreachable by Tab while collapsed, matching
             the mobile drawer's closed state. */}
-              {isDesktop && (
-                <aside
-                  className={cx(
-                    styles['nav'],
-                    !desktopNavOpen && styles['navCollapsed'],
-                  )}
-                  aria-hidden={!desktopNavOpen}
-                  inert={!desktopNavOpen}
-                >
-                  <div className={styles['navInner']}>{navContent}</div>
-                </aside>
-              )}
-              <main className={styles['main']}>
-                {/* docs/specs/ui.md — mobile: the nav trigger sits beside the
+                {isDesktop && (
+                  <aside
+                    className={cx(
+                      styles['nav'],
+                      !desktopNavOpen && styles['navCollapsed'],
+                    )}
+                    aria-hidden={!desktopNavOpen}
+                    inert={!desktopNavOpen}
+                  >
+                    <div className={styles['navInner']}>{navContent}</div>
+                  </aside>
+                )}
+                <main className={styles['main']}>
+                  {/* docs/specs/ui.md — mobile: the nav trigger sits beside the
               list title, forming the top row of the content column,
               rather than a floating button in a corner. The title stays
               centred above the list on every viewport. On desktop a
@@ -523,30 +573,30 @@ export function MainScreen() {
               docs/specs/ui.md — scrolling: this header is sticky so the
               list title, nav toggle and "Add a todo" stay in view; only
               .mainScroll beneath it scrolls. */}
-                <ViewHeader
-                  derivedInfo={derivedInfo}
-                  activeList={activeList}
-                  kindInfo={kindInfo}
-                  viewCount={viewCount}
-                  listActiveTodos={listActiveTodos}
-                  drawer={drawer}
-                  drawerAvailable={drawerAvailable}
-                  desktopNavOpen={desktopNavOpen}
-                  onToggleDesktopNav={nav.toggleDesktopNav}
-                />
-                <div className={styles['mainScroll']}>
-                  <div className={styles['mainScrollInner']}>
-                    <ViewPane
-                      kind={paneKind}
-                      activeList={activeList}
-                      add={add}
-                      searchQuery={searchQuery}
-                      onSearchQueryChange={setSearchQuery}
-                    />
+                  <ViewHeader
+                    derivedInfo={derivedInfo}
+                    activeList={activeList}
+                    kindInfo={kindInfo}
+                    viewCount={viewCount}
+                    listActiveTodos={listActiveTodos}
+                    drawer={drawer}
+                    drawerAvailable={drawerAvailable}
+                    desktopNavOpen={desktopNavOpen}
+                    onToggleDesktopNav={nav.toggleDesktopNav}
+                  />
+                  <div className={styles['mainScroll']}>
+                    <div className={styles['mainScrollInner']}>
+                      <ViewPane
+                        kind={paneKind}
+                        activeList={activeList}
+                        add={add}
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={setSearchQuery}
+                      />
+                    </div>
                   </div>
-                </div>
-              </main>
-              {/* docs/specs/ui.md — the detail panel: on desktop it is a third
+                </main>
+                {/* docs/specs/ui.md — the detail panel: on desktop it is a third
             column of the layout, after `<main>`, not an overlay over it.
             Mirrors the nav's collapse exactly — always mounted so opening
             and closing is a width transition rather than a mount, and
@@ -555,64 +605,96 @@ export function MainScreen() {
             single-user app whose owner knows what the panel is, and a
             permanent placeholder would spend a third of the screen saying
             nothing. *(added 2026-08-03, issue #4.)* */}
-              {isDesktop && (
-                <aside
-                  className={cx(
-                    styles['detail'],
-                    !openTodo && styles['detailCollapsed'],
-                  )}
-                  aria-hidden={!openTodo}
-                  inert={!openTodo}
-                >
-                  <div className={styles['detailInner']}>
-                    {openTodo && (
-                      // Deliberately *no* `key={openTodo.uid}` here or on the
-                      // sheet below. It used to force a remount when a different
-                      // todo was opened, because the form's defaultValues were
-                      // built once per mount — but the form no longer lives in
-                      // this component, so a remount would no longer re-seed it,
-                      // and the surfaces are now cheap to keep. Re-seeding on a
-                      // new uid is the hook's job instead
-                      // (use-todo-detail-form.ts).
-                      <TodayDetail
-                        todo={openTodo}
-                        lists={lists.data ?? []}
-                        form={detailForm}
-                        mode="column"
-                        focusNonce={detail.openCount}
-                        onDuplicated={openCopy}
-                        onMove={() => setMovingTodo(openTodo)}
-                        onClose={closeDetail}
-                      />
+                {isDesktop && (
+                  <aside
+                    className={cx(
+                      styles['detail'],
+                      !openTodo && styles['detailCollapsed'],
                     )}
-                  </div>
-                </aside>
-              )}
-            </div>
-            {/* docs/specs/todos.md — moving a todo between lists. A sibling
+                    aria-hidden={!openTodo}
+                    inert={!openTodo}
+                  >
+                    <div className={styles['detailInner']}>
+                      {openTodo && (
+                        // Deliberately *no* `key={openTodo.uid}` here or on the
+                        // sheet below. It used to force a remount when a different
+                        // todo was opened, because the form's defaultValues were
+                        // built once per mount — but the form no longer lives in
+                        // this component, so a remount would no longer re-seed it,
+                        // and the surfaces are now cheap to keep. Re-seeding on a
+                        // new uid is the hook's job instead
+                        // (use-todo-detail-form.ts).
+                        <TodayDetail
+                          todo={openTodo}
+                          lists={lists.data ?? []}
+                          form={detailForm}
+                          mode="column"
+                          focusNonce={detail.openCount}
+                          onDuplicated={openCopy}
+                          onMove={() => setMovingTodo(openTodo)}
+                          onClose={closeDetail}
+                        />
+                      )}
+                    </div>
+                  </aside>
+                )}
+              </div>
+              {/* docs/specs/todos.md — moving a todo between lists. A sibling
                 of the other overlays for the same reason they are: nested
                 inside the sheet's Dialog it would lose its own backdrop
                 (issue #38). */}
-            <MoveTodoModal
-              open={movingTodo !== null}
-              todo={movingTodo}
-              lists={lists.data ?? []}
-              onOpenChange={(open) => {
-                if (!open) setMovingTodo(null)
-              }}
-              onMove={(targetListId) => {
-                if (movingTodo) {
-                  moveActions.move(movingTodo, targetListId)
-                  closeDetail()
-                }
-              }}
-            />
-            {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
+              <MoveTodoModal
+                open={movingTodo !== null}
+                todo={movingTodo}
+                lists={lists.data ?? []}
+                onOpenChange={(open) => {
+                  if (!open) setMovingTodo(null)
+                }}
+                onMove={(targetListId) => {
+                  if (movingTodo) {
+                    moveActions.move(movingTodo, targetListId)
+                    // Only when the panel is showing the todo that just
+                    // moved. Moving one row's todo from its context menu
+                    // must not close a panel showing a different one.
+                    // *(narrowed 2026-08-11, issue #40 — this used to close
+                    // unconditionally, which was correct while Move could
+                    // only be reached from inside the panel.)*
+                    if (openTodo?.uid === movingTodo.uid) closeDetail()
+                  }
+                }}
+              />
+              {/* docs/specs/todos.md — row actions: deleting from a row's
+                context menu is confirmed, like every other destructive
+                action in the app. A sibling of the other overlays for the
+                same reason they are (issue #38). */}
+              <ConfirmDialog
+                open={deletingTodo !== null}
+                title="Delete this todo?"
+                confirmLabel="Delete"
+                onConfirm={() => {
+                  if (deletingTodo) {
+                    rowActionsFor(deletingTodo.listId).remove(deletingTodo)
+                    if (openTodo?.uid === deletingTodo.uid) closeDetail()
+                  }
+                  setDeletingTodo(null)
+                }}
+                onCancel={() => setDeletingTodo(null)}
+              >
+                {/* Names the todo rather than saying "this todo": the menu
+                  was opened by a long-press that may have landed on the
+                  wrong row, and the summary is what makes that visible
+                  before the destructive answer is given. */}
+                <p>
+                  “{deletingTodo?.summary}” will be deleted. This cannot be
+                  undone.
+                </p>
+              </ConfirmDialog>
+              {/* Mobile keeps the modal bottom sheet, unchanged — Base UI's Dialog
           with its scrim, focus trap and Escape (docs/specs/ui.md —
           overlays). Rendered outside `.body` since it is an overlay, not a
           column, and as a sibling of the nav drawer's Dialog rather than
           inside it — see `settingsOpen` above. */}
-            {/* Mounted for the whole mobile session, shown and hidden by
+              {/* Mounted for the whole mobile session, shown and hidden by
                 `open`. Base UI animates the *transition* between those
                 states, so a `Dialog.Root` that appears already-open has
                 nothing to animate — which is why the sheet used to pop in
@@ -620,19 +702,20 @@ export function MainScreen() {
                 overlays). `sheetTodo` holds the last todo so the sheet
                 still has content while it slides back out.
                 *(changed 2026-08-08.)* */}
-            {!isDesktop && (
-              <TodayDetail
-                todo={sheetTodo ?? PLACEHOLDER_TODO}
-                lists={lists.data ?? []}
-                form={detailForm}
-                mode="sheet"
-                open={openTodo !== null}
-                onDuplicated={openCopy}
-                onMove={() => setMovingTodo(sheetTodo)}
-                onClose={closeDetail}
-              />
-            )}
-          </div>
+              {!isDesktop && (
+                <TodayDetail
+                  todo={sheetTodo ?? PLACEHOLDER_TODO}
+                  lists={lists.data ?? []}
+                  form={detailForm}
+                  mode="sheet"
+                  open={openTodo !== null}
+                  onDuplicated={openCopy}
+                  onMove={() => setMovingTodo(sheetTodo)}
+                  onClose={closeDetail}
+                />
+              )}
+            </div>
+          </TodoActionsProvider>
         </SelectionProvider>
       </ListFilterProvider>
     </OverlaysProvider>

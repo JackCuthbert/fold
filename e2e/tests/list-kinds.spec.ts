@@ -274,7 +274,7 @@ test('the global add picker defaults to the list on screen', async ({
 })
 
 // docs/specs/list-kinds.md — health first.
-test('health todos lead Today in a block of their own', async ({ page }) => {
+test('health todos lead Today under their own heading', async ({ page }) => {
   await login(page)
   await createList(page, 'Health')
   const other = uniqueName('work')
@@ -310,7 +310,7 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
     .first()
     .click()
 
-  // The block exists, is named, and holds the health todo.
+  // The section exists, is named, and holds the health todo.
   const block = page.getByRole('region', { name: 'Health' })
   await expect(block).toBeVisible()
   await expect(block.getByText('Take the tablets')).toBeVisible()
@@ -327,21 +327,23 @@ test('health todos lead Today in a block of their own', async ({ page }) => {
   expect(otherRow).not.toBeNull()
   expect(blockBox!.y).toBeLessThan(otherRow!.y)
 
-  // And it stays inside the pane's reading column. An earlier version
-  // pulled its border outward into that padding so its rows would share
-  // the checkbox column with the todos below — which lined the rows up but
-  // broke the max width everything else respects
-  // (docs/specs/list-kinds.md). Its rows may be indented; the box may not
-  // escape. *(added 2026-08-05.)*
-  const paneBox = await page
-    .getByText('Urgent work thing', { exact: true })
-    .locator('xpath=ancestor::ul')
-    .first()
-    .boundingBox()
-  expect(paneBox).not.toBeNull()
-  expect(blockBox!.x).toBeGreaterThanOrEqual(paneBox!.x)
-  expect(blockBox!.x + blockBox!.width).toBeLessThanOrEqual(
-    paneBox!.x + paneBox!.width,
+  // And its rows share the left edge with the ordinary rows below.
+  //
+  // This used to be the opposite assertion: the section was a bordered,
+  // tinted box, and the test checked the *box* stayed within the pane's
+  // reading column while accepting that its rows sat a padding further in.
+  // The box went on 2026-08-11 (issue #40) — its tint fought the rows'
+  // new hover and current states, and the indent it forced was the very
+  // thing "one left edge" forbids (docs/specs/ui.md). With no box there
+  // is nothing to keep inside anything, and the rows can hold the edge
+  // like every other row in the app. *(rewritten 2026-08-11.)*
+  const summaryLeft = async (text: string) => {
+    const box = await page.getByText(text, { exact: true }).boundingBox()
+    expect(box).not.toBeNull()
+    return Math.round(box!.x)
+  }
+  expect(await summaryLeft('Take the tablets')).toBe(
+    await summaryLeft('Urgent work thing'),
   )
 
   // Completing it drops it out of the block — a finished health todo needs
@@ -410,11 +412,11 @@ test('a health row keeps its summary on the shared left edge', async ({
   await page.getByRole('checkbox', { name: /Pay the water bill/ }).click()
   await waitForSync(page)
 
-  // Summary, not Today: an *active* health todo goes in Today's bordered
-  // block, and rows inside the block deliberately carry no heart (the
-  // heading already names it). Completed health work sits in an ordinary
-  // run of rows, which is exactly where the heart appears — so this is the
-  // row whose placement the left-edge rule has to hold for.
+  // Summary, not Today: an *active* health todo goes in Today's health
+  // section, and rows there deliberately carry no heart (the heading
+  // already names it). Completed health work sits in an ordinary run of
+  // rows, which is exactly where the heart appears — so this is the row
+  // whose placement the left-edge rule has to hold for.
   await navRow(page, 'Summary').click()
 
   const left = async (text: string) => {
