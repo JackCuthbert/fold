@@ -8,7 +8,11 @@ const throwing = () => {
   throw new Error('gateway method not stubbed for this test')
 }
 
-export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
+export function testApp(
+  gateway?: Partial<CaldavGateway>,
+  /** Overrides for the app itself — e.g. a restricted CalDAV allowlist. */
+  overrides?: Partial<AppContext>,
+): AppContext {
   const base: CaldavGateway = {
     login: throwing,
     fetchLists: throwing,
@@ -29,6 +33,7 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
       NODE_ENV: 'development',
       ALLOW_INSECURE_COOKIE: false,
       CHECK_FOR_UPDATES: false,
+      CALDAV_ALLOWED_HOSTS: '',
     },
     makeGateway: () => ({ ...base, ...gateway }),
     // Off, matching the default: a unit test must never reach the network.
@@ -36,5 +41,9 @@ export function testApp(gateway?: Partial<CaldavGateway>): AppContext {
     // A fresh limiter per app, so one test's failed sign-ins can never
     // lock out the next (docs/specs/security.md).
     signInAttempts: makeAttemptLimiter(),
+    // Empty is the default: unrestricted, matching a deployment that has
+    // not opted in.
+    allowedCaldavHosts: [],
+    ...overrides,
   }
 }

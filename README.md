@@ -166,6 +166,30 @@ If you see "Too many failed attempts" and it wasn't you, someone is
 guessing. Nothing is exposed by it — they still need working credentials —
 but it is worth knowing.
 
+### Restricting which CalDAV servers it will reach
+
+By default Fold will try whatever server URL is typed into the login form.
+That is what makes it work for everyone's setup — and it means an open Fold
+can be asked to make requests to anything its container can reach, by
+anyone who can load the login page.
+
+If your login page is reachable by people other than you, name the servers
+it should accept:
+
+```yaml
+CALDAV_ALLOWED_HOSTS: 'dav.example.com, *.example.org, 192.168.1.10:5232'
+```
+
+Anything else is refused before a request goes anywhere. Entries may carry
+a port (`host:5232`, enforced exactly) or a `*.` wildcard (`*.example.com`
+covers `dav.example.com` but not `example.com` itself, and not
+`evil-example.com`).
+
+**Left empty it restricts nothing**, which is the default and keeps
+existing deployments working. Pointing Fold at a private address is normal
+self-hosting — a LAN box, a `.local` name, Tailscale — so this is opt-in
+rather than a blanket block on internal addresses.
+
 ### Browser-side hardening
 
 Every response carries a strict `Content-Security-Policy`, plus

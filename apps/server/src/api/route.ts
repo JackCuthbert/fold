@@ -24,6 +24,13 @@ export interface AppContext {
    * would leak into the next.
    */
   signInAttempts: AttemptLimiter
+  /**
+   * Hosts sign-in may point at, already parsed — empty means unrestricted
+   * (docs/specs/security.md). Parsed once here rather than per request:
+   * the value never changes after startup, and re-splitting a string on
+   * every sign-in is work for nothing.
+   */
+  allowedCaldavHosts: string[]
 }
 
 export interface RequestContext {

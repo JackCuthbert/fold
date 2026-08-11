@@ -46,6 +46,28 @@ const configSchema = z.object({
    * *(added 2026-08-10.)*
    */
   CHECK_FOR_UPDATES: z.stringbool().catch(false),
+  /**
+   * Which CalDAV hosts sign-in may be pointed at (docs/specs/security.md).
+   *
+   * Comma-separated, each optionally with a port and optionally with a
+   * `*.` wildcard: `dav.example.com, *.example.org, 192.168.1.10:5232`.
+   *
+   * **Empty by default, meaning no restriction.** `serverUrl` comes from
+   * an unauthenticated caller and the server then fetches it, so an open
+   * Fold can be used to reach whatever its container can reach (issue
+   * #43). The obvious fix — block private addresses — would break the
+   * product for its own audience, since pointing Fold at a LAN address is
+   * the normal self-hosting case. So this is opt-in, and the default
+   * preserves existing behaviour rather than breaking every deployment on
+   * upgrade.
+   *
+   * Unlike the two flags above there is no `.catch()`: this one is a
+   * *string*, so there is no parse to fail. An unset or empty value is
+   * simply "no restriction", which `parseAllowedHosts` handles.
+   *
+   * *(added 2026-08-11.)*
+   */
+  CALDAV_ALLOWED_HOSTS: z.string().default(''),
 })
 
 export type Config = z.infer<typeof configSchema>

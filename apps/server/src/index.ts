@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { createRouter } from './api/router'
 import { routes } from './api/routes'
 import { makeAttemptLimiter } from './auth/attempt-limit'
+import { parseAllowedHosts } from './caldav/allowed-hosts'
 import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
 import { makeUpdateChecker } from './version/check'
@@ -21,6 +22,9 @@ const handleApi = createRouter(routes, {
   // whole point, and a per-request instance would count to one forever
   // (docs/specs/security.md).
   signInAttempts: makeAttemptLimiter(),
+  // Parsed once at startup: the value cannot change while the process
+  // runs, and empty means unrestricted (docs/specs/security.md).
+  allowedCaldavHosts: parseAllowedHosts(config.CALDAV_ALLOWED_HOSTS),
 })
 
 const clientDist = resolve(import.meta.dirname, '../../client/dist')

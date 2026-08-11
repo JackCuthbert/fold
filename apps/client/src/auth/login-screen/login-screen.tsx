@@ -29,6 +29,38 @@ const DEMO: Credentials = {
   password: 'testpass',
 }
 
+/**
+ * Turn a failed sign-in into something worth reading.
+ *
+ * Three of these are the BFF's own answers rather than the CalDAV
+ * server's, and each would otherwise fall into "could not reach the
+ * server" — which is wrong (the server *was* reached) and unhelpful (it
+ * sends the user to check a URL that is fine). See docs/specs/security.md
+ * for the 403 and 429.
+ *
+ * A named function rather than a nested ternary: at four branches the
+ * expression stopped being readable, and this is the piece a user
+ * actually sees when something goes wrong.
+ */
+export function describeLoginError(error: unknown): string | null {
+  if (!error) return null
+  if (error instanceof ApiError) {
+    switch (error.status) {
+      case 403:
+        // The operator restricted which CalDAV hosts this deployment may
+        // reach. Nothing the user can retry their way out of.
+        return 'This Fold only allows certain CalDAV servers. Check the URL, or ask whoever runs it.'
+      case 429:
+        return 'Too many failed attempts. Wait a few minutes and try again.'
+      case 401:
+        return 'The CalDAV server rejected these credentials.'
+      default:
+        break
+    }
+  }
+  return 'Could not reach the server. Check the URL and try again.'
+}
+
 export function LoginScreen() {
   const {
     control,
@@ -68,18 +100,7 @@ export function LoginScreen() {
     },
   })
 
-  // A 429 is the BFF's own attempt cap, not the CalDAV server
-  // (docs/specs/security.md). It has to be named separately or it falls
-  // into "could not reach the server", which is both wrong and unhelpful:
-  // the server was reached, and waiting is the fix.
-  const submitError =
-    login.error instanceof ApiError && login.error.status === 429
-      ? 'Too many failed attempts. Wait a few minutes and try again.'
-      : login.error instanceof ApiError && login.error.status === 401
-        ? 'The CalDAV server rejected these credentials.'
-        : login.error
-          ? 'Could not reach the server. Check the URL and try again.'
-          : null
+  const submitError = describeLoginError(login.error)
 
   return (
     // docs/specs/ui.md — login: a full-screen split, the artwork on one
