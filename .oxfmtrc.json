@@ -3,5 +3,5 @@
   "semi": false,
   "trailingComma": "all",
   "singleQuote": true,
-  "ignorePatterns": ["docs"]
+  "ignorePatterns": ["docs", "CHANGELOG.md"]
 }
