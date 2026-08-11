@@ -21,6 +21,11 @@
           "type": "json",
           "path": "apps/server/package.json",
           "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/vtodo/package.json",
+          "jsonpath": "$.version"
         }
       ],
       "changelog-sections": [
