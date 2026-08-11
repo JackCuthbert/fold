@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/JackCuthbert/fold/compare/v0.2.0...v0.3.0) (2026-08-11)
+
+
+### Features
+
+* **client:** a context menu on every todo row ([78b7397](https://github.com/JackCuthbert/fold/commit/78b73979c0d3c1963db45f688834d7b3f96fc19c))
+
+
+### Documentation
+
+* keep commit messages short, put the detail in the PR ([875ddab](https://github.com/JackCuthbert/fold/commit/875ddabc21b515da34cee97ace52d4a600344e4c))
+
 ## [0.2.0](https://github.com/JackCuthbert/fold/compare/v0.1.0...v0.2.0) (2026-08-11)
 
 
