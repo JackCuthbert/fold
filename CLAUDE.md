@@ -28,10 +28,68 @@ _(added 2026-07-31: an agent installed Radicale via pipx — and bootstrapped
 pipx itself — to run the integration suite. Docker was already available
 and sanctioned for exactly this. Both were removed.)_
 
+**Dependabot cannot update `bun.lock` for packages shipping native
+binaries, and `.github/dependabot.yml` is not the cause — don't "fix" it.**
+It bumps the manifest range but leaves the resolved version stale, so
+`bun install --frozen-lockfile` re-resolves and CI fails with "lockfile had
+changes, but lockfile is frozen". Confirmed on PR #41: `oxfmt` and `vite`
+stale, while `@types/react-dom` in the _same PR and same directory_ updated
+correctly — the split is native binaries (19 `@oxfmt/binding-*`, 15
+`@rolldown/binding-*`) vs pure JS. To land one, check out the branch, run
+plain `bun install`, and commit the corrected lockfile. **Never drop
+`--frozen-lockfile` from CI**: it is the check that catches this, and it is
+what enforces the version-range rule above. _(added 2026-08-11.)_
+
+## Deployment
+
+**Docker is the only deployment target. Don't propose or build a second
+one without being asked.** Vercel was attempted on 2026-08-10 and the
+commits were dropped from history entirely — the repo has no trace of it,
+deliberately. Five consecutive deploys failed on platform behaviour, and
+the cost far exceeded the value of a second target for a self-hosted app.
+Effort for self-hosters goes into the published ghcr.io image and the user
+guide instead; keep [docs/specs/deployment.md](docs/specs/deployment.md)
+Docker-only. _(added 2026-08-11.)_
+
 ## Workflow
 
 - Always lint and format before committing: `bun run lint` and
   `bun run fmt`.
+- **Sign in locally with the login screen's "Use demo server" button.** It
+  fills in the `compose.yml` Radicale's credentials
+  (`http://localhost:5232/testuser/`, `testuser` / `testpass`, also in
+  `compose.yml` and
+  [docs/user/local-caldav-server.md](docs/user/local-caldav-server.md)), so
+  `docker compose up -d` and one click beats retyping them. **It renders
+  only under `import.meta.env.DEV`** — a production build, or the built
+  client served by the BFF, has no such button, so verifying anything
+  against a real build means entering them by hand. Reach for a throwaway
+  `tomsquest/docker-radicale` container only when you need an auth-free
+  server to seed data over HTTP. _(added 2026-08-11.)_
+- **One commit per feature or fix, as a group** — not one per step. A
+  redesign, its two follow-up fixes and the final icon placement are one
+  change and belong in one commit. Iteration collapses into it: design
+  review rounds, "actually move it here", and fixes to unpushed work are
+  amended or squashed rather than stacked as their own `fix(...)`. Check
+  `git log origin/main..HEAD` before pushing and rebase together if one
+  feature spans several commits. Incremental commits record the working
+  order, which nobody needs, rather than the change a reviewer wants to
+  read. _(added 2026-08-11.)_
+- **The repo's formatting conventions stop at the repo boundary.** The
+  80-column rule below applies to files in an editor. GitHub issue and PR
+  bodies are _rendered markdown_ in a web textarea: do not hard-wrap prose
+  there, and do not use `docs/specs/foo.md` relative links, which resolve
+  to nothing on github.com. Let paragraphs run long and wrap in the
+  browser; link with full URLs or `#123` refs; reference source with
+  backticked paths rather than markdown links. _(added 2026-08-11.)_
+- **Reproduce a platform failure with that platform's own tooling before
+  theorising about it.** If a fix depends on how an external system
+  behaves — Docker, CI, a hosted service — run it locally: build _and run_
+  the image, execute the CLI. Four consecutive Vercel deploys were each
+  diagnosed after the fact from a pasted log, and two of those confident
+  diagnoses were wrong, when the CLI reproduced every one in seconds. If it
+  genuinely cannot be run locally, say so plainly rather than presenting an
+  inference as verified. _(added 2026-08-11.)_
 - **Always invoke tooling through the root `bun run` scripts** — `lint`,
   `fmt`, `fmt:check`, `typecheck`, `knip`, `test`, `test:integration`,
   `test:e2e`. Never call `oxlint`, `oxfmt`, `tsc`, `knip` or `vitest`
@@ -63,6 +121,19 @@ and sanctioned for exactly this. Both were removed.)_
   always. Enforced by oxfmt config — never hand-format against it.
 - Don't duplicate tests across layers (unit / integration / e2e).
 - Test behavior over shape — never test that a defined shape is what it is.
+- **A timed e2e test must not depend on machine speed.** Tune the scenario
+  so the behaviour under test is the only thing that can produce the
+  result, then give the budget room for a slow runner: this Mac runs
+  roughly **5-6x faster than the CI runner** (full e2e suite ~19s local vs
+  ~1.9m on CI), so a budget with 2x headroom over a local measurement will
+  fail there. A recovery test once passed locally in 17s and timed out on
+  CI because whether recovery came from the retry ladder or the 45s
+  background poll depended on where the outage's end fell between
+  attempts. Also verify the test actually fails without the fix — and when
+  reverting to check, **edit the source in place rather than `git stash`**,
+  which silently stashes nothing when run from a subdirectory and leaves
+  the "control" run proving the opposite of what it appears to.
+  _(added 2026-08-11.)_
 
 ## Documentation
 
@@ -114,10 +185,20 @@ and sanctioned for exactly this. Both were removed.)_
   or `hooks/` (stateful React), because a directory holding one file buys
   nothing. A domain that is _entirely_ helpers (`sync/`, `api/`) needs no
   subdivision at all. _(added 2026-08-06.)_
-- **Tests live beside the code they exercise**, not in a parallel `test/`
-  tree — `search.ts` and `search.test.ts` in the same directory. A separate
-  tree makes an untested module look identical to a tested one.
-  _(added 2026-08-06.)_
+- **In `apps/client`, tests live beside the code they exercise** —
+  `search.ts` and `search.test.ts` in the same directory, never a parallel
+  `test/` tree. A separate tree makes an untested module look identical to
+  a tested one, which matters most where the unit is a component directory.
+
+  **`apps/server` and `packages/*` keep a top-level `test/` tree**, and new
+  tests there follow suit — `apps/server/test/`, `packages/vtodo/test/`.
+  Measured 2026-08-11: client 33 colocated / 0 in a tree; server 12 in the
+  tree / 2 colocated; all three packages entirely in trees. The rule
+  previously read as repo-wide and described only the client, so following
+  it literally would have scattered server tests into a fourth arrangement.
+  Follow the convention of the workspace you are in.
+  _(added 2026-08-06; corrected 2026-08-11 to match the repo.)_
+
 - **A domain gets an `index.ts` barrel only if it has several consumers and
   nothing it imports imports it back.** Import it from _outside_ the domain
   (`from '../../ui'`); inside, keep the direct path, or the domain routes
