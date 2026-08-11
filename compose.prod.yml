@@ -12,9 +12,12 @@
 # reappears after a successful sign-in, with no error to explain why.
 services:
   fold:
-    # No image is published yet — you build it yourself, from this
-    # checkout. `docker compose up -d --build` after a `git pull` is the
-    # upgrade path.
+    # Releases publish `ghcr.io/jackcuthbert/fold:<version>`, but while the
+    # repository is private that image is not pullable — so this builds
+    # from the checkout, and `docker compose up -d --build` after a
+    # `git pull` is the upgrade path. Once the package is public, swap
+    # `build: .` for `image: ghcr.io/jackcuthbert/fold:0.1.0` and upgrade
+    # by changing the tag.
     build: .
     image: fold:local
     container_name: fold

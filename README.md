@@ -33,13 +33,15 @@ be judged either way.
 
 ## Running it
 
-Deployment is via Docker. No image is published yet, so you build it from
-this checkout.
+Deployment is via Docker. Releases publish an image to
+[ghcr.io](https://github.com/JackCuthbert/fold/pkgs/container/fold), but
+while this repository is private that image is not pullable — so for now
+you build it from this checkout.
 
 **1. Get the code and set a secret.**
 
 ```bash
-git clone https://github.com/JackCuthbert/caldav-todo-client.git fold
+git clone https://github.com/JackCuthbert/fold.git fold
 cd fold
 printf 'SESSION_SECRET=%s\n' "$(openssl rand -base64 32)" > .env
 ```
