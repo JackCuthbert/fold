@@ -669,6 +669,19 @@ Rules:
   Low pill had been exempted as the neutral fill while every chooser drew
   it green, so the one rank this bullet was written to cover was the one
   that did not follow it — see [ui](./ui.md) — "Icons, not colour alone".)*
+  *(changed 2026-08-14: "reuse the semantic status colours" now has one
+  deliberate exception, and it is the reason the shared module existed
+  while the ranks still disagreed. `--status-syncing` at full strength is
+  illegible on the medium pill's amber tint — 2.49–2.74:1 on every light
+  palette — so medium's ink is that amber deepened into `--ink`, and the
+  choosers take the same mix rather than the token. High likewise takes
+  `--danger` rather than `--status-offline`; the two are equal in most
+  palettes but not all. **The rule that matters is that a rank reads
+  identically on the row and in every chooser** — reusing a status token is
+  how that is usually achieved, not the goal itself. Pinned by
+  `e2e/tests/priority-ink.spec.ts`, which compares the two surfaces
+  under a palette where the tokens diverge. See [ui](./ui.md) — "Icons, not
+  colour alone".)*
 - **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
   for summary, due date, notes, and priority.
 - **Completed handling:** completed items move to a collapsible "Completed"

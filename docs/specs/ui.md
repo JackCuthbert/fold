@@ -640,15 +640,47 @@ the *absence* of urgency and that a colour would make "not urgent" look
 like a claim. Consistency won: every surface that **sets** a priority — the
 detail panel's dropdown, the add-todo modal's, the row context menu's
 submenu — already rendered Low in green from
-`styles/priority.module.css`, so high and medium agreed across display and
-choice while low did not, and picking a green option produced a grey pill.
-The "absence of urgency" argument is a real one, but it only ever held on
-one of the four surfaces. One colour per rank, everywhere.)*
+`styles/priority.module.css`, and picking a green option produced a grey
+pill. The "absence of urgency" argument is a real one, but it only ever
+held on one of the four surfaces. One colour per rank, everywhere.)*
 
 Measured for that change: green ink on a 12% tint of itself is 4.06:1 on
 the default Parchment ground and 3.80:1 at the worst of the thirteen
 palette variants — above what high (3.31 worst) and medium (3.30 worst)
 already ship, and the label text carries the meaning regardless.
+
+#### A rank is one colour, and the token is not the point
+
+*(added 2026-08-14. The note above claimed "high and medium agreed across
+display and choice while low did not". They did not — low was simply the
+only one visible at a glance in the default palette, and looking properly
+found the other two.)*
+
+**Medium** was two ambers: the row's pill deepened `--list-amber` 70% into
+`--ink` while all three choosers drew plain `--status-syncing`. The
+choosers took the row's mix, and not the other way round, because plain
+`--status-syncing` measures **2.49–2.74:1** on that pill's 15% amber tint
+across every *light* palette — beneath even the 3:1 large-text floor, and
+well beneath the 3.31 high and 3.80 low already ship. The deepened mix
+holds 3.30–4.71:1 over the same thirteen variants. The dark palettes were
+fine either way, which is why the mix was written on the row and never
+propagated: `palettes.css` overrides `--status-syncing` to a lighter
+`#d9a441` in dark mode, so the bug was invisible to anyone testing there.
+
+**High** was two reds — `--danger` on the row, `--status-offline` in the
+choosers. `--status-offline` is defined as `var(--danger)` in `tokens.css`
+and only Catppuccin dark overrides it (`#f38ba8` against `#e0705f`), so
+twelve of the thirteen variants concealed the split entirely. It now takes
+`--danger` on both: the red here marks a *rank*, not a sync state.
+
+So the rule is **a rank reads identically wherever it is shown and wherever
+it is chosen**. Reusing a semantic status token is normally how that is
+achieved, but it is the means and not the end — medium is legible only by
+departing from its token, and high was broken precisely by trusting that
+two tokens which look equal are equal. The
+`e2e/tests/priority-ink.spec.ts` loop compares the two surfaces
+directly, with no expected value, under Catppuccin dark — the one palette
+where every one of these divergences is visible.
 
 **"None" is unaffected.** It is the absence of a priority rather than a
 fourth rank, so it keeps the neutral swatch in the choosers and draws no

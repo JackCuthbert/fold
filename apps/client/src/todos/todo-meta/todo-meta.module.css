@@ -129,6 +129,14 @@
   color: var(--danger);
 }
 
+/* The ink here is deliberately not a plain token, and
+   styles/priority.module.css now carries the same mix so the choosers
+   preview it — see the measurement on that rule. Keep the two in step: they
+   are the same colour written twice because the pill also needs the ground,
+   and the e2e test in priority-ink.spec.ts is what catches a drift.
+   *(unified 2026-08-14: the pickers drew plain `--status-syncing`, a
+   visibly lighter amber, so choosing Medium previewed a pill the row did
+   not draw.)* */
 .medium {
   background: color-mix(in srgb, var(--list-amber) 15%, transparent);
   color: color-mix(in srgb, var(--list-amber) 70%, var(--ink));
@@ -143,11 +151,14 @@
    that low is the *absence* of urgency, and that a colour would make "not
    urgent" look like a claim. That argument lost to consistency: every
    surface that *sets* a priority already rendered Low green from
-   styles/priority.module.css, so High and Medium agreed across the row and
-   the dropdown while Low did not — picking green and getting grey. One
-   colour per rank, everywhere, beats a per-surface philosophy about what
-   the rank means. The chevron still distinguishes it from an unprioritised
-   todo, which now shows no pill rather than a grey one.)*
+   styles/priority.module.css, so picking green produced grey. One colour
+   per rank, everywhere, beats a per-surface philosophy about what the rank
+   means. The chevron still distinguishes it from an unprioritised todo,
+   which now shows no pill rather than a grey one.)*
+   *(corrected 2026-08-14: this note read "High and Medium agreed across
+   the row and the dropdown while Low did not". Neither did — Medium was a
+   different amber on each surface and High diverged in Catppuccin dark.
+   Low was simply the one visible at a glance in the default palette.)*
 
    Measured at 12%: green ink on its own tint is 4.06:1 in the default
    Parchment palette and 3.80:1 at the worst of the thirteen palette
