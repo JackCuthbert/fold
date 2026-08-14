@@ -125,3 +125,35 @@ test('a half-typed new list survives crossing the breakpoint', async ({
   await page.getByRole('button', { name: 'Create', exact: true }).click()
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
 })
+
+// docs/specs/ui.md — a long press opens the menu and selects nothing.
+//
+// Long-pressing a row is how its context menu opens, and the same gesture
+// used to select the summary underneath it, bringing up the OS text
+// menu over ours. Base UI suppresses iOS's *callout* but sets no
+// `user-select`, which is the half that actually stops the selection.
+//
+// Asserted as a computed style rather than by driving a long press: the
+// OS text menu is chrome the page cannot see, so a gesture-based test
+// could only ever check that our own menu opened — which it did before
+// this fix too. The computed value is the thing that changed.
+test('a todo row is not selectable on touch', async ({ page }) => {
+  await login(page)
+
+  const listName = uniqueName('press')
+  await page.getByRole('button', { name: 'Lists' }).click()
+  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByPlaceholder('List name').fill(listName)
+  await page.getByRole('button', { name: 'Create', exact: true }).click()
+  await addTodo(page, 'Long press me')
+
+  const row = page.locator('main li').filter({ hasText: 'Long press me' })
+  await expect(row).toHaveCSS('user-select', 'none')
+
+  // The summary inherits it, so the text the press lands on is covered —
+  // the row alone would not prove that if a child ever reset it.
+  await expect(row.getByText('Long press me', { exact: true })).toHaveCSS(
+    'user-select',
+    'none',
+  )
+})

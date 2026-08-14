@@ -30,6 +30,34 @@
      their own enter/exit, not this. */
 }
 
+/* Long-pressing a row opens its menu, and must not also select its text
+   (docs/specs/ui.md — the todo row).
+
+   Base UI's ContextMenu.Trigger already sets `WebkitTouchCallout: 'none'`
+   inline, which suppresses iOS's *callout*. That is only half of it, and
+   the half that does not fix this: the callout and the selection are
+   separate mechanisms. Verified in the installed package — the trigger
+   sets no `user-select` at all, and there is none anywhere in
+   `@base-ui/react/context-menu`. So the long press still selected the
+   summary and the OS text menu came up over ours.
+
+   **Scoped to `pointer: coarse`**, not applied unconditionally. On a
+   pointer, dragging across a row to select and copy a todo's title is
+   ordinary behaviour and nothing takes it away — a right-click opens the
+   menu without any press-and-hold, so the two never collide. On touch
+   there is no drag-to-select gesture that is not also the long press, so
+   the selection is only ever the accident.
+
+   The `<textarea>` in the detail panel is a different component and is not
+   reached by this, so notes stay selectable everywhere.
+   *(added 2026-08-14.)* */
+@media (pointer: coarse) {
+  .todo {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
 /* docs/specs/ui.md — the todo row: its states. *(added 2026-08-11, issue
    #40 — the row was interactive but nothing about it responded to a
    pointer, and nothing tied the detail panel back to the row it came
