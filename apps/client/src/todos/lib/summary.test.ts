@@ -113,15 +113,32 @@ describe('formatTimestamp', () => {
 describe('dayLabel', () => {
   const now = new Date(2026, 7, 4, 12, 0)
 
-  it('names the two most recent days relatively', () => {
+  it('names the three days around now relatively', () => {
     expect(dayLabel(localDayOf(now), now)).toBe('Today')
     expect(dayLabel('2026-08-03', now)).toBe('Yesterday')
+    // Forward as well as back, so Next 7 days and Summary read the same
+    // date the same way (docs/specs/next-7-days-view.md — grouped by day).
+    expect(dayLabel('2026-08-05', now)).toBe('Tomorrow')
   })
 
-  it('uses an absolute date beyond yesterday', () => {
+  it('still reads a past date exactly as it did before Tomorrow existed', () => {
+    // The regression this function's extension could have caused: adding a
+    // forward branch must not reclassify anything behind it. Summary and
+    // the detail footer both depend on these.
+    expect(dayLabel('2026-08-03', now)).toBe('Yesterday')
+    expect(dayLabel('2026-08-02', now)).not.toBe('Tomorrow')
+    expect(dayLabel('2026-08-02', now)).not.toBe('Yesterday')
+    expect(dayLabel('2026-07-30', now)).toContain('30')
+  })
+
+  it('uses an absolute date beyond the day either side', () => {
     const label = dayLabel('2026-08-01', now)
     expect(label).not.toBe('Today')
     expect(label).not.toBe('Yesterday')
+    expect(label).not.toBe('Tomorrow')
+    // Two days ahead is absolute too — only the immediate neighbours get a
+    // relative name, in either direction.
+    expect(dayLabel('2026-08-06', now)).toContain('6')
     // Whatever the locale, it names that date — not the day before, which
     // is what parsing '2026-08-01' as UTC would produce west of Greenwich.
     expect(label).toContain('1')

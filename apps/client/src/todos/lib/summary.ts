@@ -113,15 +113,33 @@ export function formatTimestamp(timestamp: string, now: Date): string {
 }
 
 /**
- * Human label for a day heading: "Today" / "Yesterday" for the two most
- * recent, an absolute date beyond that. Relative labels are what someone
- * preparing a standup actually says, but only stay honest for a day or two.
+ * Human label for a day heading: "Yesterday" / "Today" / "Tomorrow" for the
+ * three days around now, an absolute date beyond that. Relative labels are
+ * what someone actually says, but only stay honest for a day either side.
+ *
+ * **It reads in both directions**, which is why "Tomorrow" is here rather
+ * than in a forward-looking copy of this function
+ * (docs/specs/next-7-days-view.md — grouped by day). Summary reads
+ * backwards and Next 7 days reads forwards, but a day heading means the
+ * same thing in both, and two functions would let the same date read two
+ * ways depending on which view you were in.
+ *
+ * Adding "Tomorrow" cannot change how a past date reads: the three
+ * comparisons are against distinct days, so a day that used to fall through
+ * to the absolute branch still does unless it *is* tomorrow — which no
+ * completed todo can be, and which `formatTimestamp` only reaches on a
+ * skewed clock, where "Tomorrow at 9:00 am" is the honest rendering of a
+ * timestamp in the future anyway.
+ * *(extended 2026-08-14: was Today/Yesterday only.)*
  */
 export function dayLabel(day: string, now: Date): string {
   if (day === localDayOf(now)) return 'Today'
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
   if (day === localDayOf(yesterday)) return 'Yesterday'
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  if (day === localDayOf(tomorrow)) return 'Tomorrow'
 
   // Parse as local, not UTC: `new Date('2026-08-01')` is midnight UTC and
   // would render as the previous day west of Greenwich.

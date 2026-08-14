@@ -105,6 +105,7 @@ supplies an IndexedDB implementation).
 | [list-filter](./list-filter.md) | Hiding lists from the nav and the derived views |
 | [today-view](./today-view.md) | The derived Today view: scope, ordering, fetching |
 | [tomorrow-view](./tomorrow-view.md) | The derived Tomorrow view: the day ahead, nothing overdue |
+| [next-7-days-view](./next-7-days-view.md) | The derived Next 7 days view: the week ahead, today included |
 | [summary-view](./summary-view.md) | The derived Summary view: finished work grouped by day |
 | [search-view](./search-view.md) | The derived Search view: fuzzy text search across every todo |
 | [list-kinds](./list-kinds.md) | Behaviour a list's name unlocks: grouping, bulk actions, the kind marks |

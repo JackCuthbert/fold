@@ -4,10 +4,23 @@ import { countSummary } from '../lib/count-summary'
 import { useCacheVersion } from './use-cache-version'
 import { groupTodos } from '../lib/group-by-list'
 import { isSearchable, searchTodos } from '../lib/search'
-import { selectToday, selectTomorrow } from '../lib/today'
+import { selectNextWeek, selectToday, selectTomorrow } from '../lib/today'
 
-/** Which view the count is describing. */
-export type CountedView = 'list' | 'today' | 'tomorrow' | 'summary' | 'search'
+/**
+ * Which view the count is describing.
+ *
+ * Deliberately the same union as `PaneKind` (shell/view-pane/view-pane.tsx),
+ * and MainScreen passes one value to both — the count must describe the
+ * pane that is actually on screen, and two independently computed values
+ * can disagree. *(noted 2026-08-14.)*
+ */
+export type CountedView =
+  | 'list'
+  | 'today'
+  | 'tomorrow'
+  | 'next-7-days'
+  | 'summary'
+  | 'search'
 
 /**
  * What each view actually renders, out of every todo it can reach.
@@ -37,6 +50,7 @@ function sliceFor(
 ): Todo[] {
   if (view === 'today') return selectToday(todos, now)
   if (view === 'tomorrow') return selectTomorrow(todos, now)
+  if (view === 'next-7-days') return selectNextWeek(todos, now)
   if (view === 'summary') return todos.filter((todo) => todo.completed)
   if (view === 'search') return searchTodos(todos, query)
   return todos

@@ -40,7 +40,8 @@ Unhide the list and its todos are findable again straight away.
 ## What it doesn't do
 
 There are no extra filter buttons for due dates or priority.
-[Today](./todos.md) and Tomorrow already answer "what's due", and the list
+[Today](./todos.md), Tomorrow and Next 7 days already answer "what's due",
+and the list
 filter already handles "which lists" — better than a search-only control
 would, since it tidies the sidebar too.
 

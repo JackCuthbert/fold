@@ -1,5 +1,6 @@
 import {
   DERIVED_VIEWS,
+  NEXT_7_DAYS_VIEW,
   SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
@@ -26,6 +27,7 @@ import {
 const VIEW_NAMES: Record<string, string> = {
   [TODAY_VIEW]: 'Today',
   [TOMORROW_VIEW]: 'Tomorrow',
+  [NEXT_7_DAYS_VIEW]: 'Next 7 days',
   [SUMMARY_VIEW]: 'Summary',
   [SEARCH_VIEW]: 'Search',
 }

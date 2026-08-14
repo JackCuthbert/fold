@@ -13,16 +13,25 @@ todo continues to belong to the list it was created in
 
 ## Where it sits
 
-Last of the derived views, after Summary, taking `Ctrl+Shift+4`.
+Last of the derived views, after Summary, taking `Ctrl+Shift+5`.
+*(changed 2026-08-14: was `Ctrl+Shift+4`.)*
 
-Appending rather than inserting is deliberate: it leaves all three existing
-chords exactly where they are. Tomorrow was inserted at position 2 and cost
-Summary its digit, which was worth it once — the three day views read in a
+Appending rather than inserting is deliberate: it leaves every existing
+chord exactly where it is. Tomorrow was inserted at position 2 and cost
+Summary its digit, which was worth it once — the day views read in a
 natural order and getting that wrong would look wrong every day. Search has
 no such claim on a position among them. It is a different kind of thing:
 those slice by time, this one by text. Last is also where it belongs by
 use, since the day views are what you open by habit and this is what you
 reach for when they have not got what you want.
+
+Being last is not the same as having a fixed digit, though.
+[Next 7 days](./next-7-days-view.md) was inserted at position 3 on
+2026-08-14 and pushed this view from `Ctrl+Shift+4` to `Ctrl+Shift+5` —
+appending protects a chord only against views that also append. What it
+buys is that this view never *moves relative to the others*, which is the
+part worth keeping: it stays the one you reach past the day views to get
+to.
 
 ## What it searches
 
@@ -159,7 +168,7 @@ better than a per-view control would be (it covers the nav too), and due
 and priority are what Today and Tomorrow are *for*. Combining a text query
 with filters is a command-palette feature (issue #26), not this view's.
 
-**No `Cmd/Ctrl+F` binding.** It would reach the same place `Ctrl+Shift+4`
+**No `Cmd/Ctrl+F` binding.** It would reach the same place `Ctrl+Shift+5`
 does, at the cost of the browser's own find — which answers a genuinely
 different question ("where is that word on this screen")
 ([ui](./ui.md) — keyboard shortcuts).

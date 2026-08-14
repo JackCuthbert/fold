@@ -132,10 +132,15 @@ test('the search view has a chord, in nav order', async ({ page }) => {
 
   // Ctrl+Shift+<n> is generated from DERIVED_VIEWS (shortcuts.ts), so this
   // is really asking whether Search was added to that list rather than
-  // wired up by hand — and that appending it left the other three chords
-  // where they were, which is why it went last (docs/specs/search-view.md).
+  // wired up by hand — and that it is still *last*, which is the property
+  // going on the end was protecting (docs/specs/search-view.md).
+  //
+  // *(changed 2026-08-14: was Digit4, and Summary was Digit3. Next 7 days
+  // was inserted at position 3 and pushed both down one. Appending guards a
+  // view's position relative to the others, not its digit — a view
+  // inserted above it moves it regardless, which is what happened here.)*
   await page.locator('body').click()
-  await page.keyboard.press('Control+Shift+Digit4')
+  await page.keyboard.press('Control+Shift+Digit5')
   await expect(page.getByRole('heading', { name: /^Search/ })).toBeVisible()
 
   // Click out of the search field first. Arriving on this view focuses it
@@ -145,9 +150,9 @@ test('the search view has a chord, in nav order', async ({ page }) => {
   // line is here rather than a sign of a problem.
   await page.locator('body').click()
 
-  // Summary still answers to 3, which is the other half of appending: no
-  // chord anyone had already learned moved.
-  await page.keyboard.press('Control+Shift+Digit3')
+  // Summary sits directly above it, at 4 — so the two are adjacent and
+  // Search is the last of them, which is the ordering claim being made.
+  await page.keyboard.press('Control+Shift+Digit4')
   await expect(page.getByRole('heading', { name: /^Summary/ })).toBeVisible()
 
   await page.keyboard.press('Control+Shift+Digit1')

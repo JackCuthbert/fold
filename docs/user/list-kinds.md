@@ -49,12 +49,23 @@ Move a todo out of that list and the due date fields come back.
 
 ## Health comes first
 
-Anything on a health list leads **Today**, in a bordered block above
-everything else, each row marked with a heart ♥. Not sorted higher — in a
-section of its own, so a high-priority chore can't push it down.
+Anything on a health list leads **Today** and **Tomorrow** — under a
+*Health* heading above everything else, with the rest of your todos under
+*Everything else* below it. Not sorted higher: a section of its own, so a
+high-priority chore can't push it down.
 
-**Summary** does the same within each day, without the box: those are
-already done, so they just lead their day and keep the heart.
+*(changed 2026-08-14: this said "a bordered block" and named only Today.
+The border went on 2026-08-11 — the tint fought the rows' own hover
+highlight.)*
+
+**Next 7 days** does the same, but inside each day rather than once at the
+top — so a health todo stays on the date it's actually due instead of being
+pulled to the front of the week. You'll only see the two headings on a day
+that has both kinds of todo; a day with just one kind is a plain list.
+
+**Summary** leads its health todos within each day too, but without the
+headings: those are already done, so they just come first and carry a
+heart ♥ instead.
 
 Health todos are otherwise completely ordinary — no bulk buttons, due dates
 work as normal. The only thing that changes is where they show up.

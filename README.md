@@ -7,7 +7,7 @@ Only the features you actually need: multiple lists, due dates, priorities,
 notes. No notifications, no nagging, no streaks — just a quiet list that
 syncs to your own server and works when the network doesn't.
 
-![Fold — the list nav, a list of todos, and the detail panel](docs/screenshot.png)
+![Fold — the Today view gathering work from every list, with health todos leading, a grocery list collapsed into one row, a todo's context menu open, and the detail panel](docs/screenshot.png)
 
 Fold does not store your todos — your CalDAV server does. It keeps no
 database and no accounts of its own: you sign in with your existing CalDAV

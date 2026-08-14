@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 import type { IconType } from 'react-icons'
 import {
+  LuCalendarRange,
   LuHistory,
   LuPlus,
   LuSearch,
@@ -13,6 +14,7 @@ import { api, useSyncEngine } from '../../providers'
 import { cx } from '../../styles/cx'
 import {
   DERIVED_VIEWS,
+  NEXT_7_DAYS_VIEW,
   SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
@@ -67,6 +69,14 @@ const VIEW_META: Record<string, { label: string; icon: IconType }> = {
   // two read as a sequence at a glance, and both come from the same set
   // (CLAUDE.md — one icon collection). *(added 2026-08-05.)*
   [TOMORROW_VIEW]: { label: 'Tomorrow', icon: LuSunrise },
+  // A calendar with a *range* marked on it, against the two single moments
+  // above — sun and sunrise are both instants in a day, and this view is a
+  // span of them. `LuCalendarDays` was the alternative and says only "a
+  // calendar"; the range is the one fact about this view worth encoding,
+  // since what distinguishes it from its neighbours is its width rather
+  // than its position. Same set as every other icon (CLAUDE.md).
+  // *(added 2026-08-14.)*
+  [NEXT_7_DAYS_VIEW]: { label: 'Next 7 days', icon: LuCalendarRange },
   [SUMMARY_VIEW]: { label: 'Summary', icon: LuHistory },
   // The magnifier, which is the one icon in this set nobody has to learn.
   // *(added 2026-08-06, issue #6.)*
