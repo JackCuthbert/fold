@@ -4,9 +4,17 @@
  * tokens themselves.
  *
  * This is the one place priority colour is defined. High reads as urgent
- * (red/offline), medium as cautionary (amber/syncing), low as calm
- * (green/synced) — the same semantic status tokens the sync dot and the
- * punctuality footer use, never a second palette.
+ * (red), medium as cautionary (amber), low as calm (green/synced) — the
+ * app's own inks, never a second palette.
+ *
+ * High and low are the semantic status tokens the sync dot and the
+ * punctuality footer use. Medium is the one exception, and deliberately so:
+ * plain `--status-syncing` fails contrast on the pill's amber tint in every
+ * light palette, so it takes an amber deepened into `--ink` instead. The
+ * measurement is on the rule itself.
+ * *(changed 2026-08-14: `.high` was `--status-offline` and `.medium` was
+ * `--status-syncing`. Both now match what the row's pill draws, which is
+ * the whole point of this module — see the note on each rule.)*
  *
  * It lives here rather than in todo-item.module.css because three places
  * now need it: the todo row, the detail panel's Priority dropdown, and the
@@ -31,12 +39,35 @@
  * row.)*
  */
 
+/* `--danger`, not `--status-offline`, to match the row's pill. The two are
+   the same value in most palettes (`--status-offline: var(--danger)` in
+   tokens.css) which is why the split went unnoticed, but they diverge in
+   Catppuccin dark — #f38ba8 against #e0705f — where choosing High previewed
+   one red and the row drew another. Red here is the *rank*, not a sync
+   state, so it takes the app's red directly.
+   *(fixed 2026-08-14 alongside medium.)* */
 .high {
-  color: var(--status-offline);
+  color: var(--danger);
 }
 
+/* Amber deepened into the ink, rather than the plain `--status-syncing`
+   token the other two ranks take, because plain amber is not legible on the
+   tint it sits on. Measured on the 15% amber pill ground across all
+   thirteen palette variants: `--status-syncing` is 2.49–2.74:1 on every
+   *light* palette — under even the 3:1 large-text floor, and far under the
+   3.31 `.high` and 3.80 `.low` already ship. The 70%-into-`--ink` mix here
+   is 3.30–4.71:1 over the same set, in line with the other two ranks.
+
+   The dark variants are fine either way (5.05–8.14:1) because palettes.css
+   overrides `--status-syncing` to a lighter #d9a441 there. It is light mode
+   alone that rules the plain token out, which is exactly why the mix was
+   written on the row in the first place.
+
+   The `--ink` term is what makes it palette-aware: the mix darkens on a
+   light ground and lightens on a dark one, following the ramp instead of
+   fighting it. *(measured 2026-08-14.)* */
 .medium {
-  color: var(--status-syncing);
+  color: color-mix(in srgb, var(--list-amber) 70%, var(--ink));
 }
 
 .low {
