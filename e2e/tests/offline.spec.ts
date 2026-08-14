@@ -1,3 +1,21 @@
+// docs/specs/sync-and-offline.md — the outbox queues writes while the
+// browser is offline and replays them on reconnect.
+//
+// **Keeps `context.setOffline`, deliberately** *(reviewed 2026-08-14,
+// issue #54.)*
+//
+// The subject here is the *browser's* connectivity, not the CalDAV
+// server's: what is being tested is that the client keeps working with no
+// network at all, queues its writes durably, and drains them when the
+// network returns. A gateway fault would be the wrong reproduction — it
+// would leave the browser online and the BFF reachable, which is the
+// "server unreachable" path (`recovery.spec.ts`) rather than the offline
+// one. `context.setOffline` is the only mechanism that produces the real
+// thing, and it is orthogonal to which gateway sits behind the BFF.
+//
+// It does benefit from the move regardless: the pre-outage sync and the
+// post-reconnect drain now settle against an in-memory gateway rather
+// than a contended Radicale.
 import { expect, test } from '@playwright/test'
 import {
   addTodo,

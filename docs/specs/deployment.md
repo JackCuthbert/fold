@@ -64,6 +64,7 @@ uses exec form so `bun` is PID 1 and receives `SIGTERM` directly.
 | `ALLOW_INSECURE_COOKIE` | no | `false` | Drop `Secure`, for a deployment with no TLS. See below. |
 | `CHECK_FOR_UPDATES` | no | `false` | Ask GitHub whether a newer release exists ([releases](./releases.md)). The only host Fold contacts besides the user's own CalDAV server, hence off by default. |
 | `CALDAV_ALLOWED_HOSTS` | no | *(empty — unrestricted)* | Comma-separated hosts sign-in may point at, e.g. `dav.example.com, *.example.org, 192.168.1.10:5232`. Set it when the login page is reachable by people other than you ([security](./security.md)). |
+| `CALDAV_FAKE` | **never** | `false` | **Test-only — never set this on a deployment.** Replaces the CalDAV server with an in-memory fake and exposes an unauthenticated seeding route, so the app forgets everything on restart and anyone can rewrite its contents. It exists for the e2e suite ([testing](./testing.md)) and refuses to start unless `CALDAV_FAKE_CONFIRM=i-am-running-the-e2e-suite` is also set — and refuses outright under `NODE_ENV=production`, which the image sets. *(added 2026-08-14, issue #54.)* |
 
 Validated by zod at boot (`apps/server/src/config.ts`), so a missing or
 too-short `SESSION_SECRET` **fails fast with a `ZodError` before the server
