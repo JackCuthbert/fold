@@ -289,6 +289,42 @@ export function HelpModal(props: HelpModalProps) {
                     a priority, move it to another list, or delete it.
                   </p>
                 </Topic>
+                {/* docs/specs/quick-add.md — the grammar is invisible by
+                    design: a plain line makes a plain todo, so nothing on
+                    screen advertises that `#chores` or `p1` mean anything.
+                    The rotating placeholder teaches it a shape at a time;
+                    this is the one place that states the whole of it.
+                    Directly after Todos, because making one belongs beside
+                    what one is. *(added 2026-08-14.)* */}
+                <Topic title="Adding a todo by typing">
+                  <p>
+                    New todo takes a single line, and reads the details out of
+                    it. Type{' '}
+                    <code>Clean the gutters tomorrow at 3pm #chores p1</code>{' '}
+                    and you get a todo called &ldquo;Clean the gutters&rdquo;,
+                    due tomorrow afternoon, filed in Chores, marked high.
+                  </p>
+                  <p>
+                    Dates can be written how you&rsquo;d say them —{' '}
+                    <code>tomorrow</code>, <code>friday</code>,{' '}
+                    <code>next tuesday</code>, <code>in 3 days</code>,{' '}
+                    <code>25 Aug</code> — with a time if you want one.{' '}
+                    <code>#</code> picks a list and offers the names as you
+                    type. <code>p1</code> to <code>p3</code> set high, medium
+                    and low.
+                  </p>
+                  {/* The reassurance matters more than the grammar: the
+                      common fear with a parser is that it will mangle
+                      ordinary text. Saying plainly that it does not is
+                      what makes the feature safe to ignore. */}
+                  <p>
+                    None of it is required. Type an ordinary sentence and you
+                    get an ordinary todo — &ldquo;Read chapter 3&rdquo; stays
+                    exactly that. The pills under the box show what was
+                    understood, and you can set anything by tapping one instead
+                    of typing.
+                  </p>
+                </Topic>
                 {/* docs/specs/lists.md */}
                 <Topic title="Lists">
                   <p>

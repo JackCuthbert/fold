@@ -295,33 +295,36 @@ test('the global add picker defaults to the list on screen', async ({
   await createList(page, first)
   await createList(page, second)
 
+  // docs/specs/quick-add.md — the list pill. The rule under test is
+  // unchanged from the form this replaced: the list you are looking at is
+  // already chosen, and a derived view has nothing to inherit so the pill
+  // stays unset. Only its *expression* moved, from a select to a pill.
+  // *(rewritten 2026-08-14 for quick add; was `getByLabel('List')`.)*
+  const listPill = () =>
+    addDialog(page).getByRole('button', { name: /^List:|^Choose a list$/ })
+
   // Looking at a list: it is already chosen, so adding is one step.
   await navRow(page, second).click()
   await page.getByRole('button', { name: 'New todo' }).click()
-  await expect(addDialog(page).getByLabel('List', { exact: true })).toHaveText(
-    second,
-  )
+  await expect(listPill()).toHaveText(second)
   await page.keyboard.press('Escape')
 
   // The default follows the selection rather than being captured once.
   await navRow(page, first).click()
   await page.getByRole('button', { name: 'New todo' }).click()
-  await expect(addDialog(page).getByLabel('List', { exact: true })).toHaveText(
-    first,
-  )
+  await expect(listPill()).toHaveText(first)
   await page.keyboard.press('Escape')
 
   // On Today — which is not a list — there is still nothing to default
-  // to, so the picker asks.
+  // to, so the pill asks. It reads its own category name rather than any
+  // list's, which is what "unset" looks like here.
   await page
     .getByRole('navigation', { name: 'Lists' })
     .getByRole('button', { name: 'Today', exact: true })
     .first()
     .click()
   await page.getByRole('button', { name: 'New todo' }).click()
-  await expect(
-    addDialog(page).getByLabel('List', { exact: true }),
-  ).not.toHaveText(first)
+  await expect(listPill()).toHaveText('List')
 })
 
 // docs/specs/list-kinds.md — health first.

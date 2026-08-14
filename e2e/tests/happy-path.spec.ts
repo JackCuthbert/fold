@@ -469,27 +469,36 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await page.keyboard.press(`${mod}+k`)
   await expect(addDialog).toBeVisible()
 
-  // No default list, deliberately: submitting without choosing must be
-  // refused rather than filing the todo somewhere unlooked-at.
+  // docs/specs/quick-add.md — when there is nowhere to file it. The rule
+  // is unchanged from the form this replaced: Today is not a list, so a
+  // line naming none cannot be created. What changed is how it says so —
+  // an error in the footer and a marked pill, rather than a select showing
+  // its placeholder. *(rewritten 2026-08-14 for quick add.)*
+  // Deliberately free of date words: quick add would read "today" out of
+  // the summary and file it as a due date, which is correct behaviour and
+  // has nothing to do with what this test is checking.
   const summary = page.getByRole('textbox', { name: 'Add a todo' })
-  await summary.fill('Made from Today')
-  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
-  // `exact` matters: the picker's own placeholder is "Choose a list…", so
-  // a substring match would also find the trigger and pass regardless.
+  await summary.fill('Made from a derived view')
+  await addDialog.getByRole('button', { name: 'Add todo' }).click()
   await expect(
-    addDialog.getByText('Choose a list', { exact: true }),
+    addDialog.getByText('Choose a list for this todo', { exact: true }),
   ).toBeVisible()
   await expect(addDialog).toBeVisible()
 
   // Choosing one lets it through, and the app follows the todo to the list
   // it landed in — being left on a view that may not contain it reads as a
   // failure.
-  await addDialog.getByRole('combobox', { name: 'List' }).click()
-  await page.getByRole('option', { name: listName, exact: true }).click()
-  await addDialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await addDialog.getByRole('button', { name: 'Choose a list' }).click()
+  await page.getByRole('menuitem', { name: listName, exact: true }).click()
+  // The pill writes `#<name>` into the text, so the summary is what is left
+  // once that token is stripped — asserted below on the row itself.
+  await addDialog.getByRole('button', { name: 'Add todo' }).click()
   await expect(addDialog).toBeHidden()
   await expect(page.getByRole('heading', { name: listName })).toBeVisible()
-  await expect(page.getByText('Made from Today')).toBeVisible()
+  await waitForSync(page)
+  await expect(
+    page.getByText('Made from a derived view', { exact: true }),
+  ).toBeVisible()
 })
 
 // docs/specs/todos.md — due times. Before the switches there was no way to

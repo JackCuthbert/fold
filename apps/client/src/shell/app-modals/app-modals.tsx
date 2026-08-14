@@ -3,7 +3,7 @@ import { HelpModal } from '../../help/help-modal/help-modal'
 import { ListFormModal } from '../../lists/list-form-modal/list-form-modal'
 import { RevealListsDialog } from '../../lists/list-filter-menu/list-filter-menu'
 import { SettingsModal } from '../../lists/settings-modal/settings-modal'
-import { AddTodoModal } from '../../todos/add-todo-modal/add-todo-modal'
+import { QuickAddModal } from '../../todos/quick-add-modal/quick-add-modal'
 import { useListFilter } from '../context/list-filter-context'
 import { useOverlays } from '../context/overlays-context'
 import { useSelection } from '../context/selection-context'
@@ -77,20 +77,22 @@ export function AppModals() {
           press the same shortcut. There, the list on screen is obviously
           the answer, and re-picking it every time is friction.
           *(changed 2026-08-05.)* */}
-      <AddTodoModal
+      {/* Quick add, not the form (docs/specs/quick-add.md). The global
+          path is the one that was slowest — it is the only one that has to
+          ask which list — so it is the one the parser replaces. The full
+          form stays mounted for the in-list path (todo-pane.tsx) and for
+          anything needing notes. *(changed 2026-08-14.)* */}
+      <QuickAddModal
         open={globalAdd.open}
         onOpenChange={globalAdd.setOpen}
-        target={{
-          kind: 'global',
-          lists: filter.allLists,
-          ...(activeList ? { defaultListId: activeList.id } : {}),
-          onAdd: (listId, todo) => {
-            globalAdd.add(listId, todo)
-            // Go to where the todo landed. Creating something and being
-            // left looking at a view that may not contain it reads as a
-            // failure.
-            selection.select(listId)
-          },
+        lists={filter.allLists}
+        {...(activeList ? { defaultListId: activeList.id } : {})}
+        onAdd={(listId, todo) => {
+          globalAdd.add(listId, todo)
+          // Go to where the todo landed. Creating something and being
+          // left looking at a view that may not contain it reads as a
+          // failure.
+          selection.select(listId)
         }}
         triggerRef={overlays.globalAddTriggerRef}
       />

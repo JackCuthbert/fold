@@ -3,6 +3,11 @@
 The core entity: a VTODO component inside a list collection
 ([lists](./lists.md)).
 
+**Creating one** is specified separately in [quick-add](./quick-add.md) —
+one line of text parsed into summary, due, list and priority. This file
+covers what a todo *is*; that one covers the fastest way to make one.
+*(added 2026-08-14.)*
+
 ## Data model (`packages/schemas`)
 
 Zod schemas are the single source of truth; TypeScript types are inferred
