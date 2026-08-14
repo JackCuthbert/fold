@@ -97,6 +97,24 @@ that they did the shopping.
   depending on how much shopping is outstanding is harder to learn than
   one that is always the same shape.
 
+**Groups lead their block.** Every group row comes first, then the
+ungrouped todos in whatever order the view sorted them. Where a view splits
+into blocks the rule applies within each: health first, and inside both
+health and "Everything else", groups above todos. Several groups keep their
+relative order, so the run above the todos is stable rather than
+reshuffling as items are ticked.
+
+This used to interleave — a group took the position of its earliest todo,
+so that a grocery item sorting to the top of Today put Groceries at the
+top. The reasoning was that the view had already sorted by due time and
+regrouping would move a row placed by time to somewhere meaningless. That
+holds for a todo row, whose position *is* its due time. A group row means
+none of it: it navigates rather than completes, and stands for an errand
+rather than a task, so sitting between two todos claimed a due time it does
+not have — the earliest of the several behind it, which is not a fact about
+the errand. Leading the block makes it a section, which is what it is.
+*(changed 2026-08-14, issue #59: was placed at its first todo.)*
+
 **A group counts as one.** A day with eight groceries and two other todos
 reads as three, not ten — the count counts rows, matching what is on
 screen.

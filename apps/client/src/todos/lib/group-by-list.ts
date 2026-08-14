@@ -70,11 +70,23 @@ export type DerivedRow = TodoGroup | TodoRow
  * Collapse todos from grouping lists into one row each, leaving every
  * other todo alone.
  *
- * Order is preserved by **first appearance**: a group takes the position
- * of its earliest todo, so a grocery item that sorts to the top of Today
- * puts the Groceries row at the top. The caller has already sorted, and
- * this must not undo that — regrouping to the end would move a row that
- * was placed by due time to somewhere that means nothing.
+ * **Groups lead** (docs/specs/list-kinds.md — groups lead their block).
+ * Every group row comes first, in first-appearance order among themselves,
+ * then every ungrouped todo in the order the caller sorted them.
+ *
+ * This used to interleave: a group took the position of its earliest todo,
+ * on the reasoning that the caller had sorted by due time and regrouping
+ * would move a row placed by time to somewhere meaningless. Seen in place,
+ * that reasoning had the wrong subject. It holds for todo rows, whose
+ * position *is* their due time; a group row means none of it. It navigates
+ * rather than completes, and it stands for an errand rather than a task, so
+ * "Groceries" landing between two todos claimed a due time the row does not
+ * have — the earliest of the several behind it, which is not a fact about
+ * the errand. Leading the block makes it a section, which is what it is.
+ * *(changed 2026-08-14, issue #59.)*
+ *
+ * Ungrouped todos keep their relative order exactly, so the sort the caller
+ * did still holds over the rows where it means something.
  *
  * A group of one still groups (docs/specs/list-kinds.md): a row whose
  * shape depends on how much shopping is outstanding is harder to learn
@@ -85,7 +97,11 @@ export function groupTodos(
   lists: readonly TodoList[],
 ): DerivedRow[] {
   const byId = new Map(lists.map((list) => [list.id, list]))
-  const rows: DerivedRow[] = []
+  // Two runs, concatenated at the end — that is the whole of "groups
+  // lead". Each keeps its own arrival order, so the sort the caller did
+  // survives within the half where it means something.
+  const groupRows: TodoGroup[] = []
+  const todoRows: TodoRow[] = []
   const groups = new Map<string, TodoGroup>()
 
   for (const todo of todos) {
@@ -93,7 +109,7 @@ export function groupTodos(
     // An unknown list cannot be looked up for its kind, so it cannot
     // group — the todo is drawn on its own, which is the safe default.
     if (!list || !featuresOf(list.displayName).groups) {
-      rows.push({ kind: 'todo', todo })
+      todoRows.push({ kind: 'todo', todo })
       continue
     }
     const existing = groups.get(todo.listId)
@@ -111,8 +127,8 @@ export function groupTodos(
     // Pushed at first appearance, then mutated as more of its todos are
     // found. The array holds the reference, so later pushes are visible
     // without a second pass.
-    rows.push(group)
+    groupRows.push(group)
   }
 
-  return rows
+  return [...groupRows, ...todoRows]
 }

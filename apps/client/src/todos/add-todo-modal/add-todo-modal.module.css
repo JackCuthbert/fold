@@ -297,3 +297,18 @@
 .prioSwatch {
   composes: swatch from '../../styles/priority.module.css';
 }
+
+/* The list's colour in the picker, from the same shared source the nav,
+   the pane title, the filter popover and the move modal all compose from
+   (docs/specs/lists.md — colours). Composed rather than redeclared so a
+   change to the dot reaches every surface at once.
+   *(added 2026-08-14, issue #59.)* */
+.listDot {
+  composes: dot from '../../lists/list-dot.module.css';
+}
+
+/* No colour set: the shared empty ring, so a coloured and an uncoloured
+   list still start their names on one left edge. */
+.listDotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
