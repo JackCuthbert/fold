@@ -19,10 +19,12 @@ import { cx } from '../../styles/cx'
 import {
   DERIVED_VIEWS,
   isDerivedView,
+  isNext7DaysView,
   isSearchView,
   isSummaryView,
   isTodayView,
   isTomorrowView,
+  NEXT_7_DAYS_VIEW,
   SEARCH_VIEW,
   SUMMARY_VIEW,
   TODAY_VIEW,
@@ -89,6 +91,18 @@ const DERIVED_INFO: Record<string, { title: string; about: string }> = {
       'What is still to do tomorrow, from all your lists. Nothing ' +
       'overdue — that stays in Today — and anything you finish early ' +
       'moves to the day you did it. A view, not a list you can add to.',
+  },
+  [NEXT_7_DAYS_VIEW]: {
+    title: 'Next 7 days',
+    // Says that it *includes* today, because that is the surprising part
+    // next to Today and Tomorrow above it: someone who knows those two are
+    // disjoint will reasonably expect a third window to start after them
+    // (docs/specs/next-7-days-view.md).
+    about:
+      'Everything still to do between today and six days from now, from ' +
+      'all your lists — so it takes in Today and Tomorrow rather than ' +
+      'starting after them. Nothing overdue, and nothing already ' +
+      'finished. A view, not a list you can add to.',
   },
   [SUMMARY_VIEW]: {
     title: 'Summary',
@@ -216,21 +230,28 @@ export function MainScreen() {
   // resize, losing a half-typed list. MainScreen is mounted at every
   // viewport. *(added 2026-08-04, issues #20 and #21.)*
   const listForm = useListForm(lists.data ?? [])
-  const showingToday = isTodayView(active)
-  const showingTomorrow = isTomorrowView(active)
-  const showingSummary = isSummaryView(active)
-  const showingSearch = isSearchView(active)
   const showingDerived = isDerivedView(active)
-  /** Which pane the selected view resolves to — see view-pane.tsx. */
-  const paneKind: PaneKind = showingToday
+  /**
+   * Which pane the selected view resolves to — see view-pane.tsx.
+   *
+   * `PaneKind` and `useViewCount`'s `CountedView` are the same union, and
+   * this was computed twice as two identical ternary chains — one for the
+   * pane, one for the count. Five branches each was already at the limit of
+   * what reads, six would not, and two copies can disagree about which view
+   * is showing. One value now serves both. *(collapsed 2026-08-14: was two
+   * chains, which a sixth view would have made two six-deep chains.)*
+   */
+  const paneKind: PaneKind = isTodayView(active)
     ? 'today'
-    : showingTomorrow
+    : isTomorrowView(active)
       ? 'tomorrow'
-      : showingSummary
-        ? 'summary'
-        : showingSearch
-          ? 'search'
-          : 'list'
+      : isNext7DaysView(active)
+        ? 'next-7-days'
+        : isSummaryView(active)
+          ? 'summary'
+          : isSearchView(active)
+            ? 'search'
+            : 'list'
   /** Title and explanation when a derived view is showing; null in a list. */
   const derivedInfo = DERIVED_INFO[active] ?? null
   const allLists = lists.data ?? []
@@ -270,15 +291,9 @@ export function MainScreen() {
     // on every cold load. *(fixed 2026-08-04.)*
     listsLoaded: lists.data !== undefined,
     listId: activeList?.id ?? null,
-    view: showingToday
-      ? 'today'
-      : showingTomorrow
-        ? 'tomorrow'
-        : showingSummary
-          ? 'summary'
-          : showingSearch
-            ? 'search'
-            : 'list',
+    // The same value the pane resolves to — see `paneKind` above, which
+    // explains why one is computed rather than two.
+    view: paneKind,
     // Only meaningful for the search view, which counts its matches
     // (docs/specs/search-view.md). Every other view ignores it.
     query: searchQuery,

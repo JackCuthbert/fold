@@ -111,6 +111,30 @@ items, the create action, and Settings alike. Specifically:
   kebab read as **one control split into two segments** — a shared outer
   shape with a hairline divider between them — not an icon floating over a
   row. The kebab is always visible.
+- **The derived views are the nav's one density exception.** They sit
+  **flush** — no gap between them — and on a fine pointer they take
+  `--hit-area` (34px) rather than the `--nav-row` 38px every other row
+  uses. *(added 2026-08-14, with the group at five rows.)*
+
+  They were `--space-2` apart from 2026-08-03, on the reasoning that ghost
+  buttons with no chrome would otherwise read as one block of text rather
+  than separate controls. With two views that held; at five it stopped
+  being true and started costing real height — the group ran to 222px and
+  pushed the lists themselves below the fold on a short window. The
+  argument had been overtaken anyway: these rows since grew a hover wash
+  and a selected marker, so each announces itself as a control the moment
+  a pointer is near it, without needing air around it to say so. The list
+  rows below sit `--space-1` apart and read fine.
+
+  Measured: 222px → 170px, 52px back — close to one and a half list rows.
+
+  **The height reduction stops at the touch floor and does not touch
+  `--nav-row`.** That token's `max(38px, var(--hit-area))` is what
+  guarantees 44px on a phone (controls & touch targets below), and it is
+  shared by every row in the nav — so the exception is scoped both to
+  these rows and to `(hover: hover) and (pointer: fine)`, and lands
+  exactly on `--hit-area` rather than on a number picked by eye. On touch
+  the rows keep all 44px; only the gap goes.
 - **Settings needs breathing room** above the divider that separates it
   from the status line; it must not sit flush against it.
 - **Creating a list opens a modal**, like every other create/edit surface —
@@ -971,8 +995,19 @@ are the interface.
 | `Ctrl+K` | New todo |
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
-| `Ctrl+Shift+2` | Go to Summary |
+| `Ctrl+Shift+2` | Go to Tomorrow |
+| `Ctrl+Shift+3` | Go to Next 7 days |
+| `Ctrl+Shift+4` | Go to Summary |
+| `Ctrl+Shift+5` | Go to Search |
 | `Ctrl+/` | Open Help |
+
+*(corrected 2026-08-14: this table still read Today then Summary, which had
+been wrong since Tomorrow landed on 2026-08-05 and wrong again since Search
+did on 2026-08-06. The digits are generated from `DERIVED_VIEWS`, so a
+hand-written table here is a copy that goes stale silently — the user guide's
+copy (docs/user/keyboard-shortcuts.md) had stayed current while this one did
+not. Kept rather than deleted because a spec reader wants the map in front
+of them; the rule below is what makes it derivable if it drifts again.)*
 
 **`Ctrl` on every platform, including macOS.** The conventional advice is
 Cmd on a Mac and Ctrl elsewhere, and this did that until 2026-08-04. Two

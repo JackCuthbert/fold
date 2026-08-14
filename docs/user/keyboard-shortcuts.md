@@ -10,8 +10,9 @@ worth remembering: making something, and getting somewhere.
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Tomorrow |
-| `Ctrl+Shift+3` | Go to Summary |
-| `Ctrl+Shift+4` | Go to [Search](./search.md) |
+| `Ctrl+Shift+3` | Go to Next 7 days |
+| `Ctrl+Shift+4` | Go to Summary |
+| `Ctrl+Shift+5` | Go to [Search](./search.md) |
 | `Ctrl+/` | Open **Help**, which lists these |
 
 *(changed 2026-08-05: Tomorrow took `Ctrl+Shift+2`, moving Summary to
@@ -21,8 +22,13 @@ them, and Tomorrow belongs between the other two.)*
 *(added 2026-08-06: Search took `Ctrl+Shift+4`. It went on the end rather
 than among the others, so nothing you had already learned moved.)*
 
+*(changed 2026-08-14: **Next 7 days** took `Ctrl+Shift+3`, pushing Summary
+to `4` and Search to `5`. Sorry — that's two digits you'd learned. It sits
+with the other day views because that is where you'd look for it, and the
+numbers follow the sidebar rather than the other way round.)*
+
 There's no `Ctrl+F` for search, on purpose — that would take the browser's
-own find away, and the two answer different questions: `Ctrl+Shift+4` looks
+own find away, and the two answer different questions: `Ctrl+Shift+5` looks
 through all your todos, `Ctrl+F` looks at the page in front of you.
 
 **`Ctrl` on every platform, including a Mac.** Most Mac apps would use `⌘`
@@ -58,8 +64,9 @@ window, and the keypress never reaches Fold at all. `K` is what most apps
 use for "do something quickly", and it's free.
 
 It opens the same **New todo** form as the sidebar button, wherever you are.
-Because it can be triggered from Today, Tomorrow or Summary — none of which
-are lists — it always asks which list the todo belongs to.
+Because it can be triggered from Today, Tomorrow, Next 7 days, Summary or
+Search — none of which are lists — it always asks which list the todo
+belongs to.
 
 ## Why `Shift` on the view shortcuts
 
@@ -69,6 +76,16 @@ it to switch desktops, and some browsers use it to switch tabs. Adding
 
 ## Why `Ctrl+F` isn't one of them
 
-It's the obvious next shortcut, and it's deliberately missing: Fold has no
-search yet. Binding it would take away your browser's own find and give
-nothing back. When search arrives, so will the shortcut.
+It's the obvious next shortcut, and it's deliberately missing — but not for
+the reason it used to be. Search now exists, and it has a chord:
+`Ctrl+Shift+5`.
+
+`Ctrl+F` stays with your browser because the two answer different
+questions. Fold's search looks through every todo you have, including ones
+you've finished and ones not on the screen. `Ctrl+F` looks at the page in
+front of you. Taking the second away to give you a second route to the
+first would be a straight loss.
+
+*(corrected 2026-08-14: this section still said Fold had no search, which
+stopped being true on 2026-08-06 — and it sat directly below a table
+listing the search chord.)*

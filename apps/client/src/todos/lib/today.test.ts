@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   addLocalDays,
   DERIVED_VIEWS,
+  groupByDueDay,
+  isNext7DaysView,
   isTodayView,
   isTomorrowView,
+  NEXT_7_DAYS_VIEW,
+  selectNextWeek,
   selectToday,
   selectTomorrow,
   sortByDueInstant,
@@ -304,6 +308,220 @@ describe('selectTomorrow', () => {
     expect(today).toEqual(['overdue', 'today'])
     expect(tomorrow).toEqual(['tomorrow'])
     expect(today.filter((uid) => tomorrow.includes(uid))).toEqual([])
+  })
+})
+
+// docs/specs/next-7-days-view.md
+describe('NEXT_7_DAYS_VIEW sentinel', () => {
+  it('cannot collide with a real list id', () => {
+    // Same reasoning as the two above: 'next-7-days' is an unlikely
+    // collection name but a perfectly legal one, and the prefix is what
+    // makes the sentinel impossible to produce rather than merely unlikely.
+    expect(NEXT_7_DAYS_VIEW).not.toBe('next-7-days')
+    expect(NEXT_7_DAYS_VIEW).toContain(':')
+    expect(isNext7DaysView('next-7-days')).toBe(false)
+    expect(isNext7DaysView(NEXT_7_DAYS_VIEW)).toBe(true)
+    expect(isNext7DaysView(null)).toBe(false)
+  })
+
+  it('sits after Tomorrow and before Summary, so its chord is the third', () => {
+    // The relative order rather than a literal array, for the reason the
+    // Tomorrow case above gives: a literal also claims no view may ever be
+    // added, and has broken every time one was.
+    const order = [TOMORROW_VIEW, NEXT_7_DAYS_VIEW, SUMMARY_VIEW].map((view) =>
+      DERIVED_VIEWS.indexOf(view),
+    )
+    expect(order).not.toContain(-1)
+    expect(order).toEqual([...order].toSorted((a, b) => a - b))
+  })
+})
+
+describe('selectNextWeek', () => {
+  it('includes work due later today, which is day one of the window', () => {
+    // The whole overlap decision in one assertion: the window starts today,
+    // not tomorrow, because "next 7 days" that skips today is really
+    // "days 3-7" (docs/specs/next-7-days-view.md — the window).
+    const items = [
+      todo('this-afternoon', {
+        due: { kind: 'floating', value: '2026-08-10T17:00:00' },
+      }),
+      todo('tomorrow', { due: { kind: 'date', value: '2026-08-11' } }),
+    ]
+    expect(selectNextWeek(items, NOW).map((t) => t.uid)).toEqual([
+      'this-afternoon',
+      'tomorrow',
+    ])
+  })
+
+  it('reaches the seventh day and stops', () => {
+    // Today counts as the first of the seven, so the last day in is
+    // today+6 — 16 August from a 10 August NOW — and 17 August is out.
+    const items = [
+      todo('day-six', { due: { kind: 'date', value: '2026-08-16' } }),
+      todo('day-seven', { due: { kind: 'date', value: '2026-08-17' } }),
+    ]
+    expect(selectNextWeek(items, NOW).map((t) => t.uid)).toEqual(['day-six'])
+  })
+
+  it('never shows overdue work — that is still Today’s job', () => {
+    // Bounded below exactly as Tomorrow is. A view of the week ahead that
+    // carried everything already missed would answer a different question
+    // than the one it is named for.
+    const items = [
+      todo('yesterday', { due: { kind: 'date', value: '2026-08-09' } }),
+      todo('last-year', { due: { kind: 'date', value: '2025-01-01' } }),
+    ]
+    expect(selectNextWeek(items, NOW)).toEqual([])
+  })
+
+  it('excludes todos with no due date', () => {
+    expect(selectNextWeek([todo('someday')], NOW)).toEqual([])
+  })
+
+  it('shows outstanding work only', () => {
+    // Forward-looking views carry no completed section: a finished todo
+    // belongs to the day it was *done*, which Today shows and Summary
+    // files (docs/specs/next-7-days-view.md).
+    const items = [
+      todo('done-early', {
+        completed: true,
+        completedAt: '2026-08-10T12:30:00.000Z',
+        due: { kind: 'date', value: '2026-08-13' },
+      }),
+      todo('still-to-do', { due: { kind: 'date', value: '2026-08-13' } }),
+    ]
+    expect(selectNextWeek(items, NOW).map((t) => t.uid)).toEqual([
+      'still-to-do',
+    ])
+  })
+
+  it('contains everything Today and Tomorrow show, except the overdue', () => {
+    // The relationship the spec argues for: this is the *span* those two
+    // sit inside, not a third adjacent slice. Overlapping them is the
+    // point — it is the same work seen at a wider zoom — and the one thing
+    // it does not inherit is Today's open lower bound.
+    const items = [
+      todo('overdue', { due: { kind: 'date', value: '2026-08-01' } }),
+      todo('today', { due: { kind: 'date', value: '2026-08-10' } }),
+      todo('tomorrow', { due: { kind: 'date', value: '2026-08-11' } }),
+      todo('midweek', { due: { kind: 'date', value: '2026-08-14' } }),
+      todo('beyond', { due: { kind: 'date', value: '2026-08-20' } }),
+    ]
+    const week = selectNextWeek(items, NOW).map((t) => t.uid)
+    expect(week).toEqual(['today', 'tomorrow', 'midweek'])
+
+    // Everything Tomorrow shows is here.
+    for (const item of selectTomorrow(items, NOW)) {
+      expect(week).toContain(item.uid)
+    }
+    // And everything Today shows that is not overdue.
+    for (const item of selectToday(items, NOW)) {
+      if (item.uid !== 'overdue') expect(week).toContain(item.uid)
+    }
+    expect(week).not.toContain('overdue')
+  })
+
+  it('rolls across a month boundary', () => {
+    // Calendar arithmetic, not +7×86_400_000: from 29 August the window
+    // has to reach 4 September.
+    const items = [
+      todo('september', { due: { kind: 'date', value: '2026-09-04' } }),
+      todo('too-far', { due: { kind: 'date', value: '2026-09-05' } }),
+    ]
+    const lateAugust = new Date('2026-08-29T12:00:00')
+    expect(selectNextWeek(items, lateAugust).map((t) => t.uid)).toEqual([
+      'september',
+    ])
+  })
+
+  it('holds the same seven days from midnight to late evening', () => {
+    // The window is days, not a rolling 168 hours from `now`. A rolling
+    // one would quietly drop the seventh day's morning work by dinnertime.
+    const items = [
+      todo('day-six', { due: { kind: 'date', value: '2026-08-16' } }),
+    ]
+    expect(selectNextWeek(items, new Date('2026-08-10T00:05:00'))).toHaveLength(
+      1,
+    )
+    expect(selectNextWeek(items, new Date('2026-08-10T23:55:00'))).toHaveLength(
+      1,
+    )
+  })
+})
+
+// docs/specs/next-7-days-view.md — grouped by day.
+describe('groupByDueDay', () => {
+  it('buckets by the local day a todo is due, soonest day first', () => {
+    const items = [
+      todo('thursday', { due: { kind: 'date', value: '2026-08-13' } }),
+      todo('today-a', { due: { kind: 'date', value: '2026-08-10' } }),
+      todo('tomorrow', { due: { kind: 'date', value: '2026-08-11' } }),
+      todo('today-b', {
+        due: { kind: 'floating', value: '2026-08-10T09:00:00' },
+      }),
+    ]
+    expect(
+      groupByDueDay(items).map((day) => [day.day, day.todos.map((t) => t.uid)]),
+    ).toEqual([
+      ['2026-08-10', ['today-a', 'today-b']],
+      ['2026-08-11', ['tomorrow']],
+      ['2026-08-13', ['thursday']],
+    ])
+  })
+
+  // The bug this guards against is a real one: copying Summary's
+  // comparator would reverse the days and silently put next Thursday above
+  // tomorrow, which reads as correct until you notice the dates descend.
+  it('runs forwards, the opposite of Summary', () => {
+    const items = [
+      todo('later', { due: { kind: 'date', value: '2026-08-16' } }),
+      todo('sooner', { due: { kind: 'date', value: '2026-08-11' } }),
+    ]
+    const days = groupByDueDay(items).map((day) => day.day)
+    expect(days).toEqual([...days].toSorted())
+    expect(days[0]).toBe('2026-08-11')
+  })
+
+  it('preserves the incoming order within a day', () => {
+    // The caller sorts by due instant before grouping, so a day's rows must
+    // come out in the order they went in rather than being re-sorted here.
+    const due = { kind: 'floating' as const, value: '2026-08-11T09:00:00' }
+    const items = [todo('a', { due }), todo('b', { due }), todo('c', { due })]
+    expect(groupByDueDay(items)[0]?.todos.map((t) => t.uid)).toEqual([
+      'a',
+      'b',
+      'c',
+    ])
+  })
+
+  it('yields no day for a date nothing is due on', () => {
+    // Empty days are omitted rather than drawn as an empty heading
+    // (docs/specs/next-7-days-view.md — empty days). Nothing is due on the
+    // 12th, so there is no bucket for it at all.
+    const items = [
+      todo('eleventh', { due: { kind: 'date', value: '2026-08-11' } }),
+      todo('thirteenth', { due: { kind: 'date', value: '2026-08-13' } }),
+    ]
+    expect(groupByDueDay(items).map((day) => day.day)).toEqual([
+      '2026-08-11',
+      '2026-08-13',
+    ])
+  })
+
+  it('drops undated todos rather than bucketing them at infinity', () => {
+    expect(groupByDueDay([todo('someday')])).toEqual([])
+  })
+
+  it('buckets an evening todo on its own local day, not the UTC one', () => {
+    // `toISOString` would put a 9pm-Melbourne todo on the following day —
+    // the same trap `localDayOf` exists to avoid, and the reason this
+    // shares that function with Summary rather than formatting its own.
+    const items = [
+      todo('tonight', {
+        due: { kind: 'floating', value: '2026-08-10T21:00:00' },
+      }),
+    ]
+    expect(groupByDueDay(items)[0]?.day).toBe('2026-08-10')
   })
 })
 

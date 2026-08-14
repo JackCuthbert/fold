@@ -36,7 +36,12 @@
      `max()` against --hit-area so this can never drop a row below the
      touch-target floor: that token is 34px on a mouse and 44px on touch
      (tokens.css), so this is 38px on desktop and 44px on a phone.
-     *(added 2026-08-04.)* */
+     *(added 2026-08-04.)*
+
+     One exception since 2026-08-14: the derived views take --hit-area
+     directly on a fine pointer, which is 4px shorter. See `.today`'s media
+     query, which explains why the group needed the room and why the
+     exception cannot be spent on this token instead. */
   --nav-row: max(38px, var(--hit-area));
 }
 
@@ -46,18 +51,27 @@
   gap: var(--space-1);
 }
 
-/* The derived views (Today, Summary) as one group above the collections.
-   Separated by space alone — larger than the --space-1 gap between list
-   rows, so the grouping is legible without a rule.
-   The two views sit apart from each other as well: they are ghost buttons
-   with no chrome of their own, so flush rows read as one block of text
-   rather than two controls. --space-2 is deliberately smaller than the
-   --space-4 below the group, so the pair still reads as one group set off
-   from the lists. *(added 2026-08-03: the two buttons were flush.)* */
+/* The derived views as one group above the collections. Separated from
+   what is around them by space alone: the `.create` block above carries a
+   --space-4 bottom margin, and the `.separator` below owns --space-4
+   either side of itself. Both are untouched by the gap below.
+
+   **Flush rows, no gap between them.** They were --space-2 apart from
+   2026-08-03, on the reasoning that ghost buttons with no chrome would
+   otherwise read as one block of text rather than several controls. With
+   two rows that was true; with five it is not — 8px between every pair
+   spread the group over 190px and pushed the lists themselves below the
+   fold on a short window, which is a worse failure than the one the gap
+   was preventing. And the argument had already been overtaken: these rows
+   grew a hover wash and a selected marker, so each is visibly its own
+   control the moment a pointer is near it, without needing air around it
+   to say so. The list rows below sit --space-1 apart for the same reason
+   and read fine.
+   *(changed 2026-08-14: was --space-2, with five views in the group.)* */
 .views {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 0;
   /* No bottom margin: the separator below owns the space between the
      derived views and the real lists. *(changed 2026-08-04.)* */
 }
@@ -98,6 +112,8 @@
   justify-content: flex-start;
   gap: var(--space-2);
   width: 100%;
+  /* --nav-row by default, overridden below where a mouse is doing the
+     pointing — see the media query after this rule. */
   height: var(--nav-row);
   /* Matches `.link`'s row box below, so the icon and label sit on the same
      left edge as the list rows (docs/specs/ui.md — one left edge). The
@@ -122,6 +138,34 @@
     color var(--duration-fast) var(--ease),
     background-color var(--duration-fast) var(--ease),
     border-color var(--duration-fast) var(--ease);
+}
+
+/* Shorter rows for the derived views — and **only** on a pointer that can
+   afford it.
+
+   The group is five rows now and it was pushing the lists down the nav.
+   --nav-row cannot come down to fix that: it is shared by every row in the
+   nav, and its `max(38px, var(--hit-area))` is what guarantees a 44px
+   touch target on a phone (tokens.css). Lowering it there would trade a
+   usability floor for tidiness, which is not a trade available
+   (docs/specs/ui.md — controls & touch targets).
+
+   So the reduction is scoped two ways: to these rows alone, and to
+   `hover: hover` and `pointer: fine` together — the same pair the shortcut
+   hints use below, and for the same reason (a stylus reports fine without
+   hover, and some Android browsers claim hover on a coarse pointer). Where
+   it applies, --hit-area is 34px and this lands exactly on it: 38px → 34px
+   per row, and the floor is still the floor rather than a number chosen by
+   eye. Touch keeps all 44px, untouched.
+
+   Measured, not guessed: the group went 190px → 170px, and with the gap
+   above going to 0 as well, 222px → 170px overall — 52px back, close to
+   one and a half list rows.
+   *(added 2026-08-14.)* */
+@media (hover: hover) and (pointer: fine) {
+  .today {
+    height: var(--hit-area);
+  }
 }
 
 /* docs/specs/ui.md — hover is a whisper: the same faint wash the list rows

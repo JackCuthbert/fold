@@ -168,7 +168,18 @@ priority is how you say what is next.
 ### Health first — `HEALTH_LIST`
 
 Health todos **lead every derived view**, and in Today they sit under a
-heading of their own above everything else.
+heading of their own above everything else. Tomorrow shares that pane and so
+gets the section too, unchanged — nothing about it was specific to a one-day
+window.
+
+[Next 7 days](./next-7-days-view.md) keeps the section but nests it: that
+view groups by day, so the *Health* / *Everything else* pair sits **inside
+each day** rather than once above the whole view. Lifting health to the top
+there would file it under no date at all, and would put next Thursday's
+medication above today's work. The pair is all-or-nothing per day — see that
+spec, which also records why it keeps a subheading where
+[Summary](./summary-view.md) uses the heart alone.
+*(added 2026-08-14; revised the same day, after design review.)*
 
 **Unconditional, not a weighting.** A high-priority chore does not outrank
 a health todo. An earlier design had health win only at equal priority
@@ -197,6 +208,14 @@ unconditional rule: it does not need to shout if nothing can outrank it.
 The peer heading appears **only when there is a health section above it**.
 With nothing to be distinguished from, "Everything else" would label the
 only thing on screen.
+
+**The converse holds too**, which only became visible in
+[Next 7 days](./next-7-days-view.md) once the pair nested inside days: a
+bare "Health" heading over the only rows in its day is the same orphan in
+the other direction. So the two headings are all-or-nothing — both, or
+neither and one plain run of rows. In Today this changes nothing, since a
+view with health work and nothing else is a view with one row in it; per day
+it is the common case. *(added 2026-08-14.)*
 
 - **Not collapsible.** The Completed accordion below folds away because it
   is a record of work already done. This is work still to do, and the point

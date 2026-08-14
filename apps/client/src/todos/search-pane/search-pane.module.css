@@ -63,18 +63,23 @@
 
 /* docs/specs/search-view.md — open work and finished work, shown apart.
 
-   Composes Summary's day heading rather than restating it: that rule
+   Composes the shared day heading rather than restating it: that rule
    carries a measured indent reproducing the row's checkbox offset so the
    heading lands on the same left edge as the summaries beneath it
    (docs/specs/ui.md — one left edge). Copying the calc() here would mean
    two places to fix when the checkbox changes size.
-   *(added 2026-08-10.)* */
+   *(added 2026-08-10; repointed 2026-08-14 from summary-pane.module.css to
+   day-section.module.css, when the day section became a shared component
+   for Summary and Next 7 days and took its stylesheet with it. This view
+   has no days of its own — it borrows the heading's *shape* for its own
+   two groups, which is why it composes rather than rendering a
+   DaySection.)* */
 .groupHeading {
-  composes: dayHeading from '../summary-pane/summary-pane.module.css';
+  composes: dayHeading from '../day-section/day-section.module.css';
 }
 
 .groupCount {
-  composes: dayCount from '../summary-pane/summary-pane.module.css';
+  composes: dayCount from '../day-section/day-section.module.css';
 }
 
 /* Air between the two groups, matching the gap Summary puts between days —

@@ -1,4 +1,5 @@
 import type { TodoList } from '@fold/schemas'
+import { NextWeekPane } from '../../todos/next-week-pane/next-week-pane'
 import { SearchPane } from '../../todos/search-pane/search-pane'
 import { SummaryPane } from '../../todos/summary-pane/summary-pane'
 import { TodayPane } from '../../todos/today-pane/today-pane'
@@ -9,7 +10,13 @@ import { useSelection } from '../context/selection-context'
 import styles from '../main-screen/main-screen.module.css'
 
 /** Which pane the selected view resolves to. */
-export type PaneKind = 'today' | 'tomorrow' | 'summary' | 'search' | 'list'
+export type PaneKind =
+  | 'today'
+  | 'tomorrow'
+  | 'next-7-days'
+  | 'summary'
+  | 'search'
+  | 'list'
 
 /**
  * The pane for whichever view is selected.
@@ -17,7 +24,7 @@ export type PaneKind = 'today' | 'tomorrow' | 'summary' | 'search' | 'list'
  * Extracted from MainScreen (issue #28): a five-branch ternary chain in the
  * middle of the layout, which is exactly the shape that gets harder to read
  * with every view added — and one has been added three times now (Tomorrow,
- * then Search).
+ * then Search, then Next 7 days).
  *
  * Each pane is **keyed by the view id**, so switching remounts it and
  * replays its fade-in (todo-pane.module.css — `.pane`). Without the key
@@ -47,6 +54,20 @@ export function ViewPane(props: ViewPaneProps) {
         key={selection.active}
         lists={shownLists}
         {...(props.kind === 'tomorrow' ? { day: 'tomorrow' as const } : {})}
+        onOpen={selection.openDetail}
+        onOpenList={selection.select}
+      />
+    )
+  }
+
+  // Next 7 days has its own pane: it groups by day and partitions health
+  // *inside* each day, which is structure the flat panes above do not have
+  // (docs/specs/next-7-days-view.md — its own pane).
+  if (props.kind === 'next-7-days') {
+    return (
+      <NextWeekPane
+        key={selection.active}
+        lists={shownLists}
         onOpen={selection.openDetail}
         onOpenList={selection.select}
       />

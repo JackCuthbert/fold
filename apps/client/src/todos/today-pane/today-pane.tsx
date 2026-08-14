@@ -33,9 +33,15 @@ import type { TodoDetailForm } from '../hooks/use-todo-detail-form'
 // copies of this component would have been a hundred duplicated lines that
 // drift the first time one of them is fixed, which is the opposite trade
 // from the TodoPane one above. *(added 2026-08-05.)*
+//
+// Next 7 days was briefly a third window here and is now its own pane
+// (next-week-pane.tsx). It failed the same test: once design review
+// reinstated per-day grouping, its health block moved *inside* each day and
+// its day sections became structure this component does not have, so the
+// difference stopped being a parameter. *(added and reverted 2026-08-14.)*
 interface TodayPaneProps {
   lists: readonly TodoList[]
-  /** Which day's slice to show. Defaults to today. */
+  /** Which window's slice to show. Defaults to today. */
   day?: 'today' | 'tomorrow'
   // Selection lives in MainScreen — see TodoPane's `onOpen`
   // (docs/specs/ui.md — the detail panel; issue #4).

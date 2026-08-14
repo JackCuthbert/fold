@@ -17,6 +17,11 @@ block and their Completed accordion — the day window is the only thing that
 differs, so two copies would be a hundred duplicated lines that drift the
 first time one of them is fixed.
 
+*(added 2026-08-14: [Next 7 days](./next-7-days-view.md) is the third view
+in this pane, on the same test. The `day` prop's three windows are now a
+lookup keyed by its own union rather than a ternary, so a fourth cannot be
+added to the prop without a selection to go with it.)*
+
 This is the opposite call from `TodoPane` vs `TodayPane`, which stay
 separate because they differ in where their todos come from, how they order
 them, and whether they can create. The test is whether the differences are
@@ -37,6 +42,13 @@ rather than `selectToday` with a shifted date.
 - A todo with no due date is never in Tomorrow, as in Today.
 - Today and Tomorrow are **disjoint**: no todo is ever in both. They are
   adjacent windows, and an item in both would read as a duplicate.
+
+  *(clarified 2026-08-14: this rule is about views of the same
+  granularity — two day-wide windows, where an overlap means one of them
+  has the wrong bound. [Next 7 days](./next-7-days-view.md) deliberately
+  contains both of these and is not a counterexample: it is the span they
+  sit inside rather than a third slice beside them. See that spec, which
+  argues the distinction.)*
 
 **Outstanding work only — there is no Completed section here.** A completed
 todo belongs to the day it was *completed*, not the day it was due. That is
@@ -78,8 +90,8 @@ never applies.
 A ghost button, styled exactly as Today and Summary, with a **sunrise**
 icon against Today's full sun — the two read as a sequence at a glance.
 
-It sits **between Today and Summary**, because that is the order the three
-read in: the day you are in, the day next, then what is behind you.
+It sits **second, directly after Today**, because that is the order the day
+views read in: the day you are in, then the day next.
 
 That position cost Summary its chord — inserting here moved it from
 `Ctrl+Shift+2` to `Ctrl+Shift+3`, since the chords are generated from the
@@ -87,6 +99,12 @@ order of `DERIVED_VIEWS` ([ui](./ui.md) — keyboard shortcuts). Taken
 deliberately: the alternative is permanent, and a nav ordered Today,
 Summary, Tomorrow would look wrong every day from now on to spare one
 relearned digit once.
+
+*(changed 2026-08-14: [Next 7 days](./next-7-days-view.md) was inserted
+after this view, so Tomorrow is no longer immediately above Summary and
+Summary's chord moved again — to `Ctrl+Shift+4`. Tomorrow keeps
+`Ctrl+Shift+2`; nothing at or above a newly inserted view ever moves. The
+trade was settled the same way it was here, by the same argument.)*
 
 ## Adding
 

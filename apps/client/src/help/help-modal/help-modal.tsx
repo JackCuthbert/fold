@@ -298,14 +298,28 @@ export function HelpModal(props: HelpModalProps) {
                   </p>
                 </Topic>
                 {/* docs/specs/today-view.md, docs/specs/tomorrow-view.md,
+                  docs/specs/next-7-days-view.md,
                   docs/specs/summary-view.md */}
-                <Topic title="Today, Tomorrow and Summary">
+                <Topic title="Today, Tomorrow, Next 7 days and Summary">
                   <p>
                     <UI>Today</UI> gathers everything due today or already
                     overdue, from all your lists at once. <UI>Tomorrow</UI> does
                     the same for the day ahead — but nothing overdue, which
                     stays in Today. <UI>Summary</UI> shows what you&rsquo;ve
                     finished, grouped by day — handy for a standup.
+                  </p>
+                  {/* docs/specs/next-7-days-view.md — the overlap is the one
+                    thing worth saying, since Today and Tomorrow above it are
+                    disjoint and someone would reasonably expect a third
+                    window to start after them. *(added 2026-08-14.)* */}
+                  <p>
+                    <UI>Next 7 days</UI> is the week in one go: everything still
+                    to do between today and six days from now,{' '}
+                    <strong>grouped by the day it&rsquo;s due</strong>. It takes
+                    in today and tomorrow rather than starting after them — the
+                    question it answers is what your week looks like, and your
+                    week includes the days you can already see on their own.
+                    Days with nothing due are left out rather than shown empty.
                   </p>
                   <p>
                     None of them is a list you can add to. They&rsquo;re just
@@ -349,10 +363,11 @@ export function HelpModal(props: HelpModalProps) {
                   <p>
                     The filter icon at the top of the sidebar hides whichever
                     lists you untick. They go from the sidebar as well as from{' '}
-                    <UI>Today</UI>, <UI>Tomorrow</UI>, <UI>Summary</UI> and{' '}
-                    <UI>Search</UI> — a hidden list stays hidden even if you go
-                    looking for it. Handy when you&rsquo;re sharing your screen
-                    and your personal lists are nobody else&rsquo;s business.
+                    <UI>Today</UI>, <UI>Tomorrow</UI>, <UI>Next 7 days</UI>,{' '}
+                    <UI>Summary</UI> and <UI>Search</UI> — a hidden list stays
+                    hidden even if you go looking for it. Handy when
+                    you&rsquo;re sharing your screen and your personal lists are
+                    nobody else&rsquo;s business.
                   </p>
                   <p>
                     Nothing is deleted or changed on your server, and it stays
@@ -397,9 +412,10 @@ export function HelpModal(props: HelpModalProps) {
                     </dd>
                     <dt>Health</dt>
                     <dd>
-                      Leads <UI>Today</UI> and <UI>Tomorrow</UI> in a block of
-                      its own, because health shouldn&rsquo;t wait behind a
-                      chore.
+                      Leads <UI>Today</UI> and <UI>Tomorrow</UI> under a heading
+                      of its own, because health shouldn&rsquo;t wait behind a
+                      chore. In <UI>Next 7 days</UI> it leads its own day, so it
+                      stays on the date it&rsquo;s due.
                     </dd>
                   </dl>
                   <p>

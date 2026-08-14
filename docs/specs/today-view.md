@@ -42,6 +42,11 @@ This open-ended lower bound is the one thing
 problem, so it stays here rather than following you into the day ahead.
 *(added 2026-08-05.)*
 
+[Next 7 days](./next-7-days-view.md) does not share it either, and for the
+same reason — so Today remains the only view that chases missed work, even
+though that view's window otherwise contains this one's.
+*(added 2026-08-14.)*
+
 - "Today" means the **viewer's local day**, consistent with the overdue rule
   in [todos](./todos.md#ordering-and-overdue-comparison).
 - A todo with no due date is never in Today.

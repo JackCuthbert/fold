@@ -421,6 +421,7 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
     'Open Help',
     'Go to Today',
     'Go to Tomorrow',
+    'Go to Next 7 days',
     'Go to Summary',
   ]) {
     await expect(help.getByText(action, { exact: true })).toBeVisible()
@@ -449,9 +450,12 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   // tabs, so the keydown never arrives. Matched on `event.code`, since
   // Shift+1 reports `event.key` as "!".
   // *(changed 2026-08-05: Tomorrow took Digit2, moving Summary to 3.)*
+  // *(changed 2026-08-14: Next 7 days took Digit3, moving Summary to 4.)*
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+Shift+Digit3`)
+  await page.keyboard.press(`${mod}+Shift+Digit4`)
   await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible()
+  await page.keyboard.press(`${mod}+Shift+Digit3`)
+  await expect(page.getByRole('heading', { name: 'Next 7 days' })).toBeVisible()
   await page.keyboard.press(`${mod}+Shift+Digit2`)
   await expect(page.getByRole('heading', { name: 'Tomorrow' })).toBeVisible()
   await page.keyboard.press(`${mod}+Shift+Digit1`)

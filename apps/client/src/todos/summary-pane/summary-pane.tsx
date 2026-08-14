@@ -4,13 +4,9 @@ import { ClearCompletedDialog } from '../clear-completed-dialog/clear-completed-
 import { useClearCompleted } from '../hooks/use-clear-completed'
 import { countClearable, retentionCutoff, todosToClear } from '../lib/retention'
 import { ViewNote } from '../view-note/view-note'
-import { groupTodos, isHealthTodo, partitionHealth } from '../lib/group-by-list'
-import { GroupRow } from '../group-row/group-row'
+import { DaySection } from '../day-section/day-section'
 import { RETENTION_DAYS } from '../lib/retention'
 import { dayLabel, summariseCompleted } from '../lib/summary'
-import { rowListFor } from '../lib/row-list'
-import styles from './summary-pane.module.css'
-import { TodayRow } from '../today-pane/today-pane'
 import paneStyles from '../todo-pane/todo-pane.module.css'
 import { useTodayTodos } from '../hooks/use-today-todos'
 
@@ -40,8 +36,6 @@ export function SummaryPane(props: SummaryPaneProps) {
   const now = new Date()
   const { days, undated, beyondWindow } = summariseCompleted(todos)
 
-  const rowList = (listId: string) => rowListFor(props.lists, listId)
-
   return (
     <div className={paneStyles['pane']}>
       {/* No empty-state copy. The title names the view, the count line
@@ -51,59 +45,29 @@ export function SummaryPane(props: SummaryPaneProps) {
           Tomorrow the same day (today-pane.tsx).
           *(removed 2026-08-05.)* */}
 
-      {days.map((group) => {
-        // docs/specs/list-kinds.md — health leads, here *within its day*:
-        // this view is a record read by date, so lifting a health todo out
-        // of its day and up the page would put it under the wrong heading.
-        //
-        // No bordered block either, unlike Today. The block exists to make
-        // outstanding health work impossible to leave unseen; these are
-        // already done, so the heart alone carries the category and the day
-        // stays one uninterrupted run of rows.
-        // *(added 2026-08-05, issue #27.)*
-        const { health, rest } = partitionHealth(group.todos, props.lists)
-        const rows = groupTodos([...health, ...rest], props.lists)
-        return (
-          <section key={group.day} className={styles['day']}>
-            {/* A heading per day rather than a divider: this view is read by
-              scanning for a date, so the date must be the loudest thing on
-              the row (docs/specs/summary-view.md). */}
-            {/* docs/specs/list-kinds.md — the count counts *rows*, so a
-              grouped list contributes 1. Counting the todos behind the
-              group instead put "10" above three visible rows, and a
-              number that disagrees with what is on screen is worse than
-              one that undersells the day: the shopping genuinely was one
-              errand.
-              *(changed 2026-08-05: was a count of todos.)* */}
-            <h2 className={styles['dayHeading']}>
-              {dayLabel(group.day, now)}
-              <span className={styles['dayCount']}>{rows.length}</span>
-            </h2>
-            <ul className={paneStyles['list']}>
-              {rows.map((row) =>
-                row.kind === 'group' ? (
-                  <GroupRow
-                    key={`group:${row.listId}`}
-                    group={row}
-                    onOpenList={props.onOpenList}
-                  />
-                ) : (
-                  <TodayRow
-                    key={row.todo.uid}
-                    todo={row.todo}
-                    now={now}
-                    list={rowList(row.todo.listId)}
-                    {...(isHealthTodo(row.todo, props.lists)
-                      ? { health: true }
-                      : {})}
-                    onOpen={(trigger) => props.onOpen(row.todo, trigger)}
-                  />
-                ),
-              )}
-            </ul>
-          </section>
-        )
-      })}
+      {/* One day per section, drawn by the shared component
+          (day-section.tsx). It was this pane's own markup until 2026-08-14,
+          when Next 7 days needed the same shape and the two would otherwise
+          have been copy-paste. */}
+      {days.map((group) => (
+        <DaySection
+          key={group.day}
+          label={dayLabel(group.day, now)}
+          todos={group.todos}
+          lists={props.lists}
+          now={now}
+          // docs/specs/list-kinds.md — health leads within its day, but
+          // with **no subheading here** and a heart instead. The block
+          // exists to make outstanding health work impossible to leave
+          // unseen; these are already done, so the heart alone carries the
+          // category and the day stays one uninterrupted run of rows.
+          // Next 7 days makes the opposite call for the opposite reason.
+          // *(added 2026-08-05, issue #27.)*
+          heartHealth
+          onOpen={props.onOpen}
+          onOpenList={props.onOpenList}
+        />
+      ))}
 
       {/* docs/specs/summary-view.md — a completed todo with no COMPLETED
           stamp can't be placed on a day. Say so rather than under-report

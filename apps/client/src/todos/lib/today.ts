@@ -1,5 +1,8 @@
 import type { Todo } from '@fold/schemas'
 import { dueInstant } from './sort'
+// Shared with Summary so a date buckets identically in both views
+// (docs/specs/next-7-days-view.md — grouped by day).
+import { localDayOf } from './summary'
 
 // docs/specs/today-view.md — a derived view, not a collection. The sentinel
 // stands in for a list id wherever a selection is held, so "which view is
@@ -14,6 +17,8 @@ import { dueInstant } from './sort'
 export const TODAY_VIEW = 'view:today' as const
 /** docs/specs/tomorrow-view.md — what is coming, one day ahead. */
 export const TOMORROW_VIEW = 'view:tomorrow' as const
+/** docs/specs/next-7-days-view.md — the week ahead, today included. */
+export const NEXT_7_DAYS_VIEW = 'view:next-7-days' as const
 /** docs/specs/summary-view.md — finished work, grouped by day. */
 export const SUMMARY_VIEW = 'view:summary' as const
 /** docs/specs/search-view.md — fuzzy text search over everything. */
@@ -53,10 +58,25 @@ export type ViewId = string
  * belongs by use: the day views are what you open by habit, search is what
  * you reach for when they have not got what you want.
  * *(changed 2026-08-06, issue #6: Search appended at position 4.)*
+ *
+ * Next 7 days goes at position 3, immediately after Tomorrow, because the
+ * day views read as a widening window — the day you are in, the day next,
+ * the week around them — and only then what is behind you. It shuffles the
+ * two views after it: Summary moves from `Ctrl+Shift+3` to `Ctrl+Shift+4`
+ * and Search from `Ctrl+Shift+4` to `Ctrl+Shift+5`.
+ *
+ * Appending instead, which is what Search did to avoid exactly this, was
+ * rejected: Search had no natural place among the day views, so last cost
+ * nothing. This one does have a place, and a nav ordered Today, Tomorrow,
+ * Summary, Search, Next 7 days would misfile a day view among the things
+ * that are not days — permanently, to spare two relearned digits once.
+ * That is the same trade Tomorrow took against Summary, and it is settled
+ * the same way. *(changed 2026-08-14: Next 7 days inserted at position 3.)*
  */
 export const DERIVED_VIEWS = [
   TODAY_VIEW,
   TOMORROW_VIEW,
+  NEXT_7_DAYS_VIEW,
   SUMMARY_VIEW,
   SEARCH_VIEW,
 ] as const
@@ -65,6 +85,9 @@ export const isTodayView = (view: ViewId | null): boolean => view === TODAY_VIEW
 
 export const isTomorrowView = (view: ViewId | null): boolean =>
   view === TOMORROW_VIEW
+
+export const isNext7DaysView = (view: ViewId | null): boolean =>
+  view === NEXT_7_DAYS_VIEW
 
 export const isSummaryView = (view: ViewId | null): boolean =>
   view === SUMMARY_VIEW
@@ -182,6 +205,92 @@ export function selectTomorrow(todos: readonly Todo[], now: Date): Todo[] {
     const due = dueInstant(todo)
     return due >= dayStart && due <= dayEnd
   })
+}
+
+/** How many days the Next 7 days window spans, today counted as the first. */
+export const NEXT_7_DAYS_SPAN = 7
+
+/**
+ * Todos still **to do** in the next seven days, across every list
+ * (docs/specs/next-7-days-view.md).
+ *
+ * The window is **today through today+6 inclusive**, so it overlaps Today
+ * and Tomorrow rather than starting after them. The question this view
+ * answers is "what does my week look like", and a week that begins the day
+ * after tomorrow is not a week — it is days three to seven, which is a
+ * thing nobody asked for. Overlapping is the honest reading, and it costs
+ * nothing: these are different views, never on screen together, so a todo
+ * appearing in two of them is not a duplicate the way one appearing twice
+ * in a *single* list would be. That is why Today and Tomorrow must stay
+ * disjoint from each other and this one need not be disjoint from either —
+ * they are adjacent slices, this is the span containing them.
+ *
+ * **Bounded at both ends**, exactly as Tomorrow is, and for its reason: an
+ * overdue todo is today's problem and Today is already showing it. A view
+ * of the week ahead that also carried everything you have already failed to
+ * do would answer a different question than the one it is named for.
+ *
+ * **Outstanding work only.** Same rule again — a completed todo belongs to
+ * the day it was *done*, which Today shows and Summary files. A forward
+ * view is about work that is still coming.
+ */
+export function selectNextWeek(todos: readonly Todo[], now: Date): Todo[] {
+  const windowStart = startOfLocalDay(now)
+  const windowEnd = endOfLocalDay(addLocalDays(now, NEXT_7_DAYS_SPAN - 1))
+  return todos.filter((todo) => {
+    if (todo.completed) return false
+    const due = dueInstant(todo)
+    return due >= windowStart && due <= windowEnd
+  })
+}
+
+/** One day's outstanding work. `day` is a local yyyy-mm-dd. */
+export interface DueDay {
+  day: string
+  todos: Todo[]
+}
+
+/**
+ * Group todos by the local day they are **due**, soonest day first
+ * (docs/specs/next-7-days-view.md — grouped by day).
+ *
+ * The mirror of `summariseCompleted`, and deliberately a separate function
+ * rather than a parameterised one. The two differ in every part: which
+ * instant buckets a todo (due vs `completedAt`), which direction the days
+ * run (forwards vs backwards), and what is excluded (nothing vs undated
+ * and beyond-retention, which this has no analogue for). A shared
+ * implementation would be three flags deciding all of that, which is
+ * harder to read than either half. What *is* shared is the part that
+ * matters for consistency — `localDayOf` and `dayLabel`, so a date buckets
+ * and reads identically in both views.
+ *
+ * **Soonest first**, the opposite of Summary. That view reads backwards
+ * from now, so most-recent-first is what a standup wants; this one reads
+ * forwards, so the nearest deadline leads. Copying Summary's comparator
+ * would have silently put next Thursday above tomorrow.
+ *
+ * Within a day, incoming order is preserved — the caller has already
+ * sorted by due instant, and `toSorted` is stable, so a day's rows stay in
+ * time order.
+ */
+export function groupByDueDay(todos: readonly Todo[]): DueDay[] {
+  const byDay = new Map<string, Todo[]>()
+  for (const todo of todos) {
+    const instant = dueInstant(todo)
+    // Undated todos resolve to +Infinity and are already excluded by
+    // `selectNextWeek`'s upper bound; this guard means the function is
+    // safe to call on any list rather than only on that one's output.
+    if (!Number.isFinite(instant)) continue
+    const day = localDayOf(new Date(instant))
+    const bucket = byDay.get(day)
+    if (bucket) bucket.push(todo)
+    else byDay.set(day, [todo])
+  }
+  // yyyy-mm-dd compares lexicographically, so this is a date sort —
+  // ascending, unlike Summary's.
+  return [...byDay.entries()]
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([day, group]) => ({ day, todos: group }))
 }
 
 /**
