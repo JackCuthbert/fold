@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0](https://github.com/JackCuthbert/fold/compare/v0.4.0...v0.5.0) (2026-08-14)
+
+
+### Features
+
+* **client:** draw every day in Next 7 days, empty ones included ([8ebba16](https://github.com/JackCuthbert/fold/commit/8ebba163f3f366e419a7f542346fa1b3daac378a))
+* **client:** quick add — create a todo from one line of text ([53753fd](https://github.com/JackCuthbert/fold/commit/53753fdefbc484aea03d96cdf9c273c07d355c8d))
+* **client:** quick add is the only way to add a todo ([35bbd5d](https://github.com/JackCuthbert/fold/commit/35bbd5d786e7f0825870642a46228937734a1075))
+
+
+### Bug Fixes
+
+* **client:** stop a long press selecting a todo row's text on touch ([6442f12](https://github.com/JackCuthbert/fold/commit/6442f1255dff408fd92c2e1dbf0a2ee621aad855))
+
+
+### Documentation
+
+* rewrite the README for a public, published image ([846c61d](https://github.com/JackCuthbert/fold/commit/846c61d51ded5d4eac3d574adb4add311320ac74))
+
 ## [0.4.0](https://github.com/JackCuthbert/fold/compare/v0.3.0...v0.4.0) (2026-08-14)
 
 
