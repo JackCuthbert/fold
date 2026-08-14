@@ -159,6 +159,71 @@ test('priority is a submenu of four colour-coded choices', async ({ page }) => {
   await expect(row).not.toContainText('high')
 })
 
+/**
+ * The invariant that broke: a rank must read the same wherever it is shown
+ * and wherever it is chosen (docs/specs/todos.md — "the same colours apply
+ * wherever a priority is *set*, not only where it is displayed").
+ *
+ * Low was the one that disagreed — the detail panel's option drew it green
+ * from `styles/priority.module.css` while the row's pill kept the neutral
+ * `--muted` fill, so picking green produced grey. High and Medium already
+ * agreed, which is why this compares all three rather than the one that
+ * was wrong.
+ *
+ * Deliberately **no expected colour here**: asserting `#4f7a52` would test
+ * the token's current value — a shape test, and one that a palette change
+ * would break for no reason. Comparing the two surfaces to each other
+ * tests the thing that actually failed, and it fails on the old CSS
+ * whatever the palette is.
+ *
+ * **Medium is knowingly excluded**, because it does not pass: the row's
+ * pill mixes `--list-amber` 70% into `--ink` while the picker's option is
+ * plain `--status-syncing`, so the two are different ambers. That is a
+ * second instance of this same bug, found by writing this test — it is
+ * left for its own change rather than widened into this one, since fixing
+ * it means deciding which of the two ambers is right.
+ * *(added 2026-08-14.)*
+ */
+for (const rank of ['High', 'Low'] as const) {
+  test(`${rank} reads the same on the row as in the picker`, async ({
+    page,
+  }) => {
+    await login(page)
+    await createList(page, uniqueName('ink'))
+    await addTodo(page, 'Clean the gutters')
+
+    await openRowMenu(page, 'Clean the gutters')
+    await openSubmenu(page, 'Priority')
+    await page.getByRole('menuitemradio', { name: rank }).click()
+    await waitForSync(page)
+
+    // The pill stores the rank lowercase, as the schema does.
+    const pill = page
+      .locator('li')
+      .filter({ hasText: 'Clean the gutters' })
+      .getByText(rank.toLowerCase(), { exact: true })
+    const pillInk = await pill.evaluate((el) => getComputedStyle(el).color)
+
+    // The detail panel's dropdown is the surface that sets it. Its option
+    // is where the green already lived.
+    //
+    // Dismiss the menu first: choosing from a *submenu* leaves both levels
+    // up, and Base UI's inert backdrop swallows the next click — the same
+    // trap `openRowMenu` above documents.
+    const menus = page.getByRole('menu')
+    while ((await menus.count()) > 0) await page.keyboard.press('Escape')
+    await expect(menus).toHaveCount(0)
+
+    await page.getByText('Clean the gutters', { exact: true }).click()
+    await page.getByRole('combobox', { name: 'Priority' }).click()
+    const optionInk = await page
+      .getByRole('option', { name: rank })
+      .evaluate((el) => getComputedStyle(el).color)
+
+    expect(optionInk).toBe(pillInk)
+  })
+}
+
 test('the row whose menu is open is marked while it is open', async ({
   page,
 }) => {

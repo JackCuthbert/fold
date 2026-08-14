@@ -361,9 +361,13 @@ for the colour. *(unified 2026-08-11.)*
   and having it means something is always marked.
 - **The glyph sits on the meta pill's own ground** — a 20px swatch in the
   same soft fill, from `styles/priority.module.css` — so a choice looks
-  like the pill it will produce. Low and None keep the neutral ground: low
-  is the *absence* of urgency, and a colour would make "not urgent" look
-  like a claim.
+  like the pill it will produce. Only **None** keeps the neutral ground: it
+  is the absence of a priority rather than a fourth rank, so there is no
+  colour for it to preview. *(changed 2026-08-14: Low kept the neutral
+  ground too, on the "absence of urgency" reasoning — but its ink was
+  already green here, so the neutral box previewed a pill the row did not
+  draw. Low now takes a green ground on both surfaces; see
+  [ui](./ui.md) — "Icons, not colour alone".)*
 - **Sizes differ by glyph on purpose.** Measured in the browser, the
   chevrons paint 12×6 of their 24-unit viewBox while a circle paints 20×20,
   so a nominal 14px circle towered over the ranks beside it. None's is
@@ -661,6 +665,10 @@ Rules:
   they are declared once (`apps/client/src/styles/priority.module.css`) and
   composed, not copied. *(added 2026-08-03: the dropdown options rendered in
   plain ink, giving no hint what choosing them would look like.)*
+  *(changed 2026-08-14: "all three levels" is now literally true. The row's
+  Low pill had been exempted as the neutral fill while every chooser drew
+  it green, so the one rank this bullet was written to cover was the one
+  that did not follow it — see [ui](./ui.md) — "Icons, not colour alone".)*
 - **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
   for summary, due date, notes, and priority.
 - **Completed handling:** completed items move to a collapsible "Completed"

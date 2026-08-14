@@ -134,12 +134,29 @@
   color: color-mix(in srgb, var(--list-amber) 70%, var(--ink));
 }
 
-/* Low is deliberately the neutral fill: it is the *absence* of urgency, so
-   giving it a colour of its own would make "not urgent" look like a claim.
-   The chevron is what distinguishes it from an unprioritised todo. */
+/* Low takes the calm green — the same `--status-synced` the Priority
+   dropdowns, the context menu's submenu and the punctuality footer already
+   use, on a 12% tint of itself exactly as `.high` sits on 12% of
+   `--danger`.
+
+   *(changed 2026-08-14: this pill was the neutral fill on the reasoning
+   that low is the *absence* of urgency, and that a colour would make "not
+   urgent" look like a claim. That argument lost to consistency: every
+   surface that *sets* a priority already rendered Low green from
+   styles/priority.module.css, so High and Medium agreed across the row and
+   the dropdown while Low did not — picking green and getting grey. One
+   colour per rank, everywhere, beats a per-surface philosophy about what
+   the rank means. The chevron still distinguishes it from an unprioritised
+   todo, which now shows no pill rather than a grey one.)*
+
+   Measured at 12%: green ink on its own tint is 4.06:1 in the default
+   Parchment palette and 3.80:1 at the worst of the thirteen palette
+   variants (Catppuccin light) — better than `.high` (3.31 worst) and
+   `.medium` (3.30 worst) already ship, and the label text is never the only
+   signal (docs/specs/ui.md — accessibility). */
 .low {
-  background: color-mix(in srgb, var(--line) 45%, transparent);
-  color: var(--muted);
+  background: color-mix(in srgb, var(--status-synced) 12%, transparent);
+  color: var(--status-synced);
 }
 
 .due {

@@ -68,9 +68,16 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-sm);
-  /* The neutral ground. Low and None keep it: low is the *absence* of
-     urgency, and a colour would make "not urgent" look like a claim
-     (docs/specs/ui.md). Matches `.pill` in todo-meta.module.css. */
+  /* The neutral ground, which **only None** keeps: it is the absence of a
+     priority rather than a fourth rank, so it has no colour to preview.
+     Matches `.pill` in todo-meta.module.css.
+
+     *(changed 2026-08-14: Low kept this ground too, on the reasoning that
+     low is the *absence* of urgency and a colour would make "not urgent"
+     look like a claim. Low now takes its green ground below — the ink was
+     already green here, so the neutral box was previewing a pill the row
+     did not draw. None is untouched by that: it has no rank, and giving it
+     a colour would make it look like one.)* */
   background: color-mix(in srgb, var(--line) 45%, transparent);
 }
 
@@ -82,4 +89,11 @@
 .medium .swatch,
 .swatch.medium {
   background: color-mix(in srgb, var(--list-amber) 15%, transparent);
+}
+
+/* 12% of the ink, the same proportion `.high` takes, so the three ranks
+   are one treatment at three hues. *(added 2026-08-14 with the row pill.)* */
+.low .swatch,
+.swatch.low {
+  background: color-mix(in srgb, var(--status-synced) 12%, transparent);
 }
