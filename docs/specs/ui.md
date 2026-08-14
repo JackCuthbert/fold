@@ -623,6 +623,33 @@ hover wash with it.
 written to mirror the todo row, so one keeping its hairline would be the
 only rule left on screen.
 
+### A long press opens the menu and selects nothing
+
+On touch, a row's text is **not selectable** — `user-select: none`, scoped
+to `@media (pointer: coarse)`.
+
+Long-pressing a row is how its context menu opens
+([todos](./todos.md) — row actions). Without this the same gesture also
+selected the summary, so the OS text-manipulation menu came up over ours,
+or instead of it.
+
+Base UI's `ContextMenu.Trigger` already sets `-webkit-touch-callout: none`
+inline, and that is **not sufficient** — the callout and the selection are
+separate mechanisms, and suppressing iOS's callout does nothing about the
+selection underneath it. Verified against the installed package: the
+trigger sets no `user-select`, and there is none anywhere in
+`@base-ui/react/context-menu`.
+
+**Scoped to coarse pointers deliberately.** On a pointer, dragging across a
+row to select and copy a todo's title is ordinary behaviour and stays
+available — a right-click opens the menu with no press-and-hold, so the two
+gestures never collide. On touch there is no drag-to-select that is not
+also the long press, so a selection there is only ever the accident. The
+notes `<textarea>` in the detail panel is a separate component and is not
+reached by this, so notes stay selectable everywhere.
+
+*(added 2026-08-14.)*
+
 ### Icons, not colour alone
 
 Overdue and high priority were both a red fill with red text, so a row
