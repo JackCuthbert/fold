@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/JackCuthbert/fold/compare/v0.3.0...v0.4.0) (2026-08-14)
+
+
+### Features
+
+* **client:** a Next 7 days view, and a tighter derived-view nav ([67aac6e](https://github.com/JackCuthbert/fold/commit/67aac6ed8727ff0afa1b59a3f171fe1e78b532e7))
+
+
+### Bug Fixes
+
+* **client:** grouped row weight and order, and a dot in the list picker ([812e262](https://github.com/JackCuthbert/fold/commit/812e262e5af808be0fcf4e2ea911081ed5a2ae50)), closes [#59](https://github.com/JackCuthbert/fold/issues/59)
+* **client:** one amber and one red per priority rank ([4f62a58](https://github.com/JackCuthbert/fold/commit/4f62a58dfd02734520929f02c2a2353c8ffec520))
+* **client:** the Low priority pill green, matching its picker ([7b25484](https://github.com/JackCuthbert/fold/commit/7b2548411920a5e982d3646def857f8cfc4d4a19))
+
 ## [0.3.0](https://github.com/JackCuthbert/fold/compare/v0.2.0...v0.3.0) (2026-08-11)
 
 
