@@ -631,9 +631,28 @@ A **clock** marks overdue (it is about time) and a **chevron** marks
 priority rank. The two are now told apart by shape as well as hue, which
 also makes them distinguishable to anyone who cannot separate the reds.
 
-Low priority keeps the neutral fill: it is the *absence* of urgency, and
-giving it a colour would make "not urgent" look like a claim. Its chevron
-is what distinguishes it from an unprioritised todo.
+Low priority takes the calm green, on a 12% tint of itself — the same shape
+as high's red, at the rank's own hue. Its chevron is what distinguishes it
+from an unprioritised todo, which shows no pill at all.
+
+*(changed 2026-08-14: Low was the neutral fill, on the reasoning that it is
+the *absence* of urgency and that a colour would make "not urgent" look
+like a claim. Consistency won: every surface that **sets** a priority — the
+detail panel's dropdown, the add-todo modal's, the row context menu's
+submenu — already rendered Low in green from
+`styles/priority.module.css`, so high and medium agreed across display and
+choice while low did not, and picking a green option produced a grey pill.
+The "absence of urgency" argument is a real one, but it only ever held on
+one of the four surfaces. One colour per rank, everywhere.)*
+
+Measured for that change: green ink on a 12% tint of itself is 4.06:1 on
+the default Parchment ground and 3.80:1 at the worst of the thirteen
+palette variants — above what high (3.31 worst) and medium (3.30 worst)
+already ship, and the label text carries the meaning regardless.
+
+**"None" is unaffected.** It is the absence of a priority rather than a
+fourth rank, so it keeps the neutral swatch in the choosers and draws no
+pill on the row — a colour there would make it read as a level.
 
 ## Overlays
 
