@@ -89,6 +89,26 @@ colour on the way to typing a valid one.
 - **The selected row's left marker takes the list's colour**, in place of
   `--accent`. It answers *which one am I in*.
 
+### Wherever a list is named
+
+The dot is not the nav's alone: **anywhere the app names a list, it draws
+that list's dot**, with the same empty ring for an uncoloured one. A list
+is recognised by its colour, and a surface that names it without one asks
+the reader to recognise it a second way.
+
+Five surfaces do this today — the nav, the pane title, the list filter
+popover, the move-todo modal, and the add-todo modal's list picker (both
+its closed trigger and its open options). All compose the dot's geometry
+from `lists/list-dot.module.css` rather than each drawing a circle, so the
+dot cannot drift between them.
+
+The one exception is a **placeholder**: the add-todo picker before a list
+is chosen shows no dot at all. There is no list there to be the colour of,
+and an empty ring would read as an uncoloured list rather than as no
+answer — which is the only thing that placeholder exists to say.
+*(added 2026-08-14, issue #59: the add-todo picker was the one naming
+surface with no dot.)*
+
 ### The contrast guard
 
 A user's colour is arbitrary, and a pale one used as the selection marker

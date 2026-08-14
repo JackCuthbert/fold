@@ -159,6 +159,57 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // The kind glyph lands on the same column the checkbox ring does.
   expect(edges.groupGlyph).toBe(edges.checkbox)
 
+  // docs/specs/list-kinds.md — groups lead their block, and the group row
+  // shares the todo row's weight. Both measured in one pass, since both are
+  // about the group row sitting *among* todo rows rather than apart from
+  // them. *(added 2026-08-14, issue #59.)*
+  const grouping = await page.evaluate(() => {
+    const main = document.querySelector('main')
+    const rows = [...(main?.querySelectorAll('li') ?? [])]
+    const groupIndex = rows.findIndex((row) =>
+      /Groceries\s*\d+ todos?$/.test(row.textContent?.trim() ?? ''),
+    )
+    const todoIndex = rows.findIndex((row) =>
+      row.textContent?.includes('Write the report'),
+    )
+    // The name's own inline box, not the row: `.nameText` (group) and
+    // `.summary` (todo) are what carry the weight, and reading the <li>
+    // would return the inherited value whatever the name is set to.
+    //
+    // Matched on text rather than nesting depth. The two rows wrap their
+    // names to different depths — the group's sits a level deeper, inside
+    // the box that keeps the strikethrough to the word — so a positional
+    // selector found the todo and returned null for the group.
+    // *(fixed 2026-08-14.)*
+    //
+    // Written out twice rather than shared through a local helper: this
+    // body is serialised into the browser, so a helper cannot be hoisted
+    // out of it the way the linter wants — the same constraint noted on
+    // the measurement above.
+    const groupName = [
+      ...(rows[groupIndex]?.querySelectorAll('span') ?? []),
+    ].find((span) => span.textContent?.trim() === 'Groceries')
+    const todoName = [
+      ...(rows[todoIndex]?.querySelectorAll('span') ?? []),
+    ].find((span) => span.textContent?.trim() === 'Write the report')
+    return {
+      groupIndex,
+      todoIndex,
+      groupWeight: groupName ? getComputedStyle(groupName).fontWeight : null,
+      todoWeight: todoName ? getComputedStyle(todoName).fontWeight : null,
+    }
+  })
+  // Both found, so a missed selector cannot pass as a match.
+  expect(grouping.groupIndex).toBeGreaterThanOrEqual(0)
+  expect(grouping.todoIndex).toBeGreaterThanOrEqual(0)
+  // The group leads: it sits above the ungrouped todo rather than at the
+  // position of whichever grocery sorted earliest.
+  expect(grouping.groupIndex).toBeLessThan(grouping.todoIndex)
+  // And reads at the same weight as the todo beside it, so the two are one
+  // run of rows rather than a heading and its items.
+  expect(grouping.groupWeight).not.toBeNull()
+  expect(grouping.groupWeight).toBe(grouping.todoWeight)
+
   // The row navigates to the list rather than expanding in place.
   await page.getByRole('button', { name: /Groceries.*3 todos/ }).click()
   await expect(page.getByText('Eggs')).toBeVisible()

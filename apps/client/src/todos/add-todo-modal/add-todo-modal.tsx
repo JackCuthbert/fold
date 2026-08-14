@@ -78,6 +78,44 @@ const PRIO_CLASS: Record<string, string | undefined> = {
   low: styles['prioLow'],
 }
 
+/**
+ * A list's colour dot, for the picker's trigger and its options
+ * (docs/specs/lists.md — colours).
+ *
+ * Local to this file rather than promoted to a shared component: the four
+ * other surfaces that draw this dot each compose the same two classes from
+ * `lists/list-dot.module.css` and pass their own colour, which is the
+ * sharing that matters — the geometry lives in one stylesheet. A component
+ * wrapping three lines of JSX would add an indirection without removing a
+ * duplicate. *(added 2026-08-14, issue #59.)*
+ */
+interface ListDotProps {
+  /** Absent for an uncoloured list, which gets the empty ring instead. */
+  color?: string | undefined
+}
+
+function ListDot(props: ListDotProps) {
+  return (
+    <span
+      className={cx(
+        styles['listDot'],
+        props.color === undefined && styles['listDotEmpty'],
+      )}
+      // `background` directly, not `colourVar`. The shared `.dot` paints
+      // its own box and sets no background of its own, so each caller
+      // supplies one — the move modal does the same. `--marker` is read
+      // only by the filter popover's `::after` variant, and setting it
+      // here left every coloured dot invisible while the uncoloured ring,
+      // which needs no fill, looked correct.
+      // *(fixed 2026-08-14, caught in the browser.)*
+      {...(props.color === undefined
+        ? {}
+        : { style: { background: props.color } })}
+      aria-hidden="true"
+    />
+  )
+}
+
 const EMPTY_VALUES: AddTodoForm = {
   summary: '',
   due: '',
@@ -120,7 +158,23 @@ type AddTodoTarget =
    */
   | {
       kind: 'global'
-      lists: ReadonlyArray<{ id: string; displayName: string }>
+      /**
+       * `color` so the picker can draw each list's dot — the same marker
+       * the nav, the pane title, the filter popover and the move modal all
+       * use (docs/specs/lists.md — colours). Optional per list: an
+       * uncoloured one gets the shared empty ring rather than nothing, so
+       * every option keeps one left edge.
+       * *(added 2026-08-14, issue #59: this was the one surface naming a
+       * list without its dot.)*
+       */
+      lists: ReadonlyArray<{
+        id: string
+        displayName: string
+        // `| undefined` explicitly: `exactOptionalPropertyTypes` is on, and
+        // `TodoList` declares it the same way, so an uncoloured list can
+        // carry the key at all.
+        color?: string | undefined
+      }>
       /**
        * Pre-selected list — the one on screen, when there is one.
        *
@@ -155,6 +209,10 @@ export function AddTodoModal(props: AddTodoModalProps) {
       ? props.target.lists.map((list) => ({
           label: list.displayName,
           value: list.id,
+          // Kept on the option rather than looked up again at render:
+          // `Select.Value` renders from the items array, so the trigger
+          // has nothing else to read the colour from.
+          color: list.color,
         }))
       : []
   const { control, handleSubmit, reset, watch } = useForm<AddTodoForm>({
@@ -189,6 +247,13 @@ export function AddTodoModal(props: AddTodoModalProps) {
       : (props.target.lists.find((list) => list.id === chosenListId)
           ?.displayName ?? '')
   const noDueDates = featuresOf(targetListName).noDueDates
+
+  // The colour of whichever list the picker is currently showing. Read
+  // from `listOptions` rather than the target: `Select.Value` renders the
+  // *label* from that same array, so the dot beside it comes from the same
+  // row and the two cannot describe different lists.
+  const listColour = (listId: string): string | undefined =>
+    listOptions.find((option) => option.value === listId)?.color
 
   const submit = (values: AddTodoForm): void => {
     // All-day when no time is given, zoned when there is
@@ -291,11 +356,22 @@ export function AddTodoModal(props: AddTodoModalProps) {
                       onValueChange={onChange}
                     >
                       <Select.Trigger className={styles['selectTrigger']}>
-                        {/* No default list, deliberately (issue #15): filing
-                            a todo somewhere the user never looked is worse
-                            than asking. The placeholder says so rather than
-                            showing a pre-selected list. */}
-                        <Select.Value placeholder="Choose a list…" />
+                        <span className={styles['selectValue']}>
+                          {/* Only once a list is chosen. Against the
+                              placeholder there is no list to be the colour
+                              of, and an empty ring there would read as an
+                              uncoloured list rather than as no answer —
+                              the one thing the placeholder exists to say
+                              (issue #15). */}
+                          {value !== '' && (
+                            <ListDot color={listColour(value)} />
+                          )}
+                          {/* No default list, deliberately (issue #15):
+                              filing a todo somewhere the user never looked
+                              is worse than asking. The placeholder says so
+                              rather than showing a pre-selected list. */}
+                          <Select.Value placeholder="Choose a list…" />
+                        </span>
                         <Select.Icon className={styles['selectIcon']}>
                           <LuChevronDown aria-hidden="true" size={14} />
                         </Select.Icon>
@@ -314,9 +390,12 @@ export function AddTodoModal(props: AddTodoModalProps) {
                                 value={option.value}
                                 className={styles['selectItem']}
                               >
-                                <Select.ItemText>
-                                  {option.label}
-                                </Select.ItemText>
+                                <span className={styles['selectValue']}>
+                                  <ListDot color={option.color} />
+                                  <Select.ItemText>
+                                    {option.label}
+                                  </Select.ItemText>
+                                </span>
                               </Select.Item>
                             ))}
                           </Select.Popup>

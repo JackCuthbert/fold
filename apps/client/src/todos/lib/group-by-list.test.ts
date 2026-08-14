@@ -38,14 +38,39 @@ describe('groupTodos', () => {
     expect(rows[1]).toMatchObject({ kind: 'todo' })
   })
 
-  // The caller has already sorted by due time; regrouping to the end
-  // would move a row that was placed by time to somewhere meaningless.
-  it('puts the group where its first todo was', () => {
+  // docs/specs/list-kinds.md — groups lead. A group row navigates rather
+  // than completes and stands for an errand rather than a task, so its
+  // position carries none of the due-time meaning a todo row's does.
+  // *(changed 2026-08-14, issue #59: was placed at its first todo.)*
+  it('leads with the group, whatever position its first todo held', () => {
     const rows = groupTodos(
       [todo('report', 'w'), todo('eggs', 'g'), todo('milk', 'g')],
       LISTS,
     )
-    expect(rows.map((r) => r.kind)).toEqual(['todo', 'group'])
+    expect(rows.map((r) => r.kind)).toEqual(['group', 'todo'])
+  })
+
+  it('keeps the ungrouped todos in the order they arrived', () => {
+    const rows = groupTodos(
+      [todo('a', 'w'), todo('eggs', 'g'), todo('b', 'w')],
+      LISTS,
+    )
+    expect(
+      rows.flatMap((r) => (r.kind === 'todo' ? [r.todo.uid] : ['Groceries'])),
+    ).toEqual(['Groceries', 'a', 'b'])
+  })
+
+  // Two grouping lists keep their relative order, so the block above the
+  // todos is itself stable rather than reshuffling as items are ticked.
+  it('orders several groups by first appearance among themselves', () => {
+    const lists = [...LISTS, list('s', 'Shopping')]
+    const rows = groupTodos(
+      [todo('report', 'w'), todo('socks', 's'), todo('eggs', 'g')],
+      lists,
+    )
+    expect(rows.map((r) => (r.kind === 'group' ? r.listName : 'todo'))).toEqual(
+      ['Shopping', 'Groceries', 'todo'],
+    )
   })
 
   it('groups a single todo, so the row is always the same shape', () => {

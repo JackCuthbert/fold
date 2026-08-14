@@ -92,10 +92,17 @@
    child is only as wide as the text, which is what the strike should
    measure. `.summary` in todo-item.module.css has no such wrapper
    because its box already hugs its text.
-   *(fixed 2026-08-05.)* */
+   *(fixed 2026-08-05.)*
+
+   No `font-weight`: it inherits, which is what `.summary` does too. This
+   row carried --weight-medium and so read as bolder than every todo title
+   beside it — the one property that broke the "one list of rows" rule
+   stated at the top of this file. The carrot, the count and the chevron
+   already say the row is a different kind of thing; weight was a fourth
+   statement of it, and the only one that cost the run of rows its evenness.
+   *(fixed 2026-08-14, issue #59.)* */
 .nameText {
   position: relative;
-  font-weight: var(--weight-medium);
   /* Glyphs paint outside their box — see --ink-overhang in tokens.css. */
   padding-left: var(--ink-overhang);
   margin-left: calc(-1 * var(--ink-overhang));
@@ -121,9 +128,12 @@
   transition: width var(--duration-slow) var(--ease);
 }
 
+/* Only the colour. The `font-weight: var(--weight-normal)` that sat here
+   existed solely to undo `.nameText`'s medium, and went with it — a
+   completed group now differs from an outstanding one by ink and the
+   strike, exactly as a completed todo does. *(2026-08-14, issue #59.)* */
 .done .nameText {
   color: var(--muted);
-  font-weight: var(--weight-normal);
 }
 
 .done .nameText::after {
