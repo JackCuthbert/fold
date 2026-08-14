@@ -119,9 +119,13 @@ test('Next 7 days spans the week including today, and nothing overdue', async ({
   await expect(headings.first()).toHaveText(/^Today/)
   await expect(headings.nth(1)).toHaveText(/^Tomorrow/)
 
-  // Empty days are omitted, not drawn as an empty heading: nothing is due
-  // on days 2, 4 or 5, so the week's four populated days are all there is.
-  await expect(headings).toHaveCount(4)
+  // Every day in the window is drawn, empty ones included — the shape of
+  // the week is what this view is planned against
+  // (docs/specs/next-7-days-view.md — every day is drawn). Seven headings
+  // whatever is due, and the three days nothing is due on read "Clear".
+  // *(changed 2026-08-14: was 4, when empty days were omitted.)*
+  await expect(headings).toHaveCount(7)
+  await expect(page.getByText('Clear', { exact: true })).toHaveCount(3)
 
   // The day heading carries a row count (docs/specs/list-kinds.md — the
   // count counts rows).
@@ -181,9 +185,16 @@ test('health leads within its own day, and only where there is health', async ({
   await expect(rows.first()).toContainText('Take the tablets')
 
   // And the day *without* health work carries no subheadings at all — an
-  // orphaned "Everything else" would label the only thing beneath it.
-  // Two day headings, but only one subheading pair, is what proves it.
-  await expect(dayHeadings(page)).toHaveCount(2)
+  // orphaned "Everything else" would label the only thing beneath it. The
+  // single "Everything else" asserted above is what proves that, against
+  // the two days this fixture puts work on.
+  //
+  // The day-heading count is the whole window rather than the populated
+  // days: every day is drawn now, so seven headings is the constant and it
+  // says nothing about the subheadings. Kept as a guard that the skeleton
+  // is present in this fixture too.
+  // *(changed 2026-08-14: was 2, when only populated days were drawn.)*
+  await expect(dayHeadings(page)).toHaveCount(7)
 })
 
 test('work ticked off in the week ahead moves to the day it was done', async ({
@@ -195,10 +206,15 @@ test('work ticked off in the week ahead moves to the day it was done', async ({
   await createList(page, list)
   await navRow(page, list).click()
 
-  // Nothing due yet. The count line carries that on its own — there is no
-  // empty-state copy in a derived view (docs/specs/next-7-days-view.md).
+  // Nothing due yet. The count line carries that, and the week keeps its
+  // shape: seven days, every one of them "Clear"
+  // (docs/specs/next-7-days-view.md — empty). No extra empty-state sentence
+  // on top of those.
+  // *(changed 2026-08-14: the view used to draw nothing at all when empty.)*
   await navRow(page, 'Next 7 days').click()
   await expect(page.getByText('No todos')).toBeVisible()
+  await expect(dayHeadings(page)).toHaveCount(7)
+  await expect(page.getByText('Clear', { exact: true })).toHaveCount(7)
 
   await navRow(page, list).click()
   await addTodo(page, 'Book the venue')

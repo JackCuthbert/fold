@@ -58,6 +58,16 @@ interface DaySectionProps {
   heartHealth?: boolean
   /** Rendered above the health rows, when there are any. */
   healthHeading?: string
+  /**
+   * What to draw when the day has no todos at all.
+   *
+   * Only Next 7 days passes it, because only that view draws days it has no
+   * work for (docs/specs/next-7-days-view.md — every day is drawn). Summary
+   * builds its days *from* completed work, so a day with none never reaches
+   * this component and the prop would be unreachable there.
+   * *(added 2026-08-14.)*
+   */
+  emptyLabel?: string
   onOpen: (todo: Todo, trigger: HTMLElement | null) => void
   /** Go to a list — what a grouped row does (docs/specs/list-kinds.md). */
   onOpenList: (listId: string) => void
@@ -130,9 +140,25 @@ export function DaySection(props: DaySectionProps) {
           row (docs/specs/summary-view.md). */}
       <h2 className={styles['dayHeading']}>
         {props.label}
-        <span className={styles['dayCount']}>{count}</span>
+        {/* No "0". The empty line below already says the day is clear, and a
+            zero beside the date says it a second time in a quieter voice —
+            two marks for one fact, on the days that should be the quietest
+            things in the view. A count earns its place by distinguishing 1
+            from 7; there is nothing to distinguish at none.
+            *(added 2026-08-14, once empty days were drawn at all.)* */}
+        {count > 0 && <span className={styles['dayCount']}>{count}</span>}
       </h2>
-      {showSubheadings ? (
+      {count === 0 && props.emptyLabel !== undefined ? (
+        // A day with nothing due. One quiet line rather than an empty
+        // <ul>, so the heading has something under it and the week's shape
+        // reads as deliberate rather than as a rendering gap.
+        //
+        // Not a row: it has no checkbox column and nothing to open, so
+        // giving it a row's geometry would invite a click it does not
+        // answer. It sits on the same left edge as the rows in the days
+        // around it (docs/specs/ui.md — one left edge).
+        <p className={styles['empty']}>{props.emptyLabel}</p>
+      ) : showSubheadings ? (
         // docs/specs/list-kinds.md — health leads, under a heading of its
         // own, with the ordinary rows under a peer heading below. Both or
         // neither: see `showSubheadings` above.

@@ -87,6 +87,30 @@
   color: var(--muted);
 }
 
+/* A day with nothing due (docs/specs/next-7-days-view.md — every day is
+   drawn). Quieter than a row and quieter than the day heading above it: the
+   point of drawing the day at all is the *shape* of the week, so a clear day
+   should register while scanning and then stop asking for attention.
+
+   --faint rather than --muted, which the meta pills use — this says less
+   than a due date does. On the rows' shared left edge, so a clear day and a
+   busy one start in the same column (docs/specs/ui.md — one left edge).
+   *(added 2026-08-14.)* */
+.empty {
+  margin: 0;
+  padding-inline-start: calc(
+    var(--hit-area) + (var(--checkbox-size) - var(--hit-area)) / 2 +
+      var(--space-1)
+  );
+  /* The row's own height, so an empty day occupies about what a one-todo
+     day does and the week does not concertina as work moves around. */
+  min-height: var(--hit-area);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--faint);
+}
+
 /* The first subheading sits directly under the day heading, which already
    carries its own block padding — so it needs no top margin of its own or
    the gap reads as a missing row. */
