@@ -553,6 +553,29 @@
   .navKey[data-revealed] {
     opacity: 0.8;
   }
+
+  /* New todo's cap is the exception: always on.
+     Its binding is the one modifier-less shortcut (shortcuts.ts — N), so
+     the Ctrl-held reveal that advertises every other chord can never show
+     it — hold Ctrl and N is precisely the thing that is *not* being
+     described. Hover alone would leave the app's most-used action the
+     only one you cannot discover without opening Help. One permanent cap
+     is a fair price; the argument against five still stands.
+     *(added 2026-08-14.)*
+
+     At full strength, and unchanging. The dimmed 0.55 exists so a cap
+     that *appears* on hover does not arrive at full contrast; this one
+     never appears, it is simply there, so the fade has nothing to soften
+     — and brightening it on hover made a permanent label flicker at a
+     pointer that was on its way somewhere else.
+     *(fixed 2026-08-14, found in review.)* */
+  .newTodo .navKey,
+  .newTodo:hover .navKey,
+  .newTodo:focus-visible .navKey,
+  .newTodo .navKey[data-revealed] {
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 /* Touch: not merely hidden but gone, so the label gets the width back. */

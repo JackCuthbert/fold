@@ -17,7 +17,7 @@ interface TodoItemProps {
    * on desktop (docs/specs/ui.md — the detail panel), so nothing restores
    * focus automatically, and the explicit element is trustworthy where a
    * heuristic isn't once a re-render reorders the rows (the same reasoning
-   * as `triggerRef` in add-todo-modal.tsx). *(added 2026-08-03, issue #4.)*
+   * as `triggerRef` in quick-add-modal.tsx). *(added 2026-08-03, issue #4.)*
    */
   onOpen: (trigger: HTMLElement) => void
   /**

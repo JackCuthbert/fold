@@ -44,30 +44,35 @@ test('Tomorrow shows the day ahead and leaves overdue work in Today', async ({
   await createList(page, list)
   await navRow(page, list).click()
 
-  for (const item of ['Overdue thing', 'Today thing', 'Tomorrow thing']) {
+  // Deliberately free of date words. These go through quick add, which
+  // parses a summary for dates — "Tomorrow thing" was read as a due date
+  // plus "thing", so the row never carried the name the assertions look
+  // for (docs/specs/quick-add.md — testing).
+  // *(renamed 2026-08-14, found in review.)*
+  for (const item of ['Late thing', 'Current thing', 'Next thing']) {
     await addTodo(page, item)
   }
   await waitForSync(page)
 
-  await setDue(page, 'Overdue thing', -3)
-  await setDue(page, 'Today thing', 0)
-  await setDue(page, 'Tomorrow thing', 1)
+  await setDue(page, 'Late thing', -3)
+  await setDue(page, 'Current thing', 0)
+  await setDue(page, 'Next thing', 1)
   await waitForSync(page)
 
   // Today keeps overdue work — that is its rule, and the reason Tomorrow
   // needs one of its own (docs/specs/today-view.md).
   await navRow(page, 'Today').click()
-  await expect(page.getByText('Overdue thing', { exact: true })).toBeVisible()
-  await expect(page.getByText('Today thing', { exact: true })).toBeVisible()
-  await expect(page.getByText('Tomorrow thing', { exact: true })).toBeHidden()
+  await expect(page.getByText('Late thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Current thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Next thing', { exact: true })).toBeHidden()
 
   // Tomorrow is the day ahead and nothing else. The overdue assertion is
   // the point of this test: an open lower bound here would make the two
   // views near-copies of each other.
   await navRow(page, 'Tomorrow').click()
-  await expect(page.getByText('Tomorrow thing', { exact: true })).toBeVisible()
-  await expect(page.getByText('Overdue thing', { exact: true })).toBeHidden()
-  await expect(page.getByText('Today thing', { exact: true })).toBeHidden()
+  await expect(page.getByText('Next thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Late thing', { exact: true })).toBeHidden()
+  await expect(page.getByText('Current thing', { exact: true })).toBeHidden()
 
   // It is a view, not a list: nothing to add to it.
   await expect(page.getByRole('button', { name: 'Add a todo' })).toBeHidden()

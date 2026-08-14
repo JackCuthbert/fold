@@ -1,12 +1,12 @@
 /* docs/specs/quick-add.md — the launcher modal. See quick-add-modal.tsx.
 
-   Deliberately *not* composed from add-todo-modal's popup. That one is a
-   dialog holding a form: a header, a scroll region, a footer of buttons.
-   This is a field and its echo, sits higher on screen, and has no chrome to
-   share — composing would inherit the padding and header geometry it exists
-   to avoid. The backdrop and the z-index tokens are the same, because those
-   are about the overlay stack rather than about the box
-   (docs/specs/ui.md — overlays). */
+   Deliberately *not* composed from the other modals' popup geometry. They
+   are dialogs holding forms — a header, a scroll region, a footer of
+   buttons. This is a field and its echo: it sits higher on screen and has
+   no chrome to share, so composing would inherit the padding and header
+   geometry it exists to avoid. The backdrop and the z-index tokens *are*
+   shared, because those are about the overlay stack rather than about the
+   box (docs/specs/ui.md — overlays). */
 
 .backdrop {
   position: fixed;
@@ -222,6 +222,10 @@
   gap: var(--space-1);
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
+  /* Always a border, transparent when the pill doesn't want one. Every
+     state — set, unset, needed, disabled — then occupies the same box, so
+     switching between them cannot shift the row by a pixel. */
+  border: 1px solid transparent;
   background: color-mix(in srgb, var(--muted) 12%, transparent);
   color: var(--muted);
   white-space: nowrap;
@@ -235,9 +239,13 @@
   font-family: var(--meta);
 }
 
-.pillList {
+/* The list pill is outlined rather than filled — see the fuller note on
+   `.pillList:not(.pillUnset)` below, which is where the border is drawn.
+   Scoped the same way, so an *unset* list pill keeps the dashed
+   placeholder outline its neighbours have rather than this solid one.
+   *(fixed 2026-08-14, found in review.)* */
+.pillList:not(.pillUnset) {
   background: none;
-  border: 1px solid var(--line);
 }
 
 /* The priority pill takes the rank's ink from the shared source
@@ -362,6 +370,25 @@
   background: none;
   border: 1px dashed var(--line);
   color: var(--faint);
+}
+
+/* The list pill carries a visible border once a list is chosen, which the
+   other pills do not. It is the one pill that is *required* — a todo has
+   to be filed somewhere, while a date and a priority are both optional —
+   so a set list reads as an enclosed field rather than an annotation.
+   *(added 2026-08-14, found in review: a set list pill was a filled shape
+   with no outline, so only the empty one looked like a control.)*
+
+   `:not(.pillUnset)` rather than a bare `.pillList`, because an *unset*
+   list pill must keep the dashed placeholder outline its neighbours have.
+   Both are single-class selectors and this rule comes later in the file,
+   so a plain `.pillList` won on source order and drew the empty pill
+   solid — it read as filled in while Date and Priority beside it read as
+   empty. *(fixed 2026-08-14, found in review.)* */
+.pillList:not(.pillUnset) {
+  /* The whole shorthand, not just `border-color`: the base `.pill` sets a
+     transparent 1px border, so the width has to be restated to draw. */
+  border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
 }
 
 /* The list pill when there is text but nowhere to file it — on a derived
@@ -539,6 +566,22 @@
   color: var(--faint);
 }
 
+/* A pill the chosen list cannot use — the date on a list with no due dates
+   (docs/specs/list-kinds.md). The strike-through above says the parsed
+   value was dropped; this says the control is shut, and the `disabled` on
+   the input behind it is what actually enforces that. Both are needed: a
+   pill that looked struck through but still opened its picker invited you
+   to set a date that submit would silently discard.
+   *(added 2026-08-14, found in review.)* */
+.pillDisabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pillDisabled .pillChevron {
+  display: none;
+}
+
 .helpTrigger {
   display: inline-flex;
   align-items: center;
@@ -564,7 +607,28 @@
   outline-offset: 2px;
 }
 
+/* Gone where there is no keyboard to describe.
+   Every binding it documents — Enter, Shift+Enter, Esc — needs hardware
+   keys, so on a touch device it explains controls that do not exist,
+   while taking room from the two buttons beside it. The same
+   `hover: hover` + `pointer: fine` test the nav's keycaps use, and for
+   the same reason (list-nav.module.css). *(added 2026-08-14, on
+   review.)* */
+@media not all and (hover: hover) and (pointer: fine) {
+  .helpTrigger {
+    display: none;
+  }
+}
+
 .helpPopup {
+  /* Held to a readable measure. The keyboard popover is a two-column
+     definition list that sets its own width, but this one also holds a
+     sentence or two of prose (a list kind's description), which would
+     otherwise run the full width of the viewport on one line.
+     `max-content` keeps the short case from being padded out to the cap.
+     *(added 2026-08-14, on review.)* */
+  max-width: min(32ch, calc(100vw - 2 * var(--space-4)));
+  width: max-content;
   padding: var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -586,6 +650,11 @@
 }
 
 .helpList dt {
+  /* A flex row so the `+` between two caps in a chord sits centred
+     against them rather than on the text baseline. */
+  display: flex;
+  align-items: center;
+  gap: 3px;
   white-space: nowrap;
   color: var(--muted);
 }
@@ -595,9 +664,20 @@
   color: var(--ink);
 }
 
-.helpList kbd {
-  font: inherit;
-  font-weight: var(--weight-medium);
+/* Real keycaps, composed from the shared component's own classes
+   (shortcuts/shortcut-keys) rather than styled here, so a key drawn in
+   this popover is the same object as one drawn in the nav or in Help.
+   These were plain bold text, which made the modal the one place in the
+   app where a binding did not look like a key.
+   *(changed 2026-08-14, on review.)*
+
+   `wide` on all of them: every cap here spells a word — Enter, Shift, Esc
+   — and the base cap is a fixed 1.35rem square with `overflow: hidden`,
+   which would clip them. `ShortcutKeys` itself is not reusable here: it
+   takes a `Shortcut` from the bindings map, and these three are local to
+   this modal rather than global chords. */
+.helpCap {
+  composes: cap wide from '../../shortcuts/shortcut-keys/shortcut-keys.module.css';
 }
 
 /* The footer: the keyboard hint or the error on the left, the button on
@@ -607,12 +687,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  /* Wraps rather than crushing. On a narrow screen the Keyboard trigger
+     and the two buttons were pressed against each other on one line, with
+     no room between the finger targets; given the chance to wrap, the
+     actions drop to their own row instead. The row `gap` is the vertical
+     one when that happens, so it is set larger than the horizontal.
+     *(added 2026-08-14, on review.)* */
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-3);
+  /* Clear of the pills above. The footer is a different kind of thing —
+     the pills describe what will be created, these do it — and at
+     `--space-2` the two rows read as one block of controls. */
+  margin-top: var(--space-4);
   padding-inline: var(--space-2);
   /* Holds its height whichever message is showing, so swapping the hint
      for the error does not shift the button under the pointer. */
   min-height: var(--hit-area);
+}
+
+/* Cancel and Add todo as one unit at the right end of the footer, so the
+   pair reads as a pair rather than as two controls at opposite ends of the
+   row. `flex: none` keeps them from being squeezed by a long message.
+   *(added 2026-08-14.)* */
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
 }
 
 /* The error and the hint stack rather than take turns — both can be true
@@ -662,6 +763,14 @@
    *(changed 2026-08-14: was a quiet outline of its own.)* */
 .submit {
   composes: action primary from '../../styles/button.module.css';
+  flex: none;
+}
+
+/* The same secondary treatment the confirm dialog's Cancel uses
+   (ui/confirm), so "the quiet one of the pair" looks the same wherever a
+   dialog offers a way out. *(added 2026-08-14.)* */
+.cancel {
+  composes: action default from '../../styles/button.module.css';
   flex: none;
 }
 

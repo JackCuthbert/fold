@@ -331,12 +331,23 @@ because prose does not belong on a line with tokens in it.
 *(changed 2026-08-14: notes were out of scope in the first cut, reachable
 only from the detail panel.)*
 
-The full add form (`add-todo-modal`) is unchanged and still serves the
-in-list path — the "Add a todo…" row inside a list, which already knows
-where the todo goes and so never needed the picker this modal exists to
-avoid. Quick add replaces the **global** path, the one that had to ask.
+**Quick add is the only way to create a todo.** Both paths open it: the
+global one (the sidebar button and `Cmd/Ctrl+K`), and the in-list "Add a
+todo…" row. They differ in one prop — the in-list path presets the list
+pill from the pane it was opened in, so the line never has to name a list,
+while the global path starts with the pill empty and refuses to submit
+until one is chosen.
 
 The detail panel remains where a todo is edited after the fact.
+
+*(changed 2026-08-14: the multi-field form at `add-todo-modal/` was
+deleted. It survived the first cut of quick add because notes were out of
+scope then and it was the only surface that had them; once quick add grew
+a notes field it covered every field the form did — summary, due date and
+time, list, priority, notes, and the `noDueDates` list-kind rule — and
+keeping 568 lines of second add surface for no remaining capability was
+the larger cost. The in-list path moved to quick add with the list
+preset.)*
 
 ## Where it lives
 
@@ -344,15 +355,14 @@ The detail panel remains where a todo is edited after the fact.
   lets a pill edit the text. Pure functions with no React, testable against
   a fixed `now`, in the domain's `lib/` per CLAUDE.md.
 - `todos/quick-add-modal/` — the component and its styles.
-- The existing `add-todo-modal/` keeps the full form, unchanged.
+- `todos/add-todo-trigger/` — the in-list ghost row, which opens the same
+  modal with `defaultListId` set.
 
-**`add-todo-modal.tsx` did not get shorter.** The plan was that moving the
-common path out would bring it back under the ~300-line ceiling; in fact
-quick add was built *alongside* it, so it is still 568 lines and the client
-now carries two add surfaces. That is a real cost and it is recorded here
-rather than quietly left: the in-list path still uses the form, so it
-cannot simply be deleted, but whether it should become a thin wrapper over
-this one is an open question. *(noted 2026-08-14.)*
+Both paths write through `useGlobalAddTodo`, not `useTodoActions`. The
+latter binds its list when the hook is called, which was right for a form
+whose list could not change; quick add's pill can be changed even from
+inside a list, so the write has to take the id at submit time or a
+retargeted todo would silently file into the pane behind it.
 
 ## Testing
 

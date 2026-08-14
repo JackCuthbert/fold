@@ -1,12 +1,14 @@
-# Lists that do more
+# Recognised lists
 
 Name a list **Groceries** and it starts behaving like a grocery list. No
 setting to find, nothing to turn on — Fold recognises a handful of list
-names and gives those lists a little extra.
+names, and a list with one becomes a **recognised list** that does a
+little extra. *(The app calls them recognised lists throughout: in Help,
+in the sparkle, and wherever one of them changes what a control can do.)*
 
-A list that Fold recognises carries a **sparkle** ✨ next to its name in
-the sidebar and beside its title. Click the sparkle at the top of the page
-to see what that particular list does.
+A recognised list carries a **sparkle** ✨ next to its name in the sidebar
+and beside its title. Click the sparkle at the top of the page to see what
+that particular list does.
 
 ## The names it knows
 

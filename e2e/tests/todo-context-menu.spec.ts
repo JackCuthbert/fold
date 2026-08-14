@@ -356,9 +356,13 @@ test('"Today 5pm" is disabled once 5pm has gone', async ({ page }) => {
   await page.clock.setFixedTime(new Date(2026, 7, 11, 21, 30))
   await login(page)
   await createList(page, uniqueName('late'))
-  await addTodo(page, 'Late night todo')
+  // No date words in the summary: quick add parses them, so "Late night
+  // todo" was filed as "Late todo" with a due time attached
+  // (docs/specs/quick-add.md — testing).
+  // *(renamed 2026-08-14, found in review.)*
+  await addTodo(page, 'Bins out')
 
-  await openRowMenu(page, 'Late night todo')
+  await openRowMenu(page, 'Bins out')
   await openSubmenu(page, 'Schedule')
 
   await expect(

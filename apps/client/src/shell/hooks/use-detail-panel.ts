@@ -40,7 +40,7 @@ export function useDetailPanel(): DetailPanel {
   // Explicit rather than inferred: the panel is not modal on desktop, so
   // nothing restores focus for us, and a heuristic is untrustworthy once a
   // save re-renders and reorders the list — the same reasoning as
-  // `triggerRef` in add-todo-modal.tsx.
+  // `triggerRef` in quick-add-modal.tsx.
   const openTrigger = useRef<HTMLElement | null>(null)
 
   return {

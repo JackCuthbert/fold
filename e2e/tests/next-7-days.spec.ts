@@ -72,25 +72,30 @@ test('Next 7 days spans the week including today, and nothing overdue', async ({
   await createList(page, list)
   await navRow(page, list).click()
 
+  // Deliberately free of date words. These go through quick add, which
+  // parses a summary for dates — "Tomorrow thing" was read as a due date
+  // plus "thing", so the row never carried the name the assertions look
+  // for (docs/specs/quick-add.md — testing).
+  // *(renamed 2026-08-14, found in review.)*
   for (const item of [
-    'Overdue thing',
-    'Today thing',
-    'Tomorrow thing',
+    'Late thing',
+    'Current thing',
+    'Next thing',
     'Midweek thing',
-    'Last day thing',
+    'Sixth thing',
     'Just outside thing',
   ]) {
     await addTodo(page, item)
   }
   await waitForSync(page)
 
-  await setDue(page, 'Overdue thing', -3)
-  await setDue(page, 'Today thing', 0)
-  await setDue(page, 'Tomorrow thing', 1)
+  await setDue(page, 'Late thing', -3)
+  await setDue(page, 'Current thing', 0)
+  await setDue(page, 'Next thing', 1)
   await setDue(page, 'Midweek thing', 3)
   // Today counts as day one, so the window's last day is today+6 and
   // today+7 falls outside it.
-  await setDue(page, 'Last day thing', 6)
+  await setDue(page, 'Sixth thing', 6)
   await setDue(page, 'Just outside thing', 7)
   await waitForSync(page)
 
@@ -99,14 +104,14 @@ test('Next 7 days spans the week including today, and nothing overdue', async ({
   // The overlap, which is the decision this view turns on: today and
   // tomorrow are *in*, because a week that starts the day after tomorrow
   // is not a week (docs/specs/next-7-days-view.md — the window).
-  await expect(page.getByText('Today thing', { exact: true })).toBeVisible()
-  await expect(page.getByText('Tomorrow thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Current thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Next thing', { exact: true })).toBeVisible()
   await expect(page.getByText('Midweek thing', { exact: true })).toBeVisible()
-  await expect(page.getByText('Last day thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Sixth thing', { exact: true })).toBeVisible()
 
   // Both bounds. Overdue stays in Today — the one rule this view does not
   // inherit from Today — and the seventh day out is past the window.
-  await expect(page.getByText('Overdue thing', { exact: true })).toBeHidden()
+  await expect(page.getByText('Late thing', { exact: true })).toBeHidden()
   await expect(
     page.getByText('Just outside thing', { exact: true }),
   ).toBeHidden()
@@ -137,7 +142,7 @@ test('Next 7 days spans the week including today, and nothing overdue', async ({
   // Today still keeps the overdue work it is responsible for, which is why
   // this view can decline it (docs/specs/today-view.md).
   await navRow(page, 'Today').click()
-  await expect(page.getByText('Overdue thing', { exact: true })).toBeVisible()
+  await expect(page.getByText('Late thing', { exact: true })).toBeVisible()
 })
 
 // docs/specs/next-7-days-view.md — both groupings, nested. The two axes

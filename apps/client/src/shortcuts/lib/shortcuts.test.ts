@@ -24,7 +24,11 @@ const OPEN: ShortcutContext = { dialogOpen: false, canAddTodo: true }
 
 describe('matchShortcut', () => {
   it('matches a bound chord', () => {
-    expect(matchShortcut(press('KeyK', { ctrl: true }))).toBe('new-todo')
+    // New todo is the one modifier-less binding (shortcuts.ts), so it
+    // must match a bare N *and not* a modified one — Ctrl+N belongs to the
+    // browser, and to the `#` autocomplete inside quick add.
+    expect(matchShortcut(press('KeyN'))).toBe('new-todo')
+    expect(matchShortcut(press('KeyN', { ctrl: true }))).toBeNull()
     expect(matchShortcut(press('KeyN', { ctrl: true, shift: true }))).toBe(
       'new-list',
     )
@@ -88,7 +92,7 @@ describe('shortcutLetter', () => {
     const printed = Object.fromEntries(
       SHORTCUTS.map((s) => [s.action, shortcutLetter(s)]),
     )
-    expect(printed['new-todo']).toBe('K')
+    expect(printed['new-todo']).toBe('N')
     expect(printed['new-list']).toBe('N')
     expect(printed['help']).toBe('/')
   })

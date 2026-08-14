@@ -125,11 +125,16 @@ export function ViewHeader(props: ViewHeaderProps) {
                       explanation. *(added 2026-08-05, issue #27.)* */}
             {props.kindInfo && (
               <span className={styles['titleInfo']}>
-                <InfoBadge
-                  label={`About this ${props.kindInfo.label.toLowerCase()}`}
-                  icon={LuSparkles}
-                >
-                  <strong>{props.kindInfo.label}.</strong>{' '}
+                {/* Named as a *recognised list* here, in Help and in
+                    quick add's disabled-date popover: the feature has one
+                    term, and the sparkle is the thing you click to find
+                    it (docs/specs/list-kinds.md). The kind's own label
+                    ("Reading list") then says which one this is.
+                    *(added 2026-08-14.)* */}
+                <InfoBadge label="About this recognised list" icon={LuSparkles}>
+                  <strong>
+                    Recognised list &middot; {props.kindInfo.label}.
+                  </strong>{' '}
                   {props.kindInfo.description}
                 </InfoBadge>
               </span>

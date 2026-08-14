@@ -51,7 +51,7 @@ test('a recognised list is marked, groups in Today, and completes in bulk', asyn
   // The sparkle marks the list in the nav and beside its own title.
   await navRow(page, 'Groceries').click()
   await expect(
-    page.getByRole('button', { name: /About this grocery list/i }),
+    page.getByRole('button', { name: /About this recognised list/i }),
   ).toBeVisible()
 
   // An ordinary list gets neither the mark nor the bulk actions.
@@ -260,21 +260,31 @@ test('a media list has no due dates, in either form', async ({ page }) => {
   const other = uniqueName('work')
   await createList(page, other)
 
-  // The ordinary list still has them, which is what makes their absence
-  // below a decision rather than a broken form.
+  // The ordinary list still offers a date, which is what makes its
+  // absence below a decision rather than a broken control.
+  // *(rewritten 2026-08-14 for quick add: the multi-field form and its
+  // "Advanced" disclosure were removed, and the rule now shows as a
+  // disabled Date pill — docs/specs/quick-add.md.)*
   await navRow(page, other).click()
   await page.getByRole('button', { name: 'Add a todo' }).click()
-  await page.getByRole('button', { name: 'Advanced' }).click()
-  await expect(dueDateSwitch(page)).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Set a date' })).toBeEnabled()
   await page.keyboard.press('Escape')
 
-  // Gone on the media list — add form...
+  // On the media list the pill is genuinely disabled rather than merely
+  // dimmed, and says why when asked.
   await navRow(page, 'Reading').click()
   await page.getByRole('button', { name: 'Add a todo' }).click()
-  await page.getByRole('button', { name: 'Advanced' }).click()
-  await expect(dueDateSwitch(page)).toBeHidden()
+  const offPill = page.getByRole('button', {
+    name: /Due dates are off for this list/i,
+  })
+  await expect(offPill).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Set a date' })).toBeHidden()
+  await offPill.click()
+  await expect(page.getByText(/does not use due dates/)).toBeVisible()
+  await page.keyboard.press('Escape')
+
   // ...but priority stays, which is how you say what is next.
-  await expect(page.getByLabel('Priority')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Priority' })).toBeVisible()
   const input = page.getByRole('textbox', { name: 'Add a todo' })
   await input.fill('Dune')
   await input.press('Enter')
@@ -434,7 +444,7 @@ test('renaming a list gives it a kind, and takes it away again', async ({
   await waitForSync(page)
 
   await expect(
-    page.getByRole('button', { name: /About this chores list/i }),
+    page.getByRole('button', { name: /About this recognised list/i }),
   ).toBeVisible()
   // Chores get both bulk actions; groceries get only the one.
   await addTodo(page, 'Bins')

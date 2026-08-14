@@ -374,15 +374,21 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
 
   // Focus must not be in a text field, or the shortcut correctly declines
   // to steal the keystroke.
-  // K, not N: the browser reserves Cmd+N and never releases the keydown to
-  // the page (docs/specs/ui.md — keyboard shortcuts).
+  //
+  // A bare `n`, with no modifier: every modified form is spoken for — the
+  // browser reserves Cmd/Ctrl+N for a new window and never releases the
+  // keydown to the page, and Ctrl+N walks the `#` autocomplete inside
+  // quick add itself (docs/specs/ui.md — keyboard shortcuts).
+  // *(changed 2026-08-14: was Ctrl+K, held for the command palette.)*
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+k`)
+  await page.keyboard.press('n')
   const addDialog = page.getByRole('dialog', { name: 'Add a todo' })
   await expect(addDialog).toBeVisible()
 
-  // Pressing it again must not stack a second dialog on the first.
-  await page.keyboard.press(`${mod}+k`)
+  // Pressing it again must not stack a second dialog on the first. It is
+  // typed into the open dialog's field here, which is also the guard
+  // against a modifier-less binding stealing an ordinary keystroke.
+  await page.keyboard.press('n')
   await expect(page.getByRole('dialog', { name: 'Add a todo' })).toHaveCount(1)
 
   await page.keyboard.press('Escape')
@@ -431,15 +437,16 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   // `Topic`), so the topics are headings until you open one. Asserted
   // because a collapsed section that never opens looks identical to one
   // whose content was lost.
-  const kinds = help.getByRole('button', { name: 'Lists that do more' })
+  const kinds = help.getByRole('button', { name: 'Recognised lists' })
   await expect(kinds).toBeVisible()
   await expect(help.getByText(/Other names work too/)).toBeHidden()
   await kinds.click()
   await expect(help.getByText(/Other names work too/)).toBeVisible()
-  // The chord for New todo is K, held for the command palette it will
-  // become (issue #26).
+  // New todo is a bare N — no modifier, since every modified form is taken
+  // by the OS or by quick add's own autocomplete. K is now free for the
+  // command palette (issue #26). *(changed 2026-08-14.)*
   await expect(help.getByRole('term').first().locator('kbd').last()).toHaveText(
-    'K',
+    'N',
   )
   await page.keyboard.press('Escape')
   await expect(help).toBeHidden()
@@ -466,7 +473,7 @@ test('keyboard shortcuts open the modals, and stand down when one is open', asyn
   await page.getByRole('button', { name: 'Today', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
   await page.locator('body').click()
-  await page.keyboard.press(`${mod}+k`)
+  await page.keyboard.press('n')
   await expect(addDialog).toBeVisible()
 
   // docs/specs/quick-add.md — when there is nowhere to file it. The rule

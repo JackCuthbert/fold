@@ -8,13 +8,15 @@ import { useTodoActions } from './use-todo-actions'
 // TodoPane's own scrolling body. This hook is the seam: MainScreen renders
 // <AddTodoTrigger /> in its sticky header and <TodoPane /> in the scrolling
 // region below, both driven by the same per-list todo actions.
-// `listName` rides along because the list's *name* decides which fields
-// the form shows — a media list has no due date (docs/specs/list-kinds.md)
-// — and the trigger is the only thing between here and the modal.
-// *(added 2026-08-05, issue #27.)*
+// `listId` and `listName` both ride along: the id presets quick add's list
+// pill so the in-list path never asks which list, and the *name* is what
+// decides whether due dates apply at all — a media list has none
+// (docs/specs/list-kinds.md). The trigger is the only thing between here
+// and the modal. *(added 2026-08-05, issue #27; `listId` added 2026-08-14
+// when the in-list path moved to quick add.)*
 export function useAddTodo(listId: string, listName = '') {
   const actions = useTodoActions(listId)
   const [addOpen, setAddOpen] = useState(false)
   const addTriggerRef = useRef<HTMLButtonElement>(null)
-  return { actions, addOpen, setAddOpen, addTriggerRef, listName }
+  return { actions, addOpen, setAddOpen, addTriggerRef, listId, listName }
 }

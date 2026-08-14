@@ -177,7 +177,11 @@ const LISTS = [
       // *(changed 2026-08-14: was due 0.)*
       { summary: 'Review the on-call rota', due: 4 },
       { summary: 'Write up the migration notes', due: 3, priority: 'High' },
-      { summary: 'Book leave for August', priority: 'Low' },
+      // No month name: every todo here is created through quick add, which
+      // reads a summary for dates — "Book leave for August" was filed as
+      // "Book leave for" with a due date attached.
+      // *(renamed 2026-08-14, caught before it reached the image.)*
+      { summary: 'Book the team offsite', priority: 'Low' },
       { summary: 'Send the invoice', done: true },
     ],
   },
@@ -436,4 +440,72 @@ test('README screenshot', async ({ page }) => {
   await page.waitForTimeout(500)
 
   await page.screenshot({ path: '../docs/screenshot.png' })
+  // ── Second frame: quick add ──────────────────────────────────────────
+  //
+  // Same account, same viewport, a different moment. One test rather than
+  // two because the fixture above takes ~20s to build through the UI and
+  // is exactly the background this wants: a real week of work behind the
+  // modal rather than the three rows a purpose-built seed would bother to
+  // create. Further images for the user guide should be added here, for
+  // the same reason. *(added 2026-08-14.)*
+  //
+  // Identical dimensions to the frame above, so the two sit level beside
+  // each other in the README's table.
+  //
+  // Taken from **Next 7 days**: the view fills the background with the
+  // week's structure, and — being derived — it inherits no list, so the
+  // `#chores` token in the typed line is doing real work rather than
+  // restating what the view already knew.
+  // Dismantle the first frame before arranging the second.
+  //
+  // The submenu and its parent take an Escape each, and both must be gone
+  // before the panel's ✕ can be found at all: Base UI marks everything
+  // outside an open menu `aria-hidden`, so while one is up the ✕ is in the
+  // DOM but not in the accessibility tree, and a role-based locator waits
+  // for it forever.
+  //
+  // The panel then needs that ✕ rather than an Escape of its own — on
+  // desktop it is a layout *column*, not a modal (issue #4), so nothing
+  // dismisses it on Escape and it would still be covering the nav when the
+  // next click goes looking for it.
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('menu')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Close' }).click()
+  await expect(page.getByRole('heading', { name: 'Edit todo' })).toBeHidden()
+
+  await page.getByRole('button', { name: 'Next 7 days', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Next 7 days' })).toBeVisible()
+
+  // Not the ghost row, which a derived view does not have: the sidebar's
+  // New todo, the path that works from anywhere.
+  await page.getByRole('button', { name: 'New todo' }).click()
+  const quickAdd = page.getByRole('textbox', { name: 'Add a todo' })
+
+  // Typed rather than filled: the picture is of a line that has been
+  // *typed*, and this runs the parse on every keystroke exactly as a
+  // person would.
+  await quickAdd.pressSequentially(
+    'Clean the gutters tomorrow at 3pm #home p1',
+    { delay: 8 },
+  )
+
+  // Every part of the grammar landed, asserted before the shot rather than
+  // discovered missing in a committed PNG: a list, a date, a time and a
+  // priority, all read out of one line.
+  const modal = page.getByRole('dialog', { name: 'Add a todo' })
+  await expect(modal.getByRole('button', { name: /Home/ })).toBeVisible()
+  await expect(
+    modal.getByRole('textbox', { name: 'Change the date' }),
+  ).toBeVisible()
+  await expect(
+    modal.getByRole('textbox', { name: 'Change the time' }),
+  ).toBeVisible()
+  await expect(modal.getByRole('button', { name: /High/ })).toBeVisible()
+
+  // No blur here, unlike the frame above: a focused field with the caret
+  // at the end of the line is the correct state for a sentence mid-typing.
+  await page.waitForTimeout(500)
+
+  await page.screenshot({ path: '../docs/screenshot-quick-add.png' })
 })

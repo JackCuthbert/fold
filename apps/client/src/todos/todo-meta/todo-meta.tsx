@@ -147,6 +147,14 @@ export const formatDue = (todo: Todo): string | null => {
   const date = instant.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
+    // Only name the year when it isn't the current one — the same rule the
+    // Summary's day headings follow (todos/lib/summary.ts). Without it "May
+    // 15" is the same string in every year, so a todo due next May reads
+    // exactly like one that went overdue last May.
+    // *(added 2026-08-14, found in review.)*
+    ...(instant.getFullYear() === new Date().getFullYear()
+      ? {}
+      : { year: 'numeric' }),
   })
   // docs/specs/todos.md — due times: only a timed todo shows a time. An
   // all-day `date` resolves to 23:59:59 for ordering, so formatting the

@@ -421,11 +421,13 @@ export function HelpModal(props: HelpModalProps) {
                   the sparkle's own popover: someone who has *seen* the
                   grouping and wants to know why comes here, not to the
                   list they were not looking at. */}
-                <Topic title="Lists that do more">
+                <Topic title="Recognised lists">
                   <p>
-                    Some list names mean something to Fold, and a list with one
-                    gets a little extra. A <strong>sparkle</strong> beside its
-                    name says so; click that sparkle to see what it does.
+                    Some list names mean something to Fold. Name a list one of
+                    them and it becomes a <strong>recognised list</strong>,
+                    which does a little extra. A <strong>sparkle</strong> beside
+                    its name says so; click that sparkle to see what that list
+                    does.
                   </p>
                   <dl className={styles['kinds']}>
                     <dt>Groceries</dt>

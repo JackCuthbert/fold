@@ -190,12 +190,11 @@
 }
 
 /* The trigger's default ink is scoped to triggers *without* a priority
-   class — see the fuller note on the equivalent rule in
-   add-todo-modal.module.css. `.selectTrigger` and the composed `.high` are
-   both single-class selectors, so declaring `color` on `.selectTrigger`
-   directly left the winner to source order; `:not()` makes the two rules
-   mutually exclusive instead. The List select has no priority class, so it
-   keeps `--ink` as before.
+   class. `.selectTrigger` and the composed `.high` are both single-class
+   selectors, so declaring `color` on `.selectTrigger` directly left the
+   winner to source order; `:not()` makes the two rules mutually exclusive
+   instead. The List select has no priority class, so it keeps `--ink` as
+   before.
    *(added 2026-08-03, with the priority colouring below.)* */
 .selectTrigger:not(.prioHigh, .prioMedium, .prioLow) {
   color: var(--ink);

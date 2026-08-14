@@ -45,3 +45,21 @@ describe('formatDue', () => {
     expect(formatDue(todo(undefined))).toBeNull()
   })
 })
+
+// A row must not read as a date eight months past when it is four months
+// future. "15 May" is the same string whichever year it belongs to, so the
+// year has to appear when it is not the current one — the same rule the
+// Summary's day headings already follow (todos/lib/summary.ts).
+// *(added 2026-08-14, found in review.)*
+describe('a due date in another year', () => {
+  it('names the year, and still omits it for this one', () => {
+    const nextYear = String(new Date().getFullYear() + 1)
+    const thisYear = String(new Date().getFullYear())
+    expect(
+      formatDue(todo({ kind: 'date', value: `${nextYear}-05-15` })),
+    ).toContain(nextYear)
+    expect(
+      formatDue(todo({ kind: 'date', value: `${thisYear}-05-15` })),
+    ).not.toContain(thisYear)
+  })
+})

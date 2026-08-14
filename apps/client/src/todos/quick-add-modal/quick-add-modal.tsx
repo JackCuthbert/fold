@@ -16,7 +16,7 @@ import {
 import { LuCheck, LuChevronDown, LuCircleHelp, LuPlus } from 'react-icons/lu'
 import { cx } from '../../styles/cx'
 import { fieldsToDue } from '../lib/due-fields'
-import { featuresOf } from '../../lists/lib/list-kind'
+import { featuresOf, kindExplanation } from '../../lists/lib/list-kind'
 import { PRIORITY_CHOICES, priorityChoice } from '../lib/priority-choices'
 import {
   parseQuickAdd,
@@ -47,7 +47,12 @@ interface QuickAddModalProps {
   /** The list on screen, used when the text names none. */
   defaultListId?: string | undefined
   onAdd: (listId: string, todo: NewTodo) => void
-  /** Focus returns here on close — see AddTodoModal for why it is explicit. */
+  /**
+   * Focus returns here on close. Explicit rather than left to Base UI's
+   * fallback: creating a todo re-renders and reorders the list beneath,
+   * and the heuristic then restores focus to whatever now occupies that
+   * position rather than to the control that opened this.
+   */
   triggerRef: RefObject<HTMLButtonElement | null>
 }
 
@@ -79,14 +84,34 @@ export function QuickAddModal(props: QuickAddModalProps) {
   // One instant per render, so the date a preview shows and the date that
   // gets written cannot straddle midnight (docs/specs/quick-add.md).
   const now = new Date()
+  // Parsed in two passes, because whether dates are read at all depends on
+  // the list — and which list is meant is itself something only the parse
+  // can say.
+  //
+  // The first pass resolves the `#token`; if the list it names takes no due
+  // dates (docs/specs/list-kinds.md) the second runs with date matching
+  // off, so a date is never recognised and never stripped from the summary.
+  // The alternative — parse, then discard the due — deletes the words that
+  // produced it from the title and stores them nowhere.
+  //
+  // Deriving this from the text rather than holding it in state is what
+  // makes it reversible: retarget the line at a list that does take dates
+  // and the next render parses them again. *(added 2026-08-14, on review.)*
   const parsed = useMemo(
-    () => parseQuickAdd(text, props.lists, now),
+    () => {
+      const first = parseQuickAdd(text, props.lists, now)
+      const target = props.lists.find(
+        (list) => list.id === (first.listId ?? props.defaultListId),
+      )
+      if (!target || !featuresOf(target.displayName).noDueDates) return first
+      return parseQuickAdd(text, props.lists, now, { noDates: true })
+    },
     // `now` is deliberately not a dependency: it changes every render by
     // definition, and including it would defeat the memo entirely. The
     // parse is re-run whenever the text or the lists change, which is when
     // its answer can actually differ.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [text, props.lists],
+    [text, props.lists, props.defaultListId],
   )
 
   // The `#token` the caret is currently inside, if any — that is what the
@@ -191,6 +216,24 @@ export function QuickAddModal(props: QuickAddModalProps) {
   const noDueDates = targetList
     ? featuresOf(targetList.displayName).noDueDates
     : false
+  // Why the date pill is off: the list's name, then one sentence.
+  //
+  // Not a heading over a body. That shape came from the sparkle popover,
+  // which really is an explainer you go and open; this appears *because*
+  // you touched a control that refused you, so the context is already
+  // established and a title restates it. One sentence, with emphasis only
+  // where it names things — the list, and the feature.
+  //
+  // "Recognised list" is the term for that feature, used here, in the
+  // sparkle popover and in Help so one thing has one name
+  // (docs/specs/list-kinds.md). The kind's own description is deliberately
+  // *not* reused: it explains what a reading list is, which restates the
+  // first clause instead of saying what to do about it.
+  // *(added 2026-08-14; collapsed from two paragraphs on review.)*
+  const dueDatesOffList =
+    noDueDates && targetList && kindExplanation(targetList.displayName)
+      ? targetList.displayName
+      : undefined
 
   const canSubmit = parsed.summary !== '' && targetListId !== undefined
   // Enter was pressed and there was nowhere to file the todo. One value,
@@ -363,8 +406,18 @@ export function QuickAddModal(props: QuickAddModalProps) {
                 caret and selection stay native while recognised tokens are
                 greyed. Both are the same text at the same metrics, so they
                 line up exactly. */}
+            {/* Emptied once closed. The text is only cleared on *open* (see
+                the reset effect — clearing on the way out would blank the
+                field in front of you mid-animation), which left the closed
+                popup holding a copy of the last summary in the DOM. It is
+                `aria-hidden`, but that hides it from the accessibility tree
+                only: a plain DOM text query still finds it, so a test —
+                and anything else reading text — saw the same summary twice,
+                once on the row and once here. The input above keeps its
+                value either way, so nothing visible changes.
+                *(added 2026-08-14.)* */}
             <div className={styles['shadow']} aria-hidden="true">
-              {renderDimmed(text, parsed.tokens)}
+              {props.open ? renderDimmed(text, parsed.tokens) : null}
             </div>
             <input
               ref={inputRef}
@@ -482,6 +535,7 @@ export function QuickAddModal(props: QuickAddModalProps) {
             list={targetList}
             lists={props.lists}
             noDueDates={noDueDates}
+            dueDatesOffList={dueDatesOffList}
             now={now}
             needsList={needsList}
             onSetDate={setDate}
@@ -533,24 +587,32 @@ export function QuickAddModal(props: QuickAddModalProps) {
                   Keyboard
                 </Popover.Trigger>
                 <Popover.Portal>
+                  {/* Below the trigger, left edges aligned. It opened
+                      upwards, which put it over the pills and the input —
+                      the things it is describing. Downwards it covers only
+                      the page behind the modal. *(changed 2026-08-14.)* */}
                   <Popover.Positioner
                     className={styles['menuPositioner']}
-                    side="top"
+                    side="bottom"
                     align="start"
                     sideOffset={6}
                   >
                     <Popover.Popup className={styles['helpPopup']}>
+                      {/* Real keycaps, composed from the shared component's
+                          classes (`helpCap`) so a key here is drawn like a
+                          key everywhere else in the app. */}
                       <dl className={styles['helpList']}>
                         <dt>
-                          <kbd>Enter</kbd>
+                          <kbd className={styles['helpCap']}>Enter</kbd>
                         </dt>
                         <dd>Add the todo</dd>
                         <dt>
-                          <kbd>Shift</kbd> + <kbd>Enter</kbd>
+                          <kbd className={styles['helpCap']}>Shift</kbd> +{' '}
+                          <kbd className={styles['helpCap']}>Enter</kbd>
                         </dt>
                         <dd>A new line, in notes</dd>
                         <dt>
-                          <kbd>Esc</kbd>
+                          <kbd className={styles['helpCap']}>Esc</kbd>
                         </dt>
                         <dd>Close without adding</dd>
                       </dl>
@@ -559,13 +621,32 @@ export function QuickAddModal(props: QuickAddModalProps) {
                 </Popover.Portal>
               </Popover.Root>
             </div>
-            {/* Enter still submits — this is the same action, reachable by
-                a finger. Not disabled when the form is incomplete: a dead
-                button explains nothing, while pressing it produces the
-                message above. *(added 2026-08-14.)* */}
-            <button type="button" className={styles['submit']} onClick={submit}>
-              Add todo
-            </button>
+            {/* Cancel, then Add — the pair a dialog is expected to end
+                with, and the only visible way out of this one. There is no
+                header and so no ✕, which is deliberate (a title bar would
+                make this a form again), but that left Escape and clicking
+                the scrim as the sole exits — neither of which is visible,
+                and Escape is not reachable on a phone at all.
+                *(added 2026-08-14, on review.)* */}
+            {/* The two actions travel together on the right. The footer
+                is `space-between` — the hint or error on the left, the
+                actions on the right — so without this group Cancel would
+                be pushed into the middle of the row, reading as unrelated
+                to the button it belongs with. */}
+            <div className={styles['footerActions']}>
+              <Dialog.Close className={styles['cancel']}>Cancel</Dialog.Close>
+              {/* Enter still submits — this is the same action, reachable
+                  by a finger. Not disabled when the form is incomplete: a
+                  dead button explains nothing, while pressing it produces
+                  the message above. *(added 2026-08-14.)* */}
+              <button
+                type="button"
+                className={styles['submit']}
+                onClick={submit}
+              >
+                Add todo
+              </button>
+            </div>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
@@ -666,6 +747,12 @@ interface PreviewProps {
   /** Every list, for the list pill's menu. */
   lists: readonly TodoList[]
   noDueDates: boolean
+  /** Why due dates are off, when they are (docs/specs/list-kinds.md). */
+  /**
+   * The list's name when its kind has no due dates, so the disabled date
+   * pill can name it (docs/specs/list-kinds.md). `undefined` otherwise.
+   */
+  dueDatesOffList: string | undefined
   now: Date
   /** There is text, but nowhere to file it — see the branch below. */
   needsList: boolean
@@ -802,7 +889,21 @@ function Preview(props: PreviewProps) {
         className={cx(props.noDueDates && styles['pillDropped'])}
         type="date"
         value={parsed.due?.date ?? ''}
-        title={parsed.due ? 'Change the date' : 'Set a date'}
+        title={
+          props.noDueDates
+            ? 'Due dates are off for this list'
+            : parsed.due
+              ? 'Change the date'
+              : 'Set a date'
+        }
+        disabled={props.noDueDates}
+        // The kind's own description, not a sentence written here: it is
+        // the same prose the nav badge and the detail panel show, so the
+        // reason a date is unavailable reads identically everywhere it is
+        // explained (lists/lib/list-kind.ts).
+        {...(props.dueDatesOffList
+          ? { disabledListName: props.dueDatesOffList }
+          : {})}
         onChange={(value) => props.onSetDate(value, dueToken)}
       />
       {/* The time pill appears only once there is a date, because a time
@@ -875,6 +976,18 @@ interface PillPickerProps {
   /** `yyyy-mm-dd` or `HH:mm`; `''` when unset. */
   value: string
   title: string
+  /**
+   * The chosen list has no due dates (docs/specs/list-kinds.md), so this
+   * pill cannot be set. Genuinely disabled, not merely dimmed: the value
+   * would be discarded on submit, and a control that accepts input it
+   * then throws away is worse than one that refuses it.
+   */
+  disabled?: boolean
+  /**
+   * The recognised list responsible for the pill being disabled. Its name
+   * is woven into the sentence shown on hover or tap.
+   */
+  disabledListName?: string
   onChange: (value: string) => void
 }
 
@@ -891,17 +1004,62 @@ interface PillPickerProps {
  * The label is what you read; the input is what you touch.
  */
 function PillPicker(props: PillPickerProps) {
+  const className = cx(
+    styles['pill'],
+    styles['pillButton'],
+    styles['pillPicker'],
+    props.unset && styles['pillUnset'],
+    props.disabled && styles['pillDisabled'],
+    props.className,
+  )
+
+  // Disabled: the pill becomes its own explanation rather than an inert
+  // shape. A control that refuses input has to say why — the strike-through
+  // shows *that* it is unavailable, and this says *why*, without which the
+  // list-kind rule is invisible unless you already know it.
+  //
+  // A popover rather than `title`: a disabled input swallows the pointer
+  // events a native tooltip needs, and `title` never appears on touch at
+  // all — so the explanation would be missing exactly where the affordance
+  // is least discoverable. Same reasoning as InfoBadge (ui/info-badge).
+  // *(added 2026-08-14, on review.)*
+  if (props.disabled) {
+    return (
+      <Popover.Root>
+        <Popover.Trigger
+          className={className}
+          aria-label={props.title}
+          openOnHover
+          delay={200}
+          render={<button type="button" />}
+        >
+          {props.label}
+        </Popover.Trigger>
+        <Popover.Portal>
+          {/* `menuPositioner`, the same one the keyboard-help popover and
+              the pill menus use: it carries the z-index that clears this
+              modal's own popup. A portalled layer lands on document.body,
+              outside the modal's stacking context, so without it the
+              popover paints *under* the scrim
+              (docs/specs/ui.md — overlays). */}
+          <Popover.Positioner
+            className={styles['menuPositioner']}
+            sideOffset={6}
+          >
+            <Popover.Popup className={styles['helpPopup']}>
+              <strong>{props.disabledListName}</strong> is a{' '}
+              <em>recognised list</em> and does not use due dates. Set a
+              priority instead to say what is next, or choose a list that uses
+              dates.
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+    )
+  }
+
   return (
-    <span
-      className={cx(
-        styles['pill'],
-        styles['pillButton'],
-        styles['pillPicker'],
-        props.unset && styles['pillUnset'],
-        props.className,
-      )}
-      title={props.title}
-    >
+    <span className={className} title={props.title}>
       {props.label}
       <LuChevronDown className={styles['pillChevron']} size={12} />
       <input
@@ -1044,10 +1202,17 @@ function formatDay(value: string, now: Date): string {
       return name
     }
   }
+  // The year, but only when it is not this one. `15 may` typed in August
+  // resolves to next May — chrono reads a bare date forwards — and without
+  // the year the pill said "Fri, 15 May", which reads as *this* May, three
+  // months past. The one case where the year matters is exactly the case
+  // where it differs, so it appears there and nowhere else rather than
+  // adding noise to every date. *(added 2026-08-14, found in review.)*
   return date.toLocaleDateString(undefined, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
   })
 }
 

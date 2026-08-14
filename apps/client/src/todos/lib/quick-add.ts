@@ -30,30 +30,34 @@ export interface QuickAddResult {
    */
   due?: DueFields
   listId?: string
-  /** Absent for no priority — including an explicit `p4`. */
+  /** Absent for no priority. */
   priority?: TodoPriority
   tokens: QuickAddToken[]
 }
 
 /**
- * `p1`–`p4`, the Todoist vocabulary (docs/specs/quick-add.md — priority).
+ * `p1`–`p3`, the Todoist vocabulary (docs/specs/quick-add.md — priority).
  *
- * `p4` maps to `undefined`: it is what a Todoist user types to mean "no
- * priority", so it is consumed rather than left in the summary, but it
- * sets nothing.
+ * **`p4` is deliberately not here.** Todoist uses it for "no priority",
+ * and it was briefly honoured — consumed from the summary, setting
+ * nothing. That made it the one token whose mark in the input was not
+ * matched by any change in the pills: the Priority pill sat exactly as it
+ * had before, because no priority *is* the default. Highlighting text to
+ * report that nothing happened is worse than not recognising it, so `p4`
+ * is now ordinary words and stays in the summary.
+ * *(changed 2026-08-14, found in review.)*
  */
-const PRIORITY_BY_TOKEN: Record<string, TodoPriority | undefined> = {
+const PRIORITY_BY_TOKEN: Record<string, TodoPriority> = {
   p1: 'high',
   p2: 'medium',
   p3: 'low',
-  p4: undefined,
 }
 
 // Standalone tokens only, hence the boundaries: `p1000` in "Order p1000
 // connectors" is a part number, not a priority, and `#12` in "Fix issue
 // #12" is not a list. Anchoring on whitespace (or the ends of the string)
 // is what tells a token from a word that starts like one.
-const PRIORITY_PATTERN = /(?:^|\s)(p[1-4])(?=\s|$)/gi
+const PRIORITY_PATTERN = /(?:^|\s)(p[1-3])(?=\s|$)/gi
 const LIST_PATTERN = /(?:^|\s)#([\p{L}\p{N}_-]+)(?=\s|$)/giu
 
 /**
@@ -80,6 +84,63 @@ function findList(
 }
 
 /**
+ * Whether a parsed instant is, for practical purposes, *now*.
+ *
+ * A due date is stored to the minute (`DueFields` — a date plus `HH:mm`),
+ * so anything inside the current minute is the same due date as "this
+ * instant" and is treated as one. Seconds are deliberately not honoured:
+ * a todo cannot be due at 22:41:30, so a match that only differs from now
+ * in its seconds is a false positive rather than a finer-grained answer.
+ * *(added 2026-08-14, found in review.)*
+ */
+const toMinute = (at: Date): number => new Date(at).setSeconds(0, 0).valueOf()
+
+function isNow(candidate: Date, now: Date): boolean {
+  return toMinute(candidate) === toMinute(now)
+}
+
+/**
+ * Text chrono matched that no one would call a date.
+ *
+ * chrono's casual parser treats a determiner followed by a bare unit
+ * letter — "the s", "a s", "the m", "the h" — as a relative expression, so
+ * typing "sort out the shed" or "call a supplier" grew a due date mid-word
+ * and took those words out of the summary. Most resolve to *now* and are
+ * caught by `isNow`; "the m" lands a minute ahead and is not.
+ *
+ * The rule is about what was written rather than what it resolved to: a
+ * unit has to be *named* to count. "in 2 hours" and "in 30 minutes" are
+ * untouched — they have a number and a whole word — while a lone letter
+ * hanging off a determiner is a half-typed English sentence.
+ * *(added 2026-08-14, found in review.)*
+ */
+const HALF_TYPED_UNIT = /^(?:the|a|an)\s+[smhdwy]$/i
+
+function isPhantomDate(matched: string): boolean {
+  return HALF_TYPED_UNIT.test(matched.trim())
+}
+
+export interface QuickAddOptions {
+  /**
+   * Do not read dates at all — for a list whose kind has no due dates
+   * (docs/specs/list-kinds.md).
+   *
+   * Off rather than parsed-then-discarded. Dropping the due *after* a
+   * parse still strips the words that produced it from the summary, so
+   * "Finish Dune next Friday" filed into Reading became "Finish Dune" and
+   * the date went nowhere — text deleted from the title with no record of
+   * it anywhere. With matching off, nothing is recognised, so nothing is
+   * removed and the line stands exactly as typed.
+   *
+   * Naming a list that *does* take dates re-enables it, because the parse
+   * is derived from the text on every render rather than held in state —
+   * so adding `#chores` to that same line brings the date back.
+   * *(added 2026-08-14, found in review.)*
+   */
+  noDates?: boolean
+}
+
+/**
  * Parse one line into the parts of a todo.
  *
  * `now` is passed rather than read so every test pins a reference date and
@@ -89,6 +150,7 @@ export function parseQuickAdd(
   text: string,
   lists: readonly TodoList[],
   now: Date,
+  options: QuickAddOptions = {},
 ): QuickAddResult {
   const tokens: QuickAddToken[] = []
   let priority: TodoPriority | undefined
@@ -145,10 +207,30 @@ export function parseQuickAdd(
   // carries one, rather than stopping at the first match of either kind.
   let day: Date | undefined
   let clock: Date | undefined
-  for (const segment of gapsBetween(text, tokens)) {
+  // Skipped entirely when the target list takes no dates, so no date token
+  // is reported and no date text is stripped from the summary
+  // (see `QuickAddOptions.noDates`).
+  for (const segment of options.noDates ? [] : gapsBetween(text, tokens)) {
     const [parsed] = chrono.parse(segment.text, now, { forwardDate: true })
     if (!parsed) continue
     const start = parsed.start
+    // **"Now" is not a due date.** A todo scheduled for this instant is
+    // overdue as soon as it exists, which nobody means, so a match that
+    // resolves to the reference instant is discarded rather than written.
+    //
+    // This also removes a whole family of false positives rather than
+    // listing them. chrono's casual parser reads a determiner followed by
+    // a unit letter — "the s", "a s", "the m" — as *now*, so typing "sort
+    // out the shed" invented a due date of today at the current minute the
+    // moment "the s" was on screen, then took those words out of the
+    // summary. Every one of those resolves to the reference instant, so
+    // one rule about meaning catches them all; matching the phrases would
+    // have been a list that the next casual pattern escapes.
+    // *(added 2026-08-14, found in review.)*
+    if (isNow(start.date(), now)) continue
+    // The same family, for the few that land a minute out rather than on
+    // the instant — see `isPhantomDate`.
+    if (isPhantomDate(parsed.text)) continue
     // `isCertain('hour')` is the all-day/timed distinction
     // (docs/specs/todos.md — due times): a date chrono inferred rather
     // than read is not a time the user asked for.

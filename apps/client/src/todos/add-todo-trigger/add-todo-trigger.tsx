@@ -1,4 +1,6 @@
-import { AddTodoModal } from '../add-todo-modal/add-todo-modal'
+import { useListFilter } from '../../shell/context/list-filter-context'
+import { useGlobalAddTodo } from '../hooks/use-global-add-todo'
+import { QuickAddModal } from '../quick-add-modal/quick-add-modal'
 import styles from './add-todo-trigger.module.css'
 import type { useAddTodo } from '../hooks/use-add-todo'
 
@@ -12,7 +14,22 @@ import type { useAddTodo } from '../hooks/use-add-todo'
 // Base UI's Checkbox.Root carries role="checkbox"/aria-checked and its own
 // keyboard handling, which would announce a control that cannot be toggled.
 // A plain aria-hidden SVG keeps the shape without the semantics.
+//
+// It opens quick add, the same surface the global path opens, with this
+// pane's list preset — so the only difference between the two paths is
+// whether the list starts filled in (docs/specs/quick-add.md). It used to
+// open a separate multi-field form; that form was removed once quick add
+// covered every field it had. *(changed 2026-08-14.)*
 export function AddTodoTrigger(props: ReturnType<typeof useAddTodo>) {
+  // From context rather than threaded through TodoPane: the list pill can
+  // still be changed here, so quick add needs every list, and nothing
+  // between here and MainScreen would otherwise mention them.
+  const filter = useListFilter()
+  // Not `props.actions.add`, which binds this pane's list at hook-call
+  // time: the pill can be changed to another list, and a bound write would
+  // then file the todo into the list you were looking at rather than the
+  // one you picked. This one takes the id at submit time.
+  const globalAdd = useGlobalAddTodo()
   return (
     <>
       <li className={styles['row']}>
@@ -21,6 +38,11 @@ export function AddTodoTrigger(props: ReturnType<typeof useAddTodo>) {
           type="button"
           className={styles['trigger']}
           onClick={() => props.setAddOpen(true)}
+          // Named without the ellipsis. The visible "…" is a typographic
+          // convention meaning "this opens something", not part of what the
+          // control is called, and leaving it in the accessible name makes
+          // the button announce as "Add a todo ellipsis".
+          aria-label="Add a todo"
         >
           <span className={styles['circle']} aria-hidden="true">
             <svg viewBox="0 0 24 24">
@@ -30,15 +52,14 @@ export function AddTodoTrigger(props: ReturnType<typeof useAddTodo>) {
           <span className={styles['label']}>Add a todo…</span>
         </button>
       </li>
-      <AddTodoModal
+      <QuickAddModal
         open={props.addOpen}
         onOpenChange={props.setAddOpen}
-        // In-list: this pane's list is the target, so no picker.
-        target={{
-          kind: 'list',
-          listName: props.listName,
-          onAdd: (todo) => props.actions.add(todo),
-        }}
+        lists={filter.allLists}
+        // In-list: this pane's list is the target, so the pill starts
+        // filled and the line never has to name one.
+        defaultListId={props.listId}
+        onAdd={(listId, todo) => globalAdd.add(listId, todo)}
         triggerRef={props.addTriggerRef}
       />
     </>

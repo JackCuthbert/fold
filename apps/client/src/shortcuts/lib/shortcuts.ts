@@ -110,21 +110,31 @@ const PRINTED_KEY: Record<string, string> = {
 const BASE_SHORTCUTS: readonly Shortcut[] = [
   {
     action: 'new-todo',
-    // K, and it stays K even though the whole map moved to Ctrl (which
-    // freed up N again).
+    // **N, with no modifier.** The first modifier-less binding in the map.
     //
-    // The reason is the command palette this chord is meant to become
-    // (issue #26): K is the near-universal quick-action key — Linear,
-    // Slack, Notion, GitHub — and the palette will want it. Binding New
-    // todo to K now means the palette *inherits* the muscle memory rather
-    // than asking for it back later; only what the surface contains
-    // changes, not how it is reached.
+    // It was `Ctrl+K`, held in reserve for the command palette (issue #26)
+    // on the theory that the palette would replace this chord and inherit
+    // its muscle memory. Quick add makes that wrong: it is not a stepping
+    // stone to a palette, it is the feature people use ten times a day,
+    // and it should not surrender the key it earned to something that does
+    // not exist yet. K is now genuinely free for the palette.
     //
-    // *(2026-08-04: briefly moved to N once Ctrl made N available, then
-    // moved back — freeing K for a palette that will replace this exact
-    // chord gains nothing and costs the reservation.)*
-    code: 'KeyK',
-    primary: true,
+    // Modifier-less because every modified form of N is spoken for:
+    // `Cmd+N` is a new window on macOS, `Ctrl+N` the same on Windows and
+    // Linux, and `Ctrl+N` is *also* taken inside quick add itself, where
+    // it walks the `#` autocomplete. A bare letter has none of those
+    // collisions, and it is what Linear, Height and GitHub use for exactly
+    // this action.
+    //
+    // Safe because shortcuts already stand down while a field has focus
+    // (`isTextEntryTarget`, applied in use-shortcuts.ts) — the guard was
+    // written for "the modifier-less bindings the map may grow later",
+    // which is this one. The cost: `useModifierHeld` reveals keycaps only
+    // while Ctrl is down, so this binding is not advertised in the nav and
+    // is discoverable through Help alone.
+    // *(changed 2026-08-14.)*
+    code: 'KeyN',
+    primary: false,
     shift: false,
     description: 'New todo',
   },

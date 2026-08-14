@@ -6,6 +6,27 @@ A list's **name** says what kind of list it is, and Fold uses it. A list
 called "Groceries" behaves differently from one called "Chores", without
 anyone configuring anything.
 
+## What it is called, on screen
+
+**"Recognised list."** One name for the feature, used everywhere it is
+mentioned to the user: the Help topic, the sparkle's popover, and any
+control that a kind changes — quick add's date pill says *"Reading is a
+recognised list and does not use due dates."*
+
+The alternatives were worse. "Smart list" is the established term
+elsewhere for a list whose *contents* are a saved query; these hold
+whatever you put in them, so borrowing it would promise the wrong thing.
+"Lists that do more" — the Help topic's old title — describes the
+behaviour without naming it, which reads fine as a heading and cannot be
+used in a sentence about one list.
+
+*"Recognised"* is what actually happens: Fold recognises the name. It says
+the mechanism honestly, works in the singular, and admits that a list is
+recognised or not rather than implying a spectrum of cleverness.
+*(added 2026-08-14: the term existed in the code as `listKindOf` but no
+user-facing surface said it, so the same feature was "lists that do more"
+in Help and unnamed everywhere else.)*
+
 ## Entirely app-level
 
 **No CalDAV property carries a kind.** No new `X-` field, no custom

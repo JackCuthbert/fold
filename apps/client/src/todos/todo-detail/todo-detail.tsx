@@ -639,7 +639,7 @@ export function TodoDetail(props: TodoDetailProps) {
  * - **Focus in on open, back to the trigger on close** — kept, because
  *   without it a keyboard user loses their place entirely. Handled by the
  *   caller for the return half (main-screen.tsx holds the row's ref, the
- *   same explicit-trigger approach add-todo-modal.tsx uses via
+ *   same explicit-trigger approach quick-add-modal.tsx uses via
  *   `finalFocus` — the heuristic Base UI falls back to is untrustworthy
  *   once a re-render moves the rows).
  */

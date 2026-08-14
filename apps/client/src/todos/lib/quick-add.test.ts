@@ -164,13 +164,17 @@ describe('parseQuickAdd', () => {
       expect(parse(`Thing ${token}`).priority).toBe(priority)
     })
 
-    it('accepts p4 as an explicit none, and consumes it', () => {
-      // A Todoist user types p4 to mean "no priority". Leaving it in the
-      // summary would be worse than honouring it
-      // (docs/specs/quick-add.md — priority).
+    it('leaves p4 alone, since no priority is already the default', () => {
+      // Todoist's p4 means "no priority", and it was briefly consumed to
+      // set nothing. That made it the one token whose highlight in the
+      // input matched no change in the pills — the Priority pill sat
+      // exactly as before — so it read as doing nothing while claiming to
+      // have been understood. Now it is ordinary text.
+      // *(changed 2026-08-14, found in review.)*
       const result = parse('Thing p4')
       expect(result.priority).toBeUndefined()
-      expect(result.summary).toBe('Thing')
+      expect(result.summary).toBe('Thing p4')
+      expect(result.tokens).toEqual([])
     })
 
     it('ignores a priority-shaped word that is part of the text', () => {
@@ -291,5 +295,81 @@ describe('a generated list name round-trips', () => {
     )
     expect(result.listId).toBe('g')
     expect(result.summary).toBe('Made from a derived view')
+  })
+})
+
+// docs/specs/list-kinds.md — a list with no due dates does not read them at
+// all, rather than reading one and throwing it away. Discarding the due
+// after the fact still strips the words that produced it, so the typed text
+// disappears from the summary and is stored nowhere.
+// *(added 2026-08-14, found in review.)*
+describe('a list that does not take due dates', () => {
+  it('leaves the date words in the summary', () => {
+    const result = parseQuickAdd('Finish Dune next Friday', LISTS, NOW, {
+      noDates: true,
+    })
+    expect(result.summary).toBe('Finish Dune next Friday')
+    expect(result.due).toBeUndefined()
+    expect(result.tokens.filter((t) => t.kind === 'date')).toEqual([])
+  })
+
+  it('still reads the tokens that do apply', () => {
+    // Only dates are off. A list and a priority are still the grammar.
+    const result = parseQuickAdd(
+      'Finish Dune tomorrow #chores p1',
+      LISTS,
+      NOW,
+      {
+        noDates: true,
+      },
+    )
+    expect(result.summary).toBe('Finish Dune tomorrow')
+    expect(result.listId).toBe('c')
+    expect(result.priority).toBe('high')
+  })
+
+  it('reads dates again once the option is off', () => {
+    // What makes it reversible: the same text, parsed without the flag,
+    // resolves the date — so retargeting the line at a list that takes
+    // dates brings it back.
+    const result = parseQuickAdd('Finish Dune tomorrow', LISTS, NOW)
+    expect(result.summary).toBe('Finish Dune')
+    expect(result.due?.date).toBe('2026-08-15')
+  })
+})
+
+// A parser that invents a date while you are still typing an ordinary
+// sentence is worse than one that misses a real date. These are the
+// false positives found in use, not hypotheticals.
+// *(added 2026-08-14, found in review.)*
+describe('it does not invent a date out of ordinary words', () => {
+  it.each([
+    // The one that was reported: typing "sort out the shed" sets Today at
+    // the current minute the moment "the s" is on screen. chrono's casual
+    // parser reads <determiner> + a unit letter — s/m/h — as "now".
+    'sort out the s',
+    'sort out the m',
+    'call a s',
+    // "Now" itself, and the seconds-precision forms. A todo due this
+    // instant is overdue the moment it exists, and a due date cannot
+    // carry seconds at all (DueFields is a date plus HH:mm).
+    'do it now',
+    'ring mum in 5 seconds',
+    'ring mum in 30 secs',
+    // Fully typed, the same shape must stay inert.
+    'sort out the shed',
+    'buy a sandwich',
+  ])('leaves %j alone', (input) => {
+    const result = parse(input)
+    expect(result.due).toBeUndefined()
+    expect(result.summary).toBe(input)
+    expect(result.tokens).toEqual([])
+  })
+
+  it('still reads the real relative forms', () => {
+    // The guard must not cost the expressions people actually type.
+    expect(parse('Ring mum in 2 hours').due?.time).toBe('11:00')
+    expect(parse('Ring mum in 30 minutes').due?.time).toBe('09:30')
+    expect(parse('Ring mum in 3 days').due?.date).toBe('2026-08-17')
   })
 })
