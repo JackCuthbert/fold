@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
+import {
+  addTodo,
+  createList,
+  login,
+  seedLists,
+  uniqueName,
+  waitForSync,
+} from './helpers'
 
 // docs/specs/search-view.md — issue #6.
 //
@@ -18,27 +25,23 @@ const field = (page: Page) =>
 test('search finds todos across every list, by title and by note', async ({
   page,
 }) => {
-  await login(page)
-
-  // Two lists, so a result that crosses them proves the fan-out rather
-  // than a single list's query.
+  // Seeded rather than clicked together. What this test is about is the
+  // search view reading the same fan-out the other derived views do; the
+  // two lists, two todos and one note are pure arrangement, and building
+  // them through modals cost four round trips and two `waitForSync` calls
+  // before the first assertion. Stating the world directly is both faster
+  // and clearer about what the preconditions actually are.
+  // *(changed 2026-08-14, issue #54.)*
   const work = uniqueName('work')
   const home = uniqueName('home')
-  await createList(page, work)
-  await createList(page, home)
-
-  await nav(page).getByRole('button', { name: work, exact: true }).click()
-  await addTodo(page, 'Quarterly report')
-  await nav(page).getByRole('button', { name: home, exact: true }).click()
-  await addTodo(page, 'Buy milk')
-  await waitForSync(page)
-
-  // A note on one of them, through the ordinary edit path — the notes are
-  // searched too, and nothing else in this spec would put one there.
-  await page.getByText('Buy milk', { exact: true }).click()
-  await page.getByRole('textbox', { name: 'Notes' }).fill('oat, not almond')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await waitForSync(page)
+  await seedLists(page, [
+    { displayName: work, todos: [{ summary: 'Quarterly report' }] },
+    {
+      displayName: home,
+      todos: [{ summary: 'Buy milk', description: 'oat, not almond' }],
+    },
+  ])
+  await login(page)
 
   await nav(page).getByRole('button', { name: 'Search', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible()

@@ -34,6 +34,9 @@ export function testApp(
       ALLOW_INSECURE_COOKIE: false,
       CHECK_FOR_UPDATES: false,
       CALDAV_ALLOWED_HOSTS: '',
+      // The real gateway seam, injected below — a unit test never takes
+      // the fake-gateway branch (docs/specs/testing.md).
+      CALDAV_FAKE: false,
     },
     makeGateway: () => ({ ...base, ...gateway }),
     // Off, matching the default: a unit test must never reach the network.

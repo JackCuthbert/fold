@@ -13,6 +13,23 @@ import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
 //
 // A product test wearing a test-infra hat: a user whose server blips sees
 // exactly what CI saw.
+//
+// **Keeps `page.route`, deliberately** *(reviewed 2026-08-14, issue #54.)*
+//
+// This spec now runs against the fake gateway like the rest of the suite,
+// and the fake can stage an outage of its own (`stageFault` in
+// tests/helpers.ts). It is not the right tool here. What this test needs
+// is an outage with a precise *start and end in wall-clock time* — the
+// window between them is the entire design of the test, tuned against
+// query-core's retry ladder (see OUTAGE_MS). The gateway's faults are
+// counted, not timed: staging "fail for 5 seconds" through them would mean
+// guessing how many reads land in that window, which is the machine-speed
+// dependency this test was rewritten to remove.
+//
+// The issue anticipated this: `page.route` stays for specs staging a
+// specific HTTP response at the client. This is that case, and the
+// interception is against the *fake* app server now, so it no longer
+// competes with a shared Radicale for timing.
 
 /**
  * How long the fake outage lasts.

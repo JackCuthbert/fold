@@ -4,6 +4,41 @@ import { expect, test as playwrightTest, type Page } from '@playwright/test'
 const testInfo = (): { title: string; parallelIndex: number } =>
   playwrightTest.info()
 
+/**
+ * Whether this test is running against a real Radicale.
+ *
+ * Only the `desktop-real` project is (playwright.config.ts); every other
+ * project points its app server at the BFF's in-memory fake gateway
+ * (docs/specs/testing.md — the two e2e modes). The project name is the
+ * single source of truth, so a spec never has to be told which mode it is
+ * in — `login` and the seeding helpers below branch on this by themselves.
+ * *(added 2026-08-14, issue #54.)*
+ */
+const isRealCaldav = (): boolean =>
+  playwrightTest.info().project.name === 'desktop-real'
+
+/**
+ * The synthetic CalDAV URL a mocked test signs in against.
+ *
+ * Never fetched — in fake mode nothing behind the BFF makes a network
+ * call — but it is still a real URL, because `credentialsSchema` validates
+ * it (`z.url()`) and the account key is derived from it plus the username
+ * (fake-gateway.ts — `keyFor`). `.invalid` is the RFC 2606 reserved TLD,
+ * so a stray request could never resolve to somebody's real host.
+ */
+const FAKE_CALDAV_URL = 'http://fake-caldav.invalid/dav/'
+
+/**
+ * Accounts `seedLists` has already put into a known state this run.
+ *
+ * `seedLists` resets *and* populates in one request, and it must run
+ * before sign-in — so `login` has to know not to reset over the top of it.
+ * Keyed by account name, which is derived from the test's own title and
+ * worker index (`currentTestUser`), so entries never collide between
+ * tests even though a worker process runs many of them in sequence.
+ */
+const seededAccounts = new Set<string>()
+
 // Set by global-setup.ts, which runs once in Playwright's root process
 // before any worker spawns, to the throwaway Docker container's
 // Docker-assigned host port — see helpers/radicale-container.ts. Worker
@@ -23,12 +58,23 @@ function requireCaldavBase(): string {
 /**
  * The collection root for a given CalDAV user.
  *
- * The container runs with `[auth] type = none`
+ * Against a real Radicale the container runs with `[auth] type = none`
  * (helpers/radicale-container.ts), so any username authenticates and each
- * gets a collection root of its own.
+ * gets a collection root of its own. In fake mode there is no server at
+ * all, so the URL is synthetic — the account is still per-user, since the
+ * fake keys its state on URL plus username.
  */
 export const caldavUrlFor = (user: string): string =>
-  `${requireCaldavBase()}/${user}/`
+  isRealCaldav() ? `${requireCaldavBase()}/${user}/` : FAKE_CALDAV_URL
+
+/** The credentials a given test signs in with, in either mode. */
+const credentialsFor = (
+  user: string,
+): { serverUrl: string; username: string; password: string } => ({
+  serverUrl: caldavUrlFor(user),
+  username: user,
+  password: 'anything',
+})
 
 /**
  * Sign in as a user of this **test's own**, derived from its title.
@@ -50,11 +96,211 @@ export const caldavUrlFor = (user: string): string =>
  */
 export async function login(page: Page, user?: string): Promise<void> {
   const account = user ?? currentTestUser()
+  // In fake mode the account lives in the app server's memory and would
+  // otherwise carry over between the two projects that can share a title
+  // (desktop and mobile) — and between repeat runs against a reused
+  // server. Resetting here means every mocked test starts from an empty
+  // nav for the same reason a real one does: a fresh account.
+  //
+  // Skipped when the test already called `seedLists`, which resets and
+  // populates in one request: seeding has to happen *before* sign-in (the
+  // client reads lists on first paint), so a reset here would silently
+  // throw the seed away and the spec would sign in to an empty nav.
+  // *(added 2026-08-14, issue #54.)*
+  if (!isRealCaldav() && !seededAccounts.has(account)) {
+    await resetFakeAccount(page, account)
+  }
+  const credentials = credentialsFor(account)
   await page.goto('/')
-  await page.getByLabel('Server URL').fill(caldavUrlFor(account))
-  await page.getByLabel('Username').fill(account)
-  await page.getByLabel('Password').fill('anything')
+  await page.getByLabel('Server URL').fill(credentials.serverUrl)
+  await page.getByLabel('Username').fill(credentials.username)
+  await page.getByLabel('Password').fill(credentials.password)
   await page.getByRole('button', { name: 'Sign in' }).click()
+}
+
+/**
+ * Post to the fake gateway's admin route (docs/specs/testing.md).
+ *
+ * Through `page.request`, so it goes to the same `baseURL` the browser
+ * uses and no port has to be threaded into every spec. The route only
+ * exists when the app server runs with `CALDAV_FAKE=1`
+ * (apps/server/src/api/testing/fake-admin.ts), which is why every helper
+ * below refuses to run in the real-CalDAV project rather than silently
+ * doing nothing.
+ */
+async function postFakeAdmin(
+  page: Page,
+  body: Record<string, unknown>,
+): Promise<void> {
+  if (isRealCaldav()) {
+    throw new Error(
+      'the fake gateway helpers are only available in the mocked ' +
+        'projects — the desktop-real project runs against a real ' +
+        'Radicale (docs/specs/testing.md)',
+    )
+  }
+  const response = await page.request.post('/api/testing/fake', {
+    data: body,
+  })
+  if (!response.ok()) {
+    throw new Error(
+      `fake admin route failed: ${response.status()} ${await response.text()}`,
+    )
+  }
+}
+
+/** Wipe an account's fake state — lists, todos and any staged faults. */
+async function resetFakeAccount(page: Page, user: string): Promise<void> {
+  await postFakeAdmin(page, {
+    credentials: credentialsFor(user),
+    reset: true,
+  })
+}
+
+/**
+ * One list to seed.
+ *
+ * A hand-written mirror of the admin route's zod schema
+ * (`seedListSchema`, apps/server/src/caldav/fake-gateway.ts) rather than
+ * an import of it: the e2e package deliberately imports from neither
+ * `apps/` nor the client, so the two cannot share a declaration. The
+ * duplication is bounded and self-correcting — the route validates every
+ * request with the real schema and `postFakeAdmin` throws on a non-2xx,
+ * so a shape that drifts out of step fails the run loudly at the first
+ * seeded spec rather than silently seeding nothing.
+ */
+export interface SeedList {
+  id?: string
+  displayName: string
+  color?: string
+  order?: number
+  todos?: SeedTodo[]
+}
+
+/**
+ * A todo to seed. The four RFC 5545 DUE forms are spelled out rather than
+ * left as `unknown`: a malformed due date would otherwise typecheck and
+ * only fail as a 400 at run time.
+ */
+export interface SeedTodo {
+  uid?: string
+  summary: string
+  completed?: boolean
+  due?:
+    | { kind: 'date'; value: string }
+    | { kind: 'utc'; value: string }
+    | { kind: 'floating'; value: string }
+    | { kind: 'zoned'; tzid: string; value: string }
+  description?: string
+  priority?: 'high' | 'medium' | 'low'
+  created?: string
+  completedAt?: string
+}
+
+/**
+ * Put an account into a known state before signing in.
+ *
+ * Replaces its contents outright, so a spec describes the world it wants
+ * rather than building it click by click. Call *before* `login` — the
+ * client reads lists on first paint, and seeding after that would race it.
+ *
+ * The cost this removes is the point of issue #54: arranging four todos
+ * across two lists through the UI is four modal round-trips and four
+ * `waitForSync` calls, every one of which was a real CalDAV write.
+ * *(added 2026-08-14, issue #54.)*
+ */
+export async function seedLists(
+  page: Page,
+  lists: SeedList[],
+  user?: string,
+): Promise<void> {
+  const account = user ?? currentTestUser()
+  // Enforced rather than merely documented: seeding after the client has
+  // painted leaves the nav showing the pre-seed world, and the spec then
+  // fails somewhere far from the cause. `about:blank` is where a page
+  // sits before `login` navigates it.
+  if (!page.url().startsWith('about:')) {
+    throw new Error(
+      'seedLists must be called before login — the client reads lists on ' +
+        'first paint, so seeding afterwards races it ' +
+        '(docs/specs/testing.md — seeding)',
+    )
+  }
+  await postFakeAdmin(page, {
+    credentials: credentialsFor(account),
+    reset: true,
+    lists,
+  })
+  // So the `login` that follows does not reset this away again.
+  seededAccounts.add(account)
+}
+
+/**
+ * Stage an upstream failure for the next `count` matching calls.
+ *
+ * `status: 0` means "could not reach the CalDAV server at all", which the
+ * BFF maps to the 502 the client reads as "keep the queue" — the honest
+ * reproduction of a server blip, staged at the gateway rather than
+ * intercepted at the browser.
+ *
+ * A spec that wants a specific HTTP status *at the client* should keep
+ * using `page.route` instead: that is a different boundary and a
+ * legitimate one (docs/specs/testing.md — staging an error state).
+ * *(added 2026-08-14, issue #54.)*
+ */
+/**
+ * The gateway methods a fault can name.
+ *
+ * A literal union rather than `string[]`, so a typo is a typecheck failure
+ * instead of a 400 from the admin route at run time. Mirrors
+ * `FAULT_OPERATIONS` (apps/server/src/caldav/fake-gateway.ts) — see the
+ * note on `SeedList` above for why the e2e package restates rather than
+ * imports it, and why the drift is self-correcting.
+ */
+export type FaultOperation =
+  | 'login'
+  | 'fetchLists'
+  | 'createList'
+  | 'renameList'
+  | 'setListProps'
+  | 'deleteList'
+  | 'fetchTodos'
+  | 'fetchTodo'
+  | 'createTodo'
+  | 'updateTodo'
+  | 'deleteTodo'
+
+export async function stageFault(
+  page: Page,
+  fault: {
+    operations: FaultOperation[]
+    status?: number
+    delayMs?: number
+    count?: number
+  },
+  user?: string,
+): Promise<void> {
+  await postFakeAdmin(page, {
+    credentials: credentialsFor(user ?? currentTestUser()),
+    faults: [fault],
+  })
+}
+
+/**
+ * End a staged outage — "the server is back".
+ *
+ * Drops every fault without touching the data. A spec can therefore fail
+ * writes for as long as it likes and then let them through at a moment it
+ * chooses, rather than picking a fault count that has to be tuned against
+ * the outbox's retry schedule — the machine-speed dependency CLAUDE.md
+ * warns about, and what makes an outage's *recovery* worth asserting.
+ * *(added 2026-08-14, issue #54.)*
+ */
+export async function clearFaults(page: Page, user?: string): Promise<void> {
+  await postFakeAdmin(page, {
+    credentials: credentialsFor(user ?? currentTestUser()),
+    clearFaults: true,
+  })
 }
 
 /**
@@ -140,6 +386,23 @@ export async function addTodo(page: Page, summary: string): Promise<void> {
  * the pill's fuller text, never the footer's plain "Syncing…" label; the
  * bare "Offline" branch intentionally also catches the footer's own
  * "Offline" label, via `.count()`, which tolerates matching both.)*
+ *
+ * **Unchanged by the move to a fake gateway, deliberately** — this is the
+ * one answer for all 56 call sites, and none of them needed editing.
+ * Issue #54 anticipated this helper becoming "a no-op or waiting on
+ * something else"; neither turned out to be necessary, because the fake
+ * replaces the BFF's *outbound* CalDAV calls rather than the API the
+ * browser talks to. The outbox still queues, still drains through real
+ * HTTP to the real router and real handlers, and still clears the pill
+ * when it is done — all that changes is that the gateway answers in ~1ms
+ * instead of contending for one shared Radicale. So the assertion this
+ * makes is exactly as true as before, and simply passes sooner.
+ *
+ * Had the suite mocked `/api/**` at the browser instead, there would be no
+ * outbox drain to wait for and this helper *would* have had to become a
+ * fiction — which is a good part of why that boundary was rejected
+ * (docs/architecture/e2e-fake-caldav-gateway.md).
+ * *(reviewed 2026-08-14, issue #54.)*
  */
 export async function waitForSync(page: Page): Promise<void> {
   const isIdle = async (): Promise<boolean> =>

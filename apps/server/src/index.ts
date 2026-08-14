@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createRouter } from './api/router'
+import type { Route } from './api/route'
 import { routes } from './api/routes'
 import { makeAttemptLimiter } from './auth/attempt-limit'
 import { parseAllowedHosts } from './caldav/allowed-hosts'
+import type { GatewayFactory } from './caldav/gateway'
 import { makeTsdavGateway } from './caldav/tsdav-gateway'
 import { loadConfig } from './config'
 import { makeUpdateChecker } from './version/check'
@@ -12,9 +14,46 @@ import { withSecurityHeaders } from './http/security-headers'
 import { resolveStaticPath } from './static/resolve-path'
 
 const config = loadConfig(process.env)
-const handleApi = createRouter(routes, {
+
+/**
+ * The gateway, and any routes that come with it.
+ *
+ * `CALDAV_FAKE` swaps the CalDAV conversation for an in-memory fake and
+ * adds the route that seeds it — for the e2e suite's mocked mode
+ * (docs/specs/testing.md, docs/architecture/e2e-fake-caldav-gateway.md).
+ *
+ * A **dynamic** import, and the only one in this file, so the fake and its
+ * admin route are not part of the module graph a production build loads:
+ * the flag is refused outright under `NODE_ENV=production` (config.ts), so
+ * this branch cannot be taken there, and the `await import` means the code
+ * is never even read. A static import would ship both modules into the
+ * image regardless.
+ *
+ * *(added 2026-08-14, issue #54.)*
+ */
+async function resolveGateway(): Promise<{
+  makeGateway: GatewayFactory
+  extraRoutes: Route[]
+}> {
+  if (!config.CALDAV_FAKE) {
+    return { makeGateway: makeTsdavGateway, extraRoutes: [] }
+  }
+  console.warn(
+    'CALDAV_FAKE is on — serving an in-memory fake CalDAV gateway and ' +
+      'the test-only seeding route. Never use this outside the e2e suite.',
+  )
+  const [{ makeFakeGateway }, { fakeAdmin }] = await Promise.all([
+    import('./caldav/fake-gateway'),
+    import('./api/testing/fake-admin'),
+  ])
+  return { makeGateway: makeFakeGateway, extraRoutes: [fakeAdmin] }
+}
+
+const { makeGateway, extraRoutes } = await resolveGateway()
+
+const handleApi = createRouter([...routes, ...extraRoutes], {
   config,
-  makeGateway: makeTsdavGateway,
+  makeGateway,
   // One checker for the process, so its cache is shared across requests
   // rather than rebuilt per call (docs/specs/releases.md).
   checkForUpdate: makeUpdateChecker({ enabled: config.CHECK_FOR_UPDATES }),

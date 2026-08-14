@@ -36,8 +36,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
-      # Same throwaway-container approach as the integration suite — see
-      # e2e/helpers/radicale-container.ts.
+      # The suite runs two app servers: one against a real Radicale (the
+      # `desktop-real` project, one spec) and one against the BFF's
+      # in-memory fake CalDAV gateway (everything else) — see
+      # docs/specs/testing.md. Both are started by Playwright's own
+      # `webServer` config, and the fake mode's `CALDAV_FAKE` env var is
+      # set there rather than here.
+      #
+      # Docker is still needed, but only for the real project's throwaway
+      # container — same approach as the integration suite, see
+      # e2e/helpers/radicale-container.ts. `global-setup.ts` skips starting
+      # it entirely when no project needs it.
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e

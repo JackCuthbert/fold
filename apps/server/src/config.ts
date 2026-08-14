@@ -68,12 +68,78 @@ const configSchema = z.object({
    * *(added 2026-08-11.)*
    */
   CALDAV_ALLOWED_HOSTS: z.string().default(''),
+  /**
+   * Replace the CalDAV gateway with an in-memory fake, and expose the
+   * test-only admin route that seeds it (docs/specs/testing.md — the two
+   * e2e modes).
+   *
+   * **For the e2e suite only.** It removes the CalDAV server entirely:
+   * every list and todo lives in process memory, dies with the process,
+   * and the admin route lets any caller rewrite it without signing in.
+   * A deployment that switched this on would be serving a todo app that
+   * silently forgets everything and lets strangers seed it.
+   *
+   * So unlike `ALLOW_INSECURE_COOKIE` and `CHECK_FOR_UPDATES` — which
+   * `.catch(false)` deliberately, because a stray value should shrug
+   * rather than cause an outage — this one is checked *and* cross-checked
+   * against `NODE_ENV` below, and refusing to boot is the correct
+   * outcome. The two flags above degrade a deployment; this one would
+   * hollow it out, and failing loudly at startup is the only way an
+   * operator finds out before their data does.
+   *
+   * *(added 2026-08-14, issue #54.)*
+   */
+  CALDAV_FAKE: z.stringbool().catch(false),
 })
 
 export type Config = z.infer<typeof configSchema>
 
+/**
+ * The second opt-in `CALDAV_FAKE` requires.
+ *
+ * Deliberately a sentence rather than a boolean: nobody sets this by
+ * accident, and nobody carries it into a deployment without noticing what
+ * they are typing.
+ */
+export const E2E_CONFIRMATION = 'i-am-running-the-e2e-suite'
+
 export function loadConfig(env: Record<string, string | undefined>): Config {
-  return configSchema.parse(env)
+  const config = configSchema.parse(env)
+  // Checked at the one place every entry point passes through.
+  //
+  // Refused under `NODE_ENV=production` — which the published image sets
+  // (Dockerfile) — *and* refused unless the caller also sets
+  // `CALDAV_FAKE_CONFIRM=i-am-running-the-e2e-suite`.
+  //
+  // The second condition is the one that does the real work. `NODE_ENV`
+  // defaults to `development`, and docs/specs/deployment.md actively
+  // describes self-hosters running without it set, so a `NODE_ENV` check
+  // alone would leave those deployments with no guard at all. Requiring a
+  // second, deliberately unwieldy value means `CALDAV_FAKE=1` on its own
+  // — the plausible typo, the copied-from-a-test compose line — fails
+  // closed everywhere rather than only in production.
+  //
+  // *(added 2026-08-14, issue #54.)*
+  if (config.CALDAV_FAKE) {
+    if (config.NODE_ENV === 'production') {
+      throw new Error(
+        'CALDAV_FAKE is a test-only switch and cannot be used with ' +
+          'NODE_ENV=production — it replaces the CalDAV server with an ' +
+          'in-memory fake and exposes an unauthenticated seeding route ' +
+          '(docs/specs/testing.md).',
+      )
+    }
+    if (env['CALDAV_FAKE_CONFIRM'] !== E2E_CONFIRMATION) {
+      throw new Error(
+        'CALDAV_FAKE replaces the CalDAV server with an in-memory fake ' +
+          'and exposes an unauthenticated seeding route. It is for the ' +
+          'e2e suite only. If that is genuinely what you want, also set ' +
+          `CALDAV_FAKE_CONFIRM=${E2E_CONFIRMATION} ` +
+          '(docs/specs/testing.md).',
+      )
+    }
+  }
+  return config
 }
 
 /**

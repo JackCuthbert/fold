@@ -66,7 +66,7 @@ packages/
   schemas/       Zod schemas + inferred types (the shared trust boundary)
   vtodo/         VTODO codec: parse / mutate-preserve / serialize (wraps ical.js)
   outbox/        Generic durable FIFO mutation queue (storage-injectable)
-e2e/             Playwright happy-path tests
+e2e/             Playwright happy-path tests (two modes — see testing.md)
 docs/
   specs/         Feature specifications (this directory)
   architecture/  Architecture decision docs, one per decision

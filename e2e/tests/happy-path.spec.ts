@@ -17,7 +17,14 @@ import {
   waitForSync,
 } from './helpers'
 
-test('login → create list → add → complete → delete', async ({ page }) => {
+// docs/specs/testing.md — the two e2e modes. *(changed 2026-08-14, issue
+// #54: these tests run against the BFF's in-memory fake CalDAV gateway.
+// The create→edit→complete→move→delete→reload journey that used to lead
+// this file is now `real-caldav.spec.ts`, the one spec that keeps a real
+// Radicale behind the BFF — everything below is about the client's own
+// behaviour and never needed one.)*
+
+test('a todo can be added, completed and deleted', async ({ page }) => {
   await login(page)
 
   const listName = uniqueName('groceries')
