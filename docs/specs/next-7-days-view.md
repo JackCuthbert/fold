@@ -116,20 +116,59 @@ metadata footer), so the extension was checked against that: the three
 comparisons are against distinct days, so nothing that used to fall through
 to the absolute branch stops doing so.
 
-### Empty days are omitted
+### Every day is drawn
 
-A day in the window with nothing due gets **no heading at all** — the view
-renders only days that have work, exactly as Summary does.
+All seven days in the window get a heading, **including the ones with
+nothing due**. An empty day carries a single quiet line reading **"Clear"**.
 
-*Rejected: a fixed seven-day skeleton*, every day always drawn, empty ones
-carrying a heading with nothing under them. The argument for it is real —
-it makes the *shape* of the week scannable, so "Thursday is clear" is
-readable at a glance rather than inferred from an absence. It loses on
-density: a quiet week is mostly empty headings, which is a screen of chrome
-reporting nothing, in a view whose whole complaint was that it was hard to
-scan. The absence of a heading already reads as "nothing that day" — that
-is what absence means — and this app's register is restraint
-([ui](./ui.md)).
+*(changed 2026-08-14. This spec previously said the opposite — empty days
+omitted, a fixed skeleton explicitly rejected — and the view was built that
+way and used for a day. The reversal comes from that use, so the original
+argument is kept below rather than deleted.)*
+
+The rejected-skeleton argument ran: a quiet week would be mostly empty
+headings, "a screen of chrome reporting nothing", and the absence of a
+heading already reads as "nothing that day" because that is what absence
+means. Both halves turned out to be wrong in practice, for the same reason.
+
+**Absence is not legible as information.** A missing Thursday and a Thursday
+you have not scrolled to look the same, and a week with work on Monday and
+Friday reads as two days of work rather than as two busy days with three
+clear ones between them. The gap has to be *drawn* to be counted.
+
+**The density cost was mispriced.** The view is not a list that empty days
+pad out; it is a week whose shape is the thing being read. Seven headings
+are the fixed structure the work is placed into, so a quiet week reads as
+quiet — which is a fact worth showing — rather than as a short view.
+
+This is what the view is for. Both uses named when reversing it were about
+the empty days specifically: seeing where there is room to schedule
+something, and seeing the days that are genuinely free.
+
+**"Clear", not "Nothing due".** Both are accurate. "Clear" reads as a day
+off rather than as an absence of data, which matches what an empty day means
+to someone planning a week.
+
+**An empty day shows no count.** The day heading carries a row count
+everywhere it has one, but a "0" beside a day already labelled "Clear" is
+the same fact twice — on precisely the days that should be the quietest
+thing in the view. A count earns its place by telling 1 from 7; at none
+there is nothing to tell apart. *(added 2026-08-14.)*
+
+The empty line is quieter than a row and quieter than the day heading above
+it — `--faint`, at `--text-sm`, on the rows' shared left edge
+([ui](./ui.md#spacing--rhythm) — one left edge). It holds a row's height so
+the week does not concertina as work moves between days. It is deliberately
+**not** a row: it has no checkbox column and nothing to open, so giving it a
+row's geometry would invite a click it cannot answer.
+
+**The skeleton is the view's rule, not the bucketing's.** `groupByDueDay`
+still yields only days that have work — Summary shares it and must keep that
+behaviour, since Summary's days are built *from* completed work and a day
+with none is not part of its window at all. Next 7 days lays its buckets
+over a separate `weekDays` skeleton, which is built from the same
+`NEXT_7_DAYS_SPAN` the selection is bounded by, so a heading can never
+appear that a todo could not land under.
 
 ### Health and Everything else, nested inside each day
 
@@ -286,14 +325,24 @@ row counts once in each, and the day counts sum to the header's.
 
 ## Empty
 
-**Nothing is drawn**, following [Tomorrow](./tomorrow-view.md#empty). The
-title names the view, the count line reads "No todos", and the badge beside
-the title explains what is gathered — a fourth sentence would restate what
-three elements already carry.
+**The seven days are still drawn**, each reading "Clear". A week with
+nothing in it is the same structure as any other week, with every day empty
+— see [every day is drawn](#every-day-is-drawn).
 
-With no days there are no day headings either, so an empty week is genuinely
-blank rather than seven empty sections — see
-[empty days](#empty-days-are-omitted).
+*(changed 2026-08-14: an empty week used to render nothing at all, which
+followed from empty days being omitted. That rule is gone, and this one went
+with it.)*
+
+The alternative — blanking the whole view once it happens to be completely
+empty — would make the view change *shape* at zero rather than change
+*content*, so the one week where "everything is clear" is the message would
+be the one week that shows no days. It would also be the only derived view
+whose layout depends on how much is in it.
+
+No extra empty-state sentence is added on top, following
+[Tomorrow](./tomorrow-view.md#empty): the title names the view, the count
+line reads "No todos", the badge explains what is gathered, and now seven
+"Clear" lines say it a fourth time. That is already more than enough.
 
 ## The list filter
 

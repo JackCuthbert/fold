@@ -7,6 +7,7 @@ import {
   isNext7DaysView,
   isTodayView,
   isTomorrowView,
+  NEXT_7_DAYS_SPAN,
   NEXT_7_DAYS_VIEW,
   selectNextWeek,
   selectToday,
@@ -15,6 +16,7 @@ import {
   SUMMARY_VIEW,
   TODAY_VIEW,
   TOMORROW_VIEW,
+  weekDays,
 } from './today'
 
 const NOW = new Date('2026-08-10T12:00:00')
@@ -495,9 +497,14 @@ describe('groupByDueDay', () => {
   })
 
   it('yields no day for a date nothing is due on', () => {
-    // Empty days are omitted rather than drawn as an empty heading
-    // (docs/specs/next-7-days-view.md — empty days). Nothing is due on the
-    // 12th, so there is no bucket for it at all.
+    // This function buckets work; it does not invent days. Nothing is due
+    // on the 12th, so there is no bucket for it at all.
+    //
+    // Next 7 days *does* draw that empty day, but the skeleton comes from
+    // `weekDays` layered over this result rather than from here — Summary
+    // shares this function and must keep omitting days it has no work for
+    // (docs/specs/next-7-days-view.md — every day is drawn).
+    // *(clarified 2026-08-14: this used to be the view's rule too.)*
     const items = [
       todo('eleventh', { due: { kind: 'date', value: '2026-08-11' } }),
       todo('thirteenth', { due: { kind: 'date', value: '2026-08-13' } }),
@@ -522,6 +529,56 @@ describe('groupByDueDay', () => {
       }),
     ]
     expect(groupByDueDay(items)[0]?.day).toBe('2026-08-10')
+  })
+})
+
+// docs/specs/next-7-days-view.md — every day in the window is drawn.
+describe('weekDays', () => {
+  const now = new Date('2026-08-10T09:00:00')
+
+  it('yields seven consecutive days starting with today', () => {
+    expect(weekDays(now)).toEqual([
+      '2026-08-10',
+      '2026-08-11',
+      '2026-08-12',
+      '2026-08-13',
+      '2026-08-14',
+      '2026-08-15',
+      '2026-08-16',
+    ])
+  })
+
+  it('starts on today whatever the time of day', () => {
+    // Late evening must not roll the window onto tomorrow — the window is
+    // calendar days, not an instant offset.
+    expect(weekDays(new Date('2026-08-10T23:30:00'))[0]).toBe('2026-08-10')
+  })
+
+  it('crosses a month boundary by the calendar, not by adding 31', () => {
+    expect(weekDays(new Date('2026-08-29T09:00:00'))).toEqual([
+      '2026-08-29',
+      '2026-08-30',
+      '2026-08-31',
+      '2026-09-01',
+      '2026-09-02',
+      '2026-09-03',
+      '2026-09-04',
+    ])
+  })
+
+  it('matches the days selectNextWeek admits, at both bounds', () => {
+    // The skeleton and the selection must agree, or the view would either
+    // draw a day nothing can land on or hold a todo with no day to sit in.
+    // Checked at both ends, since an off-by-one shows up only there.
+    const days = weekDays(now)
+    const first = todo('first', { due: { kind: 'date', value: days[0]! } })
+    const last = todo('last', { due: { kind: 'date', value: days.at(-1)! } })
+    const beyond = todo('beyond', {
+      due: { kind: 'date', value: '2026-08-17' },
+    })
+    const selected = selectNextWeek([first, last, beyond], now)
+    expect(selected.map((t) => t.uid)).toEqual(['first', 'last'])
+    expect(days).toHaveLength(NEXT_7_DAYS_SPAN)
   })
 })
 

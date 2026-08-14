@@ -294,6 +294,33 @@ export function groupByDueDay(todos: readonly Todo[]): DueDay[] {
 }
 
 /**
+ * Every day in the Next 7 days window, as `localDayOf` keys, soonest first
+ * (docs/specs/next-7-days-view.md — every day is drawn).
+ *
+ * The **skeleton**, which `groupByDueDay`'s result is layered over: that
+ * function buckets work and so yields only days that have some, while this
+ * view draws all seven regardless. Kept apart deliberately — Summary shares
+ * `groupByDueDay` and must keep omitting days it has no work for, so the
+ * "always seven" rule belongs to the view that wants it rather than to the
+ * bucketing both views use.
+ *
+ * Built with `addLocalDays` from the same `NEXT_7_DAYS_SPAN` that
+ * `selectNextWeek` bounds with, so the skeleton and the selection cannot
+ * drift: a day drawn here is exactly a day a todo can be selected into.
+ * Two independent constants would let the view grow an eighth heading
+ * nothing could ever land under.
+ *
+ * *(added 2026-08-14: empty days used to be omitted, and the view was hard
+ * to plan against — the shape of the week is what makes "Thursday is clear"
+ * readable rather than inferred from an absence.)*
+ */
+export function weekDays(now: Date): string[] {
+  return Array.from({ length: NEXT_7_DAYS_SPAN }, (_, offset) =>
+    localDayOf(addLocalDays(now, offset)),
+  )
+}
+
+/**
  * Order for the Today view: by resolved due instant, soonest first
  * (docs/specs/today-view.md — ordering), so overdue items lead.
  *
