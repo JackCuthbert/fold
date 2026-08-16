@@ -1,0 +1,65 @@
+/* The login artwork — see fold-artwork.tsx for why this is CSS over the
+   design tokens rather than an image file.
+
+   Every value here is a `color-mix()` against `--paper`, `--accent` or
+   `--ink`, so the field follows the active palette and mode
+   (styles/palettes.css) with no per-theme override. */
+
+.field {
+  position: relative;
+  height: 100%;
+  /* Clips the folds, which deliberately overhang the pane so neither one
+     ends inside it — a hairline that stops short reads as a drawn rule
+     rather than as the edge of a plane. */
+  overflow: hidden;
+  /* Three planes, with the transitions between them stretched over ~10%
+     rather than stepped. Soft enough that there is no locatable edge in
+     the wash itself; the folds below say where the sheet turns.
+
+     Off-axis (168deg rather than 180deg) so the tone travels diagonally
+     with the folds instead of across them. */
+  background: linear-gradient(
+    168deg,
+    color-mix(in srgb, var(--accent) 15%, var(--paper)) 0%,
+    color-mix(in srgb, var(--accent) 9%, var(--paper)) 30%,
+    color-mix(in srgb, var(--accent) 4%, var(--paper)) 40%,
+    color-mix(in srgb, var(--accent) 5%, var(--paper)) 62%,
+    color-mix(in srgb, var(--accent) 13%, var(--paper)) 74%,
+    color-mix(in srgb, var(--accent) 4%, var(--paper)) 100%
+  );
+}
+
+/* A fold: a hairline that fades out at both ends, so it reads as the crease
+   catching the light along its length rather than as a rule drawn edge to
+   edge. Overhangs the pane by 12% at each side, so the rotation never
+   exposes a bare corner. */
+.fold,
+.foldLower {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  height: 1px;
+  opacity: 0.5;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--ink) 18%, transparent) 22%,
+    color-mix(in srgb, var(--ink) 24%, transparent) 50%,
+    color-mix(in srgb, var(--ink) 11%, transparent) 82%,
+    transparent 100%
+  );
+}
+
+/* Both folds tilt the same way and by the same amount: the sheet is held at
+   an angle, not crumpled. 4° is enough to be unmistakably off level without
+   the seams reading as a graphic device — measured against 2° and 7°
+   alternatives before choosing. */
+.fold {
+  top: 34%;
+  transform: rotate(-4deg);
+}
+
+.foldLower {
+  top: 69%;
+  transform: rotate(-4deg);
+}

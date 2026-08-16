@@ -1,0 +1,131 @@
+/* docs/specs/ui.md — micro-interactions: switching lists fades the whole
+   pane in with a slight downward move. Applied here, on the parent, rather
+   than per row: animating each row made the parts arrive separately, like
+   a stagger of unrelated elements instead of one view. This covers the
+   active list and the completed accordion (header included) in a single
+   motion.
+   Keyed by list id in todo-pane.tsx so React remounts the pane — and so
+   replays this — on every list switch. Disabled under
+   prefers-reduced-motion by the global rule in global.css. */
+.pane {
+  display: flex;
+  flex-direction: column;
+  animation: pane-in var(--duration-slow) var(--ease);
+}
+
+@keyframes pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* docs/specs/ui.md — scrolling: "Add a todo" now lives in MainScreen's
+   sticky `.header`, alongside the title, rather than here inside TodoPane's
+   scrolling body — see add-todo-trigger.module.css for that button's
+   styles. The header's own bottom padding already provides the separation
+   from the list below (docs/specs/ui.md — clear separation between
+   quick-add and the list), so `.list` needs no extra top margin of its
+   own. */
+.list {
+  margin-top: 0;
+  /* Air between rows, now that no hairline separates them
+     (todo-item.module.css). Without the lines the rows read as one dense
+     block: the only thing between two summaries was the padding that
+     centres a single line in the hit area, which is enough when a rule
+     divides them and not nearly enough when nothing does.
+
+     A `gap` on the list rather than padding on the row, deliberately. The
+     row's own padding sets its height and its hit area — inflating that
+     to buy separation would make every row a bigger target than the 44px
+     it is designed around, and would stretch the hover wash to match. A
+     gap puts the space *between* the washes, where the eye reads it as
+     separation rather than as rows getting taller.
+     *(added 2026-08-11, issue #40.)* */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* docs/specs/list-kinds.md — health first: the ordinary rows' own heading,
+   the peer of the health section's (health-block.module.css). Same size
+   and weight, deliberately — they are two sections of equal standing, and
+   health's precedence is carried by being *first*, not by being louder.
+   Only the colour differs: health names a category and takes the category
+   colour; this one is the default group, so it stays neutral rather than
+   claiming a colour of its own. *(added 2026-08-11, issue #40.)* */
+.sectionHeading {
+  margin: 0 0 var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* Set off from the open todos above it. */
+.completed {
+  margin-top: var(--space-6);
+}
+
+/* ...but not when there are none. With everything ticked off, the list
+   above collapses to 0px (measured) and this margin separated the section
+   from nothing — a 24px hole under the header that read as a rendering
+   fault rather than as spacing.
+
+   `:empty` on the sibling rather than a prop from the pane: the question
+   is exactly "did anything render above me", which the DOM already knows
+   and no component has to compute or keep in step. It correctly does
+   *not* fire in a list view, whose `<ul>` always holds the "Add a todo…"
+   ghost row — there, something really is above the section.
+   *(fixed 2026-08-05.)* */
+.list:empty + .completed {
+  margin-top: 0;
+}
+
+.completedToggle {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  min-height: var(--hit-area);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.chevron {
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.completedToggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.completedList {
+  opacity: 0.75;
+}
+
+/* docs/specs/todos.md — clearing completed todos. A quiet text control at
+   the foot of the completed section, not a button with chrome: it is a
+   rare, destructive action that should be findable without advertising
+   itself. The weight it needs comes from the dialog it opens, which is
+   where the actual choice is made. *(added 2026-08-09, issue #1.)* */
+.clearCompleted {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  padding: var(--space-1) 0;
+  min-height: var(--hit-area);
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.clearCompleted:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.clearCompleted:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}

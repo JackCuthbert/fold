@@ -1,0 +1,586 @@
+/* docs/specs/lists.md — sidebar (desktop) / drawer (mobile). */
+/* Every glyph in the nav occupies this box — the icons are 16px, and the
+   colour dot is centred in the same footprint so all five rows put their
+   text on one left edge (see `.dot`). *(added 2026-08-04.)* */
+.nav {
+  --nav-glyph: 16px;
+  /* The gap from a row's left edge to its icon.
+     Wider than the --space-2 it was, because the selection marker claims
+     the first 4px of that edge: at 8px the icon sat right against the
+     marker on a selected row. Applied to every row including the create
+     buttons, which have no active state — an icon column that shifts by
+     row type is worse than one that is uniformly a little further in.
+     *(added 2026-08-04.)* */
+  --nav-inset: var(--space-3);
+  /* The mirror of --nav-inset on the trailing edge, where the shortcut
+     hints sit. The create buttons carry `.action`'s --space-4 padding
+     there, so their keycaps stopped 16px short while the views' stopped
+     8px short — visibly ragged down the right of the nav once every row
+     had a hint.
+
+     Two definitions of "aligned" conflict here and only one can hold: a
+     create button's 1px border means its painted edge sits 1px inside the
+     views', so caps cannot both end at the same x *and* keep the same gap
+     from the visible edge. This picks the same x — a column of keycaps is
+     what the eye actually follows down the nav, and a 1px difference in
+     the gap behind them is invisible by comparison.
+
+     So the views take --space-4 plus that border's width, matching where
+     a create button's cap lands rather than its padding value.
+     *(added 2026-08-04.)* */
+  --nav-inset-end: calc(var(--space-4) + var(--border-width));
+  /* One height for every row in the nav — create buttons, derived views
+     and list rows alike. They were 38.2, 38.5 and 40.5px, close enough to
+     look like a mistake rather than a rhythm.
+
+     `max()` against --hit-area so this can never drop a row below the
+     touch-target floor: that token is 34px on a mouse and 44px on touch
+     (tokens.css), so this is 38px on desktop and 44px on a phone.
+     *(added 2026-08-04.)*
+
+     One exception since 2026-08-14: the derived views take --hit-area
+     directly on a fine pointer, which is 4px shorter. See `.today`'s media
+     query, which explains why the group needed the room and why the
+     exception cannot be spent on this token instead. */
+  --nav-row: max(38px, var(--hit-area));
+}
+
+.nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* The derived views as one group above the collections. Separated from
+   what is around them by space alone: the `.create` block above carries a
+   --space-4 bottom margin, and the `.separator` below owns --space-4
+   either side of itself. Both are untouched by the gap below.
+
+   **Flush rows, no gap between them.** They were --space-2 apart from
+   2026-08-03, on the reasoning that ghost buttons with no chrome would
+   otherwise read as one block of text rather than several controls. With
+   two rows that was true; with five it is not — 8px between every pair
+   spread the group over 190px and pushed the lists themselves below the
+   fold on a short window, which is a worse failure than the one the gap
+   was preventing. And the argument had already been overtaken: these rows
+   grew a hover wash and a selected marker, so each is visibly its own
+   control the moment a pointer is near it, without needing air around it
+   to say so. The list rows below sit --space-1 apart for the same reason
+   and read fine.
+   *(changed 2026-08-14: was --space-2, with five views in the group.)* */
+.views {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  /* No bottom margin: the separator below owns the space between the
+     derived views and the real lists. *(changed 2026-08-04.)* */
+}
+
+/* The break between "views of your todos" and "the lists they live in" —
+   the one real division in the nav, so it gets a mark rather than only
+   space. Deliberately short and centred rather than a full-width rule: a
+   rule edge to edge reads as a hard section break in a column that is
+   otherwise one continuous list, and this is a pause, not a wall.
+   *(added 2026-08-04.)* */
+.separator {
+  /* Space either side, more than the gap between rows in a group, so the
+     division is legible from the rhythm alone. */
+  margin: var(--space-4) auto;
+  width: 40px;
+  height: var(--border-width);
+  background: var(--line);
+  border: none;
+}
+
+/* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
+   reads as a different kind of thing from a list: a view, not a collection.
+   Each is a **ghost button** — link appearance only, no background, border
+   or shadow — which is what sets them apart from everything else in the
+   nav: list rows are segmented buttons with real chrome, and "+ New list"
+   and Save/Create carry the shared `action` treatment. These borrow
+   neither.
+   *(changed 2026-08-02: Today previously composed `action default
+   navAction`, which made a derived view look like just another button, with
+   a divider doing the work of distinguishing it. Ghost styling distinguishes
+   it on its own, so the divider is gone and the gap below is wider instead —
+   separation by space, not by a line.)*
+   No kebab: there is nothing on the server to rename or delete.
+   Shared by both views; the class name predates Summary. */
+.today {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  /* --nav-row by default, overridden below where a mouse is doing the
+     pointing — see the media query after this rule. */
+  height: var(--nav-row);
+  /* Matches `.link`'s row box below, so the icon and label sit on the same
+     left edge as the list rows (docs/specs/ui.md — one left edge). The
+     leading value comes from --nav-inset, less this row's own transparent
+     hairline. */
+  padding: var(--space-2) var(--nav-inset-end) var(--space-2)
+    calc(var(--nav-inset) - var(--border-width));
+  font-size: var(--text-base);
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  /* One transparent hairline, the same inset the create buttons above
+     carry from their own border — so every icon in the nav sits on one
+     left edge. The selection marker is drawn *over* this edge by
+     `.todayActive::before` rather than reserving 4px here, which used to
+     push these two rows 3px right of "New todo" and "New list".
+     *(changed 2026-08-04: was `var(--space-1) solid transparent`.)* */
+  border-left: var(--border-width) solid transparent;
+  position: relative;
+  transition:
+    color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+/* Shorter rows for the derived views — and **only** on a pointer that can
+   afford it.
+
+   The group is five rows now and it was pushing the lists down the nav.
+   --nav-row cannot come down to fix that: it is shared by every row in the
+   nav, and its `max(38px, var(--hit-area))` is what guarantees a 44px
+   touch target on a phone (tokens.css). Lowering it there would trade a
+   usability floor for tidiness, which is not a trade available
+   (docs/specs/ui.md — controls & touch targets).
+
+   So the reduction is scoped two ways: to these rows alone, and to
+   `hover: hover` and `pointer: fine` together — the same pair the shortcut
+   hints use below, and for the same reason (a stylus reports fine without
+   hover, and some Android browsers claim hover on a coarse pointer). Where
+   it applies, --hit-area is 34px and this lands exactly on it: 38px → 34px
+   per row, and the floor is still the floor rather than a number chosen by
+   eye. Touch keeps all 44px, untouched.
+
+   Measured, not guessed: the group went 190px → 170px, and with the gap
+   above going to 0 as well, 222px → 170px overall — 52px back, close to
+   one and a half list rows.
+   *(added 2026-08-14.)* */
+@media (hover: hover) and (pointer: fine) {
+  .today {
+    height: var(--hit-area);
+  }
+}
+
+/* docs/specs/ui.md — hover is a whisper: the same faint wash the list rows
+   use, so a ghost control still acknowledges the pointer. */
+.today:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+}
+
+/* Focus changes the border colour only, never an outline — an outline
+   would be clipped by the nav's scroll container (docs/specs/ui.md). */
+.today:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
+/* Selected state matches a selected list row exactly (see `.linkActive`):
+   accent ink, medium weight, and the same leading marker — so "which view
+   am I in" reads identically whether it's Today or a list. */
+.todayActive {
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+/* The same marker a selected list carries (`.itemActive::before`), drawn
+   over the row's left edge rather than reserved in the layout — so
+   selecting a view never shifts its icon. *(changed 2026-08-04.)* */
+.todayActive::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--border-width) * -1);
+  width: var(--space-1);
+  background: var(--accent);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+/* docs/specs/ui.md — the nav: the row is a segmented button — the name
+   and the kebab read as one control split into two segments, a shared
+   outer shape with a hairline divider between them, not an icon floating
+   over a row. `.item` supplies that shared shape (border, radius,
+   background); `.link` and the kebab trigger (list-item-menu.module.css)
+   sit inside it with square abutting inner corners and no border/radius
+   of their own, so only the outer corners round. `overflow: hidden` clips
+   both segments' backgrounds to the outer radius. */
+/* docs/specs/ui.md — buttons carry a very slight shadow. It goes on the
+   segmented shell rather than on `.link`/the kebab inside it: those are two
+   halves of one control, so a shadow on each would draw a seam down the
+   middle. */
+.item {
+  display: flex;
+  align-items: stretch;
+  /* A uniform hairline the whole way round, active or not. The marker is
+     drawn *over* the left edge by `.itemActive::before` rather than being
+     a wider border on this element: reserving 4px unconditionally made an
+     inactive row visibly lopsided, and colouring that same 4px when
+     active read as a fat edge rather than the clean marker the derived
+     views carry. A pseudo-element needs no reserved space, so nothing
+     reflows and nothing looks wrong at rest.
+     *(changed 2026-08-04: was `border-left-width: var(--space-1)`.)* */
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-button);
+  /* The marker is positioned against this box. */
+  position: relative;
+  /* Reserves the marker's width so the dot and name sit on the same left
+     edge as Today's and Summary's icons, which carry an equivalent
+     transparent border (`.today`). Without it a list row's content sat
+     3px left of the views above it — measured, not eyeballed.
+     Transparent padding rather than a border: the marker is drawn over
+     this space by `::before`, and a real border would sit *outside* it.
+
+     *(removed 2026-08-04: the views no longer reserve marker space
+     either, so reserving it here pushed list rows 3px right of the create
+     buttons. Every row now carries one hairline and nothing more; the
+     marker is painted over it.)* */
+  /* `overflow: hidden` used to clip the segmented button's backgrounds to
+     the outer radius — but it also clipped the marker, which is offset
+     outward by the border width, back inside the hairline. That is the
+     inset this whole change removes. `clip-path` to the border box keeps
+     the corners honest without cropping anything drawn on the border
+     itself. *(changed 2026-08-04.)* */
+  clip-path: inset(0 round var(--radius-sm));
+}
+
+/* docs/specs/ui.md — the nav: selecting a list looks like selection, not
+   hover. The marker sits inside the row's border box and runs its full
+   height, matching the derived views' own left edge exactly.
+
+   The colour arrives as `--marker`, set inline on `.itemActive` by
+   `markerColor` (lists/list-color.ts) — which hands back --accent when a
+   list's own colour would vanish against the paper. A custom property
+   rather than `background: inherit`, which would pick up the row's own
+   background instead; the fallback keeps the marker visible if the
+   property is ever missing. */
+.itemActive::before {
+  content: '';
+  position: absolute;
+  /* Negative insets pull the marker out over the border. An absolutely
+     positioned box is placed against the *padding* box, so at `0` it sat
+     inside the 1px hairline — a sliver of --line down its left, and the
+     marker stopping short of the corners. That is the same inset this
+     change set out to remove. Offsetting by the border width puts it on
+     the border box instead, so it owns the row's left edge outright.
+     *(fixed 2026-08-04.)* */
+  inset-block: calc(var(--border-width) * -1);
+  inset-inline-start: calc(var(--border-width) * -1);
+  /* Exactly --space-1, the same 4px the derived views' own left border
+     draws (`.today`), so a selected list and a selected view carry an
+     identical marker. It starts 1px outside the padding box (see the
+     insets above), which puts it over the row's border rather than inside
+     it — the row's reserved padding is 1px narrower to match, so the
+     content still lands on the shared left edge.
+     *(fixed 2026-08-04: was 5px, border width plus the reserved space.)* */
+  width: var(--space-1);
+  background: var(--marker, var(--accent));
+  /* Above the row's own background, below its content. */
+  z-index: 1;
+}
+
+/* docs/specs/ui.md — the nav: list rows are full width — the name takes
+   the row and is never squeezed by inline controls. Only the kebab menu
+   trigger (list-item-menu.module.css) sits at the row's right edge, kept
+   visually small so this still gets nearly the full row. */
+.link {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  /* Padding, not a clip edge flush against the text: this row already has
+     leading padding, so a glyph's ink overhang (an "A" leans left past
+     its origin) has room and `overflow: hidden` can't shave it. See
+     --ink-overhang in tokens.css for rows that don't have that luxury.
+
+     Vertical: the shell around this row carries a 1px border top and
+     bottom that no other nav row has, which made list rows 2px taller
+     than the views and the create buttons. Taking that back here keeps
+     every row the same height without giving up the row's outline.
+
+     Leading: --nav-inset, the shared left edge every nav row uses. This
+     row's shell contributes 1px of it. *(changed 2026-08-04.)* */
+  padding: calc(var(--space-2) - var(--border-width)) var(--space-2)
+    calc(var(--space-2) - var(--border-width))
+    calc(var(--nav-inset) - var(--border-width));
+  font-size: var(--text-base);
+  height: calc(var(--nav-row) - var(--border-width) * 2);
+  display: flex;
+  align-items: center;
+  /* Space between the colour dot and the name (see `.dot`). */
+  gap: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* No marker here any more — it is `.item`'s own left border, so it can
+     reach the row's rounded corners instead of sitting inside the grey
+     shell. *(moved 2026-08-04.)* */
+}
+
+/* docs/specs/ui.md — the nav: selecting a list looks like selection, not
+   hover. A background fill (the previous treatment) used the same --line
+   token a hover fill would, so the active row read as a stuck hover state
+   rather than a distinct selected state. Hover now darkens the row
+   slightly (a lighter, transient cue); active carries weight, accent ink
+   and a leading marker instead — three signals that don't overlap with
+   hover at all, so the two stay visibly different at every moment (hover
+   *on* the active row simply adds its own faint fill on top).
+   *(changed 2026-08-01.)* */
+/* docs/specs/ui.md — hover is a whisper: a barely-there wash, not a fill
+   that reads as the row changing state. *(softened 2026-08-01: was 55% of
+   --line, which competed with the active row's own treatment.)* */
+.link:hover {
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  transition: background-color var(--duration-fast) var(--ease);
+}
+
+/* The selected row's ink and weight. The marker itself is `.itemActive`
+   on the shell above. */
+.linkActive {
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+/* docs/specs/lists.md — colours: an 8px dot before the name, in every
+   state. Reuses the status dot's vocabulary (status-dot.module.css) so
+   this costs no new visual concept. The dot answers "which list is
+   this?"; the left marker answers "which one am I in?" — two questions,
+   two signals, deliberately kept apart.
+   The circle itself lives in list-dot.module.css, shared with the list
+   title in the main pane so the two can't drift. This keeps the nav's own
+   8px default (--dot-size unset). *(extracted 2026-08-03.)* */
+/* The dot is 8px where every other row's glyph is a 16px icon, so on its
+   own it pulled a list's name 8px left of "Today" and "New todo". Centred
+   in an icon-sized box instead: the dot keeps its size — it is meant to be
+   a quiet marker, not an icon — and every name in the nav starts on the
+   same left edge. *(added 2026-08-04.)* */
+/* A 16px footprint, matching every other glyph in the nav, with the dot
+   itself painted at the 8px the footer's status dot uses — the two are
+   the same mark and must read as the same size.
+
+   Drawn as a pseudo-element rather than by insetting this box: `composes`
+   places the shared rule *after* anything declared here, so `width` and
+   `background-clip` were both being reset by it — the dot painted the
+   full 16px. A child element is outside that fight entirely.
+   *(added 2026-08-04.)* */
+.dot {
+  /* Declared here rather than composed from list-dot.module.css: that
+     rule paints a `background` across the whole box, which is the wrong
+     shape once the footprint is 16px and the dot is 8px. The shared rule
+     still serves the footer and the list title, where box and dot are the
+     same thing. */
+  width: var(--nav-glyph);
+  height: var(--nav-glyph);
+  flex: none;
+  position: relative;
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--marker);
+}
+
+/* docs/specs/list-kinds.md — the sparkle marking a list whose name Fold
+   recognises. A marker, not a control: the explanation lives on the badge
+   beside the list's own title, because every nav row is one button and
+   nothing else.
+
+   At the row's trailing edge, not against the name: beside the name it
+   moved with the text, so it landed in a different place on every row and
+   read as punctuation rather than as a marker. Pinned right, it forms its
+   own column down the nav — one glance says which lists have it.
+   *(changed 2026-08-05: was immediately after the name.)*
+
+   `flex: none` because `.link` is a flex row whose name ellipsises — a
+   shrinkable glyph would be squashed to nothing by a long list name
+   rather than pushing the ellipsis earlier, which is the wrong thing to
+   lose. Faint, and inheriting the row's ink when selected, so it reads as
+   an annotation rather than a second dot competing with the colour one.
+   *(added 2026-08-05, issue #27.)* */
+.sparkle {
+  flex: none;
+  /* Pushes off the name and onto the trailing edge. */
+  margin-inline-start: auto;
+  color: var(--faint);
+}
+
+.linkActive .sparkle {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* No colour set: an unfilled ring at the same size, not an absence. */
+.dotEmpty {
+  box-shadow: none;
+}
+
+.dotEmpty::after {
+  background: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--faint);
+}
+
+/* docs/specs/ui.md — focus changes the border colour only, never an
+   outline: global.css's fallback :focus-visible outline would get clipped
+   by `.item`'s new `overflow: hidden` (added for the segmented row's
+   rounded corners), same as it would in a sheet or sidebar. An inset
+   box-shadow reads as a border without affecting layout or box size. */
+.link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. "+ New
+   list" is an action (it opens the create-list modal), not a nav row, so
+   it gets the shared button treatment like Save/Cancel/Add elsewhere —
+   unlike .link (list rows) and the kebab trigger (list-item-menu.module.css)
+   above, which stay chromeless nav-item controls.
+   docs/specs/ui.md — controls & touch targets: "+ New list" and the nav
+   footer's Settings button are both full-width nav actions and must look
+   the same, so both compose the shared `navAction` class (styles/
+   button.module.css) rather than declaring width/justify-content here —
+   the two had quietly diverged before. */
+/* Same leading inset as every other nav row, even though a create button
+   has no active state to reserve for: an icon column that shifts by row
+   type is worse than one uniformly a little further in. */
+.add {
+  composes: action default navAction from '../../styles/button.module.css';
+}
+
+/* The two "create something" actions, grouped at the top of the nav.
+   They were split — New todo above the derived views, New list below the
+   whole list — which made two buttons doing the same kind of thing look
+   unrelated. Together they read as one place to start something.
+   *(grouped 2026-08-04.)* */
+.create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* "New todo" — the global add path (issue #15). Given the accent fill
+   rather than the neutral default: it is the most frequent action in the
+   app, and New list beside it is the rarer companion, so the pair carries
+   its own hierarchy. *(added 2026-08-04.)* */
+/* `.action` gives these a 1px border the views and list rows don't have,
+   which pushed their icons 1px further in. Taken back so every row in the
+   nav starts its icon on the same edge.
+
+   Height comes from `--nav-row`, not from padding: the four row types
+   have different intrinsic content (a 16px icon, a serif label, a
+   segmented shell) and no arithmetic on padding makes them agree. One
+   explicit minimum does, and it survives a change to any of them.
+   *(added 2026-08-04.)* */
+.newTodo,
+.add {
+  padding-inline-start: calc(var(--nav-inset) - var(--border-width));
+  /* The full row height: these carry `box-sizing: border-box` from the
+     global reset, so their 1px border is already inside it — subtracting
+     it here made them 2px short of the rows below. */
+  height: var(--nav-row);
+}
+
+.newTodo {
+  composes: action primary navAction from '../../styles/button.module.css';
+}
+
+/* The chord, on the face of a create button (docs/specs/ui.md — keyboard
+   shortcuts: a shortcut nobody knows about may as well not exist).
+
+   `margin-left: auto` pushes it to the trailing edge, so the icon and
+   label keep the nav's shared left edge and the hint reads as an
+   annotation rather than part of the label.
+
+   Set at the *label's* size rather than shrunk to --text-xs: a hint that
+   needs squinting at is not a hint, and the two sat side by side looking
+   mismatched. The caps carry their own smaller scale internally
+   (shortcut-keys.module.css), so this only has to place them.
+   *(changed 2026-08-04.)* */
+.navKey {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: inherit;
+  /* Hidden until asked for. Five permanent keycaps down the nav is a lot
+     of chrome on a page built on restraint, and a hint you have already
+     learned is just noise. It appears on hover, or — better — whenever
+     Ctrl is held, which reveals every binding at once at exactly the
+     moment you are asking the question (use-modifier-held.ts).
+
+     `visibility` rather than `display`, so the caps still occupy their
+     space: revealing them must not reflow the row's label.
+     *(added 2026-08-04.)* */
+  visibility: hidden;
+  /* Washed out even when shown — a hint should sit behind the label it
+     annotates, not compete with it. */
+  opacity: 0.55;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+
+/* Only where there is a keyboard to press. A touch device has no Ctrl to
+   hold and no hover to trigger the reveal, so the caps would be dead
+   weight taking room from the label — and on a phone the nav is a drawer
+   where width is scarcest. `hover: hover` and `pointer: fine` together
+   rather than either alone: a stylus reports fine-but-no-hover, and some
+   Android browsers claim hover on a coarse pointer.
+   *(added 2026-08-04.)* */
+@media (hover: hover) and (pointer: fine) {
+  /* Hovering the row it belongs to, or holding the modifier anywhere. */
+  .newTodo:hover .navKey,
+  .newTodo:focus-visible .navKey,
+  .add:hover .navKey,
+  .add:focus-visible .navKey,
+  .today:hover .navKey,
+  .today:focus-visible .navKey,
+  .navKey[data-revealed] {
+    visibility: visible;
+  }
+
+  /* Holding Ctrl is a deliberate question, so answer it at full strength —
+     hover is incidental and stays dimmer. */
+  .navKey[data-revealed] {
+    opacity: 0.8;
+  }
+
+  /* New todo's cap is the exception: always on.
+     Its binding is the one modifier-less shortcut (shortcuts.ts — N), so
+     the Ctrl-held reveal that advertises every other chord can never show
+     it — hold Ctrl and N is precisely the thing that is *not* being
+     described. Hover alone would leave the app's most-used action the
+     only one you cannot discover without opening Help. One permanent cap
+     is a fair price; the argument against five still stands.
+     *(added 2026-08-14.)*
+
+     At full strength, and unchanging. The dimmed 0.55 exists so a cap
+     that *appears* on hover does not arrive at full contrast; this one
+     never appears, it is simply there, so the fade has nothing to soften
+     — and brightening it on hover made a permanent label flicker at a
+     pointer that was on its way somewhere else.
+     *(fixed 2026-08-14, found in review.)* */
+  .newTodo .navKey,
+  .newTodo:hover .navKey,
+  .newTodo:focus-visible .navKey,
+  .newTodo .navKey[data-revealed] {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* Touch: not merely hidden but gone, so the label gets the width back. */
+@media not all and (hover: hover) and (pointer: fine) {
+  .navKey {
+    display: none;
+  }
+}

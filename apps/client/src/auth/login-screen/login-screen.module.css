@@ -1,0 +1,224 @@
+/* The login screen — docs/specs/authentication.md (login),
+   docs/specs/ui.md (login: server URL, username, password).
+
+   *(redesigned 2026-08-10: was a 22rem column floated 15dvh down an
+   otherwise empty page. At a desktop width that read as an unfinished
+   page rather than a considered one — the form occupied about a tenth of
+   the viewport and nothing else was there. It is now a full-screen split:
+   artwork on one half, the app's mark, a short blurb and the form on the
+   other.)*
+
+   Mobile-first, per docs/specs/ui.md: the rules below describe the phone,
+   and the split only appears once there is width for it. */
+
+.page {
+  /* `100%` rather than `100dvh`: `#root` is already exactly the viewport
+     height and absorbs the safe-area insets (styles/global.css), so
+     measuring the viewport again here would add the insets a second time
+     and push the bottom of the form under the home indicator. */
+  height: 100%;
+  display: grid;
+  /* One column on a phone. The artwork half is not rendered as a second
+     row — see `.canvas` — so the form owns the whole screen. */
+  grid-template-columns: 1fr;
+}
+
+/* ---- The image half ---------------------------------------------------- */
+
+.canvas {
+  /* Hidden on a phone rather than collapsed to a band. A decorative strip
+     above a form is exactly the chrome docs/specs/ui.md removes elsewhere
+     ("no top bar at all"), and on a 390x844 screen every pixel it took
+     would come off the form. It returns at `.page`'s split below, where
+     there is width to spend on it. */
+  display: none;
+  position: relative;
+  overflow: hidden;
+  /* No background of its own: FoldArtwork fills the half edge to edge with
+     the gradient field, and a tint here would sit under it and shift every
+     stop. *(changed 2026-08-10: was a flat 7% accent wash behind a
+     centred drawing.)* */
+  /* The hairline between the halves is the same line weight and colour as
+     every other divider in the app (docs/specs/ui.md — restrained
+     chrome). */
+  border-inline-end: var(--border-width) solid var(--line);
+}
+
+/* ---- The form half ----------------------------------------------------- */
+
+.panel {
+  display: flex;
+  /* Centred in its own half, not on the page: the form half is the whole
+     screen on a phone and half of it on desktop, and this rule is the
+     same in both cases. */
+  align-items: center;
+  justify-content: center;
+  /* The panel is the scroller when the viewport is shorter than the
+     content — a landscape phone, or a desktop window dragged short. The
+     artwork half never scrolls, so the two halves cannot drift apart. */
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-4);
+  min-width: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  /* The gap between the three blocks — intro, form, footnote. Larger than
+     the gap *within* each block (`.form`'s own gap), so the page reads as
+     three groups rather than nine evenly spaced lines. */
+  gap: var(--space-8);
+  width: 100%;
+  /* A measure, not a stretch: at 1280px the form half is 640px wide, and a
+     field stretched across all of it would be a worse target than a
+     comfortable column. Narrower than the app's `--measure` (34rem)
+     because a form is scanned rather than read. */
+  max-width: 23rem;
+  min-width: 0;
+}
+
+/* ---- Mark, heading, blurb ---------------------------------------------- */
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink);
+}
+
+.wordmark {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  /* The wordmark is a name, not a heading, so it takes the tightest
+     tracking on the page and lets the sentence beneath it carry the
+     size. */
+  line-height: var(--line-tight);
+}
+
+/* The one genuinely large piece of type on the page. docs/specs/ui.md's
+   scale tops out at 18px because it describes a dense list of todos; a
+   login screen is a single sentence on an empty half-page, and at 18px it
+   read as a form label rather than as the app speaking. It steps up with
+   the viewport instead of taking a fixed size, so the phone keeps the
+   scale's proportions and the desktop gets the presence the empty half
+   affords. */
+.heading {
+  font-size: 1.5rem;
+  font-weight: var(--weight-regular);
+  line-height: var(--line-tight);
+  /* The heading is a sentence, so it wants prose spacing: slightly tighter
+     than default tracking at this size, which is where a serif starts to
+     look loose. */
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  /* A sentence that breaks after "kept on" reads as two thoughts. This
+     keeps the wrap balanced across however many lines it takes. */
+  text-wrap: balance;
+}
+
+.blurb {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+/* ---- The form ---------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  /* docs/specs/ui.md — spacing between form controls is uniform: one gap
+     between every field. */
+  gap: var(--space-4);
+}
+
+.submitError {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.submit {
+  composes: action primary from '../../styles/button.module.css';
+  width: 100%;
+  /* A little more air above the affirmative action than between the
+     fields, so it reads as the end of the form rather than a fourth
+     field. `.action`'s own min-height keeps the target size. */
+  margin-top: var(--space-2);
+}
+
+/* Dev-only convenience for the local compose stack — secondary to Sign in
+   so it never competes with the real action (see login-screen.tsx). */
+.demo {
+  composes: action default from '../../styles/button.module.css';
+  width: 100%;
+}
+
+.footnote {
+  font-size: var(--text-xs);
+  line-height: var(--line-normal);
+  color: var(--faint);
+  text-wrap: pretty;
+}
+
+/* ---- The split --------------------------------------------------------- */
+
+/* 768px is the app's existing desktop threshold (docs/specs/ui.md — the
+   nav may stay pinned open at >=768px), so the login page changes shape at
+   the same width the rest of the app does rather than introducing a
+   breakpoint of its own.
+
+   The halves are deliberately not 50/50 at every width: the form needs a
+   fixed comfortable column, and the artwork should take whatever is left,
+   so a wide monitor grows the picture rather than stretching the form's
+   padding. Below 1200px they share the width evenly. */
+@media (min-width: 768px) {
+  .page {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .canvas {
+    display: block;
+  }
+
+  .panel {
+    padding: var(--space-8);
+  }
+}
+
+@media (min-width: 1200px) {
+  .page {
+    /* The form half stops growing; the artwork takes the rest. */
+    grid-template-columns: 1fr 34rem;
+  }
+
+  .heading {
+    font-size: 1.75rem;
+  }
+}
+
+/* The foot of the form column: the reassurance line and the palette dots,
+   on one row. The dots sit at the trailing edge so they are findable
+   without ever being in the way of the reading. *(added 2026-08-10.)* */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.foot .footnote {
+  flex: 1 1 18rem;
+  min-width: 0;
+}

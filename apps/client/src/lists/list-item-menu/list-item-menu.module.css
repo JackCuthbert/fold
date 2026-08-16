@@ -1,0 +1,82 @@
+/*
+ * docs/specs/ui.md — the nav: the row is a segmented button — the name
+ * and the kebab read as one control split into two segments by a hairline
+ * divider, sharing list-nav.module.css's `.item` outer border/radius
+ * rather than the kebab floating, chromeless, over a plain row. *(changed
+ * 2026-07-31: an earlier pass rejected segmenting as chrome the row
+ * shouldn't have; the owner has since asked for it explicitly. The
+ * divider is kept to a single hairline border-left in `--line` — the same
+ * quiet colour every other divider in the app uses — so it reads as
+ * restrained rather than decorative.)*
+ *
+ * Always visible on every pointer type — never hover-revealed (docs/specs/
+ * ui.md — controls are always visible, never hover-revealed; applies to
+ * per-row menus in particular). Kept visually small (a fixed hit-area
+ * width, not flex: 1) so the name segment still gets nearly the full row.
+ * Faint-by-default (not full ink) keeps it quiet at rest while still
+ * discoverable without hovering; hover/focus darken it to signal
+ * interactivity.
+ *
+ * *(quietened 2026-08-03: was --muted at opacity 0.6, which still read
+ * louder than a secondary control should. Now --faint at full opacity —
+ * one signal for "quiet" rather than two compounding ones. Dimming --faint
+ * by a further 0.6 would have taken it near-invisible on both papers,
+ * which is why the opacity goes rather than the colour staying.)*
+ */
+.trigger {
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  flex: none;
+  border-left: var(--border-width) solid var(--line);
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+/* The kebab is the other half of the same segmented control as the list
+   title, so its hover must be the identical wash — a solid --line fill
+   here made one half of one button look markedly heavier than the other
+   (docs/specs/ui.md — hover is a whisper). */
+.trigger:hover,
+.trigger[data-popup-open] {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+/* docs/specs/ui.md — focus changes the border colour only, never an
+   outline: global.css's fallback :focus-visible outline would get clipped
+   by list-nav.module.css's `.item`, whose `overflow: hidden` clips both
+   segments to the row's rounded corners. An inset box-shadow reads as a
+   border without adding layout width, same treatment as `.link` beside
+   it. */
+.trigger:focus-visible {
+  color: var(--ink);
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
+.positioner {
+  z-index: var(--z-popover);
+}
+
+/* The shared menu look (styles/menu.module.css) — the popup, the items and
+   their states. Extracted there on 2026-08-11 when the todo row's context
+   menu started sharing it: `composes` across a domain boundary *copies*
+   the rules rather than referencing them, so the two menus were rendering
+   from two independent sets and a fix to one did not reach the other. */
+.popup {
+  composes: popup from '../../styles/menu.module.css';
+}
+
+.item {
+  composes: item from '../../styles/menu.module.css';
+}
+
+.destructive {
+  composes: destructive from '../../styles/menu.module.css';
+}

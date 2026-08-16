@@ -1,0 +1,117 @@
+/* docs/specs/themes.md — the login screen's palette picker.
+   *(added 2026-08-10.)*
+
+   Quiet by construction: signing in is the only thing that screen is for,
+   so this reads as a footnote control rather than a second form field.
+
+   **A tint, never an outline.** A bordered trigger reads as an empty input
+   — exactly what it must not be beside three real ones — and a ghost that
+   grows a border on hover makes the control *appear* rather than respond.
+   So the ground is present at rest and simply deepens on hover, which is
+   the app's own "hover is a whisper" treatment (docs/specs/ui.md).
+   *(changed 2026-08-10.)* */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-1) var(--space-3);
+  background: color-mix(in srgb, var(--line) 32%, transparent);
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--muted);
+  font: inherit;
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+/* Hover and open are the same state: the popup being open is a kind of
+   hover that outlasts the pointer, and giving it a third appearance would
+   make the trigger change twice on the way to one action. Base UI sets
+   `data-popup-open` on the trigger while the listbox is showing. */
+.trigger:hover,
+.trigger[data-popup-open] {
+  background: color-mix(in srgb, var(--line) 60%, transparent);
+  color: var(--ink);
+}
+
+/* An outline only on keyboard focus, where there is no other cue — the one
+   case a border earns its cost. */
+.trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--ink);
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--faint);
+}
+
+.positioner {
+  z-index: var(--z-popover);
+}
+
+.popup {
+  min-width: 12rem;
+  padding: var(--space-1);
+  background: var(--surface);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.12));
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+}
+
+/* The family name — quieter than an item, since it labels rather than
+   selects (theme.ts — PALETTE_GROUPS). */
+.groupLabel {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--faint);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.item[data-highlighted] {
+  background: color-mix(in srgb, var(--line) 40%, transparent);
+}
+
+.item[data-selected] {
+  color: var(--accent);
+}
+
+/* The trailing glyph on Catppuccin — pushed to the far edge so it never
+   sits between the name and the next item's name. */
+.mark {
+  margin-inline-start: auto;
+  flex: none;
+  color: var(--muted);
+}
+
+/* Each palette's own paper, ringed in its own accent: the two colours that
+   actually differ between them. Its own `[data-palette]` supplies the
+   values, so this is a sample rather than a marker standing for one. */
+.swatch {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--paper);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--paper));
+}

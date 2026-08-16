@@ -1,0 +1,21 @@
+{
+  "extends": "@tsconfig/strictest/tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+    // No "types" entry: vite is only present transitively here (vitepress
+    // bundles it), and naming vite/client would mean declaring a
+    // dependency this package does not own — see CLAUDE.md on inheriting
+    // types by luck. The one thing it would provide, a module declaration
+    // for the theme's `import './fold.css'`, is declared in env.d.ts
+    // instead. *(added 2026-08-17.)*
+  },
+  // Spelled out rather than just ".vitepress": TypeScript's include globs
+  // skip dot-directories, so a bare directory name matches nothing and tsc
+  // fails with TS18003 (no inputs found). *(added 2026-08-17.)*
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.mts", ".vitepress/**/*.d.ts"]
+}

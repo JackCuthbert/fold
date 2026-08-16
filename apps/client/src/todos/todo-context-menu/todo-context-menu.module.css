@@ -1,0 +1,130 @@
+/*
+ * The todo row's context menu (docs/specs/todos.md — row actions).
+ *
+ * Deliberately the same popup, item, highlight and destructive treatment
+ * as the list kebab: both are "a menu of actions for one row", and giving
+ * them two looks would say they are two different kinds of thing. The
+ * shared rules live in `styles/menu.module.css` rather than in either
+ * menu — see the note there for why composing across a domain boundary
+ * was not enough. *(moved 2026-08-11.)*
+ */
+
+.positioner {
+  z-index: var(--z-popover);
+}
+
+.popup {
+  composes: popup from '../../styles/menu.module.css';
+}
+
+.item {
+  composes: item from '../../styles/menu.module.css';
+}
+
+.destructive {
+  composes: destructive from '../../styles/menu.module.css';
+}
+
+/* docs/specs/todos.md — row actions: the three scheduling items are one
+   decision with three answers, so they are grouped and labelled rather
+   than sitting loose among unrelated verbs. */
+.group {
+  display: contents;
+}
+
+.groupLabel {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  /* A label, not an item: nothing here is clickable, so it must not carry
+     the item's hit area or its highlight. */
+  cursor: default;
+}
+
+/* docs/specs/todos.md — row actions: the four priority choices.
+ *
+ * Ordinary menu items sharing `.item`'s geometry, so they sit on the same
+ * left edge, hit area and highlight as every other row in the menu. They
+ * first shipped as a horizontal strip of centred, icon-only cells with a
+ * padding of its own: it lined up with nothing above or below it, and four
+ * unlabelled glyphs read as generic buttons rather than as priorities.
+ * *(redesigned 2026-08-11.)*
+ *
+ * `.item` supplies the gap between children, so the tick, the icon and the
+ * label space themselves without anything further here. */
+.radioIndicator {
+  /* Always mounted (`keepMounted`), so this reserves the column even when
+     it is not the checked row — the labels do not shift as the value
+     moves. `visibility` rather than `display` keeps the box, which is the
+     whole point.
+
+     On the *trailing* edge: the leading column already carries the rank
+     glyph, and a tick beside it put two marks on one row for two different
+     jobs. Pushed there by its own `auto` margin rather than by making the
+     item `space-between`, which would also have spread the icon away from
+     its label. *(moved 2026-08-11.)* */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-3);
+  margin-inline-start: auto;
+  padding-inline-start: var(--space-3);
+  color: var(--muted);
+  visibility: hidden;
+}
+
+.radioIndicator[data-checked] {
+  visibility: visible;
+}
+
+/* Icon and label travel together, so the item previews the pill it will
+   produce (styles/priority.module.css — the one place priority colour is
+   defined). */
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The icon's ground comes from the shared source, so the context menu and
+   both dropdowns show one treatment (styles/priority.module.css). */
+.radioIcon {
+  composes: swatch from '../../styles/priority.module.css';
+}
+
+.high {
+  composes: high from '../../styles/priority.module.css';
+}
+
+.medium {
+  composes: medium from '../../styles/priority.module.css';
+}
+
+.low {
+  composes: low from '../../styles/priority.module.css';
+}
+
+/* docs/specs/todos.md — row actions: Schedule and Priority are submenus.
+   Flat, their two groups took six of the menu's ten rows for questions
+   most opens do not ask, and Delete was below all of it.
+   *(nested 2026-08-11.)* */
+/* Both triggers are icon, label, chevron — the same three children in the
+   same order as every other item, so they land on one left edge. The
+   Priority trigger briefly wrapped its icon and label in a span and added
+   the current value, which gave it a different child structure to
+   Schedule's and pushed the two rows' text apart. *(fixed 2026-08-11.)* */
+.submenuChevron {
+  /* Pushed to the trailing edge on its own, rather than by making the
+     trigger `space-between` — that spaced the *first* gap too, which is
+     what broke alignment against the plain items above. */
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--faint);
+}
+
+.separator {
+  height: 1px;
+  background: var(--line);
+  margin: var(--space-1) 0;
+}
