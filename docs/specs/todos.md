@@ -1,0 +1,697 @@
+# Todos
+
+The core entity: a VTODO component inside a list collection
+([lists](./lists.md)).
+
+**Creating one** is specified separately in [quick-add](./quick-add.md) —
+one line of text parsed into summary, due, list and priority. This file
+covers what a todo *is*; that one covers the fastest way to make one.
+*(added 2026-08-14.)*
+
+## Data model (`packages/schemas`)
+
+Zod schemas are the single source of truth; TypeScript types are inferred
+(`z.infer`).
+
+| Field | Type | iCalendar mapping |
+|---|---|---|
+| `uid` | string | `UID` |
+| `listId` | string | containing collection ([lists](./lists.md)) |
+| `href` | string | resource URL |
+| `etag` | string | HTTP ETag ([sync-and-offline](./sync-and-offline.md)) |
+| `summary` | string | `SUMMARY` |
+| `completed` | boolean | derived from `STATUS:COMPLETED`; setting it writes `STATUS`, `PERCENT-COMPLETE:100`, and a `COMPLETED` timestamp |
+| `due?` | date, or date-time in one of three timezone forms | `DUE` (see [Due dates and timezones](#due-dates-and-timezones)) |
+| `description?` | string | `DESCRIPTION` |
+| `priority?` | `high` \| `medium` \| `low` | `PRIORITY`: writes 1/5/9; reads 1–4 → high, 5 → medium, 6–9 → low; absent/0 → none |
+
+Only these properties are *managed*; everything else on a VTODO is preserved
+verbatim on edit ([caldav-compliance](./caldav-compliance.md)).
+
+Sub-tasks (`RELATED-TO`) are a documented future enhancement
+([overview — non-goals](./overview.md#non-goals-future-enhancements)).
+
+## Due dates and timezones
+
+*(added 2026-07-30: the original "date or date-time (timezone-aware)" was
+underspecified and led to silent corruption of non-UTC values — see
+[round-trip-preservation](../architecture/round-trip-preservation.md).)*
+
+RFC 5545 permits four `DUE` forms, and a compliant client must not silently
+convert between them. `TodoDue` is a discriminated union preserving the form
+the server sent:
+
+| Form | iCalendar | `TodoDue` |
+|---|---|---|
+| All-day | `DUE;VALUE=DATE:20260810` | `{kind:'date', value:'2026-08-10'}` |
+| UTC | `DUE:20260810T090000Z` | `{kind:'utc', value:'2026-08-10T09:00:00.000Z'}` |
+| Floating (no zone — means "9am wherever you are") | `DUE:20260810T090000` | `{kind:'floating', value:'2026-08-10T09:00:00'}` |
+| Zoned | `DUE;TZID=Australia/Brisbane:20260810T090000` | `{kind:'zoned', tzid:'Australia/Brisbane', value:'2026-08-10T09:00:00'}` |
+
+Rules:
+
+- **Never reinterpret one form as another.** A floating or zoned value must
+  never be converted using the host machine's local offset — that makes the
+  result depend on where the server happens to run.
+- `readTodo` reports the form as stored; `applyChanges` writes back the same
+  form it was given. Editing an unrelated field must leave a foreign client's
+  floating or zoned `DUE` byte-equivalent.
+- Zoned values keep their `TZID` verbatim. We do not resolve the zone to an
+  instant, and we do not require the resource's `VTIMEZONE` to be present or
+  parseable — an unresolvable `TZID` is still round-tripped intact.
+- Our own UI writes `date` (all-day) or `zoned` (when the user picks a
+  time); `utc` and `floating` exist to preserve what other clients wrote.
+  *(changed 2026-08-02: was `utc`. A todo due "9am" means 9am where you set
+  it — `zoned` says that directly and keeps saying it after you travel or
+  DST shifts, whereas `utc` fixes an instant whose wall-clock reading drifts.
+  See [Due times](#due-times).)*
+
+### Due times
+
+*(added 2026-08-02: the UI previously offered only a date, so every todo we
+wrote was all-day even though the model already supported times.)*
+
+A todo may be **all-day** or **due at a time**. The time is optional
+everywhere it appears; leaving it empty keeps the todo all-day.
+
+- All-day writes `DUE;VALUE=DATE:20260810` (`kind:'date'`) exactly as before.
+- A time writes `DUE;TZID=<zone>:20260810T090000` (`kind:'zoned'`), where
+  `<zone>` is the viewer's IANA zone from
+  `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- **A time requires a date.** Time-without-date is not expressible in
+  `DUE`.
+- Clearing the time returns the todo to all-day; clearing the date clears
+  `DUE` entirely.
+
+#### The date and time are behind switches
+
+*(added 2026-08-08: there was **no way to clear a due date once set**. A
+native date input has no empty state of its own — clearing it is a
+per-platform gesture, and on iOS there is none — so a date set by mistake
+was permanent.)*
+
+Both forms express the due date the way Apple Reminders does:
+
+- A **"Due date" switch** reveals the date picker. Switching it off is how
+  a due date is cleared, and clears any time with it.
+- A nested **"Time" switch** reveals the time picker. Switching it off
+  returns the todo to all-day.
+- Turning "Due date" on seeds **today**; turning "Time" on seeds **09:00**.
+  A switch that is on must produce a value, and an empty required field
+  would be an error state the user did not cause. A round hour reads as a
+  placeholder to adjust — the minute the switch happened to be flicked
+  never does.
+- The switches hold **no state of their own**: "on" is derived from the
+  field being non-empty, so revert and reset restore the switches along
+  with the values and a switch can never disagree with its field.
+
+The nesting makes the "a time requires a date" rule **unreachable rather
+than merely validated** — the time switch does not exist until a date is
+set. The schema still enforces it, since a form is not the only way values
+arrive.
+
+A secondary benefit on iOS: the pickers are absent entirely for a todo with
+no due date, which is the common case, so the platform's widest and least
+controllable control stays off screen unless it is wanted.
+
+The client emits no `VTIMEZONE` alongside the `TZID`, following the existing
+rule above — we neither require nor generate one. In practice Radicale
+*adds* a matching `VTIMEZONE` to the stored resource itself, so the file on
+disk is fully RFC 5545 compliant without the client generating one. A server
+that doesn't do this still round-trips correctly, since an unresolvable
+`TZID` is preserved intact either way. *(verified 2026-08-02 against
+Radicale.)*
+
+**Deciding whether the due date changed.** The edit form must compare the
+*date and time inputs*, never a `TodoDue` rebuilt from them. The two inputs
+cannot distinguish `floating` from `zoned` — both render as the same date
+and time — so a rebuilt value is always `zoned` and would look like an edit
+even when the user touched nothing, rewriting a foreign client's `DUE` on an
+unrelated change. *(added 2026-08-02: this exact bug shipped briefly and was
+caught by checking the stored `.ics` after a summary-only edit.)*
+
+**Display.** A todo due at a time shows that time next to its date; an
+all-day todo shows only the date. This matters because the ordering rule
+below resolves an all-day `date` to *the end of its local day*, so
+rendering a formatted time for every todo would label all-day items
+"11:59 pm". Formatting must branch on the form, not on the resolved
+instant.
+
+### Ordering and overdue comparison
+
+Sorting and the overdue flag need a single instant per todo. Resolve each
+form to a comparison instant **in the viewer's local timezone**, since that
+is what "overdue" means to the person reading the list:
+
+- `date` — end of that local day (an all-day todo isn't overdue until the
+  day is over).
+- `utc` — the instant as given.
+- `floating` — the wall-clock time interpreted in the viewer's local zone
+  (this is precisely what "floating" means).
+- `zoned` — the wall-clock time interpreted in its `TZID` via `Intl`; if the
+  zone is unknown to the runtime, fall back to treating it as floating.
+
+This resolution is for display ordering only — it must never be written back
+to the server ([caldav-compliance](./caldav-compliance.md)).
+
+Active todos sort by: overdue first, then due date, then priority, then
+**oldest-created first**.
+
+That last key is not cosmetic — it is what stops a newly-added todo from
+jumping. A CalDAV server's own todo order is arbitrary (Radicale returns
+resources in filesystem order of their UUID-named files, the same problem
+[lists](./lists.md) describes for collections), so a todo with neither a
+due date nor a priority — the common case — ties on every other key and
+would otherwise take whatever position the server happened to return. The
+optimistic insert appends it locally; the server response then moved it.
+
+To make the two agree, the client stamps `CREATED` (RFC 5545 §3.8.7.1) at
+creation time and the server writes that value through rather than
+substituting its own. Because the value is identical before and after the
+round-trip, the client can place a new todo exactly where the server copy
+will land: at the end, where it was added, and it stays there. `CREATED` is
+written once and never rewritten on edit — unlike `DTSTAMP`, which tracks
+last-modified and so would reshuffle the list on every change.
+
+Todos with no `CREATED` (written by another client, or predating this
+behaviour) sort ahead of those that have one, keeping them in a stable
+block rather than interleaving unpredictably. *(added 2026-08-01: new todos
+visibly re-ordered after being added.)*
+
+## Metadata (detail view)
+
+*(added 2026-08-02.)*
+
+The detail view ends with a read-only footer of facts *about* the todo,
+below the actions and separated by a hairline. It is a footnote, not a set
+of fields: muted, small, and never editable.
+
+Every row appears **only when the data behind it exists**, so the footer
+grows with what is known rather than showing blanks. An open todo typically
+shows Created alone; a completed one with a due date shows all four.
+
+| Row | Shown when | Content |
+|---|---|---|
+| Created | `created` is present | "Today at 11:36", "2 Aug at 9:15" — the same day wording as [Summary](./summary-view.md)'s headings, plus a time |
+| Completed | `completedAt` is present | As above, for the completion |
+| Duration | both `created` and `completedAt` are present | How long the todo was open — "Open for 3 hours" |
+| Timing | both `completedAt` and `due` are present | Whether it was done early, on time, or late, with a rough margin |
+
+**Everything here is derived from RFC 5545 properties the VTODO already
+carries** — `CREATED`, `COMPLETED`, `DUE`. Nothing needs storage of our own,
+so it works against any compliant server
+([caldav-compliance](./caldav-compliance.md)) and reads correctly for todos
+created by other clients. Facts that would need our own bookkeeping — how
+many times a due date was pushed, for instance — are deliberately out of
+scope for that reason.
+
+### Duration
+
+Uncoloured, unlike Timing: there is no good or bad duration — a todo open
+for a week may be perfectly healthy — so it is context rather than a
+verdict.
+
+Two guards: a completion stamped *before* creation (clock skew, or a
+foreign client's bad data) shows nothing rather than a negative span, and a
+gap under a minute reads as "Open less than a minute" rather than
+overstating the precision of two timestamps seconds apart.
+
+### Timing
+
+Derived by comparing `COMPLETED` against `DUE`, so it costs no extra
+storage. Three outcomes, coloured with the **same semantic status tokens**
+as sync status and priority rather than a third palette — and the verdict
+is spelled out in words, so meaning never depends on colour alone
+([ui](./ui.md) — status display):
+
+- **Early** (green) — comfortably ahead of the deadline.
+- **On time** (green) — met it. *(changed 2026-08-02: was amber. Meeting a
+  deadline is meeting it; shading it as a caution nagged at something that
+  went fine. Only a miss warrants a warning colour.)*
+- **Late** (red) — missed it.
+
+Rules:
+
+- **All-day todos are judged by the day, not the instant.** `dueInstant`
+  resolves `DUE;VALUE=DATE` to 23:59:59 local so an all-day todo isn't
+  flagged overdue until its day is out ([ordering](#ordering-and-overdue-comparison));
+  comparing against that literally would report a 3pm finish as "9 hours
+  early", which is not what finishing something on its due date means.
+  Completing it any time that day is on time. This keeps the footer
+  consistent with the overdue flag on rows.
+- **Near-misses are on time.** For a timed todo, within five minutes either
+  way counts as on time — 09:01 against a 09:00 deadline was not late in
+  any sense that matters.
+- **Margins are rough**, in the largest useful unit ("2 hours early",
+  "1 day late"). Nobody measured the gap to the minute, and exact figures
+  would be precision theatre.
+
+## Clearing completed todos
+
+*(added 2026-08-02.)*
+
+*(restored 2026-08-09, issue #1. It was removed on 2026-08-02, the day
+`COMPLETED` capture landed: a completed todo carries the only record that
+the work was ever done, the [Summary](./summary-view.md) view is built
+entirely from those records, and clearing a list's completed section was a
+single click behind one confirm. What brings it back is not a heavier
+confirm but a **bounded** one — see below.)*
+
+Clearing is available on every list, from a quiet "Clear completed…" control
+at the foot of the completed section. It opens a dialog that makes the user
+choose *which* clear they mean, because the two are not equally destructive:
+
+- **Clear old completed** — everything finished more than
+  [30 days](./summary-view.md#the-retention-window) ago. Summary has
+  already stopped showing these, so this path **cannot destroy visible
+  history**. It is the primary action, and safe by construction rather than
+  by warning.
+- **Clear everything completed** — takes recent work as well, and says how
+  many todos that is and that Summary is still showing them. Styled as the
+  destructive choice it is.
+
+The dialog is the chooser, not merely a confirm. One button whose
+consequences depend on data the user cannot see is exactly what was removed
+in the first place; two named choices with their costs stated is what makes
+the action honest.
+
+**A completed todo with no `COMPLETED` timestamp is never cleared** by
+either path. It has no age, so it cannot be shown to be old, and treating a
+missing timestamp as "ancient" would delete work that may have been
+finished minutes ago by another client. The dialog says how many are being
+left alone, so a "clear everything" that visibly leaves rows behind reads
+as deliberate rather than broken. They are surfaced on the row and in the
+detail panel — see [below](#undated-completed-todos).
+
+Individual todos can still be deleted from the detail sheet, one at a time,
+and each one asks first (see below). That is deliberate friction: losing one
+todo is a small mistake, losing a quarter's worth is not.
+
+## Undated completed todos
+
+*(added 2026-08-09, issue #39.)*
+
+RFC 5545 does not require `COMPLETED` alongside `STATUS:COMPLETED`, so a
+todo finished in another client can arrive marked done with no date. Fold
+never invents one — a guessed timestamp would be indistinguishable from a
+real one, and it is the only record of when the work happened.
+
+Such a todo is therefore excluded from Summary
+([summary-view](./summary-view.md#what-it-contains)) and left alone by both
+Clear actions, since neither can tell how old it is. That made it invisible
+in the one place it was mentioned: a count of todos with no way to find
+them.
+
+So it is marked where the todo actually lives:
+
+- **On the row**, a *No completion date* pill in the meta line.
+- **In the detail panel**, the Completed row reads "Date unknown — finished
+  in another app. It won't appear in Summary."
+
+Both are deliberately neutral — the app's muted ink and a questioning glyph,
+never the danger colour. The todo is fine and the work was done; only the
+date is unknown, and styling it as an error would suggest something is wrong
+with the todo itself.
+
+## Row actions
+
+*(added 2026-08-11, issue #40.)*
+
+**Right-click a todo row — or long-press it on touch — for its actions.**
+The common edits should not require opening the detail panel, reading a
+form and closing it again.
+
+Base UI's `ContextMenu` supplies both gestures, including the parts that
+are easy to get wrong: a long-press timer that cancels if the finger moves
+more than 10px, so scrolling a list never fires a menu, and suppression of
+iOS's own text callout that would otherwise appear over ours.
+
+The inventory:
+
+| action | behaviour |
+|---|---|
+| Mark as done / active | exactly what the row's checkbox does, including the sound |
+| Schedule | Today, Today 5pm, Tomorrow, Tomorrow 9am, Clear due date — in a submenu |
+| Priority | High / Medium / Low / None, in a submenu |
+| Move to… | opens the existing Move dialog |
+| Delete | opens the existing confirmation |
+
+### Schedule and Priority are submenus
+
+Flat, their two groups took six of the menu's ten rows for questions most
+opens do not ask, and Delete sat below all of it. A submenu costs one hover
+to the person who wants it and nothing to the person who doesn't; the top
+level is five rows. *(nested 2026-08-11.)*
+
+Both triggers are a plain label. Priority briefly showed its current value
+("Priority   High"), so that nesting would not hide it — but the value's
+width varies with the word, so the row's chevron moved as the priority
+changed. The row already shows its priority as a pill, and the tick inside
+the submenu is where the answer belongs.
+
+### One list of priority choices, one order, everywhere
+
+`todos/lib/priority-choices` holds the four — label, glyph, order — and the
+context menu, the detail panel's dropdown and the add-todo modal's all read
+from it. Two of those previously kept their own copy of the option list,
+which is the drift `styles/priority.module.css` already exists to prevent
+for the colour. *(unified 2026-08-11.)*
+
+- **High, Medium, Low, None** — a descending scale, so None is last. It was
+  briefly floated to the top of the dropdowns on the reasoning that
+  clearing is what you go looking for, which left one set of choices
+  offered in two different orders.
+- **"None" is one of the four**, not the absence of a choice. It is a value
+  you set — without it the only way back from High is the detail panel —
+  and having it means something is always marked.
+- **The glyph sits on the meta pill's own ground** — a 20px swatch in the
+  same soft fill, from `styles/priority.module.css` — so a choice looks
+  like the pill it will produce. Only **None** keeps the neutral ground: it
+  is the absence of a priority rather than a fourth rank, so there is no
+  colour for it to preview. *(changed 2026-08-14: Low kept the neutral
+  ground too, on the "absence of urgency" reasoning — but its ink was
+  already green here, so the neutral box previewed a pill the row did not
+  draw. Low now takes a green ground on both surfaces; see
+  [ui](./ui.md) — "Icons, not colour alone".)*
+- **Sizes differ by glyph on purpose.** Measured in the browser, the
+  chevrons paint 12×6 of their 24-unit viewBox while a circle paints 20×20,
+  so a nominal 14px circle towered over the ranks beside it. None's is
+  stepped to 10px to match their weight rather than their box.
+
+In the menu they are `menuitemradio`, so arrow keys, Escape and the checked
+state work as they do anywhere else. The tick **trails** the label: the
+leading column already carries the rank glyph, and a tick beside it put two
+marks on one row for two different jobs.
+
+### Quick times, and when they are not offered
+
+Beside the plain Today/Tomorrow, the submenu offers **Today 5pm** and
+**Tomorrow 9am**. The plain pair move the date and keep whatever time the
+todo had; the timed pair set it. Both shapes earn their place — pulling a
+9am meeting forward should stay at 9am, while "deal with this by tonight"
+is a time you are choosing. *(added 2026-08-11.)*
+
+09:00 is the app's existing default, the one the Time switch seeds, so the
+morning option reuses a convention rather than inventing one. Neither time
+is offered on the other day of the pair: "Today 9am" is in the past for
+most of a working day, and "Tomorrow 5pm" is far enough off to be a date
+you would rather pick.
+
+**Labels are locale-formatted**, not literal "9am" — that is wrong in every
+24-hour locale. They read from the same `toLocaleTimeString` options as the
+row's due pill, so the label and the pill it produces agree.
+
+Two rules take an option away, both for the same reason: an action that
+would do nothing useful is worse than no action.
+
+- **"Today 5pm" goes quiet once 5pm has passed.** Offering it would set a
+  due time in the past — an instantly-overdue todo. Tomorrow is right
+  there.
+- **An option that would write back the value the todo already has goes
+  quiet too.** "Today" on a todo already due today changed nothing, cost a
+  CalDAV round-trip, and read as a broken button. This compares the whole
+  `TodoDue`, not just the date, so "Today 5pm" on a todo due today at 9am
+  stays live — adding a time *is* a change.
+
+**No option ever unsets a time.** "Today" means *move the date*; removing a
+due date entirely is what Clear due date is for.
+
+### A submenu's trigger stays marked while it is open
+
+`data-highlighted` follows the pointer, so a submenu trigger went flat the
+moment you moved into the submenu — leaving the popup unanchored, with
+nothing saying which row it belonged to. The trigger uses
+`data-popup-open` instead, the same attribute the nav kebab already uses
+for the same job. *(added 2026-08-11.)*
+
+### A disabled item does not respond to the pointer
+
+Clear due date on an undated todo is disabled rather than absent, so the
+menu keeps one shape wherever it is opened. It shows muted ink and a
+`not-allowed` cursor, and — the part that needs saying — **no hover wash**.
+Base UI sets `data-highlighted` on a disabled item anyway, since the
+attribute follows the pointer rather than whether the item can be used, so
+without an explicit rule the row lit up exactly like a live one and
+promised a click that does nothing. *(fixed 2026-08-11.)*
+what you see and what a screen reader hears cannot disagree.
+
+**Scheduling moves the date and never the time.** A todo due tomorrow at
+9am pulled forward to today is still due at 9am. Dropping the time would
+silently discard what the row is displaying, and re-adding it would mean
+opening the panel — the thing this exists to avoid. An all-day todo stays
+all-day.
+
+The date arithmetic mutates a local `Date` rather than adding 86,400,000ms:
+across a daylight-saving boundary a day is 23 or 25 hours, so millisecond
+arithmetic lands on the wrong calendar day. On the night a clock springs
+forward, "tomorrow" computed the naive way skips a day entirely.
+
+**Clear due date is disabled, not hidden, on an undated todo**, so the menu
+keeps one shape wherever it is opened — the same reasoning as Move up/Move
+down in a list's kebab ([lists](./lists.md) — ordering).
+
+**Delete is confirmed, like everywhere else.** A long-press can land on the
+wrong row, so the confirmation names the todo rather than saying "this
+todo" — see below.
+
+**Move and Delete only *ask*.** Both need an overlay, and Base UI renders
+no backdrop for a *nested* dialog; on mobile a row sits inside the nav
+drawer's own dialog, so a dialog owned by the row would lose its scrim
+entirely. The row raises a request and the app frame owns the surface —
+the same rule the whole overlay stack follows ([ui](./ui.md) — overlays).
+The direct actions have no such problem: they are cache writes with no
+surface of their own.
+
+**Copy as Markdown is deliberately not here.** It belongs with the list
+export ([issue #16](https://github.com/JackCuthbert/fold/issues/16)), which
+already owns the question of what a Markdown todo includes; answering it in
+two places is how the two answers drift apart.
+
+## Deleting a todo asks first
+
+*(added 2026-08-04: Delete in the detail panel destroyed the todo on the
+first click. A real todo — with a due date and notes — was lost to it, and
+there is nothing to recover: the server hard-deletes the resource.)*
+
+Deleting is **not** a heavier version of completing. Completing keeps the
+todo and is the record that the work was done; deleting removes the resource
+outright, with no undo and no trace. A control with that consequence cannot
+be one click.
+
+- Delete opens a confirmation. It is an **alert dialog**, not an ordinary
+  one: it interrupts to ask about something irreversible, and it does not
+  close on an outside click, so a stray click beside the question cannot
+  dismiss it. Escape still cancels.
+- The **body names the todo**, not the title. Summaries run long — a title
+  would wrap badly or truncate exactly the text that tells you what you are
+  about to destroy.
+- **A completed todo is confirmed the same way.** Being finished is not
+  permission to delete it silently; it is the only record the work happened.
+- **No undo.** Undo is a different feature with its own design; a
+  confirmation is what stops the accident today.
+- The confirmation renders as a **sibling** of the detail panel, never
+  inside it. On mobile the panel is itself a dialog, and a nested dialog
+  gets no backdrop of its own — the confirm would float on the panel's
+  scrim with nothing dimming the panel behind it.
+- **The row's context menu deletes through the same confirmation**, for the
+  same reasons and with more force: a long-press can land on a row you did
+  not mean. *(added 2026-08-11, issue #40.)*
+
+## A completed todo is read-only until unlocked
+
+*(added 2026-08-04, issue #25.)*
+
+Editing a finished todo is one of two things, and the UI should make you
+say which:
+
+- it was **completed by mistake** — the record is wrong, correct it; or
+- **the scope has changed** — the record is right, and what you need is a
+  *new* todo.
+
+Both used to go through the same unguarded form, so the second silently
+rewrote history. A completed todo is the only record that the work was
+done, and [Summary](./summary-view.md) is built entirely from those
+records — editing one destroys history rather than tidying it, the same
+reasoning that removed bulk "clear completed" above.
+
+So opening the detail panel on a completed todo renders every field
+**disabled**, and the panel offers the three honest ways forward:
+
+- **Untick it in the list** — the "completed by mistake" fix. Completion
+  itself is *not* locked: it is reversible, and it doesn't rewrite the
+  record.
+- **Duplicate** — the "scope changed" answer (below).
+- **Edit anyway** — deliberately unlock the fields. It lasts for that
+  opening only: closing the panel, or switching to another todo, re-locks.
+  A guard you can switch off once and forget is not a guard. Styled as a
+  **warning** rather than a quiet or destructive action: nothing is lost by
+  unlocking, but it rewrites a finished record, so it should give pause
+  ([ui](./ui.md) — button roles).
+
+**Delete stays live while locked.** It has its own confirmation, and
+locking it would mean unlocking to edit before you could remove a
+completed todo, which is backwards.
+
+The lock state lives with the form state (`use-todo-detail-form.ts`) so it
+survives the mobile/desktop breakpoint like everything else there.
+
+### Saying so, not just doing it
+
+A disabled field that looks identical to an editable one reads as broken.
+So:
+
+- Disabled controls are **visibly** disabled — muted ink, a faintly tinted
+  ground, and a `not-allowed` cursor. This applies app-wide, not just here
+  (`styles/global.css`); select triggers are buttons rather than inputs and
+  need the same treatment explicitly.
+- The header carries a **"Completed"** notice, with a popover explaining
+  why the fields are locked and what the three ways forward are. Amber —
+  attention, not alarm; nothing has gone wrong.
+
+## Duplicating a todo
+
+*(added 2026-08-04, issue #25.)*
+
+**Duplicate** copies a todo into new work in one click: summary (marked
+`" (copy)"`), due date, priority, notes and list.
+
+- **The copy is never completed.** This is structural rather than
+  remembered: `NewTodo` has no completion field, so a duplicate of a
+  finished todo is born active and carries none of its completion metadata.
+- **It gets a fresh `created`**, since it is new work and ordering depends
+  on it (see ordering above).
+- **The due date is carried over.** Clearing it would silently drop
+  information the user can remove in one keystroke, and a copy of an
+  overdue todo being overdue is arguably right — the work still isn't done.
+- **The panel switches to the copy.** The next action is almost always
+  editing it, and leaving you on the source means hunting for it.
+- Available whether the source is locked or not — it is never destructive,
+  and it is what the lock exists to point you towards.
+- **It sits on its own row below the actions, styled as a link** — muted
+  text that underlines on hover, not button chrome. Duplicating is rare:
+  reach for it when a finished todo's scope has changed, not on an ordinary
+  edit, and a button would claim the same standing weight as Save and
+  Delete for something wanted a fraction as often. Its own row also keeps
+  it clear of the panel header, which already carries the "Completed" pill
+  and its explainer on exactly the todos where duplicating is the point.
+  *(changed 2026-08-04: was an icon-only button with a tooltip in the
+  actions row, where it was the only unlabelled control and read as an
+  afterthought between Reset and Delete.)*
+
+## Moving a todo between lists
+
+*(added 2026-08-02.)*
+
+Moving is a **deliberate action with its own dialog** — "Move to another
+list", beside Duplicate in the detail view — not a field on the form.
+Choosing a target applies the move immediately and closes the panel.
+
+*(changed 2026-08-09, issue #38: it was a **List** dropdown alongside
+Priority, applied on Save with every other edit. That made it look and
+behave exactly like changing the priority, so a stray tap sent the todo out
+of the list you were reading. A dialog is also reachable from somewhere
+other than the form, which a field never is — see the command palette,
+issue #26.)*
+
+The dialog lists every **other** list as a row to tap; the todo's current
+list is absent rather than inert, since moving a todo to where it already
+is has no meaning. There is no separate confirm step: opening the dialog is
+the deliberate act, and cancelling changes nothing.
+
+Because the move no longer rides along with the form's save, there is no
+ordering to get right between them. While both were submitted together the
+save had to be queued *first*, or the update would land on a resource the
+move had already deleted.
+
+A move is not a property edit. A todo's list is the *collection its resource
+lives in* ([lists](./lists.md)), so moving it changes the resource's URL —
+unlike `PRIORITY`, which is a field inside the VTODO.
+
+**Mechanism: copy to the target, then delete the original.** WebDAV's `MOVE`
+would be atomic, and Radicale supports it across collections (verified
+2026-08-02: `201`, resource byte-preserved). But cross-collection `MOVE` is
+optional in WebDAV and unevenly supported by CalDAV servers, and this client
+must work with any compliant one ([caldav-compliance](./caldav-compliance.md)).
+Copy-then-delete uses only `PUT` and `DELETE`, which every server supports
+and which the client already implements.
+
+Rules:
+
+- **The move is one mutation, not two.** Queuing `createTodo` and
+  `deleteTodo` separately would let a failure between them strand a
+  duplicate with nothing recording that the two belonged together. A single
+  `moveTodo` entry keeps the pair retryable as a unit
+  ([sync-and-offline](./sync-and-offline.md)).
+- **Order is copy-first.** If the copy fails, nothing is lost and the todo
+  stays where it was. The reverse order risks destroying the only copy.
+- **The UID is preserved**, so the todo keeps its identity across the move
+  and a stale reference still resolves. RFC 5545 requires UID uniqueness
+  within a collection, not globally, so reusing it in the target is valid.
+- **Everything else on the resource is preserved too** — the copy re-sends
+  the managed properties the client knows about, so `CREATED` (and with it
+  the todo's ordering position) survives.
+- **A failed delete leaves a visible duplicate rather than silent loss.**
+  That is the deliberate trade: the copy has already succeeded, so the
+  user's todo exists; the retry will clear the original.
+- **The delete step must rebase onto a fresh ETag.** Saving an edit
+  alongside a move queues an update against the *same* resource ahead of
+  the move, so by the time the move dispatches the source's ETag has always
+  changed. Without the rebase the delete gets a 412, the move is dropped as
+  fatal, and the todo is left in both lists. *(added 2026-08-02: this
+  shipped briefly and was caught by moving and renaming in one save against
+  live Radicale, then reading the stored `.ics` — the copy was correct and
+  the original was still there under its old name.)*
+- **Both steps are idempotent**, so a partially-completed move can retry
+  safely: a create that 412s because the target already holds the todo is
+  treated as that step's success, and a delete that 404s because the
+  original is already gone is treated as complete.
+
+## Behavior
+
+- **Quick add:** input at the top of the todo pane; Enter adds and keeps
+  focus for rapid entry. New todos get a generated UID and `DTSTAMP`.
+- **Move between lists:** a List dropdown in the detail view, applied on
+  Save — see [Moving a todo between lists](#moving-a-todo-between-lists).
+- **Sorting (active):** overdue first, then due date ascending, then
+  priority (high → low), then creation order.
+- **Overdue:** items with `due` in the past are visually flagged
+  ([ui](./ui.md)).
+- **Priority is colour-coded** on the row, all three levels — not just
+  high. *(added 2026-07-31.)* High reads as urgent (red), medium as
+  cautionary (amber), low as calm (green or blue). Reuse the semantic
+  status colours rather than inventing a second palette, keep them muted
+  enough for the restrained aesthetic, and keep the label as text so
+  meaning never depends on colour alone.
+  **The same colours apply wherever a priority is *set*, not only where it
+  is displayed** — the options in the Priority dropdown, and the trigger's
+  selected value once chosen — so picking "High" previews the red it will
+  be on the row. **"None" stays unstyled**: it is the absence of a priority,
+  not a fourth level. Because three places now share these three colours,
+  they are declared once (`apps/client/src/styles/priority.module.css`) and
+  composed, not copied. *(added 2026-08-03: the dropdown options rendered in
+  plain ink, giving no hint what choosing them would look like.)*
+  *(changed 2026-08-14: "all three levels" is now literally true. The row's
+  Low pill had been exempted as the neutral fill while every chooser drew
+  it green, so the one rank this bullet was written to cover was the one
+  that did not follow it — see [ui](./ui.md) — "Icons, not colour alone".)*
+  *(changed 2026-08-14: "reuse the semantic status colours" now has one
+  deliberate exception, and it is the reason the shared module existed
+  while the ranks still disagreed. `--status-syncing` at full strength is
+  illegible on the medium pill's amber tint — 2.49–2.74:1 on every light
+  palette — so medium's ink is that amber deepened into `--ink`, and the
+  choosers take the same mix rather than the token. High likewise takes
+  `--danger` rather than `--status-offline`; the two are equal in most
+  palettes but not all. **The rule that matters is that a rank reads
+  identically on the row and in every chooser** — reusing a status token is
+  how that is usually achieved, not the goal itself. Pinned by
+  `e2e/tests/priority-ink.spec.ts`, which compares the two surfaces
+  under a palette where the tokens diverge. See [ui](./ui.md) — "Icons, not
+  colour alone".)*
+- **Editing:** tapping/clicking a todo opens a detail view (react-hook-form)
+  for summary, due date, notes, and priority.
+- **Completed handling:** completed items move to a collapsible "Completed"
+  section per list with a count — see
+  [Clearing completed todos](#clearing-completed-todos) for why there is no
+  bulk delete.
+- All mutations are optimistic and queue through the outbox
+  ([sync-and-offline](./sync-and-offline.md)).

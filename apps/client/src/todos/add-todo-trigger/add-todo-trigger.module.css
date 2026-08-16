@@ -1,0 +1,94 @@
+/* docs/specs/ui.md — "Add a todo" is a ghost row at the top of the list:
+   it mirrors a todo row exactly (same height, same checkbox column, same
+   left edge) but reads as a placeholder rather than a real item.
+   Geometry deliberately mirrors todo-item.module.css's `.todo`/`.body` and
+   checkbox.module.css's `.hitArea`/`.box` — if those change, this must too. */
+.row {
+  display: flex;
+  align-items: flex-start;
+  /* Gap, not padding — same reason as `.todo`: a leading inset would push
+     the circle off the column's shared left edge. */
+  gap: var(--space-1);
+  /* No hairline, following `.todo` — see todo-item.module.css for why they
+     went. This row mirrors a todo row, so it has to lose the line with
+     them or it would be the only rule left in the list.
+     *(removed 2026-08-11, issue #40.)* */
+}
+
+/* The whole row is one target, so there is no dead space between the
+   circle and the label (docs/specs/ui.md). */
+.trigger {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  text-align: left;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+/* Matches checkbox.module.css's `.hitArea`, including the negative inset
+   that pulls the *visible* ring onto the shared column edge. */
+.circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  margin-left: calc((var(--checkbox-size) - var(--hit-area)) / 2);
+}
+
+.circle svg {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  fill: none;
+  /* Fainter than a real checkbox's --muted ring: this circle is
+     decorative, not a control. */
+  stroke: var(--faint);
+  stroke-width: 1.5;
+  transition: stroke var(--duration-fast) var(--ease);
+}
+
+/* Same vertical pinning as `.body` in todo-item.module.css, so the label
+   sits on the same baseline as every todo title beneath it. */
+.label {
+  font-size: var(--text-base);
+  font-style: italic;
+  color: var(--muted);
+  padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  padding-bottom: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  min-height: var(--hit-area);
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  /* Widen the clip box leftward without moving the text, so the italic
+     "A"'s overhang isn't shaved (see --ink-overhang in tokens.css). */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+  transition: color var(--duration-fast) var(--ease);
+}
+
+/* Hover and focus lift the placeholder toward real-item weight without it
+   becoming one — colour only, no transform (docs/specs/ui.md). */
+.trigger:hover .label,
+.trigger:focus-visible .label {
+  color: var(--ink);
+}
+
+.trigger:hover .circle svg,
+.trigger:focus-visible .circle svg {
+  stroke: var(--muted);
+}
+
+.trigger:focus-visible {
+  outline: none;
+}

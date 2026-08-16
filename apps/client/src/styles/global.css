@@ -1,0 +1,231 @@
+/* Global resets and base element styling — docs/specs/ui.md. */
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: var(--text-base);
+  line-height: var(--line-normal);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  /* docs/specs/ui.md — Base UI: required for iOS Safari so portalled
+     popups (dialogs, selects) position correctly against the viewport. */
+  position: relative;
+}
+
+#root {
+  /* A *definite* height, not `min-height`: the layout inside resolves its
+     own `height: 100%` against this box, and a `min-height` gives a
+     percentage nothing to resolve against — the chain collapses to content
+     height and the whole page scrolls. This is also the element that
+     absorbs the safe-area insets below, so it — and only it — measures the
+     viewport. *(changed 2026-08-08.)* */
+  height: 100dvh;
+  /* docs/specs/ui.md — Base UI: isolates a new stacking context so
+     portalled popups (dialogs, selects, drawers) stack correctly above
+     app content regardless of z-index elsewhere in the tree. */
+  isolation: isolate;
+  /* docs/architecture/pwa.md — installed to the Home Screen the app fills
+     the whole display (`viewport-fit=cover` in index.html), which puts the
+     notch over the top of the page and the home indicator over the bottom.
+     These insets are zero in an ordinary browser tab, where Safari's own
+     chrome already reserves that space, so this costs nothing there.
+
+     On `#root` rather than `body`: the app's panes size themselves against
+     this element, and padding on `body` would leave them measuring a box
+     that extends under the indicator. *(added 2026-08-08.)* */
+  padding-top: env(safe-area-inset-top);
+  /* Summed, not `max()`, unlike the horizontal axis below. The home
+     indicator and the corner curve are *different* obstacles that happen
+     to share an edge: clearing the indicator leaves content level with the
+     bottom of the screen, which is exactly where the corner radius is
+     widest. Taking the larger of the two would clear one and ignore the
+     other. */
+  padding-bottom: calc(
+    env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
+  /* The OS insets only. Deliberately *no* extra horizontal allowance for
+     the display's rounded corners: pushing content in from the sides costs
+     width on every row for a curve that only bites at the very bottom, and
+     it reads as a margin rather than as clearance. Lifting the last row
+     with the bottom padding above is what actually solves it.
+     *(changed 2026-08-08, after side insets were tried and rejected.)* */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Inputs stay >=16px regardless of the type scale — prevents iOS
+   auto-zoom on focus. Non-negotiable (docs/specs/ui.md). */
+input,
+select,
+textarea {
+  font-size: var(--text-input);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+/* docs/specs/ui.md — date and time fields.
+
+   WebKit gives `<input type="date">` and `type="time">` an *intrinsic*
+   width derived from their shadow DOM, and treats it as a floor: `width:
+   100%` above is honoured only down to that size, and `min-width` can
+   never lower a floor — it only ever raises one. On an iPhone the two
+   fields in a due row therefore claimed more room than the sheet had, and
+   the panel scrolled sideways no matter what the layout asked for. That is
+   also why the `flex-basis: auto` workaround exists in the due rows: it
+   was accommodating this floor rather than removing it.
+
+   `-webkit-appearance: none` drops the native control's intrinsic sizing,
+   after which the element sizes like any other input and the layout's
+   rules apply on iOS as they already did everywhere else. The picker UI
+   itself is unaffected — tapping still opens the native wheel; only the
+   *box* stops being self-sized.
+
+   `::-webkit-date-and-time-value` is the inner text node, which is what
+   actually carries the width on iOS; `min-width: 0` lets it shrink, and
+   `text-align: left` stops it centring once the box is wider than the
+   text. The `::-webkit-calendar-picker-indicator` is left alone — it is
+   the affordance that says the field is tappable.
+
+   *(added 2026-08-08: replaces the min-width/flex-basis workaround, which
+   raised the floor rather than removing it.)* */
+input[type='date'],
+input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  /* Safari ignores `width: 100%` on these until it has a basis to resolve
+     against — without this the field collapses to its content on iOS. */
+  min-width: 0;
+}
+
+input[type='date']::-webkit-date-and-time-value,
+input[type='time']::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+
+/* docs/specs/ui.md — a disabled control must look disabled. Without this
+   a read-only field was indistinguishable from an editable one: same ink,
+   same border, same paper — you only discovered it by clicking and having
+   nothing happen. Muted ink on a faintly tinted ground says "not yours to
+   change" at a glance, and the cursor confirms it on hover, matching the
+   treatment disabled buttons already had (styles/button.module.css).
+
+   Base UI's Field cascade sets both the native `disabled` attribute and
+   `data-disabled`; the Select trigger is a button that only gets the
+   latter, so both are matched. *(added 2026-08-04, issue #25.)* */
+input:disabled,
+select:disabled,
+textarea:disabled,
+[data-disabled] > input,
+[data-disabled] > textarea {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--line) 22%, transparent);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+/* A label whose field is disabled reads as inactive too, so the whole
+   field — label and control — recedes together rather than a live-looking
+   label sitting over a dead input. */
+[data-disabled] > label {
+  color: var(--faint);
+}
+
+/* A textarea grows vertically, never horizontally. The browser default is
+   `resize: both`, which lets the notes field escape the panel that contains
+   it and breaks the layout around it — the field is already `width: 100%`,
+   so there is nothing a horizontal drag can usefully do. Vertical stays,
+   because a long note genuinely benefits from more room.
+   *(added 2026-08-03.)* */
+textarea {
+  resize: vertical;
+}
+
+/* docs/specs/ui.md — no press-transform anywhere: motion belongs to
+   elements that are moving (entering, leaving, expanding), not to
+   acknowledging a press. Scaling on `:active` distracts without informing. */
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* docs/specs/ui.md — focus changes the border, never adds an outline/ring:
+   an outline draws outside the element's box and gets clipped by sheet and
+   sidebar edges. Only inputs/selects/textareas carry a border to change —
+   see the border-box rule above. Other focusable elements (buttons, links)
+   fall back to a visible outline since they have no border to repurpose,
+   but nothing here sits inside a clipping container. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Visually hidden but present for assistive tech — used wherever state is
+   otherwise conveyed only by colour or icon (docs/specs/ui.md —
+   accessibility: nothing is conveyed by colour alone). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

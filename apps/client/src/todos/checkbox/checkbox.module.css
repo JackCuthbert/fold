@@ -1,0 +1,51 @@
+/*
+ * Small visual checkbox (~20px) inside a >=44px touch target
+ * (docs/specs/ui.md — controls & touch targets).
+ */
+.hitArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  /* docs/specs/ui.md — one left edge: the hit area is wider than the
+     visible checkbox so touch targets stay >=44px, but that invisible
+     padding must not push the row's visible content off the column's
+     shared left edge. Pull the hit area back by its own inset so the
+     *visible* checkbox ring lands on the shared edge; the touch target
+     still extends the full 44px, just centered on the ring rather than
+     on the row's padding-box. */
+  margin-left: calc((var(--checkbox-size) - var(--hit-area)) / 2);
+}
+
+.box {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
+.box svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.mark {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+  transition: stroke-dashoffset var(--duration-slow) var(--ease) 40ms;
+}
+
+.boxChecked .ring {
+  stroke: var(--accent);
+}
+
+.boxChecked .mark {
+  stroke-dashoffset: 0;
+}

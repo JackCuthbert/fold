@@ -1,0 +1,398 @@
+/*
+ * docs/specs/ui.md — overlays: same dimmed, animated overlay treatment as
+ * every other modal in the app. Deliberately mirrors
+ * lists/settings-modal.module.css — the two modals open from adjacent
+ * controls in the nav footer and should read as one pair.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 26rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  /* No padding here — .title and .body own it, so the scrollbar (this
+     modal's body genuinely scrolls) tracks the popup's true edge instead of
+     floating inset with content sliding under it (docs/specs/ui.md —
+     scrollbar gutters sit at the container edge). */
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css, including the `outline: none`
+   that keeps this modal's focus-holding title from drawing a focus ring.
+   *(changed 2026-08-03: this module carried its own near-identical `.title`
+   rule, one of five.)* */
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+.section {
+  margin-bottom: var(--space-4);
+}
+
+.heading {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+/* One sub-heading per server extension, so the section can grow as more are
+   added without becoming a run-on list of caveats. Lighter than `.heading`
+   — it sits *inside* a section rather than starting one — and carries the
+   property name inline, since the name is part of what identifies it. */
+.subheading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+/* Names a control the reader can go and click — "choose Move up" should
+   point at a real thing on screen rather than read as ordinary prose. Ink
+   rather than muted, and medium weight, so it lifts off the paragraph
+   around it; no chip or border, which would be louder than this page wants
+   (docs/specs/ui.md — a restrained palette, hierarchy from weight).
+
+   Deliberately different from `code`: that marks CalDAV property names,
+   which live on the *server* and can never be clicked. Two kinds of
+   emphasis for two genuinely different things. */
+.ui {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.section p {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+/* Consecutive paragraphs in one section need separating; the first sits
+   directly under its heading, which already has its own gap. */
+.section p + p {
+  margin-top: var(--space-2);
+}
+
+/* Property names read as code, not prose. Modest: a monospace face and a
+   faint tint, no border or heavy chip — this is a restrained page
+   (docs/specs/ui.md). No global `code` styling exists to inherit.
+
+   Horizontal padding is applied as a negative-margin pair rather than plain
+   padding: `#1D9BF6FF` sits inside parentheses in the prose, and padding
+   alone pushed the glyph a visible 4px off each paren — "write ( #1D9BF6FF
+   )". The tint still extends past the text; the text itself stays put. */
+.section code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--text-xs);
+  color: var(--ink);
+  background: var(--line);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
+  margin: 0 calc(var(--space-1) * -1);
+  word-break: break-word;
+}
+
+/* A property name in a sub-heading is a label, not prose: it sits beside
+   the heading text rather than inside a sentence, so it needs neither the
+   negative-margin correction (nothing abuts it) nor the heading's own
+   weight (which would make the whole line shout). */
+.subheading code {
+  margin: 0;
+  font-weight: var(--weight-regular);
+  color: var(--muted);
+}
+
+/* No `.close` here. This modal's close control is the header's ✕ — the
+   footer button it replaced sat below the scroll viewport, so it could only
+   be found by scrolling the whole modal. *(removed 2026-08-03.)* */
+
+/* The keyboard shortcut list (docs/specs/ui.md — keyboard shortcuts,
+   issue #5). A <dl>, because that is what this is: each chord is the term
+   and what it does is the definition.
+
+   Two columns rather than "⌘N — New todo" in prose: the keys are what the
+   eye scans for, so they get their own aligned column and a fixed width
+   wide enough for the longest chord. *(added 2026-08-04.)* */
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+/* Wide enough for "⌘ shift N", the longest chord. A fixed column keeps
+   the descriptions aligned, which is the point of the two-column form. */
+.shortcutKeys {
+  flex: none;
+  min-width: 6.5rem;
+  /* At body size, not --text-xs: these are drawn as glyphs now
+     (shortcut-keys.tsx), and a modifier keycap shrunk below the text
+     beside it is unreadable. *(changed 2026-08-04.)* */
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.shortcutName {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+/* docs/specs/ui.md — the help modal's topics, folded away by default.
+   See `Topic` in help-modal.tsx: eight sections stacked open were a wall
+   of prose you had to scroll past to reach the paragraph you came for.
+   The keyboard shortcuts stay open above these, since Ctrl+/ is how most
+   people arrive. *(added 2026-08-05.)* */
+.topics {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Rules *between* topics only — none above the first or below the last.
+   The group has its own heading above it and the modal's edge below, so
+   an outer border on each side boxed the list in twice.
+   *(changed 2026-08-05.)* */
+.topic + .topic {
+  border-top: var(--border-width) solid var(--line);
+}
+
+.topicHeader {
+  margin: 0;
+}
+
+/* The whole row is the trigger, so the title is as clickable as the
+   chevron. Full width and left-aligned: this is a row of an index, not a
+   button (docs/specs/ui.md — one left edge, including controls). */
+.topicTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--hit-area);
+  padding: var(--space-2) 0;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: start;
+  cursor: pointer;
+}
+
+.topicTrigger:hover {
+  color: var(--accent);
+}
+
+/* Focus by colour and the chevron, not an outline — the row spans the
+   modal's full width, so a ring around it reads as a selected block
+   rather than a focused control (docs/specs/ui.md — overlays). */
+.topicTrigger:focus-visible {
+  outline: none;
+  color: var(--accent);
+}
+
+.topicChevron {
+  flex: none;
+  color: var(--faint);
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.topicTrigger[data-panel-open] .topicChevron {
+  transform: rotate(90deg);
+}
+
+/* Base UI animates the panel between 0 and its measured height via
+   --accordion-panel-height; `overflow: hidden` is what makes that read as
+   a fold rather than a jump. */
+.topicPanel {
+  overflow: hidden;
+}
+
+.topicBody {
+  padding-block-end: var(--space-3);
+}
+
+/* The same prose treatment `.section p` gives the shortcuts block above —
+   restated rather than shared, since that rule is scoped to `.section`
+   and these paragraphs live inside a panel. */
+.topicBody p {
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+.topicBody p + p {
+  margin-top: var(--space-2);
+}
+
+/* The list kinds, as a definition list — one name, one sentence on what it
+   unlocks. Four kinds in a paragraph read as a run-on; as terms they are
+   scannable, which is how someone actually uses this section ("what does
+   Reading do again?"). The accordion is what made room for the extra
+   height. *(added 2026-08-05.)* */
+.kinds {
+  margin-block: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}
+
+.kinds dt {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.kinds dd {
+  color: var(--muted);
+  margin: 0 0 var(--space-2);
+}
+
+.kinds dd:last-child {
+  margin-bottom: 0;
+}
+
+/* A code span sitting in ordinary prose, rather than hard against a
+   parenthesis. `.section code`'s negative margin is there for
+   "write ( #1D9BF6FF )" in the extensions topic — it keeps the glyph put
+   inside its parens while the tint bleeds past — but applied to a bare
+   reference mid-sentence it pulled the tinted box onto the words either
+   side. This puts a real gap back. *(added 2026-08-05.)* */
+.section .inlineCode {
+  /* Two classes, to outrank `.section code` (0,2,0) — a bare `.inlineCode`
+     is 0,1,0 and lost the cascade whatever the source order, which is why
+     the first attempt at this changed nothing.
+
+     `--space-1` of *positive* margin, against that rule's `--space-1`
+     negative: the negative pull exists so `#1D9BF6FF` sits tight inside
+     its parentheses in the extensions topic, and here it dragged the tint
+     onto the words either side. The rule's own horizontal padding already
+     bleeds the tint 4px past the glyphs, so this has to clear that as
+     well as restore an ordinary word space. */
+  margin: 0 var(--space-2);
+}
+
+/* The one link in the modal (the About topic's attribution). Underlined
+   from the start rather than on hover: unlike the "Show all" affordance
+   in the filter popover, this leaves the app entirely, and a link that
+   only announces itself on hover is invisible to anyone not using a
+   mouse. *(added 2026-08-05.)* */
+.link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--faint);
+  transition: text-decoration-color var(--duration-fast) var(--ease);
+}
+
+.link:hover,
+.link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+/* The colophon closing the About topic. Set apart from the prose above it
+   — a little more space, a little quieter — so it reads as a signature
+   rather than a further claim about the app. *(added 2026-08-05.)* */
+.signoff {
+  margin-top: var(--space-3);
+  color: var(--faint);
+}
+
+/* The version line: dot, version, release notes — one row rather than the
+   two sentences this started as. Colour carries whether an upgrade exists,
+   so the text only has to name the versions.
+   *(added 2026-08-10.)* */
+.versionLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Same size and semantic colours as the sync dot in the nav footer
+   (ui/status-dot), so green and amber mean here what they mean there.
+   Green: this is the current release. */
+.versionDot {
+  width: var(--space-2);
+  height: var(--space-2);
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--status-synced);
+}
+
+/* Amber, matching "syncing" rather than "offline": a newer release is a
+   nudge, not a fault. Running behind is a choice, and red would make the
+   modal look like something had broken. */
+.versionDotStale {
+  background: var(--status-syncing);
+}
+
+/* Pushed to the trailing edge, so the link sits where the eye already
+   goes for actions rather than mid-sentence. */
+.versionLink {
+  margin-inline-start: auto;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* The dot's meaning, for anyone who cannot see it — the app's rule is
+   that state is never carried by colour alone (ui/status-dot). Visually
+   hidden rather than shown, because on screen the colour already says it
+   and a second copy would be the extra text this design removed. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
