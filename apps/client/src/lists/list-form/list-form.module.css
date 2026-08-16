@@ -1,0 +1,60 @@
+/* docs/specs/ui.md — the nav: this form now only ever renders inside
+   ListFormModal (create and rename), so it stacks like every other modal
+   form rather than wrapping inline fields + buttons on one line.
+   docs/specs/ui.md — overlays: modal padding is uniform on all four edges,
+   matched to the gap between action buttons (--space-3) — ListFormModal's
+   popup no longer carries its own padding (see list-form-modal.module.css),
+   so this form supplies it instead. Spacing between form controls is
+   uniform too: the same --space-3 gap separates the field from the
+   actions row as separates the two buttons within it. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Direct children only: the colour field nests ColorPicker, which sizes
+   its own hex field and wheel (see color-picker.module.css). A descendant
+   selector here would stretch the wheel to the full row and undo that —
+   the name Input is a direct child of its Field.Root, so it still matches. */
+.field > :global(input) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* docs/specs/ui.md — field labels are small and muted, matching the
+   established pattern in todo-detail.module.css's .field. inline-flex so
+   the extension badge's icon centres on the label's text rather than
+   sitting on the baseline (docs/specs/lists.md — colours). */
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.submit {
+  composes: action primary from '../../styles/button.module.css';
+}
+
+.cancel {
+  composes: action default from '../../styles/button.module.css';
+}

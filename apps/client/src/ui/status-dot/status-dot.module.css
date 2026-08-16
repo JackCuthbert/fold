@@ -1,0 +1,58 @@
+/* Peripheral sync status — a quiet dot plus a short label, not a banner
+   (docs/specs/ui.md — status display). Colour is semantic: green success,
+   amber in progress, red broken (docs/specs/tokens.css supplies the actual
+   values for both themes). */
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--status-synced);
+  flex: none;
+}
+
+.dot--syncing {
+  background: var(--status-syncing);
+}
+
+/* docs/specs/ui.md — disconnected (offline or server-unreachable) turns
+   the dot red and gently pulsing — the one state that alarms. Colour alone
+   never carries this — .label (status-dot.tsx) names the state in real
+   text, not just for assistive tech. */
+.dot--offline {
+  background: var(--status-offline);
+  animation: status-pulse var(--duration-pulse) var(--ease) infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot--offline {
+    /* Colour and text alone carry the state once the pulse is gone. */
+    animation: none;
+  }
+}
+
+/* The dot plus its label sit inline; not interactive, just a status
+   indicator, so no hit-area padding is needed (docs/specs/ui.md). */
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

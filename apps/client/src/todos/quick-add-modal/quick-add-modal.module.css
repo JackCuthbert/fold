@@ -1,0 +1,786 @@
+/* docs/specs/quick-add.md — the launcher modal. See quick-add-modal.tsx.
+
+   Deliberately *not* composed from the other modals' popup geometry. They
+   are dialogs holding forms — a header, a scroll region, a footer of
+   buttons. This is a field and its echo: it sits higher on screen and has
+   no chrome to share, so composing would inherit the padding and header
+   geometry it exists to avoid. The backdrop and the z-index tokens *are*
+   shared, because those are about the overlay stack rather than about the
+   box (docs/specs/ui.md — overlays). */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  /* Stacked, like the add modal's: quick add is opened from inside the nav
+     drawer too, and a base-level scrim would dim the wrong layer. */
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+/* Sits at a launcher's height rather than centred: a box that lands under
+   the vertical middle reads as a dialog interrupting the page, while one
+   nearer the top reads as a field you have summoned. Alfred and Raycast
+   both do this, and the difference is most of why they feel quick. */
+.popup {
+  position: fixed;
+  top: 18vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-overlay-stacked);
+  width: min(34rem, calc(100vw - 2 * var(--space-4)));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  /* A little more lift than the form modal: this floats over the page
+     rather than replacing it. */
+  box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.18));
+  padding: var(--space-3);
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  /* Rises into place. Paired with the top placement it reads as the field
+     arriving, not as a panel sliding in. */
+  transform: translateX(-50%) translateY(-0.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .popup {
+    transition: none;
+  }
+
+  .popup[data-starting-style],
+  .popup[data-ending-style] {
+    transform: translateX(-50%);
+  }
+}
+
+/* The input and its dimming layer, stacked in one box.
+
+   Two elements holding the same text at the same metrics: the shadow paints
+   the tokens grey, the input sits transparent on top so the caret, the
+   selection and every native editing gesture stay real. Any divergence in
+   font, padding or letter-spacing between the two shows up immediately as
+   drifting text, which is why both inherit from this parent rather than
+   setting their own. */
+.field {
+  position: relative;
+  display: grid;
+}
+
+.shadow,
+.input {
+  grid-area: 1 / 1;
+  font: inherit;
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  padding: var(--space-2);
+  border: 0;
+  /* No wrapping in either layer: the input is a single line, and a shadow
+     that wrapped would slide out of register with it. */
+  white-space: pre;
+  overflow: hidden;
+}
+
+.shadow {
+  color: var(--ink);
+  pointer-events: none;
+  /* The caret is the input's; this layer must never show one. */
+  user-select: none;
+}
+
+.input {
+  background: transparent;
+  /* Transparent ink, visible caret: the shadow below is what you read. */
+  color: transparent;
+  caret-color: var(--ink);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--faint);
+}
+
+/* A recognised token: *marked* text, not a chip.
+
+   It used to be dimmed to `--faint`, which read as "this part didn't
+   count" when the opposite is true — a mark is the parser telling you it
+   understood. Highlighting rather than removing, because removing the
+   token as you typed would fight the cursor (docs/specs/quick-add.md).
+   *(changed 2026-08-14 in review.)*
+
+   Deliberately square and unpadded. This span sits in the shadow layer,
+   and every glyph in it has to stay in exact register with the
+   transparent `<input>` above — an input cannot pad individual
+   characters, so padding here moves this layer's text and nothing else.
+   Measured in review: 4px padding plus 2px margin on three tokens put the
+   caret 34px from the text it belonged to, compounding with each token.
+   So the mark extends the token's own box and no further, which is also
+   why it wears no radius: a rounded corner on a box drawn tight to the
+   glyphs reads as a clipped chip rather than as a highlighter.
+
+   Tinted `--accent` at the same 12% the preview pills use: the mark and
+   the pill below it are two views of one token, so they share a hue. */
+.token {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* Proud of the glyphs vertically only, so the mark reads as a stroke of
+     highlighter rather than a tight box around the letters.
+
+     Vertical *only* is what keeps adjacent tokens legible as separate
+     marks. A uniform 2px spread also grows the mark sideways, which is
+     enough to bridge the single space between two tokens: measured in
+     review, "tomorrow at 3pm #Chores p1" left 0.73px between marks and
+     read as one continuous block. Confining the spread to the y axis
+     leaves that space unmarked — 4.73px of clear ground — so three
+     tokens read as three. */
+  box-shadow:
+    0 2px 0 0 color-mix(in srgb, var(--accent) 12%, transparent),
+    0 -2px 0 0 color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* The `#` autocomplete's floating box.
+
+   Positioned rather than in flow: as a block it pushed the notes row and
+   the pills down while the token was being typed and pulled them back when
+   it resolved, so the controls moved under the pointer mid-choice.
+   `.popup` is the positioning context.
+
+   It composes the pill menus' own popup, so the two ways of choosing a
+   list are one control with one look (quick-add-modal.tsx).
+   *(changed 2026-08-14, found in review.)* */
+.inlineMenu {
+  position: absolute;
+  /* Under the input, inset by the popup's padding so its edge lines up
+     with the field's text rather than the popup's border. */
+  top: calc(var(--space-3) + 3.25rem);
+  left: var(--space-3);
+  z-index: 1;
+  list-style: none;
+  margin: 0;
+  /* **Sized by its contents**, not stretched to the field. A full-width
+     box of short list names is mostly empty space, and it read as a panel
+     rather than as a menu hanging off the token being typed. `min-width`
+     keeps a one-letter name from producing a sliver; `max-width` stops a
+     long one escaping the popup. *(changed 2026-08-14, found in review.)* */
+  width: max-content;
+  min-width: 8rem;
+  max-width: calc(100% - 2 * var(--space-3));
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.dot {
+  composes: dot from '../../lists/list-dot.module.css';
+}
+
+.dotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
+
+/* The interpretation line: what will be created, said back.
+
+   Holds its height whether or not anything has been parsed, so the modal
+   does not resize under the pointer as tokens are typed. */
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding-inline: var(--space-2);
+  min-height: var(--hit-area);
+  font-size: var(--text-sm);
+}
+
+.previewHint {
+  color: var(--faint);
+}
+
+.previewHint code {
+  font-family: inherit;
+  color: var(--muted);
+}
+
+/* The row's own pill treatment, so the preview and the todo it becomes look
+   like the same thing (docs/specs/ui.md — two pill treatments). */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  /* Always a border, transparent when the pill doesn't want one. Every
+     state — set, unset, needed, disabled — then occupies the same box, so
+     switching between them cannot shift the row by a pixel. */
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--muted);
+  white-space: nowrap;
+  /* `--meta`, the annotation face, exactly as the row's own meta pills use
+     (todo-meta.module.css). These pills inherited the body face, which is
+     the *reader's* chosen serif — so the preview of a todo was set in a
+     different face from the todo it becomes, and changed face when the
+     theme did. The token exists to make this one answer rather than a
+     find-and-replace (styles/tokens.css).
+     *(fixed 2026-08-14, found in review.)* */
+  font-family: var(--meta);
+}
+
+/* The list pill is outlined rather than filled — see the fuller note on
+   `.pillList:not(.pillUnset)` below, which is where the border is drawn.
+   Scoped the same way, so an *unset* list pill keeps the dashed
+   placeholder outline its neighbours have rather than this solid one.
+   *(fixed 2026-08-14, found in review.)* */
+.pillList:not(.pillUnset) {
+  background: none;
+}
+
+/* The priority pill takes the rank's ink from the shared source
+   (styles/priority.module.css) — the same one the row's meta pill and every
+   picker compose from, so High is red, Medium amber and Low green here
+   exactly as they are everywhere else.
+
+   The **ground** is written out rather than composed because the shared
+   file carries only the ink: the tints below are the same mixes
+   todo-meta.module.css uses for its own pills, so the preview and the row
+   it becomes are the same colour. That file's comment already flags this
+   as a colour written twice, guarded by e2e/tests/priority-ink.spec.ts —
+   this is a third site under the same guard.
+
+   All three ranks drew `--muted` in the first cut, so the preview said "a
+   priority is set" without saying which — the one thing the colour is for.
+   *(fixed 2026-08-14, found in review.)* */
+.pillHigh {
+  composes: high from '../../styles/priority.module.css';
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.pillMedium {
+  composes: medium from '../../styles/priority.module.css';
+  background: color-mix(in srgb, var(--list-amber) 15%, transparent);
+}
+
+.pillLow {
+  composes: low from '../../styles/priority.module.css';
+  background: color-mix(in srgb, var(--status-synced) 12%, transparent);
+}
+
+/* A pill that opens a menu (docs/specs/quick-add.md — the pills edit the
+   text). It keeps the pill's shape exactly — the affordance is the chevron
+   and the hover, not a different silhouette, because the pill's job is
+   still to *say* what was parsed and the editing is the secondary offer. */
+.pillButton {
+  border: 0;
+  /* A `<button>` brings its own font, so it needs resetting — but named
+     property by property rather than with the `font` shorthand, which also
+     resets `font-family` and so silently undid `.pill`'s `--meta`. Whether
+     that shorthand won depended on rule order between two classes applied
+     to the same element, which is not something to leave to chance.
+     *(fixed 2026-08-14, found in review.)* */
+  font-family: var(--meta);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pillButton:hover,
+.pillButton[data-popup-open] {
+  /* Darkens whatever tint the rank already carries rather than replacing
+     it, so High stays red while it is being pressed. */
+  filter: brightness(0.94);
+}
+
+.pillButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pillChevron {
+  flex: none;
+  opacity: 0.6;
+}
+
+/* A pill that *is* a native date/time input (quick-add-modal.tsx —
+   `PillPicker`). The input is stretched over the whole pill and made
+   invisible, so a tap anywhere on it opens the platform picker — the same
+   control the edit form uses — while the label underneath stays the thing
+   you read. */
+.pillPicker {
+  position: relative;
+}
+
+.pillPickerInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Invisible but present: `opacity: 0` rather than `visibility: hidden`
+     or `display: none`, both of which would stop it taking a tap and, on
+     iOS, stop `showPicker` opening at all. */
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  /* Safari draws its own inner button for these types and gives the field
+     a minimum width from the value's format; neither may influence the
+     pill's size, which comes from the label. */
+  min-width: 0;
+  font: inherit;
+}
+
+.pillPickerInput::-webkit-calendar-picker-indicator {
+  /* The whole pill is the target, so the indicator gets the full box
+     rather than sitting in a corner of it. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* A pill with nothing parsed for it yet: it names its category rather than
+   a value, so the row reads "Due · List · Priority" on an empty field.
+
+   Drawn as an outline in the placeholder ink rather than a filled pill —
+   the same distinction the input's own placeholder makes between "here is
+   a value" and "here is where one goes". A set pill's colour then reads as
+   a state change rather than as decoration.
+   *(added 2026-08-14: pills used to appear only once parsed, so the syntax
+   had to be known before it could be discovered.)* */
+.pillUnset {
+  background: none;
+  border: 1px dashed var(--line);
+  color: var(--faint);
+}
+
+/* The list pill carries a visible border once a list is chosen, which the
+   other pills do not. It is the one pill that is *required* — a todo has
+   to be filed somewhere, while a date and a priority are both optional —
+   so a set list reads as an enclosed field rather than an annotation.
+   *(added 2026-08-14, found in review: a set list pill was a filled shape
+   with no outline, so only the empty one looked like a control.)*
+
+   `:not(.pillUnset)` rather than a bare `.pillList`, because an *unset*
+   list pill must keep the dashed placeholder outline its neighbours have.
+   Both are single-class selectors and this rule comes later in the file,
+   so a plain `.pillList` won on source order and drew the empty pill
+   solid — it read as filled in while Date and Priority beside it read as
+   empty. *(fixed 2026-08-14, found in review.)* */
+.pillList:not(.pillUnset) {
+  /* The whole shorthand, not just `border-color`: the base `.pill` sets a
+     transparent 1px border, so the width has to be restated to draw. */
+  border: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+}
+
+/* The list pill when there is text but nowhere to file it — on a derived
+   view, where no list is inherited. A solid border in the accent rather
+   than a red error state: nothing is *wrong*, there is simply one more
+   thing to say, and this is the control that says it. */
+.pillNeeded {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Notes — collapsed to this until asked for, so the common case stays one
+   field (docs/specs/quick-add.md — the full form). Ghost styling, like the
+   "Add a todo…" row: it is an offer, not a control competing with the
+   input above it. */
+.notesTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.notesTrigger:hover {
+  color: var(--muted);
+}
+
+.notesTrigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The notes field itself — **borderless, like the summary input above it**.
+
+   A bordered box turned the launcher back into a form: two framed fields
+   stacked, which is the chrome this modal exists to remove. The field is
+   identified by its placeholder and its position, exactly as the summary
+   input is, and the two read as one surface with a quiet second line.
+
+   Quieter and smaller than the summary: the line above is what this modal
+   is for, and notes are the exception.
+   *(changed 2026-08-14: was a bordered box with a focus ring.)* */
+.notes {
+  width: 100%;
+  /* The summary input's own box, to the property: same padding, same
+     `border: 0`, same transparent ground, same `outline: none` in every
+     state. The only differences are the ones that make it the *second*
+     line — a smaller size, quieter ink, and wrapping, since notes are
+     prose rather than one line of tokens.
+     *(matched to `.input` 2026-08-14: this had a border and a focus ring,
+     which turned the launcher back into a form of two framed fields.)* */
+  padding: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  outline: none;
+  /* No handle: the field sizes itself to its content (quick-add-modal.tsx
+     — the auto-grow effect), so a drag would fight the measurement and a
+     grabbable corner would advertise a control that does nothing lasting.
+     *(changed 2026-08-14: was `resize: vertical`.)* */
+  resize: none;
+  /* The measurement sets an explicit height, so the field must never
+     scroll internally — an overflow would hide the very lines the height
+     is supposed to be counting. */
+  overflow-y: hidden;
+}
+
+.notes::placeholder {
+  color: var(--faint);
+}
+
+/* The keyboard help trigger, sitting where the printed hint used to be.
+   Quiet: it is an offer of an explanation, not an instruction, and the
+   modal it sits in is built on restraint. */
+/* Every portalled layer this modal opens — the pill menus and the keyboard
+   popover — lands on `document.body`, *outside* the modal's own stacking
+   context. Without a z-index of its own it therefore paints **behind** the
+   popup, which sits at `--z-overlay-stacked`: the menu was in the DOM, in
+   the viewport and fully opaque, yet completely hidden. +1 puts it just
+   above the surface that owns it.
+
+   This rule, and the six below it, were deleted by accident in a
+   stylesheet rewrite while every call site kept referencing them. A CSS
+   Modules lookup for a class that no longer exists returns `undefined`,
+   which `cx` drops silently — so nothing failed: not the typechecker, not
+   the linter, not knip. The pill menus lost their box and the popover
+   became invisible, and only looking at it showed that.
+   *(restored 2026-08-14, found in review.)* */
+.menuPositioner {
+  z-index: calc(var(--z-overlay-stacked) + 1);
+}
+
+/* The box a menu is drawn in. Shared by the pill menus and the `#`
+   autocomplete, which composes it — see `.inlineMenu`. */
+.menuPopup {
+  min-width: 10rem;
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  box-shadow: var(--shadow-md, 0 6px 20px rgb(0 0 0 / 0.14));
+  font-family: var(--meta);
+}
+
+/* A row in either menu. Base UI renders its own element for the pill
+   menus; the inline autocomplete uses a `<button>`, hence the resets —
+   without them a button brings its own border, background, font and
+   centred text. */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--hit-area);
+  padding-inline: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* One highlight for all three ways a row becomes "the" choice: Base UI's
+   keyboard highlight in the pill menus, the pointer, and the inline
+   autocomplete's Ctrl+N/P index. Two treatments would let the row under
+   the mouse and the row Enter answers to disagree. */
+.menuItem[data-highlighted],
+.menuItem:hover,
+.menuItemActive {
+  background: var(--row-hover, var(--line));
+}
+
+/* The current value, in a heavier weight — the tick beside it carries the
+   state, so this only has to support it. */
+.menuItemSelected {
+  font-weight: var(--weight-medium);
+}
+
+/* The tick marking the current value. A mark rather than weight alone:
+   weight is hard to judge against a single row, and this menu is often
+   opened precisely to check what is set. */
+.menuTick {
+  margin-inline-start: auto;
+  color: var(--muted);
+}
+
+/* The priority glyph's ground inside the menu, from the shared source —
+   the same box the row's context menu gives the same four choices
+   (todo-context-menu.module.css — `.radioIcon`). The rank class sits on
+   this element too, which is what tints it. */
+.prioSwatch {
+  composes: swatch from '../../styles/priority.module.css';
+}
+
+/* A due date on a list that cannot hold one (docs/specs/list-kinds.md —
+   media lists). Struck through rather than hidden, so the drop is visible
+   *before* submitting rather than discovered afterwards. */
+.pillDropped {
+  text-decoration: line-through;
+  color: var(--faint);
+}
+
+/* A pill the chosen list cannot use — the date on a list with no due dates
+   (docs/specs/list-kinds.md). The strike-through above says the parsed
+   value was dropped; this says the control is shut, and the `disabled` on
+   the input behind it is what actually enforces that. Both are needed: a
+   pill that looked struck through but still opened its picker invited you
+   to set a date that submit would silently discard.
+   *(added 2026-08-14, found in review.)* */
+.pillDisabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pillDisabled .pillChevron {
+  display: none;
+}
+
+.helpTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  margin-inline-start: calc(-1 * var(--space-2));
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--meta);
+  font-size: var(--text-sm);
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.helpTrigger:hover,
+.helpTrigger[data-popup-open] {
+  color: var(--muted);
+}
+
+.helpTrigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Gone where there is no keyboard to describe.
+   Every binding it documents — Enter, Shift+Enter, Esc — needs hardware
+   keys, so on a touch device it explains controls that do not exist,
+   while taking room from the two buttons beside it. The same
+   `hover: hover` + `pointer: fine` test the nav's keycaps use, and for
+   the same reason (list-nav.module.css). *(added 2026-08-14, on
+   review.)* */
+@media not all and (hover: hover) and (pointer: fine) {
+  .helpTrigger {
+    display: none;
+  }
+}
+
+.helpPopup {
+  /* Held to a readable measure. The keyboard popover is a two-column
+     definition list that sets its own width, but this one also holds a
+     sentence or two of prose (a list kind's description), which would
+     otherwise run the full width of the viewport on one line.
+     `max-content` keeps the short case from being padded out to the cap.
+     *(added 2026-08-14, on review.)* */
+  max-width: min(32ch, calc(100vw - 2 * var(--space-4)));
+  width: max-content;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  box-shadow: var(--shadow-md, 0 6px 20px rgb(0 0 0 / 0.14));
+  font-family: var(--meta);
+  font-size: var(--text-sm);
+}
+
+/* Key on the left, what it does on the right — a definition list because
+   that is what this is, and the grid keeps the two columns aligned however
+   long a description runs. */
+.helpList {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  align-items: baseline;
+}
+
+.helpList dt {
+  /* A flex row so the `+` between two caps in a chord sits centred
+     against them rather than on the text baseline. */
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.helpList dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* Real keycaps, composed from the shared component's own classes
+   (shortcuts/shortcut-keys) rather than styled here, so a key drawn in
+   this popover is the same object as one drawn in the nav or in Help.
+   These were plain bold text, which made the modal the one place in the
+   app where a binding did not look like a key.
+   *(changed 2026-08-14, on review.)*
+
+   `wide` on all of them: every cap here spells a word — Enter, Shift, Esc
+   — and the base cap is a fixed 1.35rem square with `overflow: hidden`,
+   which would clip them. `ShortcutKeys` itself is not reusable here: it
+   takes a `Shortcut` from the bindings map, and these three are local to
+   this modal rather than global chords. */
+.helpCap {
+  composes: cap wide from '../../shortcuts/shortcut-keys/shortcut-keys.module.css';
+}
+
+/* The footer: the keyboard hint or the error on the left, the button on
+   the right (quick-add-modal.tsx). One row, so the modal ends with a
+   single line rather than a stack of chrome. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Wraps rather than crushing. On a narrow screen the Keyboard trigger
+     and the two buttons were pressed against each other on one line, with
+     no room between the finger targets; given the chance to wrap, the
+     actions drop to their own row instead. The row `gap` is the vertical
+     one when that happens, so it is set larger than the horizontal.
+     *(added 2026-08-14, on review.)* */
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-3);
+  /* Clear of the pills above. The footer is a different kind of thing —
+     the pills describe what will be created, these do it — and at
+     `--space-2` the two rows read as one block of controls. */
+  margin-top: var(--space-4);
+  padding-inline: var(--space-2);
+  /* Holds its height whichever message is showing, so swapping the hint
+     for the error does not shift the button under the pointer. */
+  min-height: var(--hit-area);
+}
+
+/* Cancel and Add todo as one unit at the right end of the footer, so the
+   pair reads as a pair rather than as two controls at opposite ends of the
+   row. `flex: none` keeps them from being squeezed by a long message.
+   *(added 2026-08-14.)* */
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* The error and the hint stack rather than take turns — both can be true
+   at once (quick-add-modal.tsx). `min-width: 0` so a long message wraps
+   inside the column instead of pushing the button off the row. */
+.footerMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--faint);
+}
+
+/* Something is missing. `--danger` rather than the accent: this is the one
+   place in the modal that says you cannot proceed, and the accent is
+   already the "needed" marker on the pill itself — two different jobs
+   should not share one colour at the same moment. */
+.noteError {
+  color: var(--danger);
+}
+
+/* A key in the hint. Not a boxed keycap: this sits in a quiet line under a
+   quiet field, and a bordered cap would be the loudest thing in the modal.
+   Weight and ink carry it instead. */
+.note kbd {
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--muted);
+}
+
+/* Enter still submits; this is the same action for a finger
+   (docs/specs/quick-add.md).
+
+   **The nav's "New todo" button, exactly** — `action primary` from the
+   shared source (styles/button.module.css), which is what that one
+   composes too. The two are the same act at two entry points, so one is
+   the button you press to open this and the other is the button you press
+   to finish; a bespoke quiet outline made the second look like a lesser
+   thing than the first. Composing also picks up the hover, focus and
+   disabled behaviour that stylesheet already reasons about, none of which
+   the hand-rolled version had.
+   *(changed 2026-08-14: was a quiet outline of its own.)* */
+.submit {
+  composes: action primary from '../../styles/button.module.css';
+  flex: none;
+}
+
+/* The same secondary treatment the confirm dialog's Cancel uses
+   (ui/confirm), so "the quiet one of the pair" looks the same wherever a
+   dialog offers a way out. *(added 2026-08-14.)* */
+.cancel {
+  composes: action default from '../../styles/button.module.css';
+  flex: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

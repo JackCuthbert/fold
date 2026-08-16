@@ -1,0 +1,102 @@
+/* docs/specs/ui.md — the nav: the footer matches the rows above it — it
+   shares the list items' left edge and row height.
+   docs/specs/ui.md — the nav: Settings is a ghost icon button inline with
+   the sync status — one quiet row, not two stacked ones. *(changed
+   2026-08-01: was a flex column with Settings as its own full-width row
+   above the status line.)* */
+.footer {
+  margin-top: auto;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  /* Extra room *under* the status line for the display's rounded corner
+     and the home indicator (docs/architecture/pwa.md — safe areas). It
+     belongs here rather than on the drawer around it: padding the drawer
+     shortens it, which lifts this row and its top border clear of the
+     screen edge and leaves a band of bare paper below a line meant to sit
+     at the bottom. Padding the row instead keeps the border where it is
+     and only moves the text up. Zero on desktop, where both tokens
+     resolve to 0. *(added 2026-08-08.)* */
+  padding-bottom: calc(
+    var(--space-2) + env(safe-area-inset-bottom) + var(--corner-inset-block-end)
+  );
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* Matches .link's row box in list-nav.module.css (same padding, same
+   min-height) so the status line shares one left edge and row height with
+   every list item above it.
+   docs/specs/ui.md — the nav: the footer is one group. The single divider
+   that separates the whole footer from the list above is `.footer`'s own
+   `border-top`; this row gets its breathing room from `.footer`'s
+   `padding-top` (see main-screen.module.css's `*:last-child` rule, fixed
+   2026-07-31 to stop clobbering it), not from a second border here.
+   *(changed 2026-07-31: removed border-top — it read as two separate rows
+   instead of one group.)* */
+.status {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--hit-area);
+}
+
+/* The footer's controls (help, Settings) as one group. `flex: none` here —
+   not on each button — is what keeps the row from overlapping when the
+   status label is long: the group never shrinks, and `.status`'s
+   `min-width: 0` lets the label truncate instead (the 2026-07-31 overlap
+   fix, preserved now that there are two buttons rather than one).
+   *(added 2026-08-03 for the help control.)* */
+.controls {
+  flex: none;
+  display: flex;
+  align-items: center;
+  /* Pulls the group back so the *visible* 16px glyph of the last button
+     lands closer to the footer's own right inset rather than sitting inside
+     the full hit area's extra padding (docs/specs/ui.md — one left edge,
+     including controls; same technique main-screen.module.css's
+     `.menuTrigger` uses for its own icon). */
+  margin-right: calc((16px - var(--hit-area)) / 2);
+}
+
+/* docs/specs/ui.md — the nav: these are ghost icon buttons — no background
+   or border until hover, unlike the app's other action buttons (Save,
+   Create, "+ New list"), which all carry real chrome. They sit on the sync
+   status's row rather than stacked above it, so opening help or Settings
+   reads as a quiet, secondary affordance rather than a heavy full-width
+   action. *(changed 2026-08-01: previously composed the shared `action`/
+   `navAction` button chrome, which made it look like a heavier action than
+   it is.)*
+   docs/specs/ui.md — controls & touch targets: hit area is pointer-aware
+   (34px fine / 44px coarse) like every other icon-only control; no
+   press-transform, focus shown by border colour only. */
+.control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  color: var(--muted);
+  background: transparent;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+.control:hover {
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.control:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}

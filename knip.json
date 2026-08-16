@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "project": ["*.ts"]
+    },
+    "apps/client": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/server": {
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/*": {
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "e2e": {
+      "entry": ["tests/**/*.spec.ts", "global-setup.ts"],
+      "project": ["**/*.{ts,mjs}"]
+    }
+  },
+  "ignoreExportsUsedInFile": true,
+  "includeEntryExports": false
+}

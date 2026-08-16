@@ -1,0 +1,119 @@
+/* docs/specs/summary-view.md, docs/specs/next-7-days-view.md — one day's
+   rows under a dated heading, shared by both views. */
+
+.day {
+  /* Groups need more air between them than rows do within one, so the day
+     boundaries are legible while scanning. */
+  margin-bottom: var(--space-6);
+}
+
+.day:last-child {
+  margin-bottom: 0;
+}
+
+/* The date is what these views are scanned for, so it leads — but stays in
+   the app's restrained register: small caps-free serif at the base size,
+   not a heavier display treatment (docs/specs/ui.md). */
+.dayHeading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+  /* Aligns the heading with the todo summaries beneath it (docs/specs/ui.md
+     — one left edge).
+
+     This has to reproduce the row's own leading offset exactly, and that is
+     *not* simply the hit area: the checkbox's touch target is --hit-area
+     wide but pulled back by half its overhang so the visible ring, not the
+     invisible padding, sits on the shared edge (checkbox.module.css —
+     `.hitArea`). The body then starts one --space-1 gap after it
+     (todo-item.module.css — `.todo`).
+
+     Measured: the row body starts 31px in, and `--hit-area + --space-1`
+     gave 38 — so the heading sat 9px right of every summary beneath it.
+     *(fixed 2026-08-04: was --hit-area + --space-1.)* */
+  padding-inline-start: calc(
+    var(--hit-area) + (var(--checkbox-size) - var(--hit-area)) / 2 +
+      var(--space-1)
+  );
+  padding-block: var(--space-2);
+}
+
+/* A count, not a badge — the quiet meta treatment rows already use for
+   priority and due, so it reads as annotation rather than a chip. */
+.dayCount {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--faint);
+}
+
+/* The Health / Everything else pair, *inside* a day
+   (docs/specs/next-7-days-view.md — both groupings, nested).
+
+   Three heading levels in one view is the real cost of nesting the two
+   groupings, and the type scale has no room to express it by size alone:
+   --text-base is 15px and --text-sm is 14px, so a size step between the day
+   and its subheadings would be a 1px difference nobody can see. Todo rows
+   are themselves --text-base, so going *up* for the day heading would make
+   it shout over the content it labels, which is the opposite of this app's
+   register (docs/specs/ui.md — restrained chrome).
+
+   So the separation is carried by **weight, colour and case** instead, all
+   three at once:
+   - the day heading is medium-weight in --ink, at the row's own size;
+   - these are --text-xs, regular weight, in --muted, and letter-spaced —
+     which reads as a label *within* a section rather than a peer of the
+     date above it.
+
+   Uppercase is doing the real work: it is the one signal that cannot be
+   mistaken for a heavier or lighter version of the day heading, so the
+   hierarchy survives at a glance rather than needing comparison.
+   *(added 2026-08-14: measured in the browser at three levels; a
+   size-based hierarchy was tried first and was illegible.)* */
+.sectionHeading {
+  /* The day heading's own inset, so the two headings and every row beneath
+     share one left edge (docs/specs/ui.md — one left edge). */
+  padding-inline-start: calc(
+    var(--hit-area) + (var(--checkbox-size) - var(--hit-area)) / 2 +
+      var(--space-1)
+  );
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* A day with nothing due (docs/specs/next-7-days-view.md — every day is
+   drawn). Quieter than a row and quieter than the day heading above it: the
+   point of drawing the day at all is the *shape* of the week, so a clear day
+   should register while scanning and then stop asking for attention.
+
+   --faint rather than --muted, which the meta pills use — this says less
+   than a due date does. On the rows' shared left edge, so a clear day and a
+   busy one start in the same column (docs/specs/ui.md — one left edge).
+   *(added 2026-08-14.)* */
+.empty {
+  margin: 0;
+  padding-inline-start: calc(
+    var(--hit-area) + (var(--checkbox-size) - var(--hit-area)) / 2 +
+      var(--space-1)
+  );
+  /* The row's own height, so an empty day occupies about what a one-todo
+     day does and the week does not concertina as work moves around. */
+  min-height: var(--hit-area);
+  display: flex;
+  align-items: center;
+  font-size: var(--text-sm);
+  color: var(--faint);
+}
+
+/* The first subheading sits directly under the day heading, which already
+   carries its own block padding — so it needs no top margin of its own or
+   the gap reads as a missing row. */
+.sectionHeading:first-of-type {
+  margin-top: 0;
+}
