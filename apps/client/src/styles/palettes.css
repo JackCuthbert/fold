@@ -1,0 +1,292 @@
+/* Colour palettes — the themeable part of the design system.
+ *
+ * **Only the ground and the ink change.** A palette redefines the neutral
+ * ramp (`--paper` … `--line`) and the accent; it does *not* touch spacing,
+ * type, radii, the list swatches, or the semantic status colours. Those are
+ * the app's identity rather than its finish, and a theme that moved them
+ * would be a different app rather than a different mood.
+ *
+ * Each palette has a light and a dark variant, selected by
+ * `[data-theme]` on the root — so the OS preference chooses the variant and
+ * the user's palette choice chooses the ramp, independently.
+ *
+ * `--danger` and the `--list-*` swatches deliberately repeat per palette
+ * only where a ground needs a different mix to stay legible; otherwise they
+ * inherit from tokens.css.
+ *
+ * *(added 2026-08-10 — review harness. See docs/specs/themes.md.)*
+ */
+
+/* ---- Parchment — the current look. Warm off-white, brown accent. ------- */
+
+[data-palette='parchment'] {
+  --paper: #faf9f6;
+  --surface: #ffffff;
+  --ink: #1a1816;
+  --muted: #8a8377;
+  --faint: #b7b0a2;
+  --accent: #7a5c3e;
+  --danger: #a03023;
+  --line: #e5e1d8;
+  --scrim: rgb(0 0 0 / 0.3);
+}
+
+[data-palette='parchment'][data-theme='dark'] {
+  --paper: #17150f;
+  --surface: #1d1a13;
+  --ink: #ece7dd;
+  --muted: #a39b8c;
+  --faint: #5f584a;
+  --accent: #c9a87c;
+  --danger: #e0705f;
+  --line: #2c2921;
+  --scrim: rgb(0 0 0 / 0.78);
+}
+
+/* ---- Paper — lighter, cooler, almost white. ---------------------------- */
+
+[data-palette='paper'] {
+  /* Near-white but not #fff: a pure-white ground makes the hairlines the
+     loudest thing on the page, and this design leans on hairlines. */
+  --paper: #fdfdfc;
+  --surface: #ffffff;
+  /* Slightly cooler and darker than Parchment's ink, so the reduced warmth
+     of the ground does not read as washed out. */
+  --ink: #16171a;
+  --muted: #7c7f85;
+  --faint: #b4b7bd;
+  /* The accent keeps a trace of warmth so the app is not clinical, but
+     drops most of Parchment's brown. */
+  --accent: #6b5f52;
+  --danger: #a32a20;
+  --line: #e7e7e6;
+  --scrim: rgb(0 0 0 / 0.3);
+}
+
+[data-palette='paper'][data-theme='dark'] {
+  --paper: #131416;
+  --surface: #191a1d;
+  --ink: #eceded;
+  --muted: #9a9da3;
+  --faint: #55585e;
+  --accent: #c3b4a2;
+  --danger: #e0705f;
+  --line: #26282b;
+  --scrim: rgb(0 0 0 / 0.78);
+}
+
+/* ---- Stone — greyscale, cooler still, a blue-green cast. --------------- */
+
+[data-palette='stone'] {
+  /* The neutral is biased toward the accent rather than being a pure grey —
+     a flat mid-grey reads as unconsidered. */
+  --paper: #f7f8f8;
+  --surface: #ffffff;
+  --ink: #14181a;
+  --muted: #737d80;
+  --faint: #aab3b5;
+  --accent: #45696b;
+  --danger: #a33028;
+  --line: #e0e5e5;
+  --scrim: rgb(0 0 0 / 0.3);
+}
+
+[data-palette='stone'][data-theme='dark'] {
+  --paper: #101415;
+  --surface: #161b1c;
+  --ink: #e6ebeb;
+  --muted: #939c9e;
+  --faint: #4d5658;
+  --accent: #8fb3b2;
+  --danger: #e0705f;
+  --line: #232a2b;
+  --scrim: rgb(0 0 0 / 0.78);
+}
+
+/* ---- OLED — pure black, for the screens that can switch pixels off. ---- */
+
+/* **Black in both modes.** OLED ignores light/dark entirely: the palette
+   exists to switch pixels off, and a light variant would be the opposite of
+   what someone choosing it asked for. Selecting it is the decision; the
+   mode control simply has nothing left to do.
+
+   An earlier version borrowed Stone's ramp for light, which meant the OS
+   flipping to light mid-day silently undid the choice.
+   *(changed 2026-08-10.)* */
+[data-palette='oled'],
+[data-palette='oled'][data-theme='light'],
+[data-palette='oled'][data-theme='dark'] {
+  /* True #000: on an OLED panel a black pixel is an *off* pixel, which is
+     the entire point — #131416 would still be lit. */
+  --paper: #000000;
+  /* Surfaces lift by the smallest step that still reads as a raised plane,
+     so modals and inputs separate from the page without giving back much
+     of the saving. */
+  --surface: #0a0a0c;
+  --ink: #f2f3f5;
+  --muted: #9296a0;
+  --faint: #4e525c;
+  --accent: #b9c6d4;
+  --danger: #e0705f;
+  /* Hairlines have to work harder against true black than against a lifted
+     ground — at Paper-dark's --line they were invisible here. */
+  --line: #26282e;
+  /* Nearly opaque: a translucent scrim over pure black leaves the content
+     behind it fully legible, so the modal stops reading as modal. */
+  --scrim: rgb(0 0 0 / 0.88);
+}
+
+/* ---- Catppuccin — Latte for light, Mocha for dark. -------------------- */
+
+/* Values taken verbatim from the upstream palette
+   (https://github.com/catppuccin/palette, palette.json), not eyeballed:
+   the point of a named community theme is that it matches everywhere it is
+   used. Only the mapping onto Fold's roles is a decision.
+
+   `base` is the page and `mantle`/`crust` the raised surfaces, which is
+   inverted from how Catppuccin's own docs describe them for editors — an
+   editor's surfaces sit *above* its base, and so do a modal's here.
+   *(added 2026-08-10.)* */
+[data-palette='catppuccin'] {
+  --paper: #eff1f5; /* base */
+  --surface: #ffffff;
+  --ink: #4c4f69; /* text */
+  --muted: #6c6f85; /* subtext0 */
+  --faint: #9ca0b0; /* overlay0 */
+  /* Mauve is the flavour's signature and the one most people picture when
+     they picture Catppuccin. */
+  --accent: #8839ef; /* mauve */
+  --danger: #d20f39; /* red */
+  --line: #ccd0da; /* surface0 */
+  --scrim: rgb(76 79 105 / 0.3); /* text, so even the veil is in-palette */
+}
+
+[data-palette='catppuccin'][data-theme='dark'] {
+  --paper: #1e1e2e; /* base */
+  --surface: #181825; /* mantle */
+  --ink: #cdd6f4; /* text */
+  --muted: #a6adc8; /* subtext0 */
+  --faint: #6c7086; /* overlay0 */
+  --accent: #cba6f7; /* mauve */
+  --danger: #f38ba8; /* red */
+  --line: #313244; /* surface0 */
+  --scrim: rgb(17 17 27 / 0.82); /* crust */
+}
+
+/* ---- Dracula — the dark one, with a light ground of its own. ---------- */
+
+/* Values from the theme's own spec (github.com/dracula/dracula-theme), not
+   eyeballed.
+   Background #282a36, Current Line #44475a, Foreground #f8f8f2,
+   Comment #6272a4, Purple #bd93f9, Red #ff5555.
+
+   **Dracula publishes no light variant** — it is a dark theme, and the
+   official palette has one background. Rather than invent one (which would
+   be a Dracula that Dracula users would not recognise) the light mode uses
+   a near-white ground carrying the theme's own purple and its comment blue,
+   so the identity survives while the app stays readable in daylight. Anyone
+   who wants the real thing sets the mode to dark.
+   *(added 2026-08-10.)* */
+[data-palette='dracula'] {
+  --paper: #f6f6f8;
+  --surface: #ffffff;
+  /* The dark background as ink: the palette's own darkest value, so the
+     light variant is still made of Dracula's colours. */
+  --ink: #282a36;
+  --muted: #4d5478;
+  --faint: #8b91b4;
+  --accent: #7c3fd4; /* purple, darkened to carry on a light ground */
+  --danger: #d63838; /* red, likewise */
+  --line: #dedee8;
+  --scrim: rgb(40 42 54 / 0.3);
+}
+
+[data-palette='dracula'][data-theme='dark'] {
+  --paper: #282a36; /* Background */
+  --surface: #21222c;
+  --ink: #f8f8f2; /* Foreground */
+  --muted: #b6bcd8;
+  --faint: #6272a4; /* Comment */
+  --accent: #bd93f9; /* Purple */
+  --danger: #ff5555; /* Red */
+  --line: #44475a; /* Current Line */
+  --scrim: rgb(20 21 27 / 0.82);
+}
+
+/* ---- Ayu — the light and dark variants of the editor theme. ----------- */
+
+/* Values from ayu-vim's own palette (github.com/ayu-theme/ayu-vim), which
+   is the source its ports read.
+   Light: bg #fafafa, fg #5c6773, accent #ff6a00, guide #d9d8d7.
+   Dark:  bg #0f1419, fg #e6e1cf, accent #f29718, guide #2d3640.
+
+   Ayu's signature is that orange accent against a very plain ground — the
+   one theme here whose light variant is as considered as its dark, which is
+   why both are its own rather than derived. `mirage`, its third variant, is
+   left out: three grounds under one name would need a picker of its own.
+   *(added 2026-08-10.)* */
+[data-palette='ayu'] {
+  --paper: #fafafa; /* bg */
+  --surface: #ffffff;
+  --ink: #5c6773; /* fg */
+  /* Between ayu's own fg and comment. The obvious #828c99 measured 3.27:1
+     against this paper — below AA, and --muted carries real text (list
+     names, due dates, the meta pills). *(measured 2026-08-10.)* */
+  --muted: #6a747f;
+  --faint: #abb0b6; /* comment */
+  --accent: #ff6a00; /* accent */
+  --danger: #f51818; /* error, darkened a shade for AA on white */
+  --line: #d9d8d7; /* guide */
+  --scrim: rgb(92 103 115 / 0.3);
+}
+
+[data-palette='ayu'][data-theme='dark'] {
+  --paper: #0f1419; /* bg */
+  --surface: #151a1e; /* line */
+  --ink: #e6e1cf; /* fg */
+  --muted: #9aa1ab;
+  --faint: #5c6773; /* comment */
+  --accent: #f29718; /* accent */
+  --danger: #ff3333; /* error */
+  --line: #2d3640; /* guide */
+  --scrim: rgb(9 12 15 / 0.85);
+}
+
+/* ---- Native chrome ----------------------------------------------------
+ *
+ * `color-scheme` tells the browser which way to paint the things CSS does
+ * not reach: scrollbars, form control internals, the spellcheck underline.
+ * Without it the browser follows the *OS* preference, so a Mac forced into
+ * dark mode drew a white scrollbar down the side of a dark palette — and a
+ * light palette on a dark OS got a black one. The app's own mode has to
+ * say which, since `data-theme` is the only thing that knows.
+ *
+ * `scrollbar-color` then places the thumb in the palette rather than the
+ * browser's default grey. Two values: thumb, then track. Firefox honours
+ * it directly; Chromium maps it onto its own scrollbars.
+ *
+ * *(added 2026-08-10.)* */
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Thumb from --line rather than --muted: a scrollbar is chrome, and at
+   --muted it read as content. It lifts on hover, the same whisper every
+   other hover in the app uses (docs/specs/ui.md). */
+[data-palette] {
+  scrollbar-color: color-mix(in srgb, var(--ink) 22%, var(--paper)) var(--paper);
+  scrollbar-width: thin;
+}
+
+/* The health tints that used to be restated here went with the health
+   block's border and tint on 2026-08-11 (issue #40) — see tokens.css. */
+[data-theme='dark'] {
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --status-synced: #7fa87f;
+  --status-syncing: #d9a441;
+  --status-offline: #e0705f;
+}

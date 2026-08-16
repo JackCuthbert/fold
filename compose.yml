@@ -1,0 +1,35 @@
+# A local Radicale for manual testing. The integration and e2e suites spawn
+# their own throwaway instance — this one persists, so you can add todos,
+# restart, and watch them survive.
+#
+#   docker compose up -d
+#   Server URL  http://localhost:5232/testuser/
+#   Username    testuser
+#   Password    testpass
+#
+# See docs/user/getting-started.md.
+services:
+  radicale:
+    image: tomsquest/docker-radicale:3.5.4.0
+    container_name: fold-radicale
+    ports:
+      - '5232:5232'
+    volumes:
+      - ./radicale-data:/data
+      - ./radicale/config:/config/config:ro
+      - ./radicale/users:/config/users:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '-fsS',
+          'http://localhost:5232/',
+          '-u',
+          'testuser:testpass',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

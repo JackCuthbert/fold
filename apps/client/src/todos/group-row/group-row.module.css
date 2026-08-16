@@ -1,0 +1,163 @@
+/* docs/specs/list-kinds.md — a grouping list collapsed to one row in a
+   derived view. See group-row.tsx.
+
+   It shares the todo row's height and spacing so a mixed view reads as
+   one list of rows rather than two kinds of thing stacked together — the
+   grouping is meant to make Today shorter, not to introduce a new
+   component with its own rhythm.
+   *(added 2026-08-05, issue #27; the hairline it also used to share went
+   on 2026-08-11 with every other row's — see todo-item.module.css.)* */
+
+.button {
+  display: flex;
+  align-items: center;
+  /* The same gap `.todo` puts between the checkbox and the body, so the
+     name starts exactly where a todo's title does. */
+  gap: var(--space-1);
+  width: 100%;
+  /* Matches the todo row's own height (--hit-area), so a group sitting
+     between two todos keeps the rhythm. */
+  min-height: var(--hit-area);
+  padding-inline: 0 var(--space-1);
+  text-align: left;
+  font-size: var(--text-base);
+}
+
+/* No hover fill. Todo rows have none — they are content, and a wash
+   behind one of them would read as a selection the list does not have —
+   so the group row, which stands in for todo rows, must not be the one
+   row in the pane that lights up. The nav's rows *do* wash on hover, and
+   copying that here was the mistake: this row navigates like a nav row
+   but sits among content.
+   *(removed 2026-08-05.)* */
+
+/* The marker for a collapsed grocery list.
+
+   A carrot, not the sparkle the nav row and title carry. Those two mark
+   "this list has a kind" and stand for any of the four, so they need an
+   abstract glyph. This row is different: only a grocery list groups
+   (`groups: true` in list-kind.ts is set by that kind alone), so the mark
+   here can name what the row actually is. The sparkle was doing the more
+   abstract job in the one place it did not have to.
+   *(changed 2026-08-10: was LuSparkles.)*
+
+   docs/specs/ui.md — one left edge. This stands in the checkbox's column,
+   so it has to reproduce the checkbox's geometry exactly rather than just
+   its width: `.hitArea` is a --hit-area box pulled left by half the
+   difference between the visible ring and that box, which puts the
+   *visible* glyph on the shared edge while the 44px column still governs
+   where the text begins. A plain `width: var(--hit-area)` (the first
+   attempt) skipped the pull, so the glyph sat 12px left of the
+   checkboxes above it and the name 12px right of their titles — the row
+   was misaligned at both ends at once.
+   *(fixed 2026-08-05.)* */
+.kindMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  color: var(--faint);
+  margin-left: calc((var(--checkbox-size) - var(--hit-area)) / 2);
+}
+
+/* The checkbox's size, not a smaller annotation size — see group-row.tsx.
+   Two glyphs centred in the same column only share a left edge when they
+   are the same width. */
+.kindGlyph {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+}
+
+/* Takes the slack so the count sits at the trailing edge, and so a long
+   list name ellipsises rather than pushing the count off the row.
+   `min-width: 0` because a flex item will not shrink below its content
+   without it, which defeats the ellipsis. */
+.name {
+  flex: 1;
+  min-width: 0;
+  /* The ellipsis stays out here, on the box that can actually run out of
+     room; `.nameText` inside is only ever as wide as its text. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The name's *text*, as its own inline box.
+
+   The strike is drawn on this rather than on `.name`: `.name` is
+   `flex: 1`, so its box runs the whole way to the count and a rule
+   across it struck through empty space as well as the word. An inline
+   child is only as wide as the text, which is what the strike should
+   measure. `.summary` in todo-item.module.css has no such wrapper
+   because its box already hugs its text.
+   *(fixed 2026-08-05.)*
+
+   No `font-weight`: it inherits, which is what `.summary` does too. This
+   row carried --weight-medium and so read as bolder than every todo title
+   beside it — the one property that broke the "one list of rows" rule
+   stated at the top of this file. The carrot, the count and the chevron
+   already say the row is a different kind of thing; weight was a fourth
+   statement of it, and the only one that cost the run of rows its evenness.
+   *(fixed 2026-08-14, issue #59.)* */
+.nameText {
+  position: relative;
+  /* Glyphs paint outside their box — see --ink-overhang in tokens.css. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+}
+
+/* Struck through when everything behind the row is done, exactly as a
+   completed todo's summary is (`.summary::after` in
+   todo-item.module.css). Without it a finished group looked identical to
+   an outstanding one, so a Summary of nothing but completed work read as
+   though the shopping were still to do.
+
+   Same growing-underline treatment rather than `text-decoration`, so the
+   two strike through at the same weight and animate the same way.
+   *(added 2026-08-05.)* */
+.nameText::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 1px;
+  width: 0;
+  background: var(--muted);
+  transition: width var(--duration-slow) var(--ease);
+}
+
+/* Only the colour. The `font-weight: var(--weight-normal)` that sat here
+   existed solely to undo `.nameText`'s medium, and went with it — a
+   completed group now differs from an outstanding one by ink and the
+   strike, exactly as a completed todo does. *(2026-08-14, issue #59.)* */
+.done .nameText {
+  color: var(--muted);
+}
+
+.done .nameText::after {
+  width: 100%;
+}
+
+/* Pinned to the trailing edge, where a todo row carries its own due date
+   and priority — so the row's right-hand column means the same thing on
+   every row rather than the group alone putting metadata mid-row.
+   Quieter than the name, which is what you scan for.
+   *(changed 2026-08-05: sat directly after the name.)* */
+.count {
+  /* No `margin-inline-start: auto` — `.name` is `flex: 1` and already
+     absorbs the slack, so this lands at the trailing edge either way.
+     Two mechanisms for one alignment is one too many to reason about. */
+  flex: none;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* Points the way to the list, not down into a panel. The Completed
+   accordion's chevron a few rows below rotates to disclose; this one
+   never moves, because this row navigates. */
+.chevron {
+  flex: none;
+  color: var(--faint);
+}

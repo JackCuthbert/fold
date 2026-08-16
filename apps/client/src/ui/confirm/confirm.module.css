@@ -1,0 +1,90 @@
+/* docs/specs/ui.md — overlays: every overlay dims the background and
+   animates in/out; the scrim fades with the popup. Disabled under
+   prefers-reduced-motion (global.css). */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  max-width: 22rem;
+  width: calc(100% - var(--space-8));
+  outline: none;
+  /* docs/specs/ui.md — overlays: modal padding is uniform on all four
+     edges and modest — matched to the gap between action buttons
+     (--space-3). No padding on the surface itself — .title and .body
+     below own it, so the title/content divider (see .title) spans the
+     full width of the surface edge to edge. *(changed 2026-08-01: was
+     --space-6 with the divider inset inside it.)* */
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.confirm[data-starting-style],
+.confirm[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, so the heading reads as a header.
+   The divider spans the full width of the surface, edge to edge. */
+.title {
+  flex: none;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.body {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  padding: var(--space-3) var(--space-3) 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+/* docs/specs/ui.md — buttons have real chrome, not ghost text. Shared
+   surface/border/radius/focus/disabled treatment lives in one place
+   (styles/button.module.css); each button composes the shared `action`
+   shape plus exactly one role. */
+.cancel {
+  composes: action default from '../../styles/button.module.css';
+}
+
+.danger {
+  composes: action destructive from '../../styles/button.module.css';
+}
+
+/* The same dialog, asking about a sweeping but reversible change rather
+   than a loss — see `.affirmative` in the shared button module for why
+   this is not red. *(added 2026-08-05, issue #27.)* */
+.affirm {
+  composes: action affirmative from '../../styles/button.module.css';
+}

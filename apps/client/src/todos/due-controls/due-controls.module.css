@@ -1,0 +1,147 @@
+/* docs/specs/todos.md — due times. "Due date" and "Time" as switches that
+   reveal their pickers, so switching off is how a due date is cleared.
+   *(added 2026-08-08.)* */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Label left, switch right — the row shape of every settings toggle, and
+   what makes the control readable as "this is on/off" before you reach the
+   pickers below it. */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Full-width so the whole row is the label's hit area, and the switch has
+   somewhere to be pushed to. */
+.toggleLabel {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* Flush with every other field, not indented under the switch. The
+   revealed pickers already read as belonging to the toggle above them —
+   they appear when it is turned on — so an indent and a rule only broke
+   the form's single left alignment to restate that.
+   *(changed 2026-08-08: was inset with a border-inline-start.)* */
+.pickers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.timeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  /* A flex item's default `min-width: auto` reintroduces a content-derived
+     floor, which is exactly the WebKit problem global.css removes. */
+  min-width: 0;
+}
+
+.field :global(label) {
+  color: var(--muted);
+}
+
+.field :global(input) {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.dueDate,
+.dueTime {
+  min-width: 0;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* The switch itself. Base UI ships no styling, so the track and thumb are
+   ours: a pill track that fills with accent when on, and a thumb that
+   slides. Sized against the type scale rather than fixed pixels so it
+   keeps its proportions with the rest of the form.
+
+   44px minimum hit area is not expressed here — the `.toggleRow` gives it
+   the full row height, and the track sits centred inside that. */
+.switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.switch[data-checked] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* The travel distance: track width less the thumb and the 2px of breathing
+   room at each end. A variable so the "on" position below cannot drift out
+   of step with the track's own size. */
+.switch {
+  --thumb-size: 1.125rem;
+  --thumb-travel: calc(2.75rem - var(--thumb-size) - 4px);
+}
+
+.thumb {
+  display: block;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  /* Moved with `translate`, not `left`. A percentage in `left` resolves
+     against the track's *padding box*, which excludes its border — so
+     `calc(100% - …)` lands the thumb short of the right-hand end and the
+     switch reads as off while its track is filled. `translate` takes a
+     length that needs no such basis, and animating a transform stays on
+     the compositor rather than triggering layout on every frame. */
+  transform: translateY(-50%);
+  transition: transform 150ms ease;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+}
+
+.thumb[data-checked] {
+  transform: translateY(-50%) translateX(var(--thumb-travel));
+}
+
+/* docs/specs/ui.md — respect reduced motion. The switch still changes
+   colour and position; it just stops animating between them. */
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .thumb {
+    transition: none;
+  }
+}

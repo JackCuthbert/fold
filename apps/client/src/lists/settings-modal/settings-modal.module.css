@@ -1,0 +1,246 @@
+/*
+ * docs/specs/ui.md — Settings modal: sound and sign out live here rather
+ * than as loose nav controls. Same dimmed/animated overlay treatment as
+ * every other modal in the app (docs/specs/ui.md — overlays).
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  /* Matched to the help modal's 26rem. The two are the app's only
+     full-page overlays and open from adjacent controls in the same nav
+     footer, so a 4rem difference read as one of them being wrong rather
+     than as two sizes — and the wider box gives the palette and typeface
+     cards room to breathe. *(changed 2026-08-10.)* */
+  max-width: 26rem;
+  width: calc(100% - var(--space-8));
+  max-height: 85dvh;
+  outline: none;
+  /* No padding here — .title and .body below own it, so the scrollbar (if
+     .body ever needs to scroll) tracks the popup's true edge instead of
+     floating inset with content sliding under it (docs/specs/ui.md —
+     scrollbar gutters sit at the container edge; same fix as the detail
+     panel and add-todo modal). */
+  padding: 0;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(4px);
+}
+
+/* The title row — its padding, its divider and its ✕ — is shared by every
+   modal and lives in modal-header.module.css. *(changed 2026-08-03: this
+   module carried its own near-identical `.title` rule, one of five.)* */
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+/* Titled sections, matching the help modal's structure (help-modal.module.css
+   — `.section`, `.heading`, `.subheading`). Composed rather than restated so
+   the two modals cannot drift into looking like different apps.
+
+   A column here, unlike the help modal's: Settings holds *controls* rather
+   than prose, and a flex column is what lets one of them (Sign out) sit at
+   the trailing edge instead of stretching. *(added 2026-08-10.)* */
+.section {
+  composes: section from '../../help/help-modal/help-modal.module.css';
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.heading {
+  composes: heading from '../../help/help-modal/help-modal.module.css';
+}
+
+.subheading {
+  composes: subheading from '../../help/help-modal/help-modal.module.css';
+}
+
+/* The explanatory line under a heading — where a setting is stored, what
+   signing out does. Same register as the help modal's prose. */
+.note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+  color: var(--muted);
+}
+
+/* One family of palettes, with its label. */
+.paletteGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.paletteGroup + .paletteGroup {
+  margin-top: var(--space-2);
+}
+
+/* Quieter than `.subheading`, which names the whole setting — this only
+   divides its options, so it must not read as a second heading.
+
+   No inline padding: the cards below now carry a border in every state, so
+   the label sits on their outer edge. It was indented by --space-2 to match
+   a borderless row's text, which put it a border-width off once the cards
+   gained edges. *(fixed 2026-08-10.)* */
+.groupLabel {
+  font-family: var(--sans);
+  font-size: var(--text-xs);
+  color: var(--faint);
+  padding-block-end: 2px;
+}
+
+.palettes,
+.typefaces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* A segmented row: three mutually exclusive options that read as one
+   control, so the group is bordered and the buttons share its edges rather
+   than each carrying their own. */
+.modes {
+  display: flex;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.mode {
+  flex: 1 1 0;
+  min-height: var(--hit-area);
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.mode + .mode {
+  border-inline-start: var(--border-width) solid var(--line);
+}
+
+.mode:hover {
+  color: var(--ink);
+}
+
+.mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.mode[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+/* One setting and its control, side by side. */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--hit-area);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.serverUrl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-2);
+  min-width: 0;
+}
+
+/* The URL is data, not prose: monospace, and allowed to wrap rather than
+   ellipsise — a truncated server URL cannot be checked, which is the only
+   reason it is shown. */
+.serverUrlValue {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-1) var(--space-3);
+  background: none;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-full);
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--ink);
+}
+
+.toggle[data-pressed] {
+  color: var(--ink);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The same button every other destructive action in the app is: `action`
+   for the shared chrome, `destructive` for the role — exactly what the
+   detail panel's Delete composes (todo-detail.module.css).
+
+   It previously composed `destructive` alone, which took the red ink and
+   border but *none* of `.action`'s surface, padding, hit area or hover — so
+   it was the only button in the app without button chrome. It also carried
+   `width: 100%`, and the app has no full-width buttons outside the nav's
+   own `navAction` rows. *(fixed 2026-08-10.)* */
+.signOut {
+  composes: action destructive from '../../styles/button.module.css';
+  /* Trailing edge, like the detail panel's Delete: a destructive action
+     sits away from the reading edge rather than under the text it follows. */
+  align-self: flex-end;
+}

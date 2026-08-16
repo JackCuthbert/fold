@@ -1,0 +1,199 @@
+/* docs/specs/ui.md — the todo row: which list, how urgent, when it is due,
+   on their own line beneath the summary. *(added 2026-08-09, issue #2.)* */
+.meta {
+  display: flex;
+  align-items: center;
+  /* Wraps rather than overflowing: a long list name beside a timed due
+     date can exceed a narrow phone, and the row must give way vertically
+     rather than clip. */
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  min-width: 0;
+}
+
+/* The shared pill shape. The two treatments below differ only in ground
+   and border — everything about size, alignment and type is common, so a
+   new kind of fact inherits the right shape by default. */
+.pill,
+.list {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  font-family: var(--meta);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  /* `line-height: 1` plus `text-box: trim-both cap alphabetic` where it is
+     supported, so the pill's height is its glyphs rather than the em box
+     (20.8px → 16px measured) and the padding above and below the word is
+     the padding actually written here.
+
+     This is also what fixes the dot's alignment. `align-items: center`
+     centres each child's *box*, and an untrimmed text box carries the
+     ascender and descender space that a word like "Health" never fills —
+     so the glyphs sat high in their box while the dot sat on its true
+     centre, and the dot read as low. Trimming the box to the glyphs makes
+     the two agree, with no per-face nudge to maintain.
+     *(fixed 2026-08-10.)* */
+  line-height: 1;
+  text-box: trim-both cap alphabetic;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* The non-text marks: the list dot and every pill icon.
+
+   No optical correction. `text-box: trim-both cap alphabetic` above already
+   trims the box to the glyphs, and with that in place `align-items: center`
+   puts the dot within half a pixel of the x-height band's centre — which is
+   the band the eye actually reads a dot against.
+
+   A correction *was* added here and it was wrong: it had been swept against
+   the centre of the capital "T", but a capital is taller than the lowercase
+   beside it, so aligning to that band pushed the marks 2px high and the
+   dots visibly floated above the words. Measured against the x-height of
+   "era" instead, the untrimmed error is +0.5px and any shift over ~0.03em
+   makes it worse. Left at zero rather than chasing half a pixel with a
+   magic number that would need re-tuning for every themeable face.
+   *(reverted 2026-08-10 — see the note above.)* */
+
+/* Without `text-box` (Firefox, older Safari) the box keeps its half-leading,
+   so restore the line height the pill was designed around. The residual
+   offset there is the ~0.5px measured above — below the threshold worth
+   correcting, and a correction would be wrong the moment the face changes. */
+@supports not (text-box: trim-both cap alphabetic) {
+  .pill,
+  .list {
+    line-height: 1.4;
+  }
+}
+
+/* The list: a hairline outline, with its colour on the dot alone.
+
+   A list's colour is arbitrary — it can arrive from Apple Reminders or a
+   hex field — so it must never end up behind text. Measured across the
+   eight-swatch palette a 12% tint clears AA comfortably, but pure yellow,
+   near-paper and neon green collapse to under 2:1, which would need a
+   contrast guard at render time. Confining the colour to an 8px dot
+   removes the problem rather than managing it: a dot has no legibility
+   threshold, which is why the nav's has never needed one.
+   *(measured 2026-08-09 — see the notes in list-color.ts for the same
+   reasoning applied to the selection marker.)* */
+.list {
+  padding: 1px var(--space-2) 1px 6px;
+  background: none;
+  border: var(--border-width) solid var(--line);
+  color: var(--muted);
+}
+
+.dot {
+  composes: dot from '../../lists/list-dot.module.css';
+}
+
+.dotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
+
+/* Everything else: a soft fill in a colour the app owns, so its contrast
+   is known at build time rather than measured per render. */
+.pill {
+  padding: 2px var(--space-2) 2px 6px;
+  border: none;
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+}
+
+/* Capitalised for display only, and **only here**. `priority` is stored
+   lowercase ('high') because it is a schema value rather than a label, so
+   the casing belongs in the presentation instead of a table of
+   hand-written strings that could drift from the union type.
+
+   Scoped to the priority pills rather than `.pill`: `capitalize` acts on
+   every word, so on the due pill it turned the locale's "9:00 am" into
+   "9:00 Am". A one-word label is the only safe subject for it.
+   *(fixed 2026-08-09.)* */
+.high,
+.medium,
+.low {
+  text-transform: capitalize;
+}
+
+/* docs/specs/todos.md — priority is colour-coded, all three levels: high
+   urgent, medium cautionary, low calm. The chevron carries the *rank*, so
+   the meaning survives for anyone who cannot separate the hues — and, more
+   commonly, distinguishes priority from the overdue pill beside it, which
+   was previously the same red fill with the same red text. */
+.high {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* The ink here is deliberately not a plain token, and
+   styles/priority.module.css now carries the same mix so the choosers
+   preview it — see the measurement on that rule. Keep the two in step: they
+   are the same colour written twice because the pill also needs the ground,
+   and the e2e test in priority-ink.spec.ts is what catches a drift.
+   *(unified 2026-08-14: the pickers drew plain `--status-syncing`, a
+   visibly lighter amber, so choosing Medium previewed a pill the row did
+   not draw.)* */
+.medium {
+  background: color-mix(in srgb, var(--list-amber) 15%, transparent);
+  color: color-mix(in srgb, var(--list-amber) 70%, var(--ink));
+}
+
+/* Low takes the calm green — the same `--status-synced` the Priority
+   dropdowns, the context menu's submenu and the punctuality footer already
+   use, on a 12% tint of itself exactly as `.high` sits on 12% of
+   `--danger`.
+
+   *(changed 2026-08-14: this pill was the neutral fill on the reasoning
+   that low is the *absence* of urgency, and that a colour would make "not
+   urgent" look like a claim. That argument lost to consistency: every
+   surface that *sets* a priority already rendered Low green from
+   styles/priority.module.css, so picking green produced grey. One colour
+   per rank, everywhere, beats a per-surface philosophy about what the rank
+   means. The chevron still distinguishes it from an unprioritised todo,
+   which now shows no pill rather than a grey one.)*
+   *(corrected 2026-08-14: this note read "High and Medium agreed across
+   the row and the dropdown while Low did not". Neither did — Medium was a
+   different amber on each surface and High diverged in Catppuccin dark.
+   Low was simply the one visible at a glance in the default palette.)*
+
+   Measured at 12%: green ink on its own tint is 4.06:1 in the default
+   Parchment palette and 3.80:1 at the worst of the thirteen palette
+   variants (Catppuccin light) — better than `.high` (3.31 worst) and
+   `.medium` (3.30 worst) already ship, and the label text is never the only
+   signal (docs/specs/ui.md — accessibility). */
+.low {
+  background: color-mix(in srgb, var(--status-synced) 12%, transparent);
+  color: var(--status-synced);
+}
+
+.due {
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+}
+
+/* Overdue carries the clock. Same red as high priority — both are the
+   app's "this needs attention" ink, and inventing a second red to separate
+   them would be worse than the icon that already does. */
+.overdue {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* A completed todo carrying no COMPLETED stamp (docs/specs/summary-view.md
+   — Summary excludes it, and issue #39). Deliberately *not* an alarm: the
+   todo is fine and the work was done, it is only its date that is unknown.
+   So it takes the neutral ground with a questioning glyph rather than the
+   danger ink, which would suggest something is wrong with the todo itself.
+
+   This is the whole reason Summary's "not shown above" count is now
+   findable — that count named todos with no way to reach them.
+   *(added 2026-08-09.)* */
+.undated {
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  color: var(--muted);
+  font-style: italic;
+}

@@ -1,0 +1,114 @@
+# The user guide site (apps/docs) → GitHub Pages.
+#
+# **The build always runs; the deploy runs only when the repo is public.**
+# GitHub Pages on a *private* repo needs GitHub Pro or above, and `fold` is
+# private on a Free account — an unconditional deploy would fail on every
+# push and leave a permanently red badge that means nothing.
+#
+# The gate is `github.event.repository.private`, read at run time, so
+# **flipping the repo to public is the only action needed**. There is no
+# commented-out trigger to remember and no second switch. The one manual
+# step that cannot be automated is enabling Pages itself: Settings → Pages
+# → Build and deployment → Source: **GitHub Actions**.
+#
+# Until then the build still earns its place: `docs:build` fails on a dead
+# internal link, so this catches a broken guide cross-link on any PR that
+# touches the docs, published or not.
+#
+# **A published site is public even from a private repo.** Private-repo
+# Pages hides the *source*, not the site; restricting visitors to people
+# with repo access is a GitHub Enterprise Cloud feature. For a user guide
+# that is almost certainly the intent — but it should be a decision, not a
+# surprise.
+#
+# See docs/specs/docs-site.md, and the `base` note there: it must match the
+# published URL or every asset 404s while the HTML still renders.
+#
+# *(added 2026-08-17.)*
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/docs/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'apps/docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+# One deploy at a time, and never cancel one midway: a half-published site
+# is worse than a slightly stale one. Queued runs collapse to the newest.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Always runs. The build is a genuine check even with nowhere to publish:
+  # `docs:build` fails on a dead internal link, which is what catches a
+  # guide cross-link broken by a file move.
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      # `github.event.repository.private` is what gates the deploy below.
+      # Flipping the repo to public is enough to start publishing — there
+      # is no second switch to remember, and nothing to uncomment.
+      private: ${{ github.event.repository.private }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run docs:build
+
+      - name: Explain why the deploy is skipped
+        if: github.event.repository.private
+        run: |
+          echo "### Docs built, not published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub Pages needs a public repo (or GitHub Pro) and this one is private, so the deploy job is skipped." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Read the guide locally with \`bun run docs\`, or see \`docs/specs/docs-site.md\`." >> "$GITHUB_STEP_SUMMARY"
+
+      # Only needed by the deploy job, so skipped with it. configure-pages
+      # itself fails on a repo without Pages enabled, hence the guard here
+      # too rather than only on `deploy`.
+      - uses: actions/configure-pages@v6
+        if: ${{ !github.event.repository.private }}
+      - uses: actions/upload-pages-artifact@v5
+        if: ${{ !github.event.repository.private }}
+        with:
+          path: apps/docs/.vitepress/dist
+
+  # Skipped automatically while the repo is private: Pages is unavailable
+  # there on a Free account, so an unconditional deploy would fail on every
+  # push and leave a permanently red badge that means nothing.
+  #
+  # Also skipped on pull requests — a PR builds to prove the docs compile,
+  # it does not publish.
+  deploy:
+    needs: build
+    # Compared as a string rather than via fromJSON: job outputs are always
+    # strings, and fromJSON('') throws if the field is ever missing.
+    # Requiring exactly 'false' also fails closed — an empty or unexpected
+    # value skips the deploy rather than attempting one.
+    if: >-
+      ${{
+        needs.build.outputs.private == 'false'
+        && github.event_name != 'pull_request'
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish the artifact
+      id-token: write # OIDC token the deploy action verifies
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

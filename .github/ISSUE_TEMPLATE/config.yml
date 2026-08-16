@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/JackCuthbert/fold/security/advisories/new
+    about: Please report privately, not as a public issue. See SECURITY.md.
+  - name: How do I …?
+    url: https://github.com/JackCuthbert/fold/blob/main/apps/docs/guide/getting-started.md
+    about: The user guide covers setup, adding todos, lists and shortcuts.

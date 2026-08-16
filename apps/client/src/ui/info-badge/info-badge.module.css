@@ -1,0 +1,65 @@
+/* docs/specs/ui.md — overlays: this is the quietest surface in the app, so
+   it borrows the popup treatment from the select menu rather than
+   inventing its own. */
+/* A real hit area around a deliberately small glyph — 44x44 under
+   `pointer: coarse`, the non-negotiable floor in docs/specs/ui.md
+   (controls & touch targets). The icon stays 14px: this is the quietest
+   control in the app and must not grow to match its target. Same
+   small-glyph-in-a-full-target arrangement as `.menuTrigger`
+   (main-screen.module.css) and the colour swatches.
+   *(added 2026-08-03: was padding alone, giving a 22px square. It sat
+   inside a dialog then; it now also sits in the nav beside Today and
+   Summary, where it is a primary touch target.)* */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  color: var(--faint);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: help;
+  border-radius: var(--radius-full);
+}
+
+.trigger:hover {
+  color: var(--muted);
+}
+
+.trigger:focus-visible {
+  outline: none;
+  color: var(--accent);
+  box-shadow: 0 0 0 var(--border-width) var(--accent);
+}
+
+/* Above the dialog it opens inside: modals are 40 (backdrop) / 41 (popup)
+   and their nested popups 42, the toast 50 (docs/specs/ui.md — overlays). */
+.positioner {
+  z-index: var(--z-popover);
+}
+
+/* Opening from the keyboard moves focus onto the popup so its prose is
+   announced — that is the whole point of a popover over a tooltip. But the
+   popup is a passive reading surface, not a control, so the global
+   focus-visible ring (global.css) would be an accent-coloured 2px outline
+   around a paragraph the user did not "navigate to" in any actionable
+   sense. Its own border already delimits it, which is the treatment
+   docs/specs/ui.md asks for anyway — focus by border, never an outline. */
+.popup:focus-visible {
+  outline: none;
+}
+
+.popup {
+  max-width: 18rem;
+  background: var(--surface);
+  color: var(--muted);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--line-normal);
+}

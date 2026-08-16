@@ -1,0 +1,297 @@
+/*
+ * Shared action-button chrome — docs/specs/ui.md "buttons have a real
+ * surface, not ghost text" (defect reported 2026-07-31).
+ *
+ * This is the one place button chrome is defined. Every *action* button in
+ * the app (Save, Close, Delete, Cancel, Add, Create, Sign in, "+ New list",
+ * Settings, Clear completed, Sign out, confirm dialog actions) composes one
+ * of these three classes rather than re-declaring background/border/radius
+ * locally — that keeps every surface consistent and makes divergence show
+ * up as a missing `composes:` rather than a silent copy-paste drift.
+ *
+ * Icon-only and nav-item controls (the ☰ trigger, the mute toggle, list
+ * rows, the per-list kebab menu trigger, the completed-section disclosure
+ * trigger) deliberately do NOT use these — they stay chromeless, styled
+ * locally in their own module.
+ *
+ * Usage (in a consuming .module.css):
+ *
+ *   .save {
+ *     composes: action primary from './button.module.css';
+ *   }
+ *
+ * `.action` supplies the shared shape (border, radius, padding, hit area,
+ * focus/disabled handling); exactly one of `.primary` / `.default` /
+ * `.destructive` supplies the surface/ink/border colour for that role.
+ * Full-width nav actions (Settings, "+ New list") additionally compose
+ * `.navAction` for the shared width/alignment treatment — see its comment
+ * below.
+ */
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--hit-area);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  /* Only colours transition — no transform, no width/border change, so
+     focus and hover never reflow or clip inside a sheet/panel (docs/specs/
+     ui.md — focus changes border colour only; no press-transform). */
+  box-shadow: var(--shadow-button);
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    filter var(--duration-fast) var(--ease);
+}
+
+/* docs/specs/ui.md — hover is a whisper: shift the surface rather than
+   swapping in a whole new fill. This used to jump to --line, which read as
+   the button becoming a different control; brightness() matches the
+   primary button's treatment, which is the reference for "the right amount
+   of change and contrast". */
+.action:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.action:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* A disabled button must not react to the pointer at all — no darkening,
+ * no background shift, and a cursor that says why.
+ *
+ * The suppression lives on each hover rule as `:hover:not(:disabled)`
+ * rather than as a reset here, because each role's disabled surface differs
+ * (`.primary:disabled` uses `--line`, the others inherit `--surface` from
+ * this rule) and no single override could name them all. Excluded from
+ * hover, a disabled button simply keeps whatever its resting declaration
+ * set — which is right by construction.
+ *
+ * `background: revert` in an override was tried first and is wrong twice
+ * over: it reverts past this stylesheet to the UA default, so a disabled
+ * primary jumped from --line to the browser's grey on hover — a bigger
+ * change than the one it was meant to prevent.
+ *
+ * *(fixed 2026-08-03: `:disabled:hover` reset `background` but not the
+ * `filter` doing the darkening, so disabled buttons still responded.)* */
+.action:disabled {
+  color: var(--muted);
+  /* The pointer is the only cue that says *why* nothing happens on click.
+     A plain arrow reads as "this should work". */
+  cursor: not-allowed;
+  background: var(--surface);
+}
+
+/* Primary — the affirmative action (Save, Add, Create, Sign in). */
+.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.08);
+}
+
+.primary:focus-visible {
+  border-color: var(--ink);
+}
+
+.primary:disabled {
+  border-color: var(--line);
+  background: var(--line);
+  color: var(--muted);
+  filter: none;
+}
+
+/* Default — secondary actions (Close, Cancel). Quieter ink than primary so
+   it reads as secondary; surface/border stay the same as .action's base so
+   it never competes with the primary action beside it. */
+.default {
+  color: var(--muted);
+}
+
+.default:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* docs/specs/ui.md — controls & touch targets: icon and label are
+   left-aligned together — icon first, then the label, one gap from the
+   spacing scale, the pair sitting at the leading edge with the remaining
+   width left empty. *(reverted 2026-07-31: space-between pushed the label
+   to the trailing edge, leaving a void mid-button.)*
+   Full-width nav actions — Settings, "+ New list" — are buttons of the
+   same kind and must look the same (docs/specs/ui.md — controls & touch
+   targets), so this is the one place that shape lives: a consuming module
+   composes `navAction` (plus one of `.primary`/`.default`/`.destructive`)
+   instead of redeclaring width/justify-content locally, which is what let
+   them drift apart before. */
+.navAction {
+  justify-content: flex-start;
+  width: 100%;
+  /* docs/specs/ui.md — one left edge, including controls: `.action`'s own
+     --space-4 inline padding pushes the leading glyph 16px inside the box,
+     so a nav action's icon sat well right of the list rows it stacks with.
+     Trim the leading padding to the row's own inset so the *visible* glyph
+     lands on the shared edge; the box, hover fill and hit area are
+     unchanged.
+
+     `--nav-inset` so the nav can set that shared edge once for every row
+     it contains (lists/list-nav.module.css) — a local override here loses
+     to `composes`, which places this rule last. The fallback keeps any
+     other caller behaving as before. *(changed 2026-08-04.)* */
+  padding-inline-start: var(--nav-inset, var(--space-2));
+}
+
+/* Destructive — Delete, and the confirm dialog's destructive action. */
+.destructive {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* docs/specs/ui.md — hover is a whisper. This used to flood the button
+   with solid --danger and invert the text, which was by far the loudest
+   hover in the app — and on the one control where a startling response is
+   least wanted. A faint tint of the same red matches the weight of every
+   other hover while still reading unmistakably as destructive; the border
+   and ink already carry that meaning at rest. */
+.destructive:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+
+/* docs/specs/ui.md — accessibility: destructive controls need a focus
+   state at least as legible as any other. The resting border is already
+   `--danger`, so repeating it on focus (the previous behaviour) was a
+   no-op — indistinguishable from unfocused. `--ink` gives the same
+   high-contrast swap `.primary:focus-visible` uses against its own
+   resting colour; a faint danger-tinted background makes it legible at a
+   glance too, without changing border width (docs/specs/ui.md — focus
+   changes border colour only) or adding an outline that would clip inside
+   a sheet or menu popup. */
+.destructive:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+}
+
+/* Affirmative — a confirm dialog's action when the thing being confirmed
+   is a bulk *change* rather than a loss (docs/specs/list-kinds.md — bulk
+   complete and bulk schedule).
+   *(added 2026-08-05, issue #27.)*
+
+   Red is for what cannot be undone. Ticking off a list, or dating it, is
+   sweeping enough to be worth asking about, but nothing is destroyed and
+   every todo can be set back one at a time — dressing it in the same red
+   as Delete would teach the reader to read past the colour, which is
+   precisely what makes it useless on the dialog that really does destroy
+   something.
+
+   Borrows the status green, the app's existing "this went well" colour,
+   at the same weights `.destructive` uses for its red. */
+.affirmative {
+  border-color: var(--status-synced);
+  color: var(--status-synced);
+}
+
+.affirmative:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-synced) 8%, var(--surface));
+}
+
+.affirmative:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--status-synced) 12%, var(--surface));
+}
+
+/* Ghost — a real action that should recede until wanted: the detail
+   panel's Reset, which matters only while an edit is in progress and would
+   otherwise sit beside Save with equal weight at all times.
+   *(added 2026-08-04.)*
+
+   Drops the chrome `.action` supplies rather than tinting it, so it reads
+   as text at rest — but keeps `.action`'s box, hit area and transitions, so
+   it still aligns with the real buttons beside it (docs/specs/ui.md —
+   controls & touch targets: never size a control to its label).
+
+   Deliberately *not* the ghost treatment the derived-view nav rows use:
+   those are navigation. This is an action, so it gains a surface on hover
+   rather than only changing colour — enough to read as pressable once the
+   pointer is on it (docs/specs/ui.md — hover is a whisper). */
+.ghost {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.ghost:hover:not(:disabled) {
+  /* Same weight as the nav row hover, which is the app's reference for a
+     surface appearing under the pointer. `filter` is inherited from
+     `.action` and would do nothing against a transparent background. */
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  color: var(--ink);
+  filter: none;
+}
+
+/* The border is transparent at rest, so recolouring it is the same
+   one-property focus change every other button makes — no outline to clip
+   inside the sheet, no layout shift (docs/specs/ui.md — focus changes
+   border colour only). */
+.ghost:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* Disabled is the resting state most of the time here — Reset is live only
+   while the form is dirty — so it must be quiet rather than looking
+   broken: no border, no fill, just faint text and the not-allowed cursor
+   `.action:disabled` already sets. */
+.ghost:disabled {
+  border-color: transparent;
+  background: none;
+  color: var(--faint);
+}
+
+/* Warning — an action that is allowed but should give you pause: the
+   detail panel's "Edit anyway", which unlocks a completed todo's fields
+   for editing. *(added 2026-08-04, issue #25.)*
+
+   Not `destructive`: nothing is lost by unlocking, and reserving red for
+   actions that actually destroy something keeps that signal meaningful.
+   Not `ghost` either, which was the first attempt — receding was wrong for
+   a control whose whole job is to say "are you sure you want to rewrite a
+   finished record?".
+
+   Amber matches the "Completed" notice this button answers
+   (todo-detail.module.css — `.lockNote`), so the warning and its escape
+   hatch read as one idea. `--status-syncing` is the app's existing
+   attention-without-alarm colour. */
+.warning {
+  border-color: var(--status-syncing);
+  color: var(--status-syncing);
+}
+
+/* docs/specs/ui.md — hover is a whisper: a faint tint of the button's own
+   colour, the same treatment `.destructive` uses, rather than flooding it. */
+.warning:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-syncing) 10%, var(--surface));
+}
+
+/* The resting border is already --status-syncing, so repeating it on focus
+   would be invisible. --ink gives the same high-contrast swap
+   `.destructive:focus-visible` uses against its own resting colour, without
+   changing border width or adding an outline that would clip inside a
+   sheet (docs/specs/ui.md — focus changes border colour only). */
+.warning:focus-visible {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--status-syncing) 14%, var(--surface));
+}

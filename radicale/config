@@ -1,0 +1,17 @@
+# Radicale config for local manual testing (see compose.yml).
+# Not a production configuration — bind is wide open inside the container
+# and there is no TLS; the container only publishes to localhost.
+
+[server]
+hosts = 0.0.0.0:5232
+
+[auth]
+type = htpasswd
+htpasswd_filename = /config/users
+htpasswd_encryption = bcrypt
+
+[storage]
+filesystem_folder = /data/collections
+
+[rights]
+type = owner_only
