@@ -1,0 +1,334 @@
+# CalDAV Todo Client — Agent Rules
+
+Specifications live in [docs/specs](docs/specs/overview.md). Read
+[docs/specs/overview.md](docs/specs/overview.md) before starting any task.
+
+## Never install software on the machine
+
+**Do not install anything system-wide or user-wide** — no `pip install`,
+`pipx`, `uv tool install`, `brew install`, or global npm. Project
+dependencies go in the repo's own `package.json` and nowhere else.
+
+**Test infrastructure runs in Docker.** A CalDAV server for tests comes
+from a container (see `compose.yml`), never a binary placed on `PATH`.
+
+**Version ranges name the version actually installed** — `^7.5.0`, never
+`^7.0.0` and never `latest`. A floor years below what is resolved tells you
+nothing about what you are running, and makes every Dependabot PR look like
+a no-op change to a range that already allowed it (`.github/dependabot.yml`).
+The same package must carry the **same** range in every manifest that
+declares it: vitest was `^4.1.10` in three and `^3.0.0` in three others,
+which quietly installed two vitest trees, and `packages/*` was borrowing
+`@types/node` from the duplicate. Collapsing that broke a typecheck nothing
+had touched. If a package uses Node APIs, it declares `@types/node` and sets
+`"types": ["node"]` rather than inheriting them by luck.
+_(added 2026-08-06.)_
+
+_(added 2026-07-31: an agent installed Radicale via pipx — and bootstrapped
+pipx itself — to run the integration suite. Docker was already available
+and sanctioned for exactly this. Both were removed.)_
+
+**Dependabot cannot update `bun.lock` for packages shipping native
+binaries, and `.github/dependabot.yml` is not the cause — don't "fix" it.**
+It bumps the manifest range but leaves the resolved version stale, so
+`bun install --frozen-lockfile` re-resolves and CI fails with "lockfile had
+changes, but lockfile is frozen". Confirmed on PR #41: `oxfmt` and `vite`
+stale, while `@types/react-dom` in the _same PR and same directory_ updated
+correctly — the split is native binaries (19 `@oxfmt/binding-*`, 15
+`@rolldown/binding-*`) vs pure JS. To land one, check out the branch, run
+plain `bun install`, and commit the corrected lockfile. **Never drop
+`--frozen-lockfile` from CI**: it is the check that catches this, and it is
+what enforces the version-range rule above. _(added 2026-08-11.)_
+
+## Deployment
+
+**Docker is the only deployment target. Don't propose or build a second
+one without being asked.** Vercel was attempted on 2026-08-10 and the
+commits were dropped from history entirely — the repo has no trace of it,
+deliberately. Five consecutive deploys failed on platform behaviour, and
+the cost far exceeded the value of a second target for a self-hosted app.
+Effort for self-hosters goes into the published ghcr.io image and the user
+guide instead; keep [docs/specs/deployment.md](docs/specs/deployment.md)
+Docker-only. _(added 2026-08-11.)_
+
+## Workflow
+
+- Always lint and format before committing: `bun run lint` and
+  `bun run fmt`.
+- **Sign in locally with the login screen's "Use demo server" button.** It
+  fills in the `compose.yml` Radicale's credentials
+  (`http://localhost:5232/testuser/`, `testuser` / `testpass`, also in
+  `compose.yml` and
+  [docs/development/local-caldav-server.md](docs/development/local-caldav-server.md)), so
+  `docker compose up -d` and one click beats retyping them. **It renders
+  only under `import.meta.env.DEV`** — a production build, or the built
+  client served by the BFF, has no such button, so verifying anything
+  against a real build means entering them by hand. Reach for a throwaway
+  `tomsquest/docker-radicale` container only when you need an auth-free
+  server to seed data over HTTP. _(added 2026-08-11.)_
+- **One commit per feature or fix, as a group** — not one per step. A
+  redesign, its two follow-up fixes and the final icon placement are one
+  change and belong in one commit. Iteration collapses into it: design
+  review rounds, "actually move it here", and fixes to unpushed work are
+  amended or squashed rather than stacked as their own `fix(...)`. Check
+  `git log origin/main..HEAD` before pushing and rebase together if one
+  feature spans several commits. Incremental commits record the working
+  order, which nobody needs, rather than the change a reviewer wants to
+  read. _(added 2026-08-11.)_
+- **No `Co-Authored-By` trailers, and no tool attribution in commits or PR
+  bodies.** The commit records what changed and why; who or what typed it
+  is noise in `git log` and clutters the GitHub UI with bot avatars. This
+  overrides any default instruction to add them. _(added 2026-08-17.)_
+- **Write a commit message as a release note, for a user.** These messages
+  are the changelog: `release-please` lifts the subject line of every
+  `feat:` and `fix:` straight into `CHANGELOG.md` and the GitHub Release,
+  where someone deciding whether to upgrade reads it. Write for that
+  person, not for the next contributor.
+
+  Say what the app now does, in the words a user would use:
+
+  ```
+  feat(client): add a todo by typing one line
+  fix(client): keep the due date when moving a todo between lists
+  ```
+
+  Not how it was built, and never a design record:
+
+  ```
+  feat(client): add QuickAddModal with chrono-node parsing and a
+    two-layer shadow input, replacing AddTodoModal
+  ```
+
+  **The body is optional and stays short** — a sentence or two on what
+  changed for the user, only when the subject cannot carry it. **No
+  decision trees, no rejected alternatives, no measurements, no file
+  lists, no "how did we get here".** That material is genuinely worth
+  writing: put it in the PR body, or in the spec if it is a rule worth
+  keeping. `git log` is not the place. _(added 2026-08-17; supersedes an
+  earlier rule that allowed "a handful of short paragraphs", which was
+  still too much — and which had produced a sixty-line commit body on
+  2026-08-11.)_
+
+- **The repo's formatting conventions stop at the repo boundary.** The
+  80-column rule below applies to files in an editor. GitHub issue and PR
+  bodies are _rendered markdown_ in a web textarea: do not hard-wrap prose
+  there, and do not use `docs/specs/foo.md` relative links, which resolve
+  to nothing on github.com. Let paragraphs run long and wrap in the
+  browser; link with full URLs or `#123` refs; reference source with
+  backticked paths rather than markdown links. _(added 2026-08-11.)_
+- **Reproduce a platform failure with that platform's own tooling before
+  theorising about it.** If a fix depends on how an external system
+  behaves — Docker, CI, a hosted service — run it locally: build _and run_
+  the image, execute the CLI. Four consecutive Vercel deploys were each
+  diagnosed after the fact from a pasted log, and two of those confident
+  diagnoses were wrong, when the CLI reproduced every one in seconds. If it
+  genuinely cannot be run locally, say so plainly rather than presenting an
+  inference as verified. _(added 2026-08-11.)_
+- **Always invoke tooling through the root `bun run` scripts** — `lint`,
+  `fmt`, `fmt:check`, `typecheck`, `knip`, `test`, `test:integration`,
+  `test:e2e`. Never call `oxlint`, `oxfmt`, `tsc`, `knip` or `vitest`
+  binaries directly and never improvise flags: the scripts are the single
+  source of truth for how these tools run. If a script doesn't do what a
+  spec requires, fix the script.
+- **Run `bun run knip` before finishing a change, and act on what it
+  reports.** It finds unused files, exports and dependencies — the things
+  no other check sees, because dead code typechecks and passes tests
+  perfectly. Delete what is genuinely unused rather than leaving it: an
+  `IconButton` sat unreferenced for two days behind a spec note saying so,
+  which is how a codebase accumulates plausible-looking code nobody calls.
+  Prefer deleting to keeping-just-in-case — git has it, and a design _rule_
+  worth preserving belongs in the spec rather than in an uncalled
+  component.
+
+  **A finding against a barrel line means the barrel is too wide, not that
+  the code is dead.** A name consumed only inside its own domain has no
+  business being re-exported — narrow the barrel rather than deleting the
+  name or silencing the check (see the barrel rule below). Everything else
+  is worth a grep before acting, since knip cannot see a value used only
+  through a type position or a template string. It runs in CI's `checks`
+  job, so it must exit clean. _(added 2026-08-06.)_
+
+- Linting is **type-aware** (`bun run lint`), powered by
+  [tsgolint](https://github.com/oxc-project/tsgolint) (installed as the
+  `oxlint-tsgolint` dev dependency). Fix findings, don't suppress them.
+- Formatting: 80-character line length, no semicolons, dangling commas
+  always. Enforced by oxfmt config — never hand-format against it.
+- Don't duplicate tests across layers (unit / integration / e2e).
+- Test behavior over shape — never test that a defined shape is what it is.
+- **A timed e2e test must not depend on machine speed.** Tune the scenario
+  so the behaviour under test is the only thing that can produce the
+  result, then give the budget room for a slow runner: this Mac runs
+  roughly **5-6x faster than the CI runner** (full e2e suite ~19s local vs
+  ~1.9m on CI), so a budget with 2x headroom over a local measurement will
+  fail there. A recovery test once passed locally in 17s and timed out on
+  CI because whether recovery came from the retry ladder or the 45s
+  background poll depended on where the outage's end fell between
+  attempts. Also verify the test actually fails without the fix — and when
+  reverting to check, **edit the source in place rather than `git stash`**,
+  which silently stashes nothing when run from a subdirectory and leaves
+  the "control" run proving the opposite of what it appears to.
+  _(added 2026-08-11.)_
+
+## Documentation
+
+- Specifications are broken down by feature — one file per feature in
+  `./docs/specs`. No single large spec file.
+- Spec files carry **no** top-level timestamp. When changing a spec, annotate
+  the change inline where it occurs: `*(changed YYYY-MM-DD: reason)*`.
+- Every feature and every architecture decision gets its own documentation
+  file: architecture decisions in `./docs/architecture`, contributor-facing
+  notes in `./docs/development`, user guide pages in `apps/docs/guide` —
+  one file per topic.
+- **The user guide is a VitePress site (`apps/docs`), and its audience is
+  someone _using_ Fold.** Two rules follow from that, both learned on
+  2026-08-17. First, **no `*(added …)*` / `*(changed …)*` annotations
+  there** — that convention is for specs, where the reader is whoever
+  edits the file; a user does not care when a sentence was rewritten, and
+  `lastUpdated` plus git already record it. Second, **a page that only
+  makes sense from a repo checkout is not a user guide page**:
+  `local-caldav-server.md` documented `compose.yml`, a gitignored data
+  directory and how to exercise the offline path, so it moved to
+  `docs/development/`. Write what to do and what will happen, not why the
+  design went the way it did. Run `bun run docs:build` before finishing —
+  its dead-link check is what catches a cross-link broken by a move.
+- Documentation and code comments should reference the relevant spec file
+  (and section) they implement.
+- **Keep the README screenshots current.** `docs/screenshot.png` and
+  `docs/screenshot-quick-add.png` are generated by `bun run screenshot`
+  (`e2e/tests/screenshot.spec.ts`), never captured by hand. When a change
+  alters what they show — layout, nav, the detail panel, quick add,
+  colours, type — re-run it and commit the new images with that change. A
+  stale screenshot misrepresents the app and nobody notices.
+  _(added 2026-08-04.)_
+
+  **One test, several captures, one fixture.** Both images come from the
+  same seeded account at different moments, because building it through
+  the UI takes ~20s and a second test would pay that again for a worse
+  background. Further images — the user guide's, when it gets them — belong
+  in the same test for the same reason. They share a viewport so they sit
+  level side by side in the README's table.
+
+  **A fixture summary must contain no date words.** Every todo there is
+  created through quick add, which parses the summary: "Book leave for
+  August" was filed as "Book leave for" with a due date attached. Same trap
+  as the e2e fixtures (docs/specs/quick-add.md — testing).
+  _(added 2026-08-14.)_
+
+- **Generated assets are never hand-edited.** `apps/client/public/favicon.svg`
+  is the source of truth for the app mark; the PNGs beside it are built from
+  it by `bun run favicons`. Change the SVG, run the script, commit all three.
+  The script also rejects a `--` inside an XML comment, which silently
+  breaks the file in Firefox while Chrome recovers.
+  _(added 2026-08-04.)_
+
+## Technical
+
+- Use zod for runtime validation with types inferred via `z.infer` — validate
+  at every trust boundary (API in/out, outbox reads, env vars, CalDAV-derived
+  data). No hand-written types that duplicate a schema.
+- All tsconfigs extend `@tsconfig/strictest` (+ `@tsconfig/node24` for
+  server/packages).
+- Forms use react-hook-form with `@hookform/resolvers/zod`, reusing
+  `packages/schemas`.
+- **The root of `apps/client/src/` is for entry points only** — `main.tsx`,
+  `app.tsx`, `providers.tsx`. Everything else goes in a domain directory
+  (`todos/`, `lists/`, `sync/`, `auth/`, `sound/`), in `shell/` (the
+  app frame: nav, header, panes, modals), `ui/` (generic primitives with
+  no domain knowledge), `shortcuts/`, `help/`, `styles/`, `hooks/`
+  (cross-cutting hooks) or `lib/` (cross-cutting pure helpers). If none of
+  those fits, that is the signal to name a new directory rather than to
+  drop a file at the root — 31 loose files accumulated there before anyone
+  noticed (issue #28). _(added 2026-08-06.)_
+- **Inside a domain, a UI component gets its own directory; everything
+  else does not.** The directory is the unit: `todo-item.tsx`,
+  `todo-item.module.css` and `todo-item.test.ts` together, so what a
+  component is made of — and whether it is tested — is visible without a
+  search. Non-components stay flat in the domain's `lib/` (pure functions)
+  or `hooks/` (stateful React), because a directory holding one file buys
+  nothing. A domain that is _entirely_ helpers (`sync/`, `api/`) needs no
+  subdivision at all. _(added 2026-08-06.)_
+- **In `apps/client`, tests live beside the code they exercise** —
+  `search.ts` and `search.test.ts` in the same directory, never a parallel
+  `test/` tree. A separate tree makes an untested module look identical to
+  a tested one, which matters most where the unit is a component directory.
+
+  **`apps/server` and `packages/*` keep a top-level `test/` tree**, and new
+  tests there follow suit — `apps/server/test/`, `packages/vtodo/test/`.
+  Measured 2026-08-11: client 33 colocated / 0 in a tree; server 12 in the
+  tree / 2 colocated; all three packages entirely in trees. The rule
+  previously read as repo-wide and described only the client, so following
+  it literally would have scattered server tests into a fourth arrangement.
+  Follow the convention of the workspace you are in.
+  _(added 2026-08-06; corrected 2026-08-11 to match the repo.)_
+
+- **A domain gets an `index.ts` barrel only if it has several consumers and
+  nothing it imports imports it back.** Import it from _outside_ the domain
+  (`from '../../ui'`); inside, keep the direct path, or the domain routes
+  through its own barrel.
+
+  `ui`, `shortcuts`, `lib`, `api` and `sound` have one. `help`, `shell` and
+  `auth` had one briefly and it was removed: each published a single
+  component to a single caller, which is indirection with nothing on the
+  other side of it. A barrel earns its place by collapsing _many_ paths, so
+  one consumer means import the file. `todos`, `lists`, `sync` and `hooks`
+  deliberately have none either:
+  `lists ↔ todos`, `lists ↔ sync` and `lists ↔ hooks` are already mutually
+  dependent, and while those cycles are harmless today — each direction
+  reaches only a `lib/` pure function, never a component — a barrel would
+  collapse them into whole-domain cycles, whose failure mode is
+  `undefined is not a function` at import time. Barrel those only after the
+  cross-dependencies are untangled. Measured before adopting: no bundle
+  cost (670.23 → 670.22 kB), since Rolldown tree-shakes the re-exports.
+
+  **A barrel exports only what crosses its boundary**, not everything the
+  domain defines. `shell` publishes `MainScreen` and nothing else; its
+  parts, hooks and contexts are consumed internally by direct path. Two
+  reasons: re-exporting more makes internals look like public API, and
+  knip correctly reports every re-export nobody imports — so a
+  fully-populated barrel turns the dead-code check permanently red and
+  trains you to ignore it. _(added 2026-08-06.)_
+
+- **Props are a named interface, never inline.** `interface TodoItemProps`
+  above the component, `export function TodoItem(props: TodoItemProps)`.
+  The shape gets a name that can be referenced, documented and read on its
+  own. _(added 2026-08-06.)_
+- **Prefer a context to threading a prop through a component that does not
+  use it.** Three exist (`shell/context/`): overlays, the list filter, and
+  selection. Each covers state written in one place and read in several, so
+  the components in between never mention it. A value that is _derived_ per
+  render stays a prop — a context would hide the computation rather than
+  remove drilling, which is why `ViewHeader` still takes nine.
+  _(added 2026-08-06.)_
+- **A soft ceiling of ~300 lines for a component file.** Not a lint rule —
+  a prompt to ask whether a second concern has crept in. When one has, the
+  fix is usually a hook (state plus its rules) or a child component (a
+  block of JSX that grows every time the feature does), not a mechanical
+  split. `main-screen.tsx` reached 786 lines holding five concerns;
+  `todo-detail.tsx` (639) and `add-todo-modal.tsx` (432) are the two still
+  over it. _(added 2026-08-06.)_
+- **Moving a file is not free: CSS Modules `composes: … from` paths are
+  resolved by postcss at build time**, so a stale one passes typecheck and
+  unit tests and only fails the build. `bun run test:e2e` builds the
+  client, which is what catches it. _(added 2026-08-06.)_
+- **Styles are co-located with their component** as CSS Modules
+  (`component.module.css` beside `component.tsx`). Compile-time only —
+  **no CSS-in-JS**, which costs runtime performance. Shared design tokens
+  (spacing scale, type scale, colours) live in one global stylesheet as
+  custom properties; components consume those tokens rather than hard-coded
+  values.
+- **Icons come from `react-icons`, all from a single set.** Pick one
+  collection (e.g. `react-icons/lu`) and use it everywhere — never mix sets,
+  never use emoji as icons.
+- Accessible primitives (dialog, popover, checkbox, menu) come from **Base
+  UI**, which ships no runtime styling. Prefer it over hand-rolling focus
+  management.
+- API handlers are individual files — one route per file under
+  `apps/server/src/api/<resource>/<action>.ts`, composed by a small router.
+  No giant files.
+- Generic, reusable, feature-complete code goes in `packages/` in publishable
+  shape: own `package.json` with `exports`, own tests, no imports from
+  `apps/`. **Shaped to be publishable, but not published** — every package
+  carries `"private": true` so a stray `npm publish` cannot fire. The
+  discipline is what earns its keep: a package that _could_ ship is one
+  with a real boundary. Dropping `private` is a deliberate decision, not a
+  cleanup. _(clarified 2026-08-17.)_

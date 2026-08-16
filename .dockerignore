@@ -1,0 +1,42 @@
+# Keep the build context small and the image reproducible.
+#
+# node_modules matters most: copying the host's tree in would shadow the
+# Linux-resolved one from `bun install` with whatever the host arch
+# resolved, and it dwarfs the rest of the context.
+node_modules
+**/node_modules
+
+# Build output — the image builds its own (see Dockerfile).
+dist
+**/dist
+*.tsbuildinfo
+
+# Never bake secrets into an image layer.
+.env
+.env.*
+
+# Test and local-development artefacts.
+test-results
+**/test-results
+playwright-report
+**/playwright-report
+# Not e2e/package.json — `bun install --frozen-lockfile` verifies every
+# workspace in the lockfile, so its manifest must be in the context even
+# though no test ever runs in the image.
+e2e/*
+!e2e/package.json
+radicale-data
+compose.yml
+compose.*.yml
+
+# Not needed at build or run time.
+.git
+.github
+.gitignore
+.claude
+.superpowers
+docs
+README.md
+CLAUDE.md
+Dockerfile
+.dockerignore

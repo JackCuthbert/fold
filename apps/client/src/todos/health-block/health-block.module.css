@@ -1,0 +1,48 @@
+/* docs/specs/list-kinds.md — health todos lead every derived view, under a
+   heading of their own. See health-block.tsx.
+   *(added 2026-08-05, issue #27.)*
+
+   **No border and no tint.** It had both until 2026-08-11, when rows
+   gained hover and current states (issue #40) and the two treatments
+   started fighting: a wash inside a tinted, bordered box reads as a third
+   colour rather than as the same feedback every other row gives, and the
+   box's padding pushed its rows off the left edge every other row shares
+   (docs/specs/ui.md — one left edge), which the states then made obvious.
+
+   What replaces it is what was already carrying the meaning: the heading.
+   The ordinary rows below now have one too, so the two read as peer
+   sections told apart by their titles and the space between them, rather
+   than by one being in a box. Health still leads, which is the part that
+   matters — it is first, and it is named.
+   *(changed 2026-08-11, issue #40.)* */
+.section {
+  /* Clear of the list below, so this reads as its own section rather than
+     as the first few rows of that list. Carries the whole separation now
+     that there is no border to draw the line — the same gap the Completed
+     section uses (todo-pane.module.css), since it is the same job. */
+  margin-block-end: var(--space-6);
+}
+
+/* Names the block, so the heart is never the only thing carrying the
+   meaning (docs/specs/ui.md — accessibility: colour is never the only
+   signal). Quiet: the rows are the content, and this is a label.
+
+   Outside the box now, so it only needs to space itself from the box
+   below it — the box owns its own padding, uniform on all four edges,
+   with no heading inside to reconcile against.
+   *(changed 2026-08-05: was inside, where its padding stacked on the
+   block's and made the block look bottom-cropped.)* */
+.heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-block-end: var(--space-2);
+  color: var(--list-red);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.heart {
+  flex: none;
+  fill: currentColor;
+}

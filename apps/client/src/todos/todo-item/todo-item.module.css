@@ -1,0 +1,294 @@
+/*
+ * docs/specs/ui.md — vertical rhythm: every row occupies a consistent
+ * height regardless of content. The title/checkbox row is a fixed-height
+ * line; the description (if present) is an additional line within the
+ * row rather than a nudge that misaligns neighbours.
+ */
+.todo {
+  display: flex;
+  align-items: flex-start;
+  /* Gap, not padding, between the checkbox and the body — a gap doesn't
+     add a leading inset before the first child, so the checkbox's visible
+     ring (pulled to the row's edge in checkbox.module.css) stays on the
+     shared column edge (docs/specs/ui.md — one left edge). */
+  gap: var(--space-1);
+  /* **No hairline between rows.** *(removed 2026-08-11, issue #40.)* The
+     rule existed because a row had no boundary of its own — nothing but
+     the line said where one ended and the next began. Now every row has a
+     shape: the wash below gives it one on hover, when its menu is open,
+     and while it is the todo in the panel. A line *and* a shape is two
+     answers to one question, and the lines were the louder of them in a
+     pane whose whole argument is restraint (docs/specs/ui.md).
+
+     What separates the rows now is the space they already had — the
+     padding that centres a single line inside `--hit-area` (see `.body`),
+     which is why removing the rule needed no compensating margin. */
+  /* No per-row animation: the whole pane fades in together when you switch
+     lists (todo-pane.module.css's `.pane`), so rows don't each animate
+     independently — that read as a stagger of unrelated parts rather than
+     one view arriving. Individual rows still animate on add/remove via
+     their own enter/exit, not this. */
+}
+
+/* Long-pressing a row opens its menu, and must not also select its text
+   (docs/specs/ui.md — the todo row).
+
+   Base UI's ContextMenu.Trigger already sets `WebkitTouchCallout: 'none'`
+   inline, which suppresses iOS's *callout*. That is only half of it, and
+   the half that does not fix this: the callout and the selection are
+   separate mechanisms. Verified in the installed package — the trigger
+   sets no `user-select` at all, and there is none anywhere in
+   `@base-ui/react/context-menu`. So the long press still selected the
+   summary and the OS text menu came up over ours.
+
+   **Scoped to `pointer: coarse`**, not applied unconditionally. On a
+   pointer, dragging across a row to select and copy a todo's title is
+   ordinary behaviour and nothing takes it away — a right-click opens the
+   menu without any press-and-hold, so the two never collide. On touch
+   there is no drag-to-select gesture that is not also the long press, so
+   the selection is only ever the accident.
+
+   The `<textarea>` in the detail panel is a different component and is not
+   reached by this, so notes stay selectable everywhere.
+   *(added 2026-08-14.)* */
+@media (pointer: coarse) {
+  .todo {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* docs/specs/ui.md — the todo row: its states. *(added 2026-08-11, issue
+   #40 — the row was interactive but nothing about it responded to a
+   pointer, and nothing tied the detail panel back to the row it came
+   from.)*
+
+   **All three states are the same ground wash at different strengths**,
+   rather than a fill for hover and a marker for the current row. A leading
+   accent rail was built and rejected on sight: it puts a second vertical
+   edge beside the checkbox column, which is the "one left edge" property
+   the pane is built around, and every later alignment decision would have
+   had to work around it. The row is a quiet thing in a restrained pane —
+   one ground, three strengths, no new geometry.
+   *(rail removed 2026-08-11, before it shipped.)*
+
+   The strengths are ordered by how much the state claims: passing over it
+   < it is showing in the panel < its menu is open right now. */
+.todo {
+  transition: background-color var(--duration-fast) var(--ease);
+  /* Breathing room *inside* the wash, without moving the content: the
+     padding is cancelled by an equal negative margin, so the row's box
+     grows outward into the pane's own padding while the checkbox and text
+     stay exactly where they were. The shared left edge is a property of
+     where the content sits (docs/specs/ui.md — one left edge), and this
+     leaves that untouched — the same trick the checkbox uses to pull its
+     hit area back to the column (checkbox.module.css).
+
+     Without it the wash stopped dead at the first glyph and the last
+     pixel of the meta line, which read as a highlight applied to the text
+     rather than as the row being lit.
+     *(added 2026-08-11, issue #40, once the row had states to show.)* */
+  padding-inline: var(--space-1);
+  margin-inline: calc(-1 * var(--space-1));
+  border-radius: var(--radius-sm);
+}
+
+/* Guarded by `hover: hover` so a touch device never gets a stuck wash
+   after a tap — touch reports hover on the last-tapped element and leaves
+   it there. */
+@media (hover: hover) {
+  .todo:hover {
+    background: color-mix(in srgb, var(--line) 22%, transparent);
+  }
+}
+
+/* The row showing in the detail panel. Desktop only: on mobile the panel
+   is a full-screen sheet, so the list is not visible while a todo is open
+   and this would only ever mark the last thing you looked at. The
+   breakpoint matches the one that makes the panel a column
+   (shell/main-screen). */
+@media (min-width: 768px) {
+  .todoCurrent {
+    background: color-mix(in srgb, var(--line) 30%, transparent);
+  }
+}
+
+/* Base UI puts `data-popup-open` on the context-menu trigger, which *is*
+   this row (todos/todo-context-menu) — so the open row marks itself with
+   no React state and no re-render of the list.
+
+   Last, and strongest, so it wins over both of the above: while a menu is
+   open this row is the subject of whatever you pick next, and that matters
+   more than either of the other two. */
+.todo[data-popup-open] {
+  background: color-mix(in srgb, var(--line) 44%, transparent);
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* No press-transform anywhere — removed globally in global.css, so no
+     override is needed here (docs/specs/ui.md). */
+  /* Pin the title row to a fixed offset from the top (rather than
+     vertically centering the column) so it lands at the same position
+     whether or not a description follows. Centering the whole column
+     would shift the title line itself whenever a description makes the
+     column taller — breaking the "identical alignment" requirement in
+     docs/specs/ui.md. The offset below centers a single --text-base
+     (15px / 1.5 line-height = 22.5px box) line within the 44px hit area:
+     (44 - 22.5) / 2. */
+  justify-content: flex-start;
+  padding-top: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  /* docs/specs/ui.md — the row's top and bottom padding are equal, so a
+     row with a description stays visually balanced rather than top-heavy.
+     Without an explicit bottom padding a taller (with-description) row
+     only grew past `min-height` at the bottom, leaving 0 padding there
+     while the top kept its full offset — that's the imbalance. Mirroring
+     the same value here keeps both edges equal regardless of content. */
+  padding-bottom: calc(
+    (var(--hit-area) - var(--text-base) * var(--line-normal)) / 2
+  );
+  /* docs/specs/ui.md — one left edge: the checkbox's hit area already pulls
+     itself back to the shared column edge (see checkbox.module.css), so
+     the body must not add its own left inset on top of that or the text
+     would be indented again. Keep a small trailing inset for symmetry with
+     the row's right edge. */
+  padding-inline: 0 var(--space-1);
+  text-align: left;
+  /* One line for the title row (matches the 44px checkbox hit area) plus
+     room for an optional description line — set on .body so the row
+     height is identical whether or not a description is present. */
+  min-height: var(--hit-area);
+  box-sizing: border-box;
+  /* docs/specs/ui.md — there is no gap between a title and its
+     description: the description sits directly beneath, as though it were
+     a wrapped line of the same block, not a separate line with air around
+     it. *(tightened 2026-07-31: even the 2px this used to carry read as
+     two separate things.)* */
+  gap: 0;
+  min-width: 0;
+}
+
+/* docs/specs/ui.md — accessibility: the row body is a button, and until
+   now keyboard users got only global.css's fallback outline. That outline
+   is drawn *outside* the box with a 2px offset, so on a full-width row it
+   is clipped by the pane's own `overflow-y: auto` — visible on the top and
+   bottom edges, cut off at the sides. An inset shadow reads as a border
+   without adding layout width and cannot be clipped, which is the same
+   reason list-item-menu's trigger uses one. *(added 2026-08-11, issue
+   #40.)* */
+.body:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+/* The summary's line: the text, then the health mark at the row's edge.
+   docs/specs/list-kinds.md — health first.
+
+   Full width rather than text-width, so the heart lands on the row's
+   trailing edge — every health row marks itself in the same column,
+   instead of at whatever x its summary happens to end. `.summary` keeps
+   its own text width inside this, so the completed strike still spans the
+   words rather than the row.
+
+   `align-items: baseline` sits the heart on the text's baseline rather
+   than centring it in a line box that grows with the type scale.
+   *(added 2026-08-10.)* */
+.summaryLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+/* docs/specs/list-kinds.md — a mark on the todo, not a pill among the meta.
+
+   Two placements were tried and measured before this one. In the meta
+   cluster it read as a pill that had lost its background: everything
+   beside it has a ground and a shape. Leading the summary it sat *inside*
+   the text flow, pushing the summary 16px right of every ordinary row's,
+   so a mixed list no longer shared one left edge (docs/specs/ui.md).
+
+   `margin-inline-start: auto` puts it in its own trailing column, which is
+   what keeps both of those from happening: the summary starts on the
+   shared edge, and the heart never moves with the length of the text.
+   `flex: none` keeps it full size while the summary ellipsises beside it.
+   *(moved 2026-08-10.)* */
+.health {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--list-red);
+}
+
+/* Visually hidden but present for assistive tech — the heart's meaning must
+   not depend on seeing it (docs/specs/ui.md — accessibility). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.summary {
+  font-size: var(--text-base);
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  /* Only as wide as the text, so the completed strike below spans the
+     words rather than the row.
+     *(fixed 2026-08-09: the strike ran the full row width again after the
+     meta moved to its own line, issue #2.)*
+
+     A flex *item* of `.summaryLine` rather than a block child of the
+     column, so it is text-width by default. `flex: 0 1 auto` lets it
+     shrink to ellipsise without growing past its text. */
+  flex: 0 1 auto;
+  /* Glyphs can paint outside their box (an "A"'s apex leans left), which
+     `overflow: hidden` would shave — see --ink-overhang in tokens.css. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+}
+
+.summary::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 1px;
+  width: 0;
+  background: var(--muted);
+  transition: width var(--duration-slow) var(--ease);
+}
+
+.todoCompleted .summary {
+  color: var(--muted);
+}
+
+.todoCompleted .summary::after {
+  width: 100%;
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* See .summary — same ink-overhang guard. */
+  padding-left: var(--ink-overhang);
+  margin-left: calc(-1 * var(--ink-overhang));
+}

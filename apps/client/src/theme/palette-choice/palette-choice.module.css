@@ -1,0 +1,128 @@
+/* docs/specs/themes.md — one palette, shown rather than named.
+   *(added 2026-08-10.)* */
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--hit-area);
+  padding: var(--space-2);
+  background: var(--surface);
+  /* A real border in every state, not a transparent one that appears on
+     selection: a card whose edge only exists when chosen shifts its
+     contents by a border-width, and left the group label above it looking
+     off-centre against the selected row. Uniform edges, and selection is
+     carried by colour alone. *(changed 2026-08-10.)* */
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--muted);
+}
+
+.choice[aria-pressed='true']:hover {
+  border-color: var(--accent);
+}
+
+.choice:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Selected: the accent on the edge and a faint ground of it inside. No
+   tick — the swatch is already the subject, and a check mark beside a
+   colour chip is a second thing to read. */
+.choice[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+
+/* Three bands over the palette's own paper: a line of ink, a shorter line,
+   and the accent. Proportioned like the app itself — mostly ground, a
+   little text, a touch of accent — so the swatch reads as a miniature page
+   rather than as an abstract colour chip.
+
+   Sized generously (56×40) after a smaller 40×28 version was tried: at that
+   size the three palettes were indistinguishable, which defeats the whole
+   point of showing a swatch instead of a name. *(enlarged 2026-08-10.)* */
+.swatch {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  flex: none;
+  box-sizing: border-box;
+  width: 56px;
+  height: 40px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-xs);
+  /* `background` on the swatch itself, so its own `[data-palette]` supplies
+     the value rather than the page's. */
+  background: var(--paper);
+}
+
+.swatchPaper {
+  /* The ink line: full width, so it reads as a line of text. */
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--ink);
+}
+
+.swatchInk {
+  /* A second, shorter line — a wrapped line of the same paragraph. */
+  width: 65%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--ink) 45%, var(--paper));
+}
+
+.swatchAccent {
+  width: 40%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  /* Takes the row's remaining width, so `.name` inside it has something to
+     spread across and the glyph reaches the card's trailing edge. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  /* Full width so the glyph can sit at the card's trailing edge rather
+     than trailing the name — with names of different lengths, a glyph that
+     follows the text lands at a different x on every row and reads as
+     ragged. `space-between` gives all of them one column.
+     *(changed 2026-08-10.)* */
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+/* The glyph at the row's trailing edge. Muted, so it marks the row without
+   competing with the swatch — which is still the thing being chosen. */
+.mark {
+  flex: none;
+  color: var(--muted);
+}
+
+.note {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}

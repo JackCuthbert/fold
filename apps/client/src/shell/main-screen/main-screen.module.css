@@ -1,0 +1,537 @@
+/* docs/specs/ui.md — layout: collapsible left nav, centred main content.
+   No top bar — content starts at the top of the page on desktop, and the
+   mobile nav trigger sits beside the list title rather than floating.
+   docs/specs/ui.md — scrolling: only the list scrolls, never the whole
+   page. `.layout`/`.body` are a fixed-height (not min-height) flex chain
+   down to the scrolling panes themselves, so the page's own box never
+   grows past the viewport and never scrolls.
+
+   `height: 100%`, not `100dvh`. `#root` is the element that owns the
+   viewport height and the safe-area insets (styles/global.css); measuring
+   `100dvh` here instead would ignore its padding, so the chain came to
+   `100dvh + top inset + bottom inset` and the whole page scrolled by
+   exactly the insets on a notched iPhone — the one thing this layout
+   exists to prevent. Filling the parent keeps that promise at every inset,
+   including zero. *(fixed 2026-08-08.)* */
+.layout {
+  height: 100%;
+}
+
+.body {
+  display: flex;
+  height: 100%;
+}
+
+/* docs/specs/ui.md — the nav is collapsible on desktop too, opening to the
+   same comfortable width at both sizes. `.nav` (desktop, plain markup) and
+   `.navOpen` (mobile, Base UI's positioned Dialog) share this width so
+   neither reads as narrower than the other.
+   docs/specs/ui.md — overlays: the desktop nav animates too, collapsing
+   and expanding with the same duration/easing tokens the mobile drawer
+   uses, so the two read as one behaviour at different sizes. *(changed
+   2026-08-01: `.nav` used to be conditionally rendered — mounted only
+   while open — which meant it appeared/disappeared instantly with no
+   transition at all. It's now always mounted and animates its own width
+   instead, clipping its content while collapsed.)* */
+.nav,
+.navOpen {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+}
+
+.navOpen {
+  width: min(80vw, 20rem);
+}
+
+.nav {
+  width: min(80vw, 20rem);
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  transition:
+    width var(--duration-base) var(--ease),
+    border-color var(--duration-base) var(--ease);
+}
+
+.navCollapsed {
+  width: 0;
+  border-right-color: transparent;
+}
+
+/* The collapsed nav's children must not reflow/wrap as `.nav` shrinks to
+   0 — they keep the open width and simply get clipped by `.nav`'s own
+   `overflow: hidden`, exactly like content sliding under the mobile
+   drawer's edge rather than reflowing within it. */
+.navInner {
+  display: flex;
+  flex-direction: column;
+  width: min(80vw, 20rem);
+  height: 100%;
+  flex: none;
+}
+
+/* docs/specs/ui.md — the nav is headed by the app's mark, so the panel is
+   identified rather than starting abruptly. Shares the list rows' left
+   edge/height rhythm via the same horizontal inset as `.navScroll`
+   beneath it.
+   docs/specs/ui.md — overlays: a divider separates a title from its
+   content in modals and side panels, especially once the body scrolls
+   beneath it — the border-bottom here is that divider.
+   docs/specs/ui.md — the nav: the heading is compact — it labels the
+   panel, so it shouldn't claim as much vertical space as the rows beneath
+   it. *(changed 2026-08-01: was --space-4/--space-3 top/bottom, as roomy
+   as a modal title; reduced to --space-2/--space-2.)*
+   *(changed 2026-08-02: was the text "Lists"; now the app's mark — icon
+   plus "Fold" — since Today and Summary sit below it too.)*
+   *(changed 2026-08-03: centred, on the reasoning that the mark is the
+   brand rather than a nav row and should sit apart from the rows' shared
+   left edge.)*
+   *(reverted 2026-08-04: left-aligned again. "One left edge"
+   (docs/specs/ui.md) reads better applied to the whole column than with
+   the heading exempted from it — the centred mark looked like an
+   oversight rather than a deliberate exception. Padding now matches the
+   detail panel's header too, so the two columns line up.)* */
+.navTitle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* The block padding matches the detail panel's header
+     (modal-header.module.css — `.header`), so the two column headers sit
+     at the same height. *(changed 2026-08-04: was --space-2/--space-4.)*
+
+     The *inline* padding is the nav's own --space-4, not that header's
+     --space-3: it has to agree with `.navScroll` beneath it, or the mark
+     sits 4px inside the rows it heads. That was invisible while the row
+     held only the mark and became obvious the moment a control landed at
+     its trailing edge — measured, the mark started at 12px against every
+     row's 16px. Two columns separated by the whole content area do not
+     need to share an inset; a column and its own rows do.
+     *(fixed 2026-08-05.)* */
+  padding-block: var(--space-3);
+  padding-inline: var(--space-4);
+  /* Matches the detail panel's heading (modal-header.module.css —
+     `.titleLarge`). Both are the title of a full-height column, so they
+     should read at the same level; at --text-md the nav's mark sat a step
+     below the panel beside it and the two columns looked mismatched.
+     *(changed 2026-08-04: was --text-md.)* */
+  font-size: var(--text-lg);
+  /* Semibold: this is the app's mark, so it carries more weight than the
+     medium used for a selected list row. */
+  font-weight: var(--weight-semibold);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The scrolling child owns its own padding, not the clipping container —
+   so the scrollbar (drawn at the overflow container's border-box edge)
+   tracks the pane's true edge instead of floating inset from it
+   (docs/specs/ui.md — scrollbar gutters sit at the container edge). */
+.navScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-4);
+}
+
+/* docs/specs/ui.md — overlays: the drawer animates in/out and dims the
+   background; the scrim fades with it. Both are disabled under
+   prefers-reduced-motion (global.css turns off all transitions/animations
+   there). */
+.navOpen {
+  position: fixed;
+  inset: 0 auto 0 0;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  z-index: var(--z-overlay-base);
+  transition: transform var(--duration-base) var(--ease);
+  /* Portalled out of `#root` and `position: fixed`, so it resolves against
+     the viewport and `#root`'s safe-area padding never reaches it
+     (styles/global.css).
+
+     Only the *top* inset is here. The bottom clearance belongs to the
+     footer inside (nav-footer.module.css): padding it onto this element
+     shortens the drawer, which lifts the footer — and its border — clear
+     of the screen edge, leaving a band of bare paper below a line that is
+     supposed to sit at the bottom. *(changed 2026-08-08.)* */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+
+.navOpen[data-starting-style],
+.navOpen[data-ending-style] {
+  transform: translateX(-100%);
+}
+
+.navOpen:focus {
+  outline: none;
+}
+
+/* Tap-anywhere-else to dismiss the drawer. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  z-index: var(--z-overlay-base-scrim);
+  border: none;
+  padding: 0;
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.scrim[data-starting-style],
+.scrim[data-ending-style] {
+  opacity: 0;
+}
+
+/* docs/specs/ui.md — the nav: this toggles the sidebar. It sits beside the
+   list title, which is the header's actual subject, so it reads as a
+   control *next to* the content rather than as content itself.
+   *(quietened 2026-08-03: was --ink, the strongest ink in the palette,
+   which made a secondary control the loudest thing in the header. --muted
+   matches the kebab trigger's weight, so the two nav affordances agree.)* */
+.menuTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-area);
+  height: var(--hit-area);
+  flex: none;
+  color: var(--muted);
+  transition: color var(--duration-fast) var(--ease);
+  /* Pull the 44px hit area back so the *visible* icon lands on the
+     column's shared left edge rather than the hit area's own inset
+     (docs/specs/ui.md — one left edge; same technique as the checkbox in
+     checkbox.module.css). Icon glyphs are visually smaller than their
+     24px box within the button, roughly matching the checkbox's ratio. */
+  margin-left: calc((20px - var(--hit-area)) / 2);
+}
+
+/* docs/specs/ui.md — hover is a whisper. Darkening to --ink on hover keeps
+   the control discoverable without it shouting at rest. */
+.menuTrigger:hover {
+  color: var(--ink);
+}
+
+/* Mirrors the trigger's width on the opposite side so the title —
+   text-aligned center within the row — reads as truly centred rather than
+   pushed right by the trigger's own width (docs/specs/ui.md — the list
+   title is centred above the list). */
+.headerSpacer {
+  width: var(--hit-area);
+  flex: none;
+}
+
+/* A fixed-height flex column: `.header` is a non-shrinking sticky child,
+   `.mainScroll` beneath it takes the rest of the height and is the only
+   part of the content column that scrolls (docs/specs/ui.md — scrolling:
+   the content column is a fixed-height flex layout with a sticky header
+   and a scrolling body). */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Flex rather than `text-align: center` now that the title can carry a
+   colour dot: the dot and the name centre as one unit, so a coloured list
+   and an uncoloured one both sit optically centred rather than the name
+   shifting by the dot's width. */
+.title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  text-align: center;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}
+
+/* The dot-plus-name unit, and the anchor the info badge is positioned
+   against (main-screen.tsx).
+
+   It exists because `.title` is `flex: 1` — it spans the whole gap between
+   the ☰ and `.headerSpacer`, so positioning the badge against *that* box
+   would fling it to the far edge of the header. This box shrinks to the
+   text, so `left: 100%` on `.titleInfo` lands exactly at the name's
+   trailing edge whatever the name is.
+
+   `min-width: 0` so a long list name can still shrink and ellipsize inside
+   the centred row rather than forcing it wider.
+   *(added 2026-08-04.)* */
+.titleText {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* docs/specs/today-view.md, docs/specs/summary-view.md — the info badge
+   that explains a derived view, beside that view's own title.
+
+   Out of flow, deliberately. The title is centred by balancing the ☰
+   against `.headerSpacer`, and the name centres within what's left; an
+   in-flow badge would be part of what gets centred, so the name would sit
+   half a badge left of centre on Today and Summary and dead centre on
+   every list — the title visibly jumping sideways as you moved between
+   views. The same reasoning already keeps the todo count on its own line
+   rather than beside the title (see `.count`). Taking the badge out of
+   flow leaves the centring to be computed from the name alone.
+
+   The badge's own hit area (info-badge.module.css) is `--hit-area` square
+   with a 14px glyph in the middle, so the glyph already sits ~15px clear
+   of the name without any offset here — no extra gap needed, and one
+   would only push it under `.headerSpacer`.
+   *(added 2026-08-04.)* */
+.titleInfo {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+/* docs/specs/lists.md — colours: the list's colour follows it into the
+   main pane's title, so the colour doesn't disappear exactly when you are
+   looking at that list. Same dot as the nav's (list-dot.module.css), one
+   step larger: the title is bigger type than a nav row, so the dot scales
+   with it rather than matching the nav's 8px and reading as a speck.
+   Derived views get no dot at all — not even the nav's empty ring. The
+   ring exists in the nav to keep every row's name on one left edge; a
+   centred title has no such constraint, so an empty ring here would be a
+   mark that means nothing. *(added 2026-08-03 — issue #12.)* */
+.titleDot {
+  composes: dot from '../../lists/list-dot.module.css';
+  --dot-size: 10px;
+}
+
+/* docs/specs/ui.md — mobile: the nav trigger sits beside the list title,
+   forming the top row of the content column, rather than a floating
+   button in a corner.
+   docs/specs/ui.md — scrolling: sticky so the list title, nav toggle and
+   "Add a todo" stay in view while `.mainScroll` scrolls beneath — the
+   header itself never scrolls out of frame. `background` matches the page
+   so scrolled content doesn't show through underneath it. This header is
+   full pane width (like `.mainScroll` below it); `.headerRow` and
+   AddTodoTrigger (add-todo-trigger.module.css) each carry the ~34rem
+   measure via their own inner max-width so the reading column still lines
+   up, without narrowing the header/scroller itself (docs/specs/ui.md — the
+   scrollbar sits at the pane's edge, not mid-view: the same
+   padding-inside-not-outside fix applies to every scrolling/sticky pane,
+   not just `.mainScroll`).
+   *(changed 2026-07-31: horizontal padding moved off `.header` and onto
+   `.headerRow` — see `.headerRow` below. `.header` keeping its own
+   horizontal padding narrowed the width `.headerRow` centred within,
+   compared to `.mainScrollInner` centring in the full, unpadded
+   `.mainScroll`. The two centred+padded boxes landed at different
+   left edges even though both used the same measure and padding token —
+   one left edge, docs/specs/ui.md — needs one shared width to centre
+   within, not just one padding value.)* */
+/* docs/specs/ui.md — one left edge: `.mainScroll` below holds a stable
+   scrollbar gutter, which permanently narrows its content box by the
+   scrollbar's width. `scrollbar-gutter` only applies to scroll containers,
+   and this header isn't one, so it mirrors that reserved width as an
+   inline-end padding instead — otherwise `.headerRow` centres in a box
+   that's a scrollbar wider than the one `.mainScrollInner` centres in, and
+   the title sits half a scrollbar right of the list. `--scrollbar-gutter`
+   is measured once at runtime (main-screen.tsx) because the width is
+   platform-dependent — 15px on Windows/Linux, 0 where the OS draws overlay
+   scrollbars. *(fixed 2026-08-01.)* */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  background: var(--paper);
+  padding: var(--space-4) 0;
+  padding-inline-end: var(--scrollbar-gutter, 0px);
+
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-2);
+}
+
+/* Carries the horizontal inset itself now (padding-inline), rather than
+   inheriting it from `.header`, so it centres in the same full pane width
+   `.mainScrollInner` does and its content edge lands in the same place
+   (docs/specs/ui.md — one left edge, including controls). */
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding-inline: var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* docs/specs/ui.md — the header: how much is in this view, on its own line
+   under the title. Its own line rather than beside the title because the
+   title is centred by balancing the ☰ against `.headerSpacer`; a count of
+   changing width would shift the title sideways each time a todo was
+   ticked. Shares the row's measure and inline padding so it sits on the
+   same centre line as the title above it.
+
+   Sits directly under the title with no gap: the header's `row-gap` is
+   spacing for separate rows, but this line and the title are one unit, and
+   the space read as a disconnect between them. The negative margin cancels
+   that gap rather than removing it, so any other header row keeps it.
+   *(changed 2026-08-04.)*
+
+   Muted and one step down the type scale: this annotates the title, and
+   should never compete with it. */
+.count {
+  max-width: var(--measure);
+  /* Longhands, not `margin: 0 auto` — the shorthand would reset the
+     negative block-start below back to 0. */
+  margin-inline: auto;
+  margin-block-start: calc(-1 * var(--space-2));
+  margin-block-end: 0;
+  padding-inline: var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  /* Tabular figures so the line doesn't jitter horizontally as digits
+     change — it updates on every completion, right under a centred
+     title. */
+  font-variant-numeric: tabular-nums;
+  /* Holds the line's height even while it has no text, so the list below
+     doesn't jump down when the count arrives. `min-height` rather than a
+     fixed one: the line is a single row of --text-sm, and this is exactly
+     the box that row occupies. *(added 2026-08-04.)* */
+  min-height: calc(var(--text-sm) * var(--line-normal));
+}
+
+/* The placeholder shown while the todos are still unknown. A bar of the
+   same height as the text it stands in for, so swapping one for the other
+   changes nothing about the layout.
+
+   Width is arbitrary but stable — the real text varies ("No todos" to
+   "128 todos · 64 done") and guessing per-view would be false precision.
+   This reads as "something is coming", which is all it needs to say.
+
+   The pulse matches `.dot--offline` (status-dot.module.css), the app's
+   existing "waiting" animation, rather than inventing a second idiom.
+   global.css disables all animation under prefers-reduced-motion, which
+   leaves this a plain static bar — still doing its real job of holding
+   the space. */
+.countSkeleton {
+  display: inline-block;
+  width: 7rem;
+  /* Not 100% of the line: a bar shorter than the line box reads as
+     placeholder text rather than as a divider or a broken element. */
+  height: 0.7em;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  animation: count-skeleton var(--duration-pulse) var(--ease) infinite;
+}
+
+@keyframes count-skeleton {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* The scrolling child spans the full pane width so its scrollbar tracks
+   the pane's true edge rather than floating inset mid-view — the reading
+   measure is applied by `.mainScrollInner`'s padding *inside* the
+   scroller, not by narrowing the scroller itself (docs/specs/ui.md —
+   scrolling: the scrollbar sits at the pane's edge, not mid-view; this is
+   the same padding-on-the-wrong-element fix as `.navScroll`/`.form`
+   elsewhere, applied here structurally instead of just cosmetically). */
+/* docs/specs/ui.md — one left edge: reserve the scrollbar's gutter whether
+   or not a scrollbar is showing. `.header` is a sibling of this scroller,
+   not a child of it, so a scrollbar appearing here narrows only this box —
+   `.mainScrollInner` then centres in a narrower width than `.headerRow`
+   does and the list visibly shifts left of the title while the sticky
+   header stays put. Holding the gutter open keeps the scroller one width at
+   every list length, so nothing moves when a list grows past a screenful.
+   `.header` mirrors the same gutter (see below) so the two still centre in
+   the same width. *(fixed 2026-08-01.)* */
+.mainScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Centred measure lives here, one level inside the scroller, so padding
+   never affects where the scrollbar itself is drawn. */
+.mainScrollInner {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* docs/specs/ui.md — the detail panel: on desktop it is a layout column
+   rather than an overlay, so it collapses to zero width when nothing is
+   selected exactly as the nav does. Always mounted and animating its own
+   width (never conditionally rendered), for the same reason `.nav` is —
+   otherwise opening/closing is an instant mount with no transition.
+   `.detailInner` holds the open width so the content is clipped rather
+   than reflowing as the column shrinks. *(added 2026-08-03, issue #4.)* */
+/* `flex: none` alone is not enough here, unlike on `.nav`: `.main` sits
+   *before* this column and carries `width: 100%`, so it claims the whole
+   row and the flex algorithm then shrinks whatever follows. `flex-shrink`
+   defaults to 1 via the `flex: none` shorthand's `0 0 auto` only for the
+   *basis* — the overflow still resolves against this box because
+   `min-width: auto` lets it be squeezed below its width. Pinning
+   `flex-shrink: 0` and `min-width: 0` keeps the column at its declared
+   width instead of the ~112px the squeeze produced. */
+.detail {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  flex-shrink: 0;
+  width: min(90vw, 24rem);
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  transition:
+    width var(--duration-base) var(--ease),
+    border-color var(--duration-base) var(--ease);
+}
+
+/* Zero width *and* no border: the 1px border-left would otherwise leave a
+   hairline column permanently down the right edge of the app when nothing
+   is selected. `border-left-color: transparent` alone still occupies the
+   pixel, so the width goes too. */
+.detailCollapsed {
+  width: 0;
+  border-left-width: 0;
+  border-left-color: transparent;
+}
+
+.detailInner {
+  display: flex;
+  flex-direction: column;
+  width: min(90vw, 24rem);
+  height: 100%;
+  flex: none;
+}
+
+@media (min-width: 768px) {
+  .mainScrollInner {
+    padding: 0 var(--space-4) var(--space-6);
+  }
+}

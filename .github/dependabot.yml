@@ -1,0 +1,58 @@
+# Dependabot version updates.
+#
+# Enabling Dependabot in the repository settings turns on *security*
+# alerts; this file is what turns on routine version updates, and the
+# groups below are what stop them arriving as a wall of one PR per
+# package.
+#
+# The manifests deliberately carry the *current* version in their ranges
+# (`^7.5.0`, not `^7.0.0`), so a bump here is a real change rather than a
+# range that already allowed it — see CLAUDE.md.
+version: 2
+updates:
+  - package-ecosystem: bun
+    # The root is listed alongside the workspaces: it holds the shared
+    # toolchain (oxlint, oxfmt, typescript, vitest) and the single
+    # bun.lock every one of these resolves into.
+    directories:
+      - /
+      - /e2e
+      - /apps/*
+      - /packages/*
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Patches and minors, batched. Individually they are noise; as one
+      # PR a week they are a single review against a full CI run.
+      minor-and-patch:
+        update-types: [minor, patch]
+      # Majors are grouped by family rather than left loose, because
+      # these move together and a PR bumping one half of a pair cannot
+      # pass CI alone: @vitejs/plugin-react@6 requires vite@8, and React's
+      # types are versioned alongside React itself.
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: [major]
+      vite:
+        patterns: ['vite', '@vitejs/*', '@tsconfig/vite-react']
+        update-types: [major]
+      # One vitest, everywhere. It is declared in five manifests and they
+      # have to agree — two versions means two installed trees, which is
+      # how packages/* ended up borrowing `@types/node` from the
+      # duplicate and a typecheck broke when it was collapsed.
+      vitest:
+        patterns: ['vitest']
+    # Everything else major arrives on its own, deliberately: tsdav,
+    # ical.js and zod each sit at a trust boundary this app parses across,
+    # and those deserve to be read one at a time.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']

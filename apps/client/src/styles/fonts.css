@@ -1,0 +1,170 @@
+/* Self-hosted variable fonts.
+ *
+ * **Distributed, never assumed.** Charter is on macOS and ships with some
+ * Windows installs, but is absent on most Linux systems — so the app's own
+ * face silently became Georgia or worse for a whole platform. A themeable
+ * typeface has to be a file the app serves.
+ *
+ * **Variable only.** One file per family per italic state, covering the
+ * whole 400–600 range the app uses (`--weight-regular` through
+ * `--weight-semibold` in tokens.css), instead of three static weights each.
+ *
+ * Served from `apps/client/public/fonts/`, so they are ordinary static
+ * assets of the client build (apps/server/src/index.ts — serveStatic).
+ *
+ * `font-display: swap`: the app is a local-first todo list whose first
+ * paint should show todos. A blocked paint waiting on a 400kB serif is a
+ * worse trade than a reflow.
+ *
+ * *(added 2026-08-10 — review harness for themes. See the size note in
+ * docs/specs/themes.md before shipping: these are unsubsetted.)*
+ */
+
+/* Cabin — the sans option. 67kB/70kB, small enough to be uncontroversial. */
+@font-face {
+  font-family: 'Cabin';
+  src: url('/fonts/cabin.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cabin';
+  src: url('/fonts/cabin-italic.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Source Serif 4 — an optical-size axis and a true italic. */
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/source-serif.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/source-serif-italic.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Literata — designed for screen reading (Google Books). */
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/literata.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/literata-italic.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Newsreader — the closest in feel to Charter, and the smallest serif. */
+@font-face {
+  font-family: 'Newsreader';
+  src: url('/fonts/newsreader.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Newsreader';
+  src: url('/fonts/newsreader-italic.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ---- Narrower candidates -------------------------------------------------
+ *
+ * Source Serif 4 was the best of the first round on rhythm and colour, but
+ * it is a Renaissance-style face with generous sidebearings and tracks
+ * wide at body size. These are the economical alternatives: each sets
+ * noticeably narrower at the same point size, so more of a summary fits
+ * before the row ellipsises.
+ *
+ * No italic files yet — the app italicises in four places, so whichever
+ * wins needs its italic fetched before this ships. Until then they
+ * synthesise, which is what the review is for.
+ * *(added 2026-08-10.)*
+ */
+
+/* Crimson Pro — old-style, close in spirit to Source Serif but tighter. */
+@font-face {
+  font-family: 'Crimson Pro';
+  src: url('/fonts/crimson-pro.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Lora — the chosen body face. Contemporary, brushed curves, well-hinted
+   for screens. Chosen over Source Serif 4 (which tracked 4px wider on a
+   row summary and cost 418kB) and over the narrower Crimson Pro and
+   Faustina: Crimson Pro sets too small vertically at the app's size, and
+   Faustina's baseline threw off every centred alignment in the row.
+   *(chosen 2026-08-10.)* */
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Lora';
+  src: url('/fonts/lora-italic.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Petrona — a narrow text face with a tall x-height. */
+@font-face {
+  font-family: 'Petrona';
+  src: url('/fonts/petrona.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Faustina — the most economical of the set, and the smallest file (49kB). */
+@font-face {
+  font-family: 'Faustina';
+  src: url('/fonts/faustina.woff2') format('woff2-variations');
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Gelasio — metric-compatible with Georgia, so it sets like the fallback. */
+@font-face {
+  font-family: 'Gelasio';
+  src: url('/fonts/gelasio.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Frank Ruhl Libre — high contrast, narrow, a touch more editorial. */
+@font-face {
+  font-family: 'Frank Ruhl Libre';
+  src: url('/fonts/frank-ruhl.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}

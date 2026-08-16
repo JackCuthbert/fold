@@ -1,0 +1,36 @@
+/* One field of the login form — see login-field.tsx. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The label is the quiet half of the pair: small and muted, so the value
+   the user types is the loudest thing in the field (docs/specs/ui.md —
+   typography: hierarchy from weight and small size steps). */
+.label {
+  /* The same treatment every other field in the app uses — muted ink at
+     --text-sm, sentence case, no tracking (todo-detail.module.css's
+     `.field label`, and the list form's).
+
+     These were uppercase with letter-spacing, which made the login page
+     the only screen labelling its fields differently from every modal
+     behind it. A sign-in form is the first thing a new user sees and the
+     last thing a returning one wants to think about; it should look like
+     the app, not like a landing page bolted to it.
+     *(changed 2026-08-10.)* */
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.field :global(input) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
