@@ -369,6 +369,18 @@ a due date mid-word. A bare `today` is *not* caught by this, because it
 leaves the hour uncertain; only a match asserting an hour can be now.
 *(added 2026-08-14; narrowed 2026-08-15 after it swallowed `today`.)*
 
+**A match that sets nothing is not a match.** chrono recognises spans that
+name no date component at all: "this week" and "this year" both come back
+with an empty set of known values, so neither the day nor the time branch
+fires. The token used to be recorded anyway, which marked the words, took
+them out of the summary, and set no due date — "Do the thing this week"
+became a todo called "Do the thing", due never.
+
+"This week" is ambiguous even in principle. chrono resolves it to
+*tomorrow*, which is nobody's reading of it, so there is no correct date to
+have set. Leaving the words in the title is the honest outcome: the todo
+says what you typed. *(fixed 2026-08-17, reported from use.)*
+
 **Offline** changes nothing. The parse is entirely client-side, and the
 created todo queues through the outbox like any other
 ([sync-and-offline](./sync-and-offline.md)).
