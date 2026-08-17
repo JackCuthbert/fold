@@ -304,17 +304,28 @@ export function parseQuickAdd(
     // `isCertain('hour')` is the all-day/timed distinction
     // (docs/specs/todos.md — due times): a date chrono inferred rather
     // than read is not a time the user asked for.
-    if (start.isCertain('hour')) clock ??= start.date()
+    const namesTime = start.isCertain('hour')
+    if (namesTime) clock ??= start.date()
     // A bare time ("3pm") also resolves to a day — today's — which must
     // not outrank an explicit one stated elsewhere in the line. Only a
     // match that actually names a day sets it.
-    if (
+    const namesDay =
       start.isCertain('day') ||
       start.isCertain('weekday') ||
       start.isCertain('month')
-    ) {
-      day ??= start.date()
-    }
+    if (namesDay) day ??= start.date()
+    // **A match that sets nothing is not a match.** chrono recognises
+    // spans that name no date component at all — "this week" and "this
+    // year" both come back with an empty `knownValues` — so neither of
+    // the two branches above fires. Highlighting it anyway marked the
+    // words and then took them out of the summary, leaving a todo that
+    // had lost "this week" and gained no due date.
+    //
+    // "This week" is ambiguous in any case: chrono resolves it to
+    // tomorrow, which is nobody's reading of it. Leaving the words in the
+    // title is the honest outcome.
+    // *(added 2026-08-17, reported from use.)*
+    if (!namesDay && !namesTime) continue
     // Offset back into the original string, since chrono indexed the
     // segment rather than the whole line.
     tokens.push({

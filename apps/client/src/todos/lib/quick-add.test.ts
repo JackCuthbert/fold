@@ -359,6 +359,13 @@ describe('it does not invent a date out of ordinary words', () => {
     // Fully typed, the same shape must stay inert.
     'sort out the shed',
     'buy a sandwich',
+    // A span with no day in it. chrono matches the phrase but names no
+    // date component, so nothing can be filed against it — "this week"
+    // resolved to tomorrow, which is not what anyone means by it. These
+    // used to highlight and vanish from the summary while setting no due
+    // date, so the todo came back missing the words as well.
+    'Do the thing this week',
+    'Do the thing this year',
   ])('leaves %j alone', (input) => {
     const result = parse(input)
     expect(result.due).toBeUndefined()
