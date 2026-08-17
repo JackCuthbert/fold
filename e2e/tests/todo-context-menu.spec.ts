@@ -324,10 +324,10 @@ test('a schedule option that would change nothing is disabled', async ({
   await page.clock.setFixedTime(new Date(2026, 7, 11, 9, 15))
   await login(page)
   await createList(page, uniqueName('noop'))
-  await addTodo(page, 'Due today todo')
+  await addTodo(page, 'Water the ferns')
 
   // Undated: every option is live except Clear due date.
-  await openRowMenu(page, 'Due today todo')
+  await openRowMenu(page, 'Water the ferns')
   await openSubmenu(page, 'Schedule')
   const today = page.getByRole('menuitem', { name: 'Today', exact: true })
   await expect(today).not.toHaveAttribute('data-disabled', '')
@@ -336,7 +336,7 @@ test('a schedule option that would change nothing is disabled', async ({
   // Now due today, "Today" would write back what it already has — a
   // no-op that still costs a round-trip and reads as a broken button
   // (docs/specs/todos.md — row actions).
-  await openRowMenu(page, 'Due today todo')
+  await openRowMenu(page, 'Water the ferns')
   await openSubmenu(page, 'Schedule')
   await expect(
     page.getByRole('menuitem', { name: 'Today', exact: true }),

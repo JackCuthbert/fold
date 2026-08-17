@@ -379,3 +379,114 @@ test('preview pills use the same face as the row pills', async ({ page }) => {
   )
   expect(previewFace).not.toBe(bodyFace)
 })
+
+// The date and time pills are native inputs stretched invisibly over a
+// visible label (quick-add-modal.module.css — `.pillPickerInput`). That
+// only works if the input is what the pointer actually hits: with the
+// label or the chevron on top, the pill looks interactive and does
+// nothing when clicked, which is what was reported.
+//
+// `elementFromPoint` at the label's own centre is the assertion — clicking
+// and asserting a picker opened is not available, since the platform date
+// picker is browser chrome Playwright cannot see.
+// *(added 2026-08-15, found in use.)*
+test('the whole date and time pill is the click target', async ({ page }) => {
+  await login(page)
+  const list = uniqueName('pills')
+  await createList(page, list)
+  await page
+    .getByRole('navigation', { name: 'Lists' })
+    .getByRole('button', { name: list, exact: true })
+    .first()
+    .click()
+
+  await openQuickAdd(page)
+  // A time as well as a date, so both pickers are on screen.
+  await field(page).fill('Clean the gutters tomorrow at 3pm')
+
+  for (const name of [/^Change the date$/, /^Change the time$/]) {
+    const input = picker(page, name)
+    await expect(input).toBeVisible()
+
+    // Every corner and the centre of the *pill*, since the label sits at
+    // the left and the chevron at the right — the two places a stray
+    // element would sit. All of them must land on the input itself.
+    const hits = await input.evaluate((element) => {
+      const box = element.parentElement?.getBoundingClientRect()
+      if (!box) throw new Error('picker input has no pill')
+      const points: [string, number, number][] = [
+        ['left', box.left + 4, box.top + box.height / 2],
+        ['centre', box.left + box.width / 2, box.top + box.height / 2],
+        ['right', box.right - 4, box.top + box.height / 2],
+      ]
+      return points.map(([where, x, y]) => {
+        const hit = document.elementFromPoint(x, y)
+        return `${where}:${hit === element ? 'input' : (hit?.tagName ?? 'none')}`
+      })
+    })
+    expect(hits).toEqual(['left:input', 'centre:input', 'right:input'])
+
+    // Hitting the input is necessary but not sufficient — the pill looked
+    // fine by that measure while doing nothing, because opening the picker
+    // was left to `::-webkit-calendar-picker-indicator`, which a `time`
+    // input does not have. `showPicker` is now called explicitly, and this
+    // records that it happens: the platform picker itself is browser
+    // chrome Playwright cannot see, so the call is the observable part.
+    // Patched on the prototype and counted on `window`, not stored on the
+    // element: clicking focuses the input, React re-renders, and a stub
+    // attached to the node is gone before it can be read back.
+    // Stub, click, restore — all inside one evaluate, so the patch never
+    // outlives the assertion. It is on the *prototype* because clicking
+    // focuses the input and React re-renders it, discarding a stub set on
+    // the node; and it is restored because a global left in place broke an
+    // unrelated focus assertion later in this file.
+    const picked = await input.evaluate((element: HTMLInputElement) => {
+      const proto: { showPicker?: (() => void) | undefined } =
+        HTMLInputElement.prototype
+      const original = proto.showPicker
+      let calls = 0
+      proto.showPicker = function showPicker() {
+        calls += 1
+      }
+      try {
+        element.click()
+        return calls
+      } finally {
+        proto.showPicker = original
+      }
+    })
+    expect(picked).toBeGreaterThan(0)
+  }
+})
+
+// A todo has one list. Typing a second `#name` used to mark and strip it
+// while only the first bound — so the input showed two highlighted lists,
+// the todo went to the first, and the second word vanished from the
+// summary. *(added 2026-08-15, found in use.)*
+test('a second list token is ordinary text', async ({ page }) => {
+  await login(page)
+  const first = uniqueName('one')
+  const second = uniqueName('two')
+  await createList(page, first)
+  await createList(page, second)
+
+  await openQuickAdd(page)
+  // The second token is not last: a line *ending* in `#name` opens the
+  // inline autocomplete, where Enter picks a suggestion rather than
+  // submitting (activeListQuery). That is deliberate, and would make this
+  // test about the picker instead.
+  await field(page).fill(`Buy milk #${first} #${second} today`)
+
+  // One list pill, naming the first.
+  await expect(pill(page, new RegExp(`^List: ${first}`))).toBeVisible()
+  await expect(pill(page, new RegExp(`^List: ${second}`))).toBeHidden()
+
+  await page.keyboard.press('Enter')
+  await expect(modal(page)).toBeHidden()
+  await waitForSync(page)
+
+  // The second token survives as text rather than being silently eaten.
+  await expect(
+    page.getByText(`Buy milk #${second}`, { exact: true }),
+  ).toBeVisible()
+})

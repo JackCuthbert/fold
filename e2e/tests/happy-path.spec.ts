@@ -633,11 +633,11 @@ test('a todo moves between lists from its own dialog', async ({ page }) => {
 test('clearing completed work asks which clear you mean', async ({ page }) => {
   await login(page)
   await createList(page, uniqueName('clearing'))
-  await addTodo(page, 'Finished this today')
+  await addTodo(page, 'Finished the report')
   await waitForSync(page)
 
   await page
-    .getByRole('checkbox', { name: 'Mark "Finished this today" done' })
+    .getByRole('checkbox', { name: 'Mark "Finished the report" done' })
     .click()
   await waitForSync(page)
   await page.getByRole('button', { name: 'Completed (1)' }).click()
@@ -656,7 +656,7 @@ test('clearing completed work asks which clear you mean', async ({ page }) => {
 
   // Cancelling changes nothing — the point of the gate.
   await dialog.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByText('Finished this today')).toBeVisible()
+  await expect(page.getByText('Finished the report')).toBeVisible()
 
   // Choosing the heavier path really does delete, and it survives a
   // round-trip rather than only disappearing optimistically.
@@ -666,9 +666,9 @@ test('clearing completed work asks which clear you mean', async ({ page }) => {
     .getByRole('button', { name: /Clear everything completed/ })
     .click()
   await waitForSync(page)
-  await expect(page.getByText('Finished this today')).toBeHidden()
+  await expect(page.getByText('Finished the report')).toBeHidden()
   await page.reload()
-  await expect(page.getByText('Finished this today')).toBeHidden()
+  await expect(page.getByText('Finished the report')).toBeHidden()
 })
 
 // docs/specs/ui.md — the todo row. The meta line names the list only where

@@ -6,7 +6,7 @@ worth remembering: making something, and getting somewhere.
 
 | Chord | Does |
 |---|---|
-| `Ctrl+K` | New todo, from anywhere |
+| `N` | New todo, from anywhere |
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Tomorrow |
@@ -57,13 +57,20 @@ and with none there's nothing to choose. Make a list first — `Ctrl+Shift+N`.
 A closed or collapsed sidebar is no obstacle, though. That's exactly when
 reaching for the keyboard is quicker than going to find the button.
 
-## Why `K` for a new todo
+## Why a bare `N` for a new todo
 
 `Cmd+N` — the obvious choice — belongs to your browser: it opens a new
-window, and the keypress never reaches Fold at all. `K` is what most apps
-use for "do something quickly", and it's free.
+window, and the keypress never reaches Fold at all. `Ctrl+N` does the same
+on Windows and Linux, and inside quick add it already moves through the
+`#list` suggestions. A plain `N` collides with none of them.
 
-It opens the same **New todo** form as the sidebar button, wherever you are.
+Unmodified keys are safe here because every shortcut stands down while
+you're typing in a field — so an `n` in the middle of a todo is just an
+`n`. *(changed 2026-08-15: was `Ctrl+K`.)*
+
+It opens the same **New todo** field as the sidebar button, wherever you
+are — see [adding a todo](./adding-todos.md) for what you can type into
+it.
 Because it can be triggered from Today, Tomorrow, Next 7 days, Summary or
 Search — none of which are lists — it always asks which list the todo
 belongs to.

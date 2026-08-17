@@ -373,3 +373,84 @@ describe('it does not invent a date out of ordinary words', () => {
     expect(parse('Ring mum in 3 days').due?.date).toBe('2026-08-17')
   })
 })
+
+// Two bugs found in use, both of which produced a wrong todo rather than
+// merely a wrong-looking one. *(added 2026-08-15.)*
+describe('regressions', () => {
+  it('reads a bare "today" as a date', () => {
+    // The "now is not a due date" guard was too broad: `today` resolves to
+    // the current instant, so it was discarded along with the phantom
+    // matches it was written for. chrono tells them apart — `today` leaves
+    // the hour *uncertain*, while "now" and the casual "the s" both assert
+    // one — so only a match claiming an hour can be "now".
+    const result = parse('Ring mum today')
+    expect(result.due).toEqual({ date: '2026-08-14', time: '' })
+    expect(result.summary).toBe('Ring mum')
+  })
+
+  it('still refuses the phantom matches that guard exists for', () => {
+    for (const text of ['sort out the s', 'do it now', 'call a s']) {
+      expect(parse(text).due).toBeUndefined()
+      expect(parse(text).summary).toBe(text)
+    }
+  })
+
+  it('matches a list name containing spaces, in full', () => {
+    // `#Shopping list` resolved to the right list by prefix, but only
+    // `#Shopping` was consumed — so "list" stayed behind and the todo was
+    // created as "Buy milk list".
+    const lists = [list('s', 'Shopping list'), list('c', 'Chores')]
+    const text = 'Buy milk #Shopping list'
+    const result = parseQuickAdd(text, lists, NOW)
+    expect(result.listId).toBe('s')
+    expect(result.summary).toBe('Buy milk')
+    expect(result.tokens.map((t) => text.slice(t.start, t.end))).toEqual([
+      '#Shopping list',
+    ])
+  })
+
+  it('prefers the longer name when the text spells it out', () => {
+    // "Chores" and "Chores (work)" both match `#Chores`, and the exact
+    // match used to win unconditionally — leaving "(work)" behind in the
+    // summary. A name the text writes out in full is the one meant.
+    const text = 'Sweep #Chores (work)'
+    const result = parse(text)
+    expect(result.listId).toBe('cw')
+    expect(result.summary).toBe('Sweep')
+    expect(result.tokens.map((t) => text.slice(t.start, t.end))).toEqual([
+      '#Chores (work)',
+    ])
+  })
+
+  it('binds only the first list, and marks only that one', () => {
+    // Both tokens were marked and stripped while only the first set the
+    // list, so `#Chores #Work` filed into Chores with `#Work` highlighted
+    // as though it had counted — and the word vanished from the summary
+    // either way. A todo has one list; the later token is ordinary text.
+    // *(fixed 2026-08-15, found in use.)*
+    const text = 'Buy milk #Chores #Work'
+    const result = parse(text)
+    expect(result.listId).toBe('c')
+    expect(result.summary).toBe('Buy milk #Work')
+    expect(result.tokens.map((t) => text.slice(t.start, t.end))).toEqual([
+      '#Chores',
+    ])
+  })
+
+  it('binds only the first priority, for the same reason', () => {
+    const text = 'Buy milk p1 p3'
+    const result = parse(text)
+    expect(result.priority).toBe('high')
+    expect(result.summary).toBe('Buy milk p3')
+    expect(result.tokens.map((t) => text.slice(t.start, t.end))).toEqual(['p1'])
+  })
+
+  it('consumes only what was typed when the name is a prefix', () => {
+    // `#Shop` resolves to "Shopping list", but eight characters the user
+    // never typed must not be swallowed out of the summary.
+    const lists = [list('s', 'Shopping list')]
+    const result = parseQuickAdd('Buy milk #Shop', lists, NOW)
+    expect(result.listId).toBe('s')
+    expect(result.summary).toBe('Buy milk')
+  })
+})

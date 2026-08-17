@@ -63,7 +63,16 @@ const LIST_PATTERN = /(?:^|\s)#([\p{L}\p{N}_-]+)(?=\s|$)/giu
 /**
  * Find the list a `#token` names.
  *
- * **Exact match wins over a prefix match.** With "Chores" and
+ * `rest` is the text from the `#` onwards, because a list name may contain
+ * spaces and the token pattern cannot: `#Shopping list` arrives here as
+ * `Shopping`, and only the surrounding text can say whether the name
+ * continues. A name the text **spells out in full** wins over anything
+ * shorter, so `#Chores (work)` is that list rather than "Chores" with
+ * "(work)" left stranded in the summary. Longest first, so the more
+ * specific name wins when one contains the other.
+ * *(added 2026-08-15.)*
+ *
+ * Otherwise **exact match wins over a prefix match**. With "Chores" and
  * "Chores (work)" both present, `#chores` is the former — typing the whole
  * of a name is an unambiguous statement, and picking the longer one because
  * it also matched would be the surprise. Ambiguity beyond that is resolved
@@ -76,27 +85,63 @@ const LIST_PATTERN = /(?:^|\s)#([\p{L}\p{N}_-]+)(?=\s|$)/giu
 function findList(
   token: string,
   lists: readonly TodoList[],
+  rest = '',
 ): TodoList | undefined {
   const needle = token.toLowerCase()
+  const ahead = rest.toLowerCase()
+  const spelledOut = lists
+    .filter((list) => ahead.startsWith(list.displayName.toLowerCase()))
+    .toSorted((a, b) => b.displayName.length - a.displayName.length)[0]
+  if (spelledOut) return spelledOut
   const exact = lists.find((list) => list.displayName.toLowerCase() === needle)
   if (exact) return exact
   return lists.find((list) => list.displayName.toLowerCase().startsWith(needle))
 }
 
 /**
- * Whether a parsed instant is, for practical purposes, *now*.
+ * How many characters of `text` at `from` the list's own name occupies.
+ *
+ * The `#token` regex stops at whitespace, so a name containing one — "Shopping
+ * list", "Chores (work)" — is only partly matched. The rest is still sitting
+ * in the text immediately after it, and belongs to the token rather than to
+ * the summary.
+ *
+ * Falls back to the matched length when the text does not actually continue
+ * with the name: `#Shop` resolves to "Shopping list" by prefix, but only the
+ * five characters typed are the user's, and swallowing eight more would eat
+ * text they wrote. Only a name the text *spells out* is consumed in full.
+ * *(added 2026-08-15.)*
+ */
+function nameLengthAt(text: string, from: number, name: string): number {
+  const ahead = text.slice(from, from + name.length)
+  if (ahead.toLowerCase() === name.toLowerCase()) return name.length
+  // The typed run, up to the next space — what the pattern matched.
+  const space = text.indexOf(' ', from)
+  return (space === -1 ? text.length : space) - from
+}
+
+/**
+ * Whether a match means *now* — this instant, rather than today.
  *
  * A due date is stored to the minute (`DueFields` — a date plus `HH:mm`),
  * so anything inside the current minute is the same due date as "this
- * instant" and is treated as one. Seconds are deliberately not honoured:
- * a todo cannot be due at 22:41:30, so a match that only differs from now
- * in its seconds is a false positive rather than a finer-grained answer.
- * *(added 2026-08-14, found in review.)*
+ * instant". Seconds are deliberately not honoured: a todo cannot be due at
+ * 22:41:30, so a match differing from now only in its seconds is a false
+ * positive rather than a finer-grained answer.
+ *
+ * **The hour must be asserted, not inferred**, and that is the whole
+ * distinction. A bare `today` resolves to the current instant too, because
+ * chrono has to put the day *somewhere* on the clock — but it reports the
+ * hour as uncertain, meaning nobody asked for one. "now" and the casual
+ * "the s" both claim an hour outright. Testing the instant alone threw
+ * `today` away with them, which is how a working date word stopped
+ * working. *(fixed 2026-08-15; the guard was added 2026-08-14.)*
  */
 const toMinute = (at: Date): number => new Date(at).setSeconds(0, 0).valueOf()
 
-function isNow(candidate: Date, now: Date): boolean {
-  return toMinute(candidate) === toMinute(now)
+function isNow(start: chrono.ParsedComponents, now: Date): boolean {
+  if (!start.isCertain('hour')) return false
+  return toMinute(start.date()) === toMinute(now)
 }
 
 /**
@@ -162,15 +207,37 @@ export function parseQuickAdd(
   for (const match of text.matchAll(LIST_PATTERN)) {
     const raw = match[1]
     if (raw === undefined) continue
-    const found = findList(raw, lists)
+    // The text after the `#`, so a name containing spaces can be seen in
+    // full — see `findList`.
+    const afterHash = text.slice(text.indexOf(`#${raw}`, match.index) + 1)
+    const found = findList(raw, lists, afterHash)
     // An unmatched `#` is ordinary text and stays in the summary, so
     // "Fix issue #12" survives intact.
     if (!found) continue
-    listId ??= found.id
+    // **One list per todo, so only the first token binds — and only the
+    // token that binds is marked.** Both used to be marked and stripped
+    // while only the first set the list, so `#Chores #Work` filed into
+    // Chores with `#Work` highlighted as though it counted, and the word
+    // disappeared from the summary regardless. A second list is not a
+    // thing a todo can have, so the later token is ordinary text.
+    // *(fixed 2026-08-15, found in use.)*
+    if (listId !== undefined) continue
+    listId = found.id
     // `match.index` is the whitespace before the token when there was
     // any; the token itself starts at the `#`.
     const start = text.indexOf(`#${raw}`, match.index)
-    tokens.push({ kind: 'list', start, end: start + raw.length + 1 })
+    // How much of the *text* this name occupies, which is not the same as
+    // the regex match when the name contains spaces. `#Shopping list`
+    // matched only `#Shopping` — the pattern stops at whitespace — and
+    // `findList` then resolved it by prefix, so the list was right while
+    // the word "list" stayed behind in the summary: "Buy milk list".
+    // Measuring against the resolved name instead consumes all of it.
+    // *(fixed 2026-08-15.)*
+    tokens.push({
+      kind: 'list',
+      start,
+      end: start + 1 + nameLengthAt(text, start + 1, found.displayName),
+    })
   }
 
   for (const match of text.matchAll(PRIORITY_PATTERN)) {
@@ -178,7 +245,10 @@ export function parseQuickAdd(
     if (raw === undefined) continue
     const token = raw.toLowerCase()
     if (!(token in PRIORITY_BY_TOKEN)) continue
-    priority ??= PRIORITY_BY_TOKEN[token]
+    // First one binds, and only it is marked — same rule as the list
+    // above, for the same reason: a todo has one priority.
+    if (priority !== undefined) continue
+    priority = PRIORITY_BY_TOKEN[token]
     const start = text.indexOf(raw, match.index)
     tokens.push({ kind: 'priority', start, end: start + raw.length })
   }
@@ -227,7 +297,7 @@ export function parseQuickAdd(
     // one rule about meaning catches them all; matching the phrases would
     // have been a list that the next casual pattern escapes.
     // *(added 2026-08-14, found in review.)*
-    if (isNow(start.date(), now)) continue
+    if (isNow(start, now)) continue
     // The same family, for the few that land a minute out rather than on
     // the instant — see `isPhantomDate`.
     if (isPhantomDate(parsed.text)) continue

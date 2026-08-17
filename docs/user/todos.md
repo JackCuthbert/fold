@@ -1,7 +1,8 @@
 # Todos
 
-- **Add:** type in the field at the top and press Enter. The field keeps
-  focus so you can add several in a row.
+- **Add:** press <kbd>N</kbd>, or click **New todo**, and type the whole
+  todo on one line — see [adding a todo](./adding-todos.md).
+  *(changed 2026-08-15: was a field at the top of the list.)*
 - **Complete:** click the circle. It draws a check, strikes the text
   through, and files the todo under "Completed".
 - **Edit:** click a todo's text to open its details — summary, a due date
