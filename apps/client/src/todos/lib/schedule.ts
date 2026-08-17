@@ -11,8 +11,32 @@ import { dueToFields, fieldsToDue } from './due-fields'
 // it means opening the panel, which is the thing this exists to avoid. The
 // time therefore rides along untouched, and an all-day todo stays all-day.
 
-/** Days from today. 0 is today, 1 tomorrow. */
-export type ScheduleOffset = 0 | 1
+/**
+ * Days from today. 0 is today, 1 tomorrow, and the weekend actions supply
+ * whatever `daysUntilWeekday` works out.
+ *
+ * Widened from `0 | 1` when "This Saturday"/"This Sunday" were added: the
+ * offset is now computed rather than chosen from a fixed pair.
+ * *(changed 2026-08-17.)*
+ */
+export type ScheduleOffset = number
+
+/** Sunday is 0 in `Date#getDay`, matching the platform rather than ISO. */
+export const SATURDAY = 6
+export const SUNDAY = 0
+
+/**
+ * Days from `now` until the next `weekday`, where **today counts as zero**.
+ *
+ * "This Saturday" on a Saturday means today, not the Saturday a week out.
+ * Scheduling a week ahead from a menu item naming the day you are looking
+ * at reads as a bug; if the todo is already due today the item disables
+ * itself through `scheduleIsNoop`, which is the same answer Today gives.
+ * *(added 2026-08-17.)*
+ */
+export function daysUntilWeekday(now: Date, weekday: number): number {
+  return (weekday - now.getDay() + 7) % 7
+}
 
 /**
  * The `yyyy-mm-dd` that is `offset` days from `now`, in local time.

@@ -128,3 +128,67 @@
   background: var(--line);
   margin: var(--space-1) 0;
 }
+
+/* docs/specs/todos.md — quick scheduling. A day and its time are one
+   decision with two answers, so they share a row: the day fills it and the
+   time sits at the trailing edge as a square button.
+
+   **Placed on a grid rather than wrapped in a flex row.** A wrapper
+   element breaks the menu's item list — Base UI walks the popup's own
+   children to work out what the next item is, so a nested row left focus
+   stuck on the time button with neither ArrowDown nor ArrowLeft able to
+   leave it. Measured in the browser before this was rewritten. Two grid
+   columns keep every item a direct child, so the keyboard sees one flat
+   list while the eye sees paired rows.
+
+   A gap rather than a true segmented control. Segmented reads as "pick
+   exactly one of these", which is wrong — the button is a *modifier* on
+   the row beside it, and the space says so.
+   *(added 2026-08-17.)* */
+.scheduleGrid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-1);
+}
+
+/* Anything that is not a paired row spans both columns: the weekend
+   items, the separators, and Clear due date. */
+/* Everything that is not half of a paired row fills the width: the
+   weekend items, the separators, and Clear due date. Keyed off an explicit
+   class rather than `:not(.scheduleDay)`, because the weekend items *are*
+   schedule days — they simply have no time beside them, so excluding the
+   class left them stranded in column one looking like half a row. */
+.scheduleGrid > *:not(.schedulePaired) {
+  grid-column: 1 / -1;
+}
+
+.schedulePaired {
+  /* Nothing of its own: the class marks a cell that shares its row, so the
+     span rule above can leave it in a single column. */
+  min-width: 0;
+}
+
+.scheduleTime {
+  /* Square, and held that way. An icon with no label needs no more width
+     than height, and `aspect-ratio: 1` keeps it so whatever the row grows
+     to — grid stretches a cell to its row's height, so a width alone left
+     it 34x43. `--hit-area` is the same floor the rows use, so it stays
+     tappable at the size a thumb expects.
+
+     `align-self: center` rather than the grid's default stretch, so the
+     square sits centred against a taller row instead of being pulled out
+     of shape. */
+  align-self: center;
+  justify-content: center;
+  width: var(--hit-area);
+  aspect-ratio: 1;
+  padding: 0;
+  color: var(--muted);
+}
+
+/* Lifted to full ink when it is the active item, so the icon reads as
+   selected rather than merely hovered — it carries no text to change
+   weight. */
+.scheduleTime[data-highlighted] {
+  color: var(--ink);
+}
