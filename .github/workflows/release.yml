@@ -15,6 +15,16 @@ name: release
 on:
   push:
     branches: [main]
+  # Republish an existing release's image without cutting a new version.
+  # A re-run of a failed run is pinned to the commit it ran against, so it
+  # cannot pick up a fix; dispatching against the moved tag can.
+  # *(added 2026-08-17, after the v1.0.0 image build failed on a Dockerfile
+  # bug and there was no way to rebuild it as 1.0.0.)*
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and publish, e.g. v1.0.0'
+        required: true
 
 # The default GITHUB_TOKEN is enough for both jobs, so there is no PAT to
 # rotate. Each job narrows to what it needs.
@@ -39,7 +49,12 @@ jobs:
 
   publish:
     needs: release
-    if: needs.release.outputs.released == 'true'
+    # Always on a dispatch; on push only when a release was actually cut.
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch'
+        || needs.release.outputs.released == 'true'
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,7 +63,11 @@ jobs:
       # the foot of this job, which is commented out — see the note there.
       # Left out rather than granted for something that does not run.
     steps:
+      # On a dispatch, build the named tag rather than the default branch.
+      # `ref: ''` falls back to the default checkout on a push.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag || '' }}
 
       # arm64 matters here: a lot of self-hosters run this on a Raspberry
       # Pi or an ARM NAS, and an amd64-only image simply will not start
@@ -69,6 +88,12 @@ jobs:
         id: image
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
+      # On a push this is release-please's tag; on a dispatch it is the tag
+      # that was asked for.
+      - name: Resolve release tag
+        id: tag
+        run: echo "name=${{ github.event.inputs.tag || needs.release.outputs.tag }}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/metadata-action@v6
         id: meta
         with:
@@ -85,9 +110,9 @@ jobs:
           # a non-prerelease version, and naming it as well emitted the tag
           # twice in the first run's tag list. *(fixed 2026-08-10.)*
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release.outputs.tag }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag }}
-            type=semver,pattern={{major}},value=${{ needs.release.outputs.tag }}
+            type=semver,pattern={{version}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{major}},value=${{ steps.tag.outputs.name }}
 
       - uses: docker/build-push-action@v7
         id: push
