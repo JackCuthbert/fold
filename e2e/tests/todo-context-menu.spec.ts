@@ -65,7 +65,7 @@ test('right-clicking a todo row opens its actions', async ({ page }) => {
   await expect(page.getByRole('menuitem', { name: 'Today' })).toBeHidden()
 })
 
-test('the schedule submenu holds the three date actions', async ({ page }) => {
+test('the schedule submenu holds the date actions', async ({ page }) => {
   await login(page)
   await createList(page, uniqueName('sub'))
   await addTodo(page, 'Sweep the deck')
@@ -73,8 +73,6 @@ test('the schedule submenu holds the three date actions', async ({ page }) => {
   await openRowMenu(page, 'Sweep the deck')
   await openSubmenu(page, 'Schedule')
 
-  // Two plain and two timed. The labels are locale-formatted rather than
-  // literal "9am" — a regex, since a 24-hour locale writes "17:00".
   // The trigger stays marked while its submenu is open, so the popup reads
   // as anchored to the row it belongs to. `data-highlighted` follows the
   // pointer, so it goes flat the moment you move into the submenu — this
@@ -83,14 +81,82 @@ test('the schedule submenu holds the three date actions', async ({ page }) => {
     page.getByRole('menuitem', { name: /^Schedule/ }),
   ).toHaveAttribute('data-popup-open', '')
 
+  // Six items: two days each paired with a timed button, the two weekend
+  // days, and Clear. Matched by accessible name rather than text, because
+  // the timed buttons carry an icon and an `aria-label` and no text at all
+  // — which is exactly what a screen reader has to work with.
+  // *(changed 2026-08-17: was four flat rows plus Clear.)*
   const submenu = page.getByRole('menu').nth(1)
-  await expect(submenu.getByRole('menuitem')).toHaveText([
+  const items = submenu.getByRole('menuitem')
+  await expect(items).toHaveCount(7)
+  const names = [
     'Today',
-    /^Today \d/,
+    /^Today at \d/,
     'Tomorrow',
-    /^Tomorrow \d/,
+    /^Tomorrow at \d/,
+    'This Saturday',
+    'This Sunday',
     'Clear due date',
-  ])
+  ]
+  for (const [index, name] of names.entries()) {
+    await expect(items.nth(index)).toHaveAccessibleName(name)
+  }
+})
+
+// The timed option used to be its own row and is now a button beside the
+// day. A nested control inside a menu item is reachable by mouse and
+// nowhere else, so this is the test that the pairing did not quietly cost
+// keyboard users the option. *(added 2026-08-17.)*
+test('the timed option is reachable with the keyboard', async ({ page }) => {
+  // Mid-morning, so "Today 5:00 pm" is still ahead. Its own past-the-hour
+  // guard disables it after 5pm, and a disabled item cannot take focus —
+  // which made this fail on a real clock rather than on the thing it
+  // tests. *(pinned 2026-08-17.)*
+  await page.clock.setFixedTime(new Date(2026, 7, 11, 9, 15))
+  await login(page)
+  await createList(page, uniqueName('kbd'))
+  await addTodo(page, 'Chase the invoice')
+
+  await openRowMenu(page, 'Chase the invoice')
+  await openSubmenu(page, 'Schedule')
+
+  // ArrowDown walks the items in DOM order, so the time button is simply
+  // the next stop after its day. The two-column grid is purely visual —
+  // the items stay a flat list, which is what keeps this working.
+  const submenu = page.getByRole('menu').nth(1)
+  await submenu.getByRole('menuitem', { name: 'Today', exact: true }).focus()
+  await page.keyboard.press('ArrowDown')
+  await expect(
+    submenu.getByRole('menuitem', { name: /^Today at \d/ }),
+  ).toBeFocused()
+
+  // And onward, rather than trapped on the button: a wrapper element
+  // around the pair broke this outright before the popup became a grid of
+  // direct children.
+  await page.keyboard.press('ArrowDown')
+  await expect(
+    submenu.getByRole('menuitem', { name: 'Tomorrow', exact: true }),
+  ).toBeFocused()
+})
+
+// docs/specs/todos.md — quick scheduling. "This Saturday" counts today as
+// zero, so on a Saturday it means today rather than a week out.
+test('the weekend actions schedule the coming Saturday', async ({ page }) => {
+  // A Tuesday, so the coming Saturday is four days out and unambiguous.
+  await page.clock.setFixedTime(new Date(2026, 7, 18, 9, 0))
+  await login(page)
+  await createList(page, uniqueName('weekend'))
+  await addTodo(page, 'Clean the gutters')
+
+  await openRowMenu(page, 'Clean the gutters')
+  await openSubmenu(page, 'Schedule')
+  await page.getByRole('menuitem', { name: 'This Saturday' }).click()
+
+  // The 22nd is the Saturday after that Tuesday. Matched loosely because
+  // the pill is locale-formatted — "Aug 22" or "22 Aug" depending on the
+  // browser's locale, and the date is what this test is about.
+  const row = page.locator('li').filter({ hasText: 'Clean the gutters' })
+  await expect(row).toContainText(/22/)
 })
 
 test('a timed schedule option sets the time, not just the date', async ({
@@ -105,7 +171,7 @@ test('a timed schedule option sets the time, not just the date', async ({
 
   await openRowMenu(page, 'Ring the plumber')
   await openSubmenu(page, 'Schedule')
-  await page.getByRole('menuitem', { name: /^Tomorrow \d/ }).click()
+  await page.getByRole('menuitem', { name: /^Tomorrow at \d/ }).click()
 
   // An undated todo gains both the date and the time — the whole point of
   // the timed pair (docs/specs/todos.md — row actions).
@@ -345,7 +411,7 @@ test('a schedule option that would change nothing is disabled', async ({
   // But adding a *time* to it is a real change, so that stays live —
   // which is why this compares the whole due value, not just the date.
   await expect(
-    page.getByRole('menuitem', { name: /^Today \d/ }),
+    page.getByRole('menuitem', { name: /^Today at \d/ }),
   ).not.toHaveAttribute('data-disabled', '')
 })
 
@@ -366,10 +432,10 @@ test('"Today 5pm" is disabled once 5pm has gone', async ({ page }) => {
   await openSubmenu(page, 'Schedule')
 
   await expect(
-    page.getByRole('menuitem', { name: /^Today \d/ }),
+    page.getByRole('menuitem', { name: /^Today at \d/ }),
   ).toHaveAttribute('data-disabled', '')
   // Tomorrow morning is unaffected — it is a different day.
   await expect(
-    page.getByRole('menuitem', { name: /^Tomorrow \d/ }),
+    page.getByRole('menuitem', { name: /^Tomorrow at \d/ }),
   ).not.toHaveAttribute('data-disabled', '')
 })

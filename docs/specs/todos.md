@@ -331,7 +331,7 @@ The inventory:
 | action | behaviour |
 |---|---|
 | Mark as done / active | exactly what the row's checkbox does, including the sound |
-| Schedule | Today, Today 5pm, Tomorrow, Tomorrow 9am, Clear due date — in a submenu |
+| Schedule | Today, Tomorrow (each with a timed button), This Saturday, This Sunday, Clear due date — in a submenu |
 | Priority | High / Medium / Low / None, in a submenu |
 | Move to… | opens the existing Move dialog |
 | Delete | opens the existing confirmation |
@@ -383,13 +383,39 @@ state work as they do anywhere else. The tick **trails** the label: the
 leading column already carries the rank glyph, and a tick beside it put two
 marks on one row for two different jobs.
 
+### The weekend
+
+**This Saturday** and **This Sunday** sit below a divider, away from the
+Today/Tomorrow pair: "the next day or two" and "when I next have time" are
+different questions.
+
+**Today counts as zero**, so on a Saturday "This Saturday" means today
+rather than the Saturday a week out — an item naming the day you are
+looking at should not silently jump a week. If the todo is already due
+then, it disables itself, which is the same answer Today gives.
+
+Neither offers a time. 9am on a Saturday is a working-week habit, and
+picking one for a weekend day is a guess the detail panel can make
+properly. *(added 2026-08-17.)*
+
 ### Quick times, and when they are not offered
 
-Beside the plain Today/Tomorrow, the submenu offers **Today 5pm** and
-**Tomorrow 9am**. The plain pair move the date and keep whatever time the
-todo had; the timed pair set it. Both shapes earn their place — pulling a
+Today and Tomorrow each carry a **square icon button at the trailing edge
+of their row**: the row moves the date and keeps whatever time the todo
+had, the button sets the time too. Both shapes earn their place — pulling a
 9am meeting forward should stay at 9am, while "deal with this by tonight"
-is a time you are choosing. *(added 2026-08-11.)*
+is a time you are choosing. *(added 2026-08-11; paired into one row
+2026-08-17, from four flat items.)*
+
+**The pairing is a grid, not a wrapper.** The popup is
+`grid-template-columns: 1fr auto` and every item is a direct child;
+wrapping a day and its time in a `<div>` broke Base UI's item walking and
+trapped focus on the button. Keyboard navigation is unaffected by the two
+columns because the items stay one flat list: ArrowDown steps onto the time
+button and then to the next day, so the focus ring moves right before it
+moves down. Slightly unusual to watch, but every option is reachable and
+each announces its full meaning — the buttons carry an `aria-label` like
+"Tomorrow at 9:00 am", since a coffee cup does not say "9am".
 
 09:00 is the app's existing default, the one the Time switch seeds, so the
 morning option reuses a convention rather than inventing one. Neither time

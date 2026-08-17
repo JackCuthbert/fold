@@ -3,6 +3,7 @@ import type { Todo, TodoPriority } from '@fold/schemas'
 import type { ReactNode } from 'react'
 import {
   LuCalendarClock,
+  LuCalendarDays,
   LuCalendarOff,
   LuCheck,
   LuChevronRight,
@@ -19,8 +20,11 @@ import {
 import { useTodoRowActions } from '../../shell/context/todo-actions-context'
 import { PRIORITY_CHOICES } from '../lib/priority-choices'
 import {
+  daysUntilWeekday,
   formatScheduleTime,
+  SATURDAY,
   scheduleIsNoop,
+  SUNDAY,
   timeHasPassed,
   type ScheduleOffset,
 } from '../lib/schedule'
@@ -52,6 +56,77 @@ const NO_PRIORITY = 'none'
  */
 const START_OF_DAY = '09:00'
 const END_OF_DAY = '17:00'
+
+/**
+ * A schedule row: the day, with the timed variant as a button beside it.
+ *
+ * The two used to be separate rows — "Tomorrow" and "Tomorrow 9:00 am" —
+ * which read as four choices when there are really two days, each with an
+ * optional time. Pairing them halves the submenu and puts the time where
+ * it belongs, next to the day it modifies. *(changed 2026-08-17.)*
+ *
+ * **Returns a fragment, never a wrapper.** The popup is a two-column grid
+ * and both items are its direct children; a `<div>` around them broke Base
+ * UI's item walking outright, leaving focus stuck on the time button with
+ * no arrow key able to leave it. The pairing is done by the grid, not by
+ * nesting — which also means the time button is its own focus stop, so
+ * ArrowRight reaches it and its label is announced.
+ */
+interface ScheduleRowProps {
+  icon: ReactNode
+  label: string
+  /** Sets the date only, keeping whatever time the todo already had. */
+  onSchedule: () => void
+  disabled: boolean
+  /** Omitted by the weekend rows, which offer no time. */
+  timed?: {
+    icon: ReactNode
+    time: string
+    onSchedule: () => void
+    disabled: boolean
+  }
+}
+
+function ScheduleRow(props: ScheduleRowProps): ReactNode {
+  const timedLabel = props.timed
+    ? `${props.label} at ${formatScheduleTime(props.timed.time)}`
+    : ''
+  return (
+    <>
+      <ContextMenu.Item
+        className={cx(
+          styles['item'],
+          // Only a row that has a time beside it shares its grid line; a
+          // weekend row spans both columns like any other item.
+          props.timed ? styles['schedulePaired'] : undefined,
+        )}
+        disabled={props.disabled}
+        onClick={props.onSchedule}
+      >
+        {props.icon}
+        {props.label}
+      </ContextMenu.Item>
+      {props.timed ? (
+        <ContextMenu.Item
+          className={cx(
+            styles['item'],
+            styles['schedulePaired'],
+            styles['scheduleTime'],
+          )}
+          disabled={props.timed.disabled}
+          onClick={props.timed.onSchedule}
+          // The icon alone is a sunset or a coffee cup, and neither says
+          // "5pm" — the label carries the whole meaning. `title` gives the
+          // pointer the same words the screen reader gets.
+          aria-label={timedLabel}
+          title={timedLabel}
+        >
+          {props.timed.icon}
+        </ContextMenu.Item>
+      ) : null}
+    </>
+  )
+}
 
 /**
  * Narrow the radio group's value back to a priority, or null.
@@ -126,6 +201,11 @@ export function TodoContextMenu(props: TodoContextMenuProps) {
   // — only the genuinely pointless option goes quiet.
   const noop = (offset: ScheduleOffset, time?: string): boolean =>
     scheduleIsNoop(todo.due, new Date(), offset, time)
+  // Read at render for the same reason as `endOfDayPassed`. On the day
+  // itself these are 0, so "This Saturday" on a Saturday means today and
+  // disables itself if the todo is already due then.
+  const saturday = daysUntilWeekday(new Date(), SATURDAY)
+  const sunday = daysUntilWeekday(new Date(), SUNDAY)
 
   return (
     <ContextMenu.Root>
@@ -176,50 +256,72 @@ export function TodoContextMenu(props: TodoContextMenuProps) {
                   align="start"
                   sideOffset={2}
                 >
-                  <ContextMenu.Popup className={cx(styles['popup'])}>
-                    {/* The plain pair move the date and keep whatever
-                        time the todo had; the timed pair set it. Both
-                        shapes earn their place — pulling a 9am meeting
+                  <ContextMenu.Popup
+                    className={cx(styles['popup'], styles['scheduleGrid'])}
+                  >
+                    {/* The row moves the date and keeps whatever time the
+                        todo had; the button beside it sets the time too.
+                        Both shapes earn their place — pulling a 9am meeting
                         forward should stay at 9am, while "deal with this
                         by tonight" is a time you are choosing.
-                        *(timed pair added 2026-08-11.)* */}
-                    <ContextMenu.Item
-                      className={cx(styles['item'])}
+                        *(timed pair added 2026-08-11; paired into one row
+                        2026-08-17.)* */}
+                    <ScheduleRow
+                      icon={<LuSun aria-hidden="true" size={14} />}
+                      label="Today"
+                      onSchedule={() => actions.schedule(todo, 0)}
                       disabled={noop(0)}
-                      onClick={() => actions.schedule(todo, 0)}
-                    >
-                      <LuSun aria-hidden="true" size={14} />
-                      Today
-                    </ContextMenu.Item>
-                    {/* Disabled once the hour has gone, rather than
-                        silently rolling to tomorrow or scheduling into the
-                        past. An instantly-overdue todo is worse than no
-                        shortcut, and "Tomorrow" is right there.
-                        *(added 2026-08-11.)* */}
-                    <ContextMenu.Item
-                      className={cx(styles['item'])}
-                      disabled={endOfDayPassed || noop(0, END_OF_DAY)}
-                      onClick={() => actions.schedule(todo, 0, END_OF_DAY)}
-                    >
-                      <LuSunset aria-hidden="true" size={14} />
-                      Today {formatScheduleTime(END_OF_DAY)}
-                    </ContextMenu.Item>
-                    <ContextMenu.Item
-                      className={cx(styles['item'])}
+                      timed={{
+                        icon: <LuSunset aria-hidden="true" size={14} />,
+                        time: END_OF_DAY,
+                        onSchedule: () => actions.schedule(todo, 0, END_OF_DAY),
+                        // Disabled once the hour has gone, rather than
+                        // silently rolling to tomorrow or scheduling into
+                        // the past. An instantly-overdue todo is worse
+                        // than no shortcut. *(added 2026-08-11.)*
+                        disabled: endOfDayPassed || noop(0, END_OF_DAY),
+                      }}
+                    />
+                    <ScheduleRow
+                      icon={<LuSunrise aria-hidden="true" size={14} />}
+                      label="Tomorrow"
+                      onSchedule={() => actions.schedule(todo, 1)}
                       disabled={noop(1)}
-                      onClick={() => actions.schedule(todo, 1)}
-                    >
-                      <LuSunrise aria-hidden="true" size={14} />
-                      Tomorrow
-                    </ContextMenu.Item>
-                    <ContextMenu.Item
-                      className={cx(styles['item'])}
-                      disabled={noop(1, START_OF_DAY)}
-                      onClick={() => actions.schedule(todo, 1, START_OF_DAY)}
-                    >
-                      <LuCoffee aria-hidden="true" size={14} />
-                      Tomorrow {formatScheduleTime(START_OF_DAY)}
-                    </ContextMenu.Item>
+                      timed={{
+                        icon: <LuCoffee aria-hidden="true" size={14} />,
+                        time: START_OF_DAY,
+                        onSchedule: () =>
+                          actions.schedule(todo, 1, START_OF_DAY),
+                        disabled: noop(1, START_OF_DAY),
+                      }}
+                    />
+
+                    {/* The weekend, in its own group: "the next day or two"
+                        and "when I next have time" are different questions,
+                        and a divider says so without a heading.
+                        *(added 2026-08-17.)*
+
+                        No time offered. 9am on a Saturday is a working-week
+                        habit, and picking one for a weekend day is a guess
+                        the detail panel can make properly. */}
+                    <ContextMenu.Separator
+                      className={cx(styles['separator'])}
+                    />
+                    <ScheduleRow
+                      icon={<LuCalendarDays aria-hidden="true" size={14} />}
+                      label="This Saturday"
+                      onSchedule={() => actions.schedule(todo, saturday)}
+                      disabled={noop(saturday)}
+                    />
+                    <ScheduleRow
+                      icon={<LuCalendarDays aria-hidden="true" size={14} />}
+                      label="This Sunday"
+                      onSchedule={() => actions.schedule(todo, sunday)}
+                      disabled={noop(sunday)}
+                    />
+                    <ContextMenu.Separator
+                      className={cx(styles['separator'])}
+                    />
                     {/* Disabled rather than absent on an undated todo, so
                         the menu keeps one shape wherever you open it — the
                         same reasoning as Move up/Move down in the list

@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  daysUntilWeekday,
+  SATURDAY,
   scheduleDate,
   scheduledDue,
   scheduleIsNoop,
+  SUNDAY,
   timeHasPassed,
 } from './schedule'
 import { viewerTimeZone } from './due-fields'
@@ -195,5 +198,52 @@ describe('scheduleIsNoop', () => {
       value: '2026-08-11T09:00:00',
     } as const
     expect(scheduleIsNoop(due, now, 0)).toBe(false)
+  })
+})
+
+// docs/specs/todos.md — quick scheduling, the weekend actions.
+describe('daysUntilWeekday', () => {
+  // 2026-08-17 is a Monday, so the week can be walked from a known point.
+  const monday = new Date(2026, 7, 17, 10, 0)
+
+  it('counts forward to the coming Saturday and Sunday', () => {
+    expect(daysUntilWeekday(monday, SATURDAY)).toBe(5)
+    expect(daysUntilWeekday(monday, SUNDAY)).toBe(6)
+  })
+
+  // The decision that shapes the menu: on the day itself, "This Saturday"
+  // means today rather than the one a week out. An item naming the day you
+  // are looking at should not jump a week.
+  it('returns 0 on the day itself', () => {
+    const saturday = new Date(2026, 7, 22, 10, 0)
+    expect(daysUntilWeekday(saturday, SATURDAY)).toBe(0)
+    const sunday = new Date(2026, 7, 23, 10, 0)
+    expect(daysUntilWeekday(sunday, SUNDAY)).toBe(0)
+  })
+
+  // Sunday is 0 in `Date#getDay`, so a naive subtraction goes negative
+  // everywhere past midweek. The modulo is what keeps it forward-only.
+  it('wraps rather than going negative', () => {
+    const saturday = new Date(2026, 7, 22, 10, 0)
+    expect(daysUntilWeekday(saturday, SUNDAY)).toBe(1)
+    const friday = new Date(2026, 7, 21, 10, 0)
+    expect(daysUntilWeekday(friday, SUNDAY)).toBe(2)
+  })
+
+  it('never returns more than a week out', () => {
+    for (let day = 0; day < 7; day += 1) {
+      const at = new Date(2026, 7, 17 + day, 10, 0)
+      for (const weekday of [SATURDAY, SUNDAY]) {
+        const offset = daysUntilWeekday(at, weekday)
+        expect(offset).toBeGreaterThanOrEqual(0)
+        expect(offset).toBeLessThanOrEqual(6)
+      }
+    }
+  })
+
+  it('lands on a date that really is that weekday', () => {
+    const date = scheduleDate(monday, daysUntilWeekday(monday, SATURDAY))
+    expect(date).toBe('2026-08-22')
+    expect(new Date(2026, 7, 22).getDay()).toBe(SATURDAY)
   })
 })
