@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.1](https://github.com/JackCuthbert/fold/compare/v0.5.0...v0.5.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **client:** quick add bugs found in use, and split the modal ([4b836de](https://github.com/JackCuthbert/fold/commit/4b836de674fe4346e67bd4069375b271de846322))
+
+
+### Documentation
+
+* reconcile the specs with the app, and drop the plan trees ([9b9f399](https://github.com/JackCuthbert/fold/commit/9b9f399aebb6f4d3c1032278e7cd0054d382be5f))
+
 ## [0.5.0](https://github.com/JackCuthbert/fold/compare/v0.4.0...v0.5.0) (2026-08-14)
 
 
