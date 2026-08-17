@@ -11,8 +11,7 @@ its URL before you can sign in.
 - **Its URL, your username and your password.** The URL usually ends with
   your username, like `https://dav.example.com/alice/`.
 - **Fold itself**, either running already or self-hosted with Docker. See
-  [running it](https://github.com/JackCuthbert/fold#running-it) to set one
-  up.
+  [installing Fold](./installing.md) to set one up.
 
 ## Sign in
 

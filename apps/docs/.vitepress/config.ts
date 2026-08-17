@@ -52,6 +52,7 @@ export default defineConfig({
       {
         text: 'Start here',
         items: [
+          { text: 'Installing Fold', link: '/installing' },
           { text: 'Getting started', link: '/getting-started' },
           { text: 'Adding a todo', link: '/adding-todos' },
           { text: 'Todos', link: '/todos' },

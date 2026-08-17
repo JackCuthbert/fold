@@ -16,11 +16,11 @@ hero:
     alt: Fold
   actions:
     - theme: brand
+      text: Install Fold
+      link: /installing
+    - theme: alt
       text: Get started
       link: /getting-started
-    - theme: alt
-      text: Adding a todo
-      link: /adding-todos
     - theme: alt
       text: GitHub
       link: https://github.com/JackCuthbert/fold
