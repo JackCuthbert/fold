@@ -96,6 +96,12 @@ from `apps/`. `vtodo` and `outbox` must have zero React/Bun-specific
 dependencies (`outbox` accepts an injected storage adapter; the client
 supplies an IndexedDB implementation).
 
+**Shaped to be publishable, not published.** All three carry
+`"private": true`: the repository is public and MIT-licensed, but nothing
+here goes to npm. The shape is kept because it forces a real boundary — a
+package that could ship is one that does not quietly reach back into
+`apps/`. *(clarified 2026-08-17.)*
+
 ## Tooling
 
 - **Runtime/PM:** Bun (server, workspaces); tests run with vitest.

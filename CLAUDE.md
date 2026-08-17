@@ -327,4 +327,8 @@ Docker-only. _(added 2026-08-11.)_
   No giant files.
 - Generic, reusable, feature-complete code goes in `packages/` in publishable
   shape: own `package.json` with `exports`, own tests, no imports from
-  `apps/`.
+  `apps/`. **Shaped to be publishable, but not published** — every package
+  carries `"private": true` so a stray `npm publish` cannot fire. The
+  discipline is what earns its keep: a package that _could_ ship is one
+  with a real boundary. Dropping `private` is a deliberate decision, not a
+  cleanup. _(clarified 2026-08-17.)_

@@ -58,9 +58,13 @@ written down with its reasoning in [docs/](docs/specs/overview.md), and
 human review on all of it. I'd have built it the same way by hand; it
 would just have taken longer.
 
-Use it freely. Bug reports and fixes are genuinely welcome. Feature
-requests get weighed against one question — do I want it? — so it may
-never do what you want, and that's the point rather than an oversight.
+Use it freely — it's [MIT licensed](LICENSE). Bug reports and fixes are
+genuinely welcome, and [CONTRIBUTING.md](CONTRIBUTING.md) covers how.
+Feature requests get weighed against one question — do I want it? — so it
+may never do what you want, and that's the point rather than an oversight.
+
+Found a security problem? [SECURITY.md](SECURITY.md) — please report it
+privately rather than in an issue.
 
 ## Running it
 
