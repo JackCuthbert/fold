@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 (2026-08-17)
+
+
+### Features
+
+* a calm todo client for your own CalDAV server ([62df9f2](https://github.com/JackCuthbert/fold/commit/62df9f22f893c38c55a303c38672893d26388a3a))
+
+## Changelog
+
 Releases are cut by [release-please](https://github.com/googleapis/release-please)
 from Conventional Commit messages, and this file is generated — do not edit
 it by hand (see `docs/specs/releases.md`).
