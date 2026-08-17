@@ -56,40 +56,38 @@ pass**; fix the link, or move the target back.
 
 ## Deployment
 
-**Not deployed today.** `.github/workflows/docs.yml` builds on every push
-and PR that touches the docs, but **the deploy job is gated on the repo
-being public** (`needs.build.outputs.private == 'false'`), because Pages is
-unavailable to this repository:
+**Published at <https://jackcuthbert.github.io/fold/>** by
+`.github/workflows/docs.yml`, which builds on every push and PR touching
+the docs and deploys from `main`.
+
+The deploy job is gated on the repo being public
+(`needs.build.outputs.private == 'false'`), because Pages is not offered to
+a private repo on a Free account:
 
 | | Public repo | Private repo |
 |---|---|---|
-| **Free** | Pages works | **Pages unavailable** |
+| **Free** | Pages works | Pages unavailable |
 | **Pro** | Pages works | Pages works, site is public |
 | **Enterprise Cloud** | Pages works | Site can require repo access |
 
-`fold` is private on a Free account, so an unconditional deploy would fail
-on every run — a permanently red badge that means nothing.
+The gate stays even though the repo is public. It reads
+`github.event.repository.private` at run time, so it costs nothing and it
+keeps the workflow honest if the repo is ever made private again. It
+compares the string rather than using `fromJSON`, which throws on an empty
+value; requiring exactly `'false'` fails closed.
 
-**The build still runs**, and earns its place: `docs:build` fails on a dead
-internal link, so a broken guide cross-link is caught on any PR that
-touches the docs, published or not. When the deploy is skipped the job
-writes a step summary saying why and pointing at `bun run docs`.
-
-The gate reads `github.event.repository.private` at run time rather than a
-commented-out trigger, so **flipping the repo to public is the only action
-needed** — there is no second switch to remember. It compares the string
-rather than using `fromJSON`, which throws on an empty value; requiring
-exactly `'false'` fails closed.
+**The build runs whether or not it deploys**, and earns its place:
+`docs:build` fails on a dead internal link, so a broken guide cross-link is
+caught on any PR that touches the docs.
 
 **A Pages site is public even when its repo is private.** Private-repo
 Pages hides the *source*, not the site. Restricting visitors to people with
 repo access is Enterprise Cloud only. For a user guide that is the intent,
 but it should be chosen rather than discovered.
 
-To enable, once the repo is public or the account is on Pro: set
-Settings → Pages → Source to **GitHub Actions** — the one step that cannot
-be automated — and check `base` still matches the URL. Going public is
-tracked in the public-release issue.
+*(changed 2026-08-17: the repo went public, Pages was enabled with Source
+set to GitHub Actions — the one step that cannot be automated — and the
+first deploy ran.)*
 
 **`base` is the one line that must match the URL.** It is `'/fold/'` for
 the default project page (`jackcuthbert.github.io/fold/`); a custom domain

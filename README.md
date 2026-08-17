@@ -216,23 +216,19 @@ so only the one real-CalDAV spec needs Docker. See
 
 - Specifications: [docs/specs](docs/specs/overview.md)
 - Architecture decisions: [docs/architecture](docs/architecture)
-- User guide: [apps/docs/guide](apps/docs/guide/getting-started.md)
+- User guide: <https://jackcuthbert.github.io/fold/> (source in `apps/docs/guide`)
 - Development notes: [docs/development](docs/development)
 - Agent rules: [CLAUDE.md](CLAUDE.md)
 
-#### Reading the user guide
+#### Working on the user guide
 
-It's a [VitePress](https://vitepress.dev) site. It isn't published yet,
-because GitHub Pages needs a public repo, so run it locally:
+The published site is built from `apps/docs/guide`. To edit it, run it
+locally with live reload:
 
 ```bash
 bun run docs
 ```
 
-That serves it at `http://localhost:5174/fold/` with live reload. The
-individual pages are readable as plain markdown in `apps/docs/guide` too;
-the site adds search, navigation and rendered keycaps.
-
-To check what would actually ship: `bun run docs:build`, then
-`bun run docs:preview`. See
+That serves it at `http://localhost:5174/fold/`. To check what would
+actually ship: `bun run docs:build`, then `bun run docs:preview`. See
 [docs/specs/docs-site.md](docs/specs/docs-site.md).
