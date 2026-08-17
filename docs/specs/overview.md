@@ -73,6 +73,17 @@ docs/
   user/          User guide documentation
 ```
 
+**Those three directories are all of `docs/`.** Two others existed and were
+deleted on 2026-08-15: `docs/plans/`, the six build plans the project was
+originally written from, and `docs/superpowers/`, a parallel
+spec-and-plan tree one level down. Both described work already shipped, so
+they aged into a second, staler account of the app sitting beside the
+specs — the failure mode this layout exists to avoid. Anything in them
+still worth keeping was merged into the spec it belonged to; git holds the
+rest. **Plans are not documentation**: a plan describes the order work was
+done in, which nobody needs afterwards, while a spec describes the app as
+it stands. Write the spec instead. *(added 2026-08-15, per issue #67.)*
+
 **Package rule:** code that is generic and reusable lives in `packages/` in a
 publishable shape — own `package.json` with `exports`, own tests, no imports
 from `apps/`. `vtodo` and `outbox` must have zero React/Bun-specific
@@ -118,5 +129,6 @@ supplies an IndexedDB implementation).
 | [testing](./testing.md) | Test layers, tools, and rules |
 | [deployment](./deployment.md) | Docker image, configuration, HTTPS, health |
 | [security](./security.md) | Response headers, the CSP and what it does not cover |
+| [observability](./observability.md) | What the server logs, and what it deliberately does not |
 | [releases](./releases.md) | Semver, changelog, the published image, version in the app |
 | [backlog](./backlog.md) | Pointer to GitHub Issues, plus why shipped features were settled as they were |

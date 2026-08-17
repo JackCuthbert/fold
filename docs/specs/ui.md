@@ -73,15 +73,16 @@ supersede earlier wording.)*
     `triggerRef` rather than trusting a heuristic that a re-render can
     invalidate. Re-clicking the row that is already open pulls focus back
     in too, since that click remounts nothing.
-- **Adding a todo opens a modal.** *(added 2026-07-31: an inline field made
-  adding feel incidental and gave no room for detail.)* Clicking "Add a
-  todo" opens a dimmed modal containing a form that is fully keyboard
-  navigable:
-  - A single **title** field is the focus and the fast path — type, press
-    Enter, done.
-  - An **Advanced** accordion, collapsed by default, holds **due date,
-    priority and notes**, so a todo can be fully specified at creation
-    without opening it afterwards.
+- **Adding a todo opens a modal** — quick add, the only add surface
+  ([quick-add](./quick-add.md)). *(added 2026-07-31: an inline field made
+  adding feel incidental and gave no room for detail. Rewritten 2026-08-14:
+  the multi-field form described here, with its Advanced accordion holding
+  due date, priority and notes, was deleted once quick add covered every
+  field it had.)* One line of text carries the summary, the due date and
+  time, the list and the priority; a preview beneath says what was
+  understood, in pills that are themselves controls. Both paths — the
+  sidebar's New todo and a list's "Add a todo…" row — open the same modal,
+  differing only in whether the list pill starts filled.
 - **Settings** *(added 2026-07-31)*: sound and sign out live in their own
   modal, opened from a "Settings" entry in the nav footer — they are not
   loose controls in the nav. The footer keeps only that entry and the
@@ -797,7 +798,7 @@ now.
     that *is* a dismissal. *(added 2026-08-04, issue #21: the New list modal
     vanished outright on a resize, losing the name and colour already
     entered. Same shape as the todo detail panel, fixed a day earlier — see
-    `todos/use-todo-detail-form.ts` and `lists/use-list-form.ts`.)*
+    `todos/hooks/use-todo-detail-form.ts` and `lists/hooks/use-list-form.ts`.)*
 - **An icon-only button is named by a tooltip** — and by `aria-label` on
   the button itself, never only by the tooltip: hover doesn't exist on
   touch, and assistive tech must not depend on a hover-triggered element to
@@ -855,7 +856,7 @@ now.
   still work; the ✕ is an addition, not a replacement.
   - **One shared header, not one per modal.** The title row, its divider,
     its padding and the ✕ live in a single component
-    (`apps/client/src/ui/modal-header.tsx`). Five modals previously each
+    (`apps/client/src/ui/modal-header/modal-header.tsx`). Five modals previously each
     carried a near-identical `.title` rule, which is how they drifted apart
     and needed the same padding and divider fixes applied five times.
     - The header is also used by the **desktop detail column**, which is
@@ -943,9 +944,10 @@ now.
   reference case. Small, non-full-width controls keep a tight icon-text
   pairing instead, since space-between has no width to distribute and
   would just look like an arbitrary gap: the sound Toggle in Settings, the
-  kebab's Rename/Delete menu items, and disclosure triggers (the "Advanced"
-  accordion, "Completed (N)") where the chevron is a state indicator glued
-  to its label, not a leading icon.)*
+  kebab's Rename/Delete menu items, and disclosure triggers ("Completed
+  (N)", quick add's "+ Notes") where the chevron is a state indicator glued
+  to its label, not a leading icon.)* *(the add form's "Advanced" accordion
+  was the other example until it was deleted on 2026-08-14.)*
 
 *(added 2026-07-31, from design review:)*
 
@@ -1070,7 +1072,7 @@ are the interface.
 
 | Chord | Does |
 |---|---|
-| `Ctrl+K` | New todo |
+| `N` | New todo |
 | `Ctrl+Shift+N` | New list |
 | `Ctrl+Shift+1` | Go to Today |
 | `Ctrl+Shift+2` | Go to Tomorrow |
@@ -1098,20 +1100,35 @@ macOS. Fold is personal software written for someone who lives in vim
 (README — personal software). `metaKey` is not accepted as an alternative;
 that would reintroduce exactly the collisions this escapes.
 
-**`K`, not `N`, for New todo.** `Cmd+N` is reserved by the *browser*: it
-opens a new window and the keydown never reaches the page, so there is
-nothing for `preventDefault()` to cancel — a binding that cannot be made to
-work rather than one implemented wrongly. Moving to Ctrl freed `N` again,
-but K stays: it is the near-universal quick-action key (Linear, Slack,
-Notion, GitHub) and is where the command palette is headed (issue #26), so
-binding it now means the palette inherits the muscle memory rather than
-asking for it back.
+**A bare `N` for New todo — the one modifier-less binding.** Every
+modified form is spoken for. `Cmd+N` is reserved by the *browser*: it opens
+a new window and the keydown never reaches the page, so there is nothing
+for `preventDefault()` to cancel — a binding that cannot be made to work
+rather than one implemented wrongly. `Ctrl+N` is the same on Windows and
+Linux, and inside quick add it already walks the `#list` suggestions. What
+is left is the bare letter, which collides with nothing.
+
+Safe because shortcuts stand down while a field has focus
+(`isTextEntryTarget`, applied in use-shortcuts.ts) — an `n` typed into a
+todo is an `n`. That guard was written for "the modifier-less bindings the
+map may grow later", which is this one.
+
+It was `Ctrl+K` until 2026-08-15, held in reserve on the theory that the
+command palette (issue #26) would replace this chord and inherit its
+muscle memory. Quick add settled that: it is not a stepping stone to a
+palette, it is the thing used ten times a day, and it should not surrender
+a key to something that does not exist yet. `K` is now genuinely free.
+
+The cost, accepted: `useModifierHeld` reveals keycaps while Ctrl is held,
+so a chord with no Ctrl in it can never be advertised that way. New todo's
+cap in the nav is therefore permanently visible, at full strength — the
+only one that is.
 
 **Digits carry Shift.** `Ctrl+1` never arrives on macOS. `Ctrl+Shift+1`
 does.
 
 **`Ctrl+Shift+<n>` is the nth derived view**, numbered in nav order and
-generated from `DERIVED_VIEWS` (todos/today.ts) — so adding a view gives
+generated from `DERIVED_VIEWS` (todos/lib/today.ts) — so adding a view gives
 it a chord, a nav row and a help-modal entry without touching the map.
 **Real lists deliberately get none.** They are created and deleted freely,
 so a positional chord would change meaning under the user; they are

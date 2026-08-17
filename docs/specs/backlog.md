@@ -59,7 +59,9 @@ extension handling, and
 The work also produced a generic extension badge and an in-app help modal
 ([ui](./ui.md#the-extension-badge)).
 
-See [the design](../superpowers/specs/2026-08-03-list-colours-and-ordering-design.md)
-for the alternatives that were considered and rejected — the colour-wash row
+The alternatives that were considered and rejected — the colour-wash row
 treatment, a local shadow copy of the order, and probing for extension
-support.
+support — are recorded in [lists](./lists.md#colours) alongside the
+decision each one lost to. *(changed 2026-08-15: the design document this
+pointed at lived under `docs/superpowers/` and was deleted; its content is
+in the spec proper.)*

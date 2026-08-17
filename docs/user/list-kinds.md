@@ -43,9 +43,11 @@ Only grocery lists group. Chores stay as individual rows, because a chore
 ## No due dates on a reading list
 
 A reading, watching or listening list holds things you'll **get to** — not
-things due by a date. So the due date and time fields simply aren't there,
-in the add form or when you open a todo. Use **priority** to say what's
-next.
+things due by a date. So the due date and time fields simply aren't there
+when you open a todo, and [adding one](./adding-todos.md) won't read a date
+out of what you type — `Finish Dune next Friday` keeps those words in the
+title. Use **priority** to say what's next.
+*(changed 2026-08-15: was "in the add form", which quick add replaced.)*
 
 Move a todo out of that list and the due date fields come back.
 

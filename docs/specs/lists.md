@@ -117,7 +117,24 @@ would make the selected row read as barely selected.
 **If a colour's luminance sits too close to the current theme's `--paper`,
 the marker falls back to `--accent`.** The dot always shows the true
 colour, and nothing stored is ever changed — the guard is purely
-presentational. `markerColor` in `apps/client/src/lists/list-color.ts`.
+presentational. `markerColor` in `apps/client/src/lists/lib/list-color.ts`.
+
+Computed from relative luminance against `--paper`, so one rule serves both
+themes without a second palette. It is the only logic in the feature that
+exists purely to stop a user's own choice degrading the UI, and it is
+unit-tested with light and dark paper values.
+
+*(Rejected: tinting the whole row's background to a wash of the colour.
+Mocked up 2026-08-03. It reads well with well-behaved hues, but the blend
+depends entirely on the user's hex — saturated Apple colours misbehave,
+hover and selected both have to be re-expressed in the list's colour rather
+than the app's, and the mix percentage needs a per-theme token. An
+uncoloured list also reads as a different kind of row — which the outline
+dot solves for the chosen treatment but a wash cannot, since there is no
+"empty" version of a background tint. Too much variance for too little
+gain.)* *(merged here 2026-08-15 from a design document under
+`docs/superpowers/`, which duplicated this spec's structure one level down
+and was deleted; git holds the rest, which this file already covered.)*
 
 The threshold is a WCAG relative-luminance delta, `MIN_DELTA = 0.09`, so
 one rule serves both themes without a second palette. **It cannot be tuned
@@ -135,7 +152,7 @@ alphabetical rule survives as the fallback described below.)*
 
 Lists sort by Apple's `calendar-order` — an integer per collection, in the
 same extension namespace as the colour. `byListOrder` in
-`apps/client/src/lists/list-order.ts` is the one rule, used on read and on
+`apps/client/src/lists/lib/list-order.ts` is the one rule, used on read and on
 optimistic insert alike.
 
 1. Lists **with** an order sort by it, ascending.

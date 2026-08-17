@@ -7,21 +7,21 @@ One text field that creates a todo. You type
 called "Clean the gutters", due tomorrow at 3pm, in Chores, at high
 priority.
 
-This replaces the [add-todo modal's](./todos.md) form — a summary field, a
-list picker, and an Advanced accordion holding due date, time and notes —
-for the common case. The form is not deleted; see
-[the full form](#the-full-form-is-still-there).
+This replaced the add-todo modal's form — a summary field, a list picker,
+and an Advanced accordion holding due date, time and notes — and then
+replaced it entirely: the form was deleted on 2026-08-14 once quick add
+covered every field it had. Quick add is the only way to create a todo.
 
 ## Why
 
-**Creating a todo is the most frequent action in the app and the slowest.**
-The current modal is a field, a dropdown, and a disclosure hiding three more
-fields. A todo with a due date and a priority costs a click to open the
-accordion, two date/time interactions and a select — for information that
-takes two seconds to *say*.
+**Creating a todo is the most frequent action in the app and was the
+slowest.** The modal this replaced was a field, a dropdown, and a
+disclosure hiding three more fields. A todo with a due date and a priority
+cost a click to open the accordion, two date/time interactions and a
+select — for information that takes two seconds to *say*.
 
-The owner creates up to ten at a sitting. Ten todos through the current form
-is roughly sixty interactions, and the friction is per-todo rather than
+The owner creates up to ten at a sitting. Ten todos through that form was
+roughly sixty interactions, and the friction was per-todo rather than
 amortised.
 
 **The register stays calm** ([overview](./overview.md) — product intent).
@@ -39,23 +39,28 @@ Four token types, all optional, in any order, anywhere in the text.
 | *(bare text)* | The summary | `Clean the gutters` |
 | natural date | Due date, and time if given | `tomorrow`, `friday`, `next tuesday`, `in 3 days`, `25 Aug`, `3pm`, `tomorrow at 3pm` |
 | `#name` | The list | `#chores`, `#work` |
-| `p1`–`p4` | Priority | `p1` high, `p2` medium, `p3` low, `p4` none |
+| `p1`–`p3` | Priority | `p1` high, `p2` medium, `p3` low |
 
 **What is left after removing every recognised token is the summary**, with
 surrounding whitespace collapsed. `Clean the gutters tomorrow at 3pm #chores
 p1` leaves `Clean the gutters`.
 
-### Priority is `p1`–`p4`, matching Todoist
+### Priority is `p1`–`p3`, matching Todoist
 
-Not `!high` or `!!`. `p1`–`p4` is the convention in the tool most people
-arrive from, it is unambiguous against ordinary prose, and it is four
-keystrokes for the whole vocabulary.
+Not `!high` or `!!`. `pN` is the convention in the tool most people arrive
+from, it is unambiguous against ordinary prose, and it is two keystrokes.
 
 Fold has three priority levels plus none ([todos](./todos.md) — priority),
-so the mapping is `p1`→high, `p2`→medium, `p3`→low, `p4`→none. `p4` is
-accepted rather than rejected: it is what a Todoist user types to mean "no
-priority", and silently leaving it in the summary would be worse than
-honouring it.
+so the mapping is `p1`→high, `p2`→medium, `p3`→low.
+
+**`p4` is deliberately not in the grammar**, though Todoist uses it for "no
+priority". It was accepted at first, on the reasoning that leaving a
+familiar token in the summary would be worse than honouring it. In use it
+was worse honoured: `p4` sets nothing, because no priority is already the
+default — so it was the one token whose highlight in the input was matched
+by no change in the pills at all. A mark that reports "nothing happened"
+is worse than no mark, so `p4` is ordinary text and stays in the summary.
+*(changed 2026-08-14, found in use.)*
 
 ### `#` for lists, not `@`
 
@@ -143,9 +148,25 @@ pills under it showing what the parse produced, and a footer.**
 │  Clean the gutters tomorrow at 3pm #chores   │
 │  + Notes                                     │
 │  [● Chores ▾] [Tomorrow ▾] [3:00pm ▾] [High ▾]│
-│  ⓘ Keyboard                      [ Add todo ]│
+│  ⓘ Keyboard          [ Cancel ] [ Add todo ]│
 └──────────────────────────────────────────────┘
 ```
+
+**The footer carries the only two visible ways out.** There is no header,
+and so no ✕ — a title bar would make this a form again — which left
+Escape and clicking the scrim as the only exits. Neither is visible, and
+Escape is unreachable on a phone, so **Cancel** sits beside **Add todo**
+as the quiet half of the pair (the same secondary treatment the confirm
+dialog uses). Enter still submits; the button is the same action reachable
+by a finger. It is deliberately not disabled when the line is incomplete —
+a dead button explains nothing, while pressing it produces the message
+that says what is missing. *(added 2026-08-14, on review.)*
+
+On touch the Keyboard trigger beside them is **gone entirely**: every
+binding it documents — Enter, Shift+Enter, Esc — needs hardware keys, so
+on a phone it explained controls that do not exist while crowding the two
+that do. The footer also wraps rather than crushing them together.
+*(added 2026-08-14.)*
 
 **Ordered list, date, time, priority** — widest scope first. Where a todo
 lives outranks when it is due, which outranks the hour within that day,
@@ -286,7 +307,7 @@ the moment it was needed. *(changed 2026-08-14.)*
 
 ## Enter creates and closes
 
-The same as today. Cmd/Ctrl+K reopens for the next one.
+The same as any other dialog. `N` reopens for the next one.
 
 *Considered and rejected: stay open for bulk entry.* Ten todos at a sitting
 is the motivating case, so a mode that keeps the field open after each
@@ -294,7 +315,7 @@ Enter is the obvious optimisation. It was declined because it makes the
 modal stateful in a way the rest of the app is not — there is no other
 place in Fold where a dialog stays open after its action succeeds, and the
 "did that submit?" ambiguity costs more than the reopen keystroke saves.
-The bulk case is already served: Cmd+K, type, Enter is three keystrokes of
+The bulk case is already served: `N`, type, Enter is two keystrokes of
 overhead per todo, and the parse is what removes the sixty.
 
 If this proves wrong in use it is a small change, and it should be made on
@@ -315,15 +336,44 @@ list, so the autocomplete finds no match, nothing is consumed, and the text
 stays in the summary. A token only ever binds when it resolves.
 
 **On a list with no due dates** ([list-kinds](./list-kinds.md) — media
-lists), a parsed date is dropped, exactly as the current form drops one:
-the preview shows the date struck through with the list's name beside it,
-so the reason is visible before submitting rather than after.
+lists), dates are **not parsed at all**, and the date pill is disabled with
+a popover saying why.
+
+That is a two-pass parse (`QuickAddOptions.noDates`): the first pass
+resolves the `#token`, and if the list it names takes no dates the second
+runs with date matching off. The obvious alternative — parse, then discard
+the due — was the first implementation and was wrong, because dropping the
+date afterwards still strips the words that produced it from the summary:
+"Finish Dune next Friday" filed into Reading became "Finish Dune", with the
+date stored nowhere and two words deleted from the title.
+
+Deriving this from the text rather than holding it in state is what makes
+it reversible: retarget the same line at a list that does take dates and
+the next render parses them again.
+*(changed 2026-08-14, found in review.)*
+
+**A second `#list` or `pN`.** The first binds; the rest is ordinary text.
+A todo has one list and one priority, so there is nothing for a second
+token to mean — and only the token that bound is marked, so the input says
+which one counted. Both used to be marked and stripped while only the
+first bound, so `#Chores #Work` filed into Chores with `#Work` highlighted
+as though it had counted, and the word vanished from the summary either
+way. Dates already behaved correctly, since chrono takes the first match
+per segment. *(fixed 2026-08-15, found in use.)*
+
+**"Now" is never a due date.** A todo due at this instant is overdue as
+soon as it exists. This also removes a family of false positives rather
+than listing them: chrono's casual parser reads a determiner followed by a
+unit letter — "the s", "a s" — as *now*, so typing "sort out the shed" grew
+a due date mid-word. A bare `today` is *not* caught by this, because it
+leaves the hour uncertain; only a match asserting an hour can be now.
+*(added 2026-08-14; narrowed 2026-08-15 after it swallowed `today`.)*
 
 **Offline** changes nothing. The parse is entirely client-side, and the
 created todo queues through the outbox like any other
 ([sync-and-offline](./sync-and-offline.md)).
 
-## The full form is still there
+## It covers everything a todo has
 
 Quick add covers summary, due, list, priority and notes — everything a todo
 has. The **grammar** covers the first four; notes get their own field,
@@ -332,7 +382,7 @@ because prose does not belong on a line with tokens in it.
 only from the detail panel.)*
 
 **Quick add is the only way to create a todo.** Both paths open it: the
-global one (the sidebar button and `Cmd/Ctrl+K`), and the in-list "Add a
+global one (the sidebar button and a bare `N`), and the in-list "Add a
 todo…" row. They differ in one prop — the in-list path presets the list
 pill from the pane it was opened in, so the line never has to name a list,
 while the global path starts with the pill empty and refuses to submit
@@ -354,7 +404,17 @@ preset.)*
 - `todos/lib/quick-add.ts` — the parser, plus `replaceToken`, which is what
   lets a pill edit the text. Pure functions with no React, testable against
   a fixed `now`, in the domain's `lib/` per CLAUDE.md.
-- `todos/quick-add-modal/` — the component and its styles.
+- `todos/quick-add-modal/` — the modal itself and the stylesheet the three
+  components share.
+- `todos/quick-add-pills/` — the two pill kinds: a picker wrapping a native
+  date/time input, and a menu for the list and priority. Generic over what
+  they show; neither knows about the grammar.
+- `todos/quick-add-preview/` — the interpretation line, which arranges
+  those pills and says what each does when chosen.
+- `todos/lib/quick-add-labels.ts` — the date and time label formatters.
+
+*(split 2026-08-15: `quick-add-modal.tsx` had reached 1257 lines, four
+times the ~300-line soft ceiling in CLAUDE.md.)*
 - `todos/add-todo-trigger/` — the in-list ghost row, which opens the same
   modal with `defaultListId` set.
 

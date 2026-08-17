@@ -10,3 +10,6 @@ radicale-data/
 
 # Visual brainstorming companion (superpowers)
 .superpowers/
+
+# Local Claude Code permissions, not shared
+.claude/settings.local.json
