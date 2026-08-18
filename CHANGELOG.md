@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/JackCuthbert/fold/compare/v1.1.0...v1.2.0) (2026-08-18)
+
+
+### Features
+
+* **docs:** set the user guide in the app's own typefaces ([db04f07](https://github.com/JackCuthbert/fold/commit/db04f07879863966baefe8b7d244d654378728c8))
+
 ## [1.1.0](https://github.com/JackCuthbert/fold/compare/v1.0.0...v1.1.0) (2026-08-17)
 
 
