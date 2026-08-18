@@ -117,31 +117,44 @@
   );
 }
 
-/* The app reads in a serif (Source Serif 4 by default) with a sans for its
-   chrome (Cabin), so the site does the same with system stacks. Both are
-   spelled out here rather than borrowing VitePress's own font variables:
-   --vp-font-family-inter resolves to an empty string in 1.6.4, so a
-   `var(--vp-font-family-inter, …)` fallback never fires — the fallback is
-   only used when the variable is *undefined*, not when it is empty, so the
-   rule silently sets no family at all. Measured in the browser.
-   *(added 2026-08-17.)* */
+/* The app reads in a serif with a sans for its chrome — Lora and Cabin
+   (apps/client/src/styles/tokens.css, --serif and --sans) — so the site
+   uses the same pair. Both arrive from Google Fonts, linked in
+   .vitepress/config.ts rather than @font-face'd here, so the preconnects
+   can sit beside them. The app self-hosts these families instead; a
+   themeable typeface has to be a file the app serves, which is not a
+   constraint an ordinary web page has.
+
+   Each keeps a fallback stack behind it, so a blocked or slow CDN degrades
+   to something reasonable rather than to Times.
+
+   Both are spelled out here rather than borrowing VitePress's own font
+   variables: --vp-font-family-inter resolves to an empty string in 1.6.4,
+   so a `var(--vp-font-family-inter, …)` fallback never fires — the fallback
+   is only used when the variable is *undefined*, not when it is empty, so
+   the rule silently sets no family at all. Measured in the browser. */
 :root {
-  --fold-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --fold-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --fold-sans:
+    Cabin, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fold-serif: Lora, Georgia, Cambria, 'Times New Roman', Times, serif;
 
   --vp-font-family-base: var(--fold-serif);
 }
 
 /* Running prose takes the serif; headings and every piece of UI chrome stay
-   on the sans, which is the split the app itself uses. */
+   on the sans, which is the split the app itself uses. Buttons and the
+   feature-card links count as chrome rather than prose: they are things you
+   press, not things you read, and the app sets its own buttons in the sans
+   for the same reason. */
 .VPNavBar,
 .VPSidebar,
 .VPLocalNav,
 .VPFooter,
 .VPDocFooter,
-.VPHomeHero .name,
 .VPHomeHero .text,
+.VPButton,
 .VPFeature .title,
+.VPFeature .link-text,
 h1,
 h2,
 h3,
@@ -150,6 +163,39 @@ h5,
 h6,
 kbd {
   font-family: var(--fold-sans);
+}
+
+/* The wordmark is the one place the serif does a display job rather than a
+   reading one, so it is set here explicitly rather than left to inherit
+   --vp-font-family-base. Lora, not the sans the rest of the chrome uses:
+   the name reads as the product's own mark, and it shares a face with the
+   tagline directly beneath it, so the hero holds together as one block
+   instead of switching typeface halfway down.
+ *
+ * VitePress ships this at 700 already, but until the stylesheet request in
+ * .vitepress/config.ts was widened past 600 the browser was synthesising
+ * that bold — heavier in name only, and noticeably soft. The 700 here is
+ * the real face; -0.02em pulls the letterfit back in, since Lora's spacing
+ * is drawn for text rather than for display sizes. */
+.VPHomeHero .name {
+  font-family: var(--fold-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* VitePress steps the hero name 32 → 48 → 56px at its 640 and 960
+   breakpoints. 32px is small for the one word the page is named after, and
+   at that size the bold barely separates from the 18px tagline beneath it,
+   which shares its face. 40px keeps the ladder climbing into the 48px above
+   rather than
+   flattening it. Line height follows so the two-line wrap does not tighten.
+ *
+ * Scoped below 640px: the larger sizes already carry the weight. */
+@media (max-width: 639px) {
+  .VPHomeHero .name {
+    line-height: 48px;
+    font-size: 40px;
+  }
 }
 
 /* The guide leans on <kbd> for shortcuts and VitePress does not style it.
@@ -198,10 +244,19 @@ kbd {
      image to centre it, so the rotation has to compose with that transform
      rather than replace it — hence `rotate`, which is a separate property. */
   rotate: 6deg;
-  /* VitePress centres the image in a 392px slot sized for a much larger
-     hero graphic, which left this tile's centre 41px above the text
-     block's (measured at 1280x800). Nudged down to line the two up. */
-  margin-top: 41px;
+}
+
+/* VitePress centres the image in a 392px slot sized for a much larger hero
+   graphic, which left this tile's centre 41px above the text block's
+   (measured at 1280x800). Nudged down to line the two up.
+ *
+ * Only from 960px, which is where VitePress puts the image beside the text.
+ * Below that the hero stacks, so there is nothing to centre against and the
+ * nudge just pushes the tile down into the title. */
+@media (min-width: 960px) {
+  .VPHomeHero .image-src {
+    margin-top: 41px;
+  }
 }
 
 .dark .VPHomeHero .image-src {

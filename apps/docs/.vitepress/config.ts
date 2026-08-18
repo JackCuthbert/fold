@@ -35,6 +35,37 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/fold/fold-mark.svg' }],
     ['link', { rel: 'icon', type: 'image/png', href: '/fold/favicon-32.png' }],
     ['meta', { name: 'theme-color', content: '#7a5c3e' }],
+
+    // Lora and Cabin, the app's reading and chrome faces (theme/fold.css).
+    // Two preconnects, not one: the stylesheet comes from googleapis.com
+    // but the font files it references come from gstatic.com, so warming
+    // only the first still leaves a cold connection on the critical path.
+    // gstatic is crossorigin because fonts are fetched in CORS mode.
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    [
+      'link',
+      { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    ],
+    // Both families in one request rather than two links, which would cost
+    // a second round trip for the same bytes.
+    //
+    // Both go to 700 rather than the 600 the app's tokens stop at, because
+    // the hero title is set in 700: a range ending at 600 leaves the
+    // browser to synthesise a fake bold by smearing the 600, which reads as
+    // soft rather than heavy. The app's own @font-face covers 400 700 for
+    // both families for the same reason.
+    //
+    // Lora carries an italic axis because running prose uses emphasis;
+    // Cabin does not, since headings and chrome never render italic and an
+    // unused face is a fetch nobody needs. `display=swap` matches the app:
+    // text paints in the fallback rather than waiting on the network.
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Cabin:wght@400..700&family=Lora:ital,wght@0,400..700;1,400..700&display=swap',
+      },
+    ],
   ],
 
   themeConfig: {
