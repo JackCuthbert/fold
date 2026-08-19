@@ -64,7 +64,16 @@ test('mobile: a modal opened from the drawer stacks above it', async ({
 }) => {
   await login(page)
 
-  /** Every painted full-viewport layer, as z-index, lowest first. */
+  /**
+   * Every painted full-viewport layer, as z-index, lowest first.
+   *
+   * `pointer-events` is what separates a scrim from a positioner: quick
+   * add's popup sits inside a full-viewport flex layer that exists only to
+   * place it (quick-add-modal.module.css — `.popupLayer`), which paints
+   * nothing and lets every click through to the scrim beneath. Counting it
+   * would make an overlay stack of two look like three.
+   * *(refined 2026-08-19, when that layer was added.)*
+   */
   const layers = () =>
     page.evaluate(() =>
       [...document.querySelectorAll('body *')]
@@ -73,7 +82,8 @@ test('mobile: a modal opened from the drawer stacks above it', async ({
           return (
             style.position === 'fixed' &&
             style.inset === '0px' &&
-            style.zIndex !== 'auto'
+            style.zIndex !== 'auto' &&
+            style.pointerEvents !== 'none'
           )
         })
         .map((element) => Number(getComputedStyle(element).zIndex))

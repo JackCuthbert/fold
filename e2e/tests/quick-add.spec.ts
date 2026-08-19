@@ -33,6 +33,25 @@ const modal = (page: Page) => page.getByRole('dialog', { name: 'Add a todo' })
 const field = (page: Page) => page.getByRole('textbox', { name: 'Add a todo' })
 
 /**
+ * Assert the field's text.
+ *
+ * `toHaveValue` does not work here: the field is a contenteditable, not a
+ * form control, so it has no `value` — Playwright fails with "Not an input
+ * element". Its text is real text nodes, which is also why the marks can be
+ * padded (docs/specs/quick-add.md). *(changed 2026-08-19.)*
+ */
+async function expectFieldText(
+  page: Page,
+  expected: string | RegExp,
+): Promise<void> {
+  await expect
+    .poll(async () => (await field(page).textContent()) ?? '')
+    .toEqual(
+      typeof expected === 'string' ? expected : expect.stringMatching(expected),
+    )
+}
+
+/**
  * A menu pill — list or priority — by its accessible name.
  *
  * Named rather than matched on visible text, because a *set* pill shows
@@ -158,7 +177,7 @@ test('choosing from a pill rewrites the text', async ({ page }) => {
   // part of the contract: without it the line ends in a `#token`, which is
   // what opens the inline autocomplete, so choosing a list reopened the
   // picker over the choice just made.
-  await expect(field(page)).toHaveValue(`Fix the fence #${second} `)
+  await expectFieldText(page, `Fix the fence #${second} `)
   await expect(pill(page, new RegExp(`^List: ${second}`))).toBeVisible()
 
   // And the menu that would have reopened is not there.
@@ -188,7 +207,7 @@ test('typing # offers the lists, and Ctrl+N moves through them', async ({
 
   // Accepting writes the whole name and a trailing space, so typing
   // continues rather than extending the token.
-  await expect(field(page)).toHaveValue(new RegExp(`#${list} $`))
+  await expectFieldText(page, new RegExp(`#${list} $`))
 })
 
 // docs/specs/quick-add.md — when there is nowhere to file it. Enter used to
@@ -489,4 +508,168 @@ test('a second list token is ordinary text', async ({ page }) => {
   await expect(
     page.getByText(`Buy milk #${second}`, { exact: true }),
   ).toBeVisible()
+})
+
+// docs/specs/quick-add.md — the field wraps, and grows.
+//
+// The regression this exists to prevent: the field was one line that
+// scrolled sideways, so a long todo pushed its own beginning out of view
+// with no scrollbar to say so and no way back but walking the caret. The
+// pills made it acute, because choosing a list *lengthens the text* — the
+// words vanished without a keystroke.
+//
+// Asserted on geometry rather than on a class name: what matters is that
+// the text is on screen and the buttons are reachable, which is true or
+// false regardless of how the CSS achieves it.
+test('a long todo wraps instead of scrolling out of sight', async ({
+  page,
+}) => {
+  await login(page)
+  const list = uniqueName('wrap')
+  await createList(page, list)
+  await openQuickAdd(page)
+
+  // The `#list` token is deliberately *not* last: a line ending in
+  // `#name` opens the inline autocomplete, where Enter picks a suggestion
+  // rather than submitting. Same trap the second-token test documents.
+  const long =
+    `Clean the front gutters and downpipes #${list} before the rain ` +
+    'properly sets in and the leaves block the whole lot again'
+  await field(page).fill(long)
+
+  const box = field(page)
+  // Taller than a single line: the text wrapped rather than running off
+  // the side. The exact line count depends on the viewport, so this asks
+  // only that it grew.
+  const height = await box.evaluate((el) => el.getBoundingClientRect().height)
+  const lineHeight = await box.evaluate((el) =>
+    parseFloat(getComputedStyle(el).lineHeight),
+  )
+  expect(height).toBeGreaterThan(lineHeight * 1.5)
+
+  // Nothing is clipped horizontally — the failure mode being fixed.
+  const overflow = await box.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+  }))
+  expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1)
+
+  // The first word is still visible, not scrolled away to the left.
+  await expect(box).toContainText('Clean the front gutters')
+
+  // And the buttons the modal exists to reach are still on screen.
+  const submit = modal(page).getByRole('button', { name: 'Add todo' })
+  await expect(submit).toBeInViewport()
+
+  // The whole line still submits and round-trips.
+  await page.keyboard.press('Enter')
+  await expect(modal(page)).toBeHidden()
+  await waitForSync(page)
+  await expect(
+    page.getByText(/Clean the front gutters and downpipes/),
+  ).toBeVisible()
+})
+
+// Enter submits from a wrapped line rather than adding another line to it.
+// A contenteditable inserts a break on Enter by default, so this is the
+// assertion that it does not: a todo summary is one line of text that
+// happens to be drawn on several.
+test('Enter submits a wrapped line rather than breaking it', async ({
+  page,
+}) => {
+  await login(page)
+  const list = uniqueName('nobreak')
+  await createList(page, list)
+  await openQuickAdd(page)
+
+  const line =
+    `Ring the plumber about the tap #${list} that has been dripping ` +
+    'since the weekend'
+  await field(page).fill(line)
+
+  // Shift+Enter belongs to the notes field: it must not put a newline in
+  // the summary, and it must not submit. Both were wrong — the Enter
+  // branch did not check `shiftKey`, so this submitted the todo, which
+  // the old `<input>` hid by clearing as the modal closed.
+  await page.keyboard.press('Shift+Enter')
+  await expect(modal(page)).toBeVisible()
+  await expectFieldText(page, line)
+
+  await page.keyboard.press('Enter')
+  await expect(modal(page)).toBeHidden()
+  await waitForSync(page)
+
+  // One todo, its summary intact and on one logical line.
+  await expect(
+    page.getByText('Ring the plumber about the tap that has been dripping'),
+  ).toBeVisible()
+})
+
+// docs/specs/quick-add.md — the marks. Three bugs reported together from
+// use on 2026-08-19, all of them consequences of the browser editing
+// inside the mark spans rather than around them.
+test('a mark does not swallow what is typed after it', async ({ page }) => {
+  await login(page)
+  const list = uniqueName('mark')
+  await createList(page, list)
+  await openQuickAdd(page)
+
+  // Type the priority token, then keep typing from the end of the line —
+  // which is the trailing edge of that token's mark. The browser extends
+  // the span it is editing, so without a redraw the mark grows to cover
+  // everything after it: "p2" became "p2 askdjnfas asdf ask".
+  await field(page).pressSequentially(`Create a thing #${list} p2`)
+  await field(page).pressSequentially(' askdjnfas asdf ask')
+
+  const marks = modal(page).locator('[role="textbox"] span')
+  await expect(marks).toHaveCount(2)
+  await expect(marks.nth(0)).toHaveText(`#${list}`)
+  await expect(marks.nth(1)).toHaveText('p2')
+})
+
+// Choosing from the `#` autocomplete leaves the caret after the name, so
+// typing carries on from there. The `<input>` kept the caret at the end of
+// its value on its own; a contenteditable is redrawn around the new token,
+// which stranded it wherever it had been.
+test('accepting a list suggestion puts the caret after it', async ({
+  page,
+}) => {
+  await login(page)
+  const list = uniqueName('caret')
+  await createList(page, list)
+  await openQuickAdd(page)
+
+  await field(page).pressSequentially(`Do a thing #${list.slice(0, 6)}`)
+  // Scoped to the autocomplete: the list pill carries the same name once a
+  // list is chosen, so a modal-wide lookup matches two buttons.
+  await expect(
+    modal(page).locator('ul[class*="inlineMenu"]').getByRole('button', {
+      name: list,
+    }),
+  ).toBeVisible()
+  await page.keyboard.press('Enter')
+
+  // Typing continues from the end rather than from where the caret was.
+  await field(page).pressSequentially('after')
+  await expectFieldText(page, `Do a thing #${list} after`)
+})
+
+// The autocomplete hangs off the token being typed, so it has no business
+// being on screen when the field does not hold focus — it used to sit over
+// the pills and the buttons after a click elsewhere.
+test('the list autocomplete closes when the field loses focus', async ({
+  page,
+}) => {
+  await login(page)
+  const list = uniqueName('blur')
+  await createList(page, list)
+  await openQuickAdd(page)
+
+  await field(page).pressSequentially('Thing #')
+  const menu = modal(page).locator('ul[class*="inlineMenu"]')
+  await expect(menu).toBeVisible()
+
+  // Focus a real control elsewhere in the modal.
+  await modal(page).getByRole('button', { name: 'Cancel' }).focus()
+  await expect(menu).toBeHidden()
 })

@@ -26,13 +26,71 @@
 /* Sits at a launcher's height rather than centred: a box that lands under
    the vertical middle reads as a dialog interrupting the page, while one
    nearer the top reads as a field you have summoned. Alfred and Raycast
-   both do this, and the difference is most of why they feel quick. */
-.popup {
+   both do this, and the difference is most of why they feel quick.
+ *
+   **Rises when it is tall enough to need to.** The field wraps without
+   bound, so a long todo — or an ordinary one on a short window — can make
+   this box taller than the room below 18vh, and a fixed top would push
+   Cancel and Add todo off the bottom of the screen.
+ *
+   Done with flex rather than a measured `top`: the popup is a flex item
+   filling the viewport, aligned to a `margin-top: 18vh` that `auto`
+   margins and a `min-height` collapse as it grows. A short modal keeps its
+   launcher height exactly; a tall one rises, and stops `--space-4` from
+   the top edge. No JavaScript, no measurement, and nothing to keep in sync
+   on resize. Capping the height and scrolling inside was tried first and
+   was worse in every way — see the note below.
+   *(added 2026-08-19, reported from use.)* */
+.popupLayer {
   position: fixed;
-  top: 18vh;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   z-index: var(--z-overlay-stacked);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* `safe` matters: a plain `center` on a box taller than its container
+     overflows *both* ways, putting the top of the modal above the top of
+     the screen and out of reach. `safe` falls back to flex-start there,
+     which is exactly the "pin it to the top" behaviour a tall modal wants.
+     Together with the `18vh` padding below, that is the whole rule: short
+     modals sit at the launcher height, tall ones rise and stop at the
+     padding. */
+  justify-content: flex-start;
+  /* `--space-4` all round is the hard limit a tall modal stops at. The
+     launcher height itself is the spacer below, which collapses as the
+     box grows. */
+  padding: var(--space-4);
+  /* Scrollable as a last resort: a modal taller than the whole viewport
+     (a small window, or the text at its 500-character cap) has to go
+     somewhere, and scrolling the layer keeps every part of it reachable
+     without the popup itself ever clipping its own autocomplete. */
+  overflow-y: auto;
+  /* The layer is only a positioner: clicks pass through it to the backdrop
+     beneath, while the popup itself takes them normally. */
+  pointer-events: none;
+}
+
+/* The collapsible launcher-height spacer. `flex-basis` is what it wants,
+   `flex-shrink` is what lets the popup take it back. */
+.popupSpacer {
+  flex: 0 1 18vh;
+  min-height: 0;
+}
+
+.popup {
+  pointer-events: auto;
+  /* The containing block for the `#` autocomplete, which is absolutely
+     positioned against this box. Without it the nearest positioned
+     ancestor is `.popupLayer` — added for the rise-when-tall placement —
+     and the menu's offsets, measured from this box, were applied against
+     that one instead: the menu landed in the top-left corner of the
+     screen, out by exactly the popup's own position.
+     *(fixed 2026-08-19, reported from use.)* */
+  position: relative;
+  /* Never squashed by the flex line it sits in: a tall box keeps its full
+     height and the layer scrolls instead of the box shrinking. */
+  flex-shrink: 0;
+  margin-block: 0;
   width: min(34rem, calc(100vw - 2 * var(--space-4)));
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -42,6 +100,19 @@
      rather than replacing it. */
   box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.18));
   padding: var(--space-3);
+  /* **No `max-height`, and nothing scrolls.** The field wraps and grows
+     without bound and the modal simply grows with it.
+   *
+     A `max-height: 64vh` with `overflow-y: auto` was tried and removed the
+     same day. It made the popup a scroll container, which *clips* the
+     absolutely-positioned `#` autocomplete — so on a one-line todo the
+     menu was cut off at the popup's edge. Escaping that with fixed
+     positioning was worse again: the menu detached from the field and
+     landed in the far corner, over a modal now wearing scrollbars on both
+     axes. Every one of those problems is downstream of the cap, so the cap
+     is what goes. A todo long enough to fill the screen is not a case
+     worth breaking the common one for.
+     *(added and removed 2026-08-19, reported from use.)* */
   transition:
     opacity var(--duration-base) var(--ease),
     transform var(--duration-base) var(--ease);
@@ -52,7 +123,7 @@
   opacity: 0;
   /* Rises into place. Paired with the top placement it reads as the field
      arriving, not as a panel sliding in. */
-  transform: translateX(-50%) translateY(-0.5rem);
+  transform: translateY(-0.5rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -63,93 +134,14 @@
 
   .popup[data-starting-style],
   .popup[data-ending-style] {
-    transform: translateX(-50%);
+    transform: none;
   }
 }
 
-/* The input and its dimming layer, stacked in one box.
-
-   Two elements holding the same text at the same metrics: the shadow paints
-   the tokens grey, the input sits transparent on top so the caret, the
-   selection and every native editing gesture stay real. Any divergence in
-   font, padding or letter-spacing between the two shows up immediately as
-   drifting text, which is why both inherit from this parent rather than
-   setting their own. */
-.field {
-  position: relative;
-  display: grid;
-}
-
-.shadow,
-.input {
-  grid-area: 1 / 1;
-  font: inherit;
-  font-size: var(--text-lg);
-  line-height: 1.5;
-  padding: var(--space-2);
-  border: 0;
-  /* No wrapping in either layer: the input is a single line, and a shadow
-     that wrapped would slide out of register with it. */
-  white-space: pre;
-  overflow: hidden;
-}
-
-.shadow {
-  color: var(--ink);
-  pointer-events: none;
-  /* The caret is the input's; this layer must never show one. */
-  user-select: none;
-}
-
-.input {
-  background: transparent;
-  /* Transparent ink, visible caret: the shadow below is what you read. */
-  color: transparent;
-  caret-color: var(--ink);
-  outline: none;
-}
-
-.input::placeholder {
-  color: var(--faint);
-}
-
-/* A recognised token: *marked* text, not a chip.
-
-   It used to be dimmed to `--faint`, which read as "this part didn't
-   count" when the opposite is true — a mark is the parser telling you it
-   understood. Highlighting rather than removing, because removing the
-   token as you typed would fight the cursor (docs/specs/quick-add.md).
-   *(changed 2026-08-14 in review.)*
-
-   Deliberately square and unpadded. This span sits in the shadow layer,
-   and every glyph in it has to stay in exact register with the
-   transparent `<input>` above — an input cannot pad individual
-   characters, so padding here moves this layer's text and nothing else.
-   Measured in review: 4px padding plus 2px margin on three tokens put the
-   caret 34px from the text it belonged to, compounding with each token.
-   So the mark extends the token's own box and no further, which is also
-   why it wears no radius: a rounded corner on a box drawn tight to the
-   glyphs reads as a clipped chip rather than as a highlighter.
-
-   Tinted `--accent` at the same 12% the preview pills use: the mark and
-   the pill below it are two views of one token, so they share a hue. */
-.token {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  /* Proud of the glyphs vertically only, so the mark reads as a stroke of
-     highlighter rather than a tight box around the letters.
-
-     Vertical *only* is what keeps adjacent tokens legible as separate
-     marks. A uniform 2px spread also grows the mark sideways, which is
-     enough to bridge the single space between two tokens: measured in
-     review, "tomorrow at 3pm #Chores p1" left 0.73px between marks and
-     read as one continuous block. Confining the spread to the y axis
-     leaves that space unmarked — 4.73px of clear ground — so three
-     tokens read as three. */
-  box-shadow:
-    0 2px 0 0 color-mix(in srgb, var(--accent) 12%, transparent),
-    0 -2px 0 0 color-mix(in srgb, var(--accent) 12%, transparent);
-}
+/* The field itself now lives in quick-add-field/, along with the mark
+   styling that used to sit here. It moved out with the shadow layer:
+   what was two elements pretending to be one is a single contenteditable,
+   and its rules belong beside it. *(moved 2026-08-19.)* */
 
 /* The `#` autocomplete's floating box.
 
@@ -162,10 +154,19 @@
    list are one control with one look (quick-add-modal.tsx).
    *(changed 2026-08-14, found in review.)* */
 .inlineMenu {
+  /* Absolutely positioned inside `.popup`, and anchored from a measurement
+     of the field rather than a fixed offset (quick-add-modal.tsx —
+     `menuAnchor`): the field wraps now, so its bottom edge moves and a
+     hardcoded `3.25rem` put the menu over the text the moment it did.
+   *
+     `absolute` rather than `fixed`. Fixed was tried while the popup had a
+     `max-height`, to escape the clipping that scroll container caused, and
+     it detached the menu from the field entirely — it landed in the corner
+     of the viewport. The popup no longer scrolls, so there is nothing to
+     escape from. *(fixed 2026-08-19, reported from use.)* */
   position: absolute;
-  /* Under the input, inset by the popup's padding so its edge lines up
-     with the field's text rather than the popup's border. */
-  top: calc(var(--space-3) + 3.25rem);
+  /* `top` is set inline from the measurement; `left` lines the menu's edge
+     up with the field's text rather than the popup's border. */
   left: var(--space-3);
   z-index: 1;
   list-style: none;
