@@ -1,0 +1,14 @@
+# The toolchain for local development.
+#
+# Bun is pinned here so a checkout runs the same version the lockfile was
+# resolved against, and so `bun` resolves at all: mise's shim fails outright
+# when no version is set for a tool, which takes down anything that spawns
+# `bun` through a fresh shell — Playwright's `webServer` among them, so the
+# e2e suite could not start.
+#
+# This governs local development only. CI installs bun through
+# `oven-sh/setup-bun` (.github/workflows/ci.yml) and the image builds from
+# `oven/bun` (Dockerfile), so neither reads this file; keep the version in
+# step with them when it moves.
+[tools]
+bun = "1.3.14"
