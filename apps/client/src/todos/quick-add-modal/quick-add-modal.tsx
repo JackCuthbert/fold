@@ -15,6 +15,8 @@ import { LuCircleHelp, LuPlus } from 'react-icons/lu'
 import { cx } from '../../styles/cx'
 import { fieldsToDue } from '../lib/due-fields'
 import { featuresOf, kindExplanation } from '../../lists/lib/list-kind'
+import { caretRect } from '../lib/editable-caret'
+import { QuickAddField } from '../quick-add-field/quick-add-field'
 import { Preview } from '../quick-add-preview/quick-add-preview'
 import {
   parseQuickAdd,
@@ -22,6 +24,16 @@ import {
   type QuickAddToken,
 } from '../lib/quick-add'
 import styles from './quick-add-modal.module.css'
+
+/** Stable identity, so the closed field's `tokens` prop does not change
+ *  every render and re-run the field's draw effect. */
+const EMPTY_TOKENS: readonly QuickAddToken[] = []
+
+/** Matches `.inlineMenu`'s own `min-width`, for the fallback measurement. */
+const MENU_MIN_WIDTH = 128
+
+/** How close to the window's edge the autocomplete may sit. */
+const MENU_VIEWPORT_MARGIN = 8
 
 /**
  * Quick add (docs/specs/quick-add.md) — one field that creates a todo.
@@ -72,7 +84,14 @@ export function QuickAddModal(props: QuickAddModalProps) {
   // one value rather than an `open` flag plus an index, so the two can
   // never disagree about whether a row is highlighted.
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLDivElement>(null)
+  // The autocomplete, so its real width can be measured for the clamp.
+  const menuRef = useRef<HTMLUListElement>(null)
+  // Flips once the menu is in the DOM, which is what re-runs the placement
+  // effect with a box it can actually measure. A ref alone cannot: writing
+  // to one does not re-render, so the first (unmeasurable) pass would be
+  // the only one.
+  const [menuMounted, setMenuMounted] = useState(false)
   const notesRef = useRef<HTMLTextAreaElement>(null)
   // Where to put the caret after a pill rewrites the text. A ref rather
   // than state: it is consumed once by the effect below and must not
@@ -138,7 +157,73 @@ export function QuickAddModal(props: QuickAddModalProps) {
       .map((hit) => hit.item)
   }, [listQuery, props.lists, fuse])
 
-  const menuOpen = suggestions.length > 0 && activeIndex !== null
+  // Whether the field holds focus. The autocomplete hangs off the token
+  // being typed, so it has no business being on screen when nobody is
+  // typing — it used to stay open over the controls below after a click
+  // elsewhere, because "is there a `#token`" was the only condition.
+  // *(fixed 2026-08-19, reported from use.)*
+  const [fieldFocused, setFieldFocused] = useState(true)
+
+  const menuOpen =
+    suggestions.length > 0 && activeIndex !== null && fieldFocused
+
+  // Where the autocomplete sits: under the caret, like any other
+  // autocomplete.
+  //
+  // Both coordinates come from the caret's own rect rather than the
+  // field's box. The offset started as a hardcoded `3.25rem` from the
+  // popup's top, which assumed a field exactly one line tall — once it
+  // wrapped, the menu landed over the text. Following the field's bottom
+  // edge fixed that but left the menu pinned to the left margin, far from
+  // the `#` being typed on a long line. The caret is what the menu is
+  // about, so it is what the menu hangs off.
+  // *(changed 2026-08-19, reported from use.)*
+  const [menuAt, setMenuAt] = useState<{ top: number; left: number } | null>(
+    null,
+  )
+
+  useLayoutEffect(() => {
+    if (!menuOpen) return
+    const field = inputRef.current
+    const popup = field?.closest<HTMLElement>(`.${styles['popup'] ?? ''}`)
+    const menu = menuRef.current
+    if (!field || !popup) return
+    const popupBox = popup.getBoundingClientRect()
+    const caret = caretRect(field)
+    // No caret rect — the selection is elsewhere, or collapsed in a way
+    // the browser reports as empty — so fall back to the field's own
+    // bottom-left, which is where the menu used to sit unconditionally.
+    const fieldBox = field.getBoundingClientRect()
+    const anchor = caret ?? { bottom: fieldBox.bottom, left: fieldBox.left }
+
+    // **Clamped against the viewport, using the menu's real width.**
+    //
+    // Two bugs in one line before this. The clamp was against the *popup*
+    // and used the menu's `min-width` rather than what it actually
+    // measures, so a menu with room to spare was still nudged left off the
+    // caret — while one near the right edge of a narrow window ran past
+    // the screen and took a horizontal scrollbar with it. The modal is not
+    // the boundary that matters; the window is, and a menu is free to
+    // overhang the modal's edge as long as it stays on screen.
+    //
+    // `menuRef` is measured rather than assumed: the box is sized by its
+    // contents (`width: max-content`), so its width depends on the longest
+    // list name and cannot be known ahead of time.
+    // *(fixed 2026-08-19, reported from use.)*
+    // The first pass runs before the menu is in the DOM, so it measures
+    // nothing and falls back to the minimum; `menuMounted` below re-runs
+    // this once the box exists and its real width can be read.
+    const width = menu?.getBoundingClientRect().width ?? MENU_MIN_WIDTH
+    const rightLimit = window.innerWidth - MENU_VIEWPORT_MARGIN - width
+    const left = Math.max(
+      MENU_VIEWPORT_MARGIN,
+      Math.min(anchor.left, rightLimit),
+    )
+    setMenuAt({
+      top: anchor.bottom - popupBox.top,
+      left: left - popupBox.left,
+    })
+  }, [menuOpen, text, menuMounted])
 
   // Reset when the modal opens, not when it closes: closing animates, and
   // clearing on the way out empties the field in front of the user.
@@ -169,15 +254,11 @@ export function QuickAddModal(props: QuickAddModalProps) {
     if (notesOpen) notesRef.current?.focus()
   }, [notesOpen])
 
-  // Put the caret where a pill asked for it, once the new value has been
-  // rendered. Setting `selectionStart` in the handler would apply it to
-  // the *old* value and be overwritten by React's own update.
-  useLayoutEffect(() => {
-    const at = caretTo.current
-    if (at === null) return
-    caretTo.current = null
-    inputRef.current?.setSelectionRange(at, at)
-  }, [text])
+  // The caret a pill asks for is applied by the field itself, in the same
+  // layout effect that draws the marks — the two have to happen together
+  // or the caret is placed into a DOM that is about to be replaced.
+  // *(moved into quick-add-field 2026-08-19; it was a `setSelectionRange`
+  // here while the field was an `<input>`.)*
 
   // Grow and shrink the notes field to fit what is in it.
   //
@@ -244,7 +325,17 @@ export function QuickAddModal(props: QuickAddModalProps) {
     // Replace the partial token with the full name, and leave a trailing
     // space so typing continues rather than extending the token.
     const start = text.lastIndexOf('#')
-    setText(`${text.slice(0, start)}#${list.displayName} `)
+    const next = `${text.slice(0, start)}#${list.displayName} `
+    setText(next)
+    // Caret after the trailing space, so typing carries on from the name
+    // just chosen. The pill path below has always done this; this one did
+    // not, and got away with it while the field was an `<input>` whose
+    // caret the browser kept at the end of the value on its own. A
+    // contenteditable is redrawn around the new token instead, which left
+    // the caret stranded wherever it had been — arrow keys and clicking
+    // could not recover it, though `⌘→` could.
+    // *(fixed 2026-08-19, reported from use.)*
+    caretTo.current = next.length
     setActiveIndex(null)
     inputRef.current?.focus()
   }
@@ -339,7 +430,7 @@ export function QuickAddModal(props: QuickAddModalProps) {
     props.onOpenChange(false)
   }
 
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     // Ctrl+N/P move the selection, matching readline — the hands stay on
     // the home row through an interaction whose whole point is speed.
     // Arrows do the same, so nothing has to be learned first
@@ -384,7 +475,14 @@ export function QuickAddModal(props: QuickAddModalProps) {
     // the keyboard path is the same deliberate choice the pointer makes.
     // *(changed 2026-08-14, found in review.)*
 
-    if (event.key === 'Enter') {
+    // `!shiftKey`, matching the notes field below. Shift+Enter belongs to
+    // notes (docs/specs/quick-add.md — the footer lists it), and this
+    // branch used to catch it too, so Shift+Enter from the summary
+    // submitted the todo. The old `<input>` hid it: the field cleared as
+    // the modal closed, so it read as "the shortcut did nothing" rather
+    // than as an accidental submit.
+    // *(fixed 2026-08-19, surfaced by the wrapping field's own e2e test.)*
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       submit()
     }
@@ -394,46 +492,52 @@ export function QuickAddModal(props: QuickAddModalProps) {
     <Dialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className={styles['backdrop']} />
-        <Dialog.Popup className={styles['popup']} finalFocus={props.triggerRef}>
-          {/* Named for screen readers without drawing a heading: the
+        {/* A positioning layer between the backdrop and the popup, so the
+            modal can rise as the field grows rather than running off the
+            bottom of the screen (quick-add-modal.module.css —
+            `.popupLayer`). *(added 2026-08-19.)* */}
+        <div className={styles['popupLayer']}>
+          {/* Collapsible spacer: holds the popup at the launcher height and
+              gives that space back as it grows, so a tall modal rises
+              instead of running off the bottom. */}
+          <div className={styles['popupSpacer']} />
+          <Dialog.Popup
+            className={styles['popup']}
+            finalFocus={props.triggerRef}
+          >
+            {/* Named for screen readers without drawing a heading: the
               field's own placeholder is the visible label, and a title bar
               would make this a form again. */}
-          <Dialog.Title className={styles['srOnly']}>Add a todo</Dialog.Title>
-          <div className={styles['field']}>
-            {/* The dimming layer sits *under* a transparent input, so the
-                caret and selection stay native while recognised tokens are
-                greyed. Both are the same text at the same metrics, so they
-                line up exactly. */}
-            {/* Emptied once closed. The text is only cleared on *open* (see
-                the reset effect — clearing on the way out would blank the
-                field in front of you mid-animation), which left the closed
-                popup holding a copy of the last summary in the DOM. It is
-                `aria-hidden`, but that hides it from the accessibility tree
-                only: a plain DOM text query still finds it, so a test —
-                and anything else reading text — saw the same summary twice,
-                once on the row and once here. The input above keeps its
-                value either way, so nothing visible changes.
-                *(added 2026-08-14.)* */}
-            <div className={styles['shadow']} aria-hidden="true">
-              {props.open ? renderDimmed(text, parsed.tokens) : null}
-            </div>
-            <input
-              ref={inputRef}
-              className={styles['input']}
-              value={text}
-              onChange={(event) => setText(event.target.value)}
+            <Dialog.Title className={styles['srOnly']}>Add a todo</Dialog.Title>
+            {/* One element, marks and all: what you type into *is* what
+              shows the marks, so a recognised token can be padded. It used
+              to be a transparent `<input>` over a shadow layer holding the
+              same text, which is the arrangement that made padding
+              impossible (docs/specs/quick-add.md — the mark is padded
+              because the field is a contenteditable).
+              *(changed 2026-08-19.)* */}
+            <QuickAddField
+              fieldRef={inputRef}
+              // Emptied once closed. The text is cleared on *open* rather
+              // than on close, because clearing on the way out blanks the
+              // field in front of you mid-animation — but the popup stays
+              // mounted through that animation, and this field's contents
+              // are now real text nodes rather than an `<input>`'s value.
+              // So a plain text query finds the summary twice: once on the
+              // row it just created, once still sitting here. The shadow
+              // layer this replaced had the same problem and the same fix.
+              // *(added 2026-08-19: it broke four e2e specs with "resolved
+              // to 2 elements".)*
+              value={props.open ? text : ''}
+              tokens={props.open ? parsed.tokens : EMPTY_TOKENS}
+              caretTo={caretTo}
+              onChange={setText}
               onKeyDown={onKeyDown}
+              onFocusChange={setFieldFocused}
               placeholder={example}
-              aria-label="Add a todo"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
             />
-          </div>
 
-          {/* The `#` autocomplete, floating over the modal rather than
+            {/* The `#` autocomplete, floating over the modal rather than
               sitting in its flow.
 
               It used to be a block between the input and the notes row,
@@ -443,41 +547,52 @@ export function QuickAddModal(props: QuickAddModalProps) {
               overlays instead, and it wears the same popup and row styles
               the pill menus use so the two ways of choosing a list look
               like one control. *(changed 2026-08-14, found in review.)* */}
-          {menuOpen && (
-            <ul className={cx(styles['menuPopup'], styles['inlineMenu'])}>
-              {suggestions.map((list, index) => (
-                <li key={list.id}>
-                  <button
-                    type="button"
-                    className={cx(
-                      styles['menuItem'],
-                      index === activeIndex && styles['menuItemActive'],
-                    )}
-                    // Pointer-down rather than click: the input must not
-                    // lose focus before the choice is applied.
-                    onMouseDown={(event) => {
-                      event.preventDefault()
-                      accept(list)
-                    }}
-                  >
-                    <span
+            {menuOpen && (
+              <ul
+                ref={(node) => {
+                  menuRef.current = node
+                  setMenuMounted(node !== null)
+                }}
+                className={cx(styles['menuPopup'], styles['inlineMenu'])}
+                style={
+                  menuAt === null
+                    ? undefined
+                    : { top: menuAt.top, left: menuAt.left }
+                }
+              >
+                {suggestions.map((list, index) => (
+                  <li key={list.id}>
+                    <button
+                      type="button"
                       className={cx(
-                        styles['dot'],
-                        list.color === undefined && styles['dotEmpty'],
+                        styles['menuItem'],
+                        index === activeIndex && styles['menuItemActive'],
                       )}
-                      {...(list.color === undefined
-                        ? {}
-                        : { style: { background: list.color } })}
-                      aria-hidden="true"
-                    />
-                    {list.displayName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      // Pointer-down rather than click: the input must not
+                      // lose focus before the choice is applied.
+                      onMouseDown={(event) => {
+                        event.preventDefault()
+                        accept(list)
+                      }}
+                    >
+                      <span
+                        className={cx(
+                          styles['dot'],
+                          list.color === undefined && styles['dotEmpty'],
+                        )}
+                        {...(list.color === undefined
+                          ? {}
+                          : { style: { background: list.color } })}
+                        aria-hidden="true"
+                      />
+                      {list.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          {/* Notes: the one thing the grammar does not cover, because prose
+            {/* Notes: the one thing the grammar does not cover, because prose
               does not belong on a line with tokens in it
               (docs/specs/quick-add.md — the full form).
 
@@ -486,63 +601,63 @@ export function QuickAddModal(props: QuickAddModalProps) {
               "go to the next thing", so the field it reveals is the next
               thing rather than a new gesture to learn — and the button is
               the same affordance for a finger. */}
-          {notesOpen ? (
-            <textarea
-              ref={notesRef}
-              className={styles['notes']}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              onKeyDown={(event) => {
-                // Enter submits from here too, so notes never cost a reach
-                // for the mouse. Shift+Enter is a newline, which is the
-                // convention every message box has taught — and is
-                // explained in the footer's help popover rather than by a
-                // line under this field, which was a second permanent
-                // sentence for a rule most people already know.
-                // *(moved 2026-08-14.)*
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault()
-                  submit()
-                }
-              }}
-              placeholder="Notes"
-              aria-label="Notes"
-              // One line to start; the effect above grows it from there.
-              // `rows={2}` held an empty field two lines tall, which is
-              // the reserved space an auto-growing field exists to avoid.
-              rows={1}
+            {notesOpen ? (
+              <textarea
+                ref={notesRef}
+                className={styles['notes']}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                onKeyDown={(event) => {
+                  // Enter submits from here too, so notes never cost a reach
+                  // for the mouse. Shift+Enter is a newline, which is the
+                  // convention every message box has taught — and is
+                  // explained in the footer's help popover rather than by a
+                  // line under this field, which was a second permanent
+                  // sentence for a rule most people already know.
+                  // *(moved 2026-08-14.)*
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    submit()
+                  }
+                }}
+                placeholder="Notes"
+                aria-label="Notes"
+                // One line to start; the effect above grows it from there.
+                // `rows={2}` held an empty field two lines tall, which is
+                // the reserved space an auto-growing field exists to avoid.
+                rows={1}
+              />
+            ) : (
+              <button
+                type="button"
+                className={styles['notesTrigger']}
+                // Activating this *is* the deliberate act — by click, tap,
+                // Enter or Space — so focus follows into the field it
+                // reveals. Tab alone only moves here; it does not fire.
+                // The focusing itself is an effect below, not a callback:
+                // see `notesOpen`.
+                onClick={() => setNotesOpen(true)}
+              >
+                <LuPlus aria-hidden="true" size={12} />
+                Notes
+              </button>
+            )}
+
+            <Preview
+              parsed={parsed}
+              list={targetList}
+              lists={props.lists}
+              noDueDates={noDueDates}
+              dueDatesOffList={dueDatesOffList}
+              now={now}
+              needsList={needsList}
+              onSetDate={setDate}
+              onSetTime={setTime}
+              onSetList={setList}
+              onSetPriority={setPriority}
             />
-          ) : (
-            <button
-              type="button"
-              className={styles['notesTrigger']}
-              // Activating this *is* the deliberate act — by click, tap,
-              // Enter or Space — so focus follows into the field it
-              // reveals. Tab alone only moves here; it does not fire.
-              // The focusing itself is an effect below, not a callback:
-              // see `notesOpen`.
-              onClick={() => setNotesOpen(true)}
-            >
-              <LuPlus aria-hidden="true" size={12} />
-              Notes
-            </button>
-          )}
 
-          <Preview
-            parsed={parsed}
-            list={targetList}
-            lists={props.lists}
-            noDueDates={noDueDates}
-            dueDatesOffList={dueDatesOffList}
-            now={now}
-            needsList={needsList}
-            onSetDate={setDate}
-            onSetTime={setTime}
-            onSetList={setList}
-            onSetPriority={setPriority}
-          />
-
-          {/* The footer: what went wrong, or what the keys do, and the
+            {/* The footer: what went wrong, or what the keys do, and the
               button.
 
               **A message, not just the marked pill.** Enter used to move
@@ -553,24 +668,24 @@ export function QuickAddModal(props: QuickAddModalProps) {
               **The hint is a line, not the placeholder**, because a
               placeholder is gone by the time you have typed enough to want
               a second line — exactly when Shift+Enter matters. */}
-          <div className={styles['footer']}>
-            {/* Everything true at once, rather than one message replacing
+            <div className={styles['footer']}>
+              {/* Everything true at once, rather than one message replacing
                 another. "Enter to add" stays true while notes has focus and
                 while the list is missing; swapping it out read as the rule
                 having *changed* when in fact something was added to it.
                 So the Shift line joins it where it applies, and the error
                 sits above both rather than in place of them.
                 *(changed 2026-08-14: these took turns.)* */}
-            <div className={styles['footerMessages']}>
-              {needsList && (
-                <p
-                  className={cx(styles['note'], styles['noteError'])}
-                  role="alert"
-                >
-                  Choose a list for this todo
-                </p>
-              )}
-              {/* The keyboard rules, behind a popover rather than printed
+              <div className={styles['footerMessages']}>
+                {needsList && (
+                  <p
+                    className={cx(styles['note'], styles['noteError'])}
+                    role="alert"
+                  >
+                    Choose a list for this todo
+                  </p>
+                )}
+                {/* The keyboard rules, behind a popover rather than printed
                   in the footer.
 
                   Two permanent sentences of instruction sat under a modal
@@ -579,74 +694,75 @@ export function QuickAddModal(props: QuickAddModalProps) {
                   "Keyboard" trigger keeps the answer one click away for
                   the day you want it and silent afterwards.
                   *(changed 2026-08-14.)* */}
-              <Popover.Root>
-                <Popover.Trigger className={styles['helpTrigger']}>
-                  <LuCircleHelp aria-hidden="true" size={13} />
-                  Keyboard
-                </Popover.Trigger>
-                <Popover.Portal>
-                  {/* Below the trigger, left edges aligned. It opened
+                <Popover.Root>
+                  <Popover.Trigger className={styles['helpTrigger']}>
+                    <LuCircleHelp aria-hidden="true" size={13} />
+                    Keyboard
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    {/* Below the trigger, left edges aligned. It opened
                       upwards, which put it over the pills and the input —
                       the things it is describing. Downwards it covers only
                       the page behind the modal. *(changed 2026-08-14.)* */}
-                  <Popover.Positioner
-                    className={styles['menuPositioner']}
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                  >
-                    <Popover.Popup className={styles['helpPopup']}>
-                      {/* Real keycaps, composed from the shared component's
+                    <Popover.Positioner
+                      className={styles['menuPositioner']}
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                    >
+                      <Popover.Popup className={styles['helpPopup']}>
+                        {/* Real keycaps, composed from the shared component's
                           classes (`helpCap`) so a key here is drawn like a
                           key everywhere else in the app. */}
-                      <dl className={styles['helpList']}>
-                        <dt>
-                          <kbd className={styles['helpCap']}>Enter</kbd>
-                        </dt>
-                        <dd>Add the todo</dd>
-                        <dt>
-                          <kbd className={styles['helpCap']}>Shift</kbd> +{' '}
-                          <kbd className={styles['helpCap']}>Enter</kbd>
-                        </dt>
-                        <dd>A new line, in notes</dd>
-                        <dt>
-                          <kbd className={styles['helpCap']}>Esc</kbd>
-                        </dt>
-                        <dd>Close without adding</dd>
-                      </dl>
-                    </Popover.Popup>
-                  </Popover.Positioner>
-                </Popover.Portal>
-              </Popover.Root>
-            </div>
-            {/* Cancel, then Add — the pair a dialog is expected to end
+                        <dl className={styles['helpList']}>
+                          <dt>
+                            <kbd className={styles['helpCap']}>Enter</kbd>
+                          </dt>
+                          <dd>Add the todo</dd>
+                          <dt>
+                            <kbd className={styles['helpCap']}>Shift</kbd> +{' '}
+                            <kbd className={styles['helpCap']}>Enter</kbd>
+                          </dt>
+                          <dd>A new line, in notes</dd>
+                          <dt>
+                            <kbd className={styles['helpCap']}>Esc</kbd>
+                          </dt>
+                          <dd>Close without adding</dd>
+                        </dl>
+                      </Popover.Popup>
+                    </Popover.Positioner>
+                  </Popover.Portal>
+                </Popover.Root>
+              </div>
+              {/* Cancel, then Add — the pair a dialog is expected to end
                 with, and the only visible way out of this one. There is no
                 header and so no ✕, which is deliberate (a title bar would
                 make this a form again), but that left Escape and clicking
                 the scrim as the sole exits — neither of which is visible,
                 and Escape is not reachable on a phone at all.
                 *(added 2026-08-14, on review.)* */}
-            {/* The two actions travel together on the right. The footer
+              {/* The two actions travel together on the right. The footer
                 is `space-between` — the hint or error on the left, the
                 actions on the right — so without this group Cancel would
                 be pushed into the middle of the row, reading as unrelated
                 to the button it belongs with. */}
-            <div className={styles['footerActions']}>
-              <Dialog.Close className={styles['cancel']}>Cancel</Dialog.Close>
-              {/* Enter still submits — this is the same action, reachable
+              <div className={styles['footerActions']}>
+                <Dialog.Close className={styles['cancel']}>Cancel</Dialog.Close>
+                {/* Enter still submits — this is the same action, reachable
                   by a finger. Not disabled when the form is incomplete: a
                   dead button explains nothing, while pressing it produces
                   the message above. *(added 2026-08-14.)* */}
-              <button
-                type="button"
-                className={styles['submit']}
-                onClick={submit}
-              >
-                Add todo
-              </button>
+                <button
+                  type="button"
+                  className={styles['submit']}
+                  onClick={submit}
+                >
+                  Add todo
+                </button>
+              </div>
             </div>
-          </div>
-        </Dialog.Popup>
+          </Dialog.Popup>
+        </div>
       </Dialog.Portal>
     </Dialog.Root>
   )
@@ -718,23 +834,3 @@ function activeListQuery(text: string): string | null {
  * that duplicates the user's own words is worth one guard.
  * *(hardened 2026-08-14, found in review.)*
  */
-function renderDimmed(
-  text: string,
-  tokens: readonly { start: number; end: number }[],
-) {
-  const parts: React.ReactNode[] = []
-  let cursor = 0
-  for (const [index, token] of tokens.entries()) {
-    if (token.end <= cursor) continue
-    const start = Math.max(token.start, cursor)
-    if (start > cursor) parts.push(text.slice(cursor, start))
-    parts.push(
-      <span key={index} className={styles['token']}>
-        {text.slice(start, token.end)}
-      </span>,
-    )
-    cursor = token.end
-  }
-  parts.push(text.slice(cursor))
-  return parts
-}

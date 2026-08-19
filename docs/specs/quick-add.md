@@ -140,17 +140,21 @@ The same applies to the list pill, which writes the token the same way.
 
 ## What the modal looks like
 
-A launcher, in the Alfred/Raycast sense: **one prominent input, a row of
+A launcher, in the Alfred/Raycast sense: **one prominent field, a row of
 pills under it showing what the parse produced, and a footer.**
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Clean the gutters tomorrow at 3pm #chores   │
+│  Clean the front gutters and downpipes       │
+│  before the rain tomorrow at 3pm #chores p1  │
 │  + Notes                                     │
 │  [● Chores ▾] [Tomorrow ▾] [3:00pm ▾] [High ▾]│
 │  ⓘ Keyboard          [ Cancel ] [ Add todo ]│
 └──────────────────────────────────────────────┘
 ```
+
+The field wraps and grows downward; everything below it moves down with
+it.
 
 **The footer carries the only two visible ways out.** There is no header,
 and so no ✕ — a title bar would make this a form again — which left
@@ -183,27 +187,61 @@ type. Removing them would fight the cursor; marking shows what has been
 understood without moving anything.
 
 They are *marked text*, not chips: a tinted `--accent` background at the
-same 12% the preview pills use, square, and with no padding of their own.
-*(changed 2026-08-14: they were dimmed to `--faint`, which read as "this
-part didn't count" when the opposite is true — a mark is the parser
-saying it understood.)*
+same 12% the preview pills use, padded by 2px and 5px and rounded to
+`--radius-sm`. *(changed 2026-08-14: they were dimmed to `--faint`, which
+read as "this part didn't count" when the opposite is true — a mark is the
+parser saying it understood.)*
 
-The mark cannot be padded, and this is a hard constraint rather than a
-preference. What you type into is a real `<input>`; the marks live in a
-shadow layer beneath it holding the same text at the same metrics, and an
-`<input>` cannot pad individual characters. Padding the shadow's tokens
-therefore moves that layer's text and nothing else — measured in review,
-4px of padding plus 2px of margin across three tokens put the caret 34px
-from the glyphs it belonged to, worsening with each token. So the mark is
-drawn with a `box-shadow` spread, which paints outside the inline box
-without contributing layout.
+**The mark is padded because the field is a contenteditable.** It was
+square and unpadded for as long as the field was an `<input>` with a
+shadow layer beneath it, because that arrangement cannot pad a token
+without moving the layer it lives in — the drift was measured at 34px
+across three tokens then, and 52px when re-measured against a wrapping
+`<textarea>` in 2026-08-19. That is a property of the shadow layer rather
+than of the `<input>`, so it survived every variation of the two-layer
+approach and only went away when the second layer did. The marks are now
+real elements in the one element you type into, so padding them moves
+nothing. They carry `box-decoration-break: clone` so a mark broken across
+a line wrap is drawn complete on both lines rather than losing its right
+edge on the first. *(changed 2026-08-19.)*
 
-That spread is **vertical only**. A uniform spread also grows the mark
-sideways by enough to bridge the single space between two tokens: with
-one, `tomorrow at 3pm #Chores p1` left 0.73px between marks and read as a
-single continuous block. Confining it to the y axis leaves the spaces
-unmarked — 4.73px of clear ground — so adjacent tokens read as separate
-marks while the text stays in exact register. *(added 2026-08-14.)*
+Rounding stops at `--radius-sm`. A full `--radius-full` was drawn and
+rejected: it makes the mark the same shape as the preview pill below it,
+and a pill-shaped thing sitting in a line of prose reads as an object you
+could pick up and move, which this is not — it is a run of your own text
+that the parser has understood. *(added 2026-08-19.)*
+
+### The field wraps, and grows
+
+**A long todo wraps onto as many lines as it needs.** The field started as
+a single line that scrolled sideways, and that was wrong in a way that got
+worse the more the feature was used: text ran off the left edge with no
+scrollbar to say so and no way back except walking the caret through it.
+
+**The pills are what made it acute.** They rewrite the text as the single
+source of truth ([the pills are controls](#the-pills-are-controls-and-they-edit-the-text)),
+so choosing "Chores" from a menu can lengthen the line by more than it had
+to spare — the line grew without a keystroke, and the words that fell off
+the front were ones you never chose to hide. A control that hides your text
+as a side effect of doing what you asked is the part that could not stand.
+*(fixed 2026-08-19, reported from use.)*
+
+**The field itself is unbounded and the modal is what yields.** The field
+grows with its content and never scrolls, so no line of a todo is ever out
+of view; the popup takes a `max-height` of `64vh` and scrolls internally
+once the whole modal would otherwise outgrow the viewport. Bounding the
+field instead was drawn and rejected — a cap on the field puts the text
+back behind a scroll edge, which is the thing being fixed, and it does it
+at exactly the length where the todo is hardest to read. Bounding the modal
+moves the scroll to the frame around the text, where the pills and the two
+buttons stay reachable at any length and short todos, which is nearly all
+of them, never see a scrollbar at all.
+
+Wrapping is why the field is a contenteditable rather than a `<textarea>`.
+A textarea wraps perfectly well, and would have been the smaller change,
+but it keeps the shadow layer and therefore keeps the unpadded mark: both
+were measured, and the textarea drifted 52px. Wrapping and a padded mark
+are one change or neither.
 
 **The placeholder is a different example each time it opens**, drawn from
 a list of about eighteen covering the whole grammar between them — bare
@@ -252,6 +290,98 @@ typing. A picker answers every date.
 and is not readable against a single row — and these menus are opened to
 *check* a value as often as to change one.
 
+### The summary has a length, and the modal has a place
+
+**500 characters.** A summary is a *title*; prose belongs in the notes
+field below it. Without a bound, the cost of every keystroke grew with the
+text — the whole line is re-parsed and the marks can be redrawn — measured
+at ~12ms per keystroke at 4,000 characters on a fast machine, so several
+times that on an ordinary one, which is what holding `⌘V` felt like. A
+paste past the limit is **truncated rather than refused**: pasting a
+passage into a title is a slip worth softening, and the first 500
+characters are the part that was wanted. *(added 2026-08-19, reported from
+use.)*
+
+**The modal rises rather than scrolling.** It sits at the launcher height
+while it fits, and moves up as the field grows so the pills and the two
+buttons stay on screen; only a modal taller than the whole viewport
+scrolls, and then the layer around it scrolls rather than the box itself.
+
+A `max-height` with an inner scrollbar was tried first and was wrong in
+three ways at once: it clipped the `#` autocomplete, which is absolutely
+positioned inside the popup; escaping that with fixed positioning detached
+the menu from the field entirely; and it put a scrollbar on the common
+case to serve a rare one. The placement is a collapsible spacer in a flex
+layer — it asks for the launcher height and gives it back as the box
+grows — so there is no measurement to keep in sync and nothing to
+recompute on resize. *(added 2026-08-19, reported from use.)*
+
+### What a contenteditable costs, and what it does not
+
+A contenteditable hands you the rendering you want and takes back the
+editing behaviour an `<input>` gives for free. Each of these is owned code
+with a test behind it rather than something the platform does.
+
+**Undo is preserved by not rewriting the DOM.** Measured 2026-08-19:
+replacing `innerHTML` empties the browser's undo stack, so `⌘Z` after a
+mark re-render does nothing at all, while ordinary typing, typing *inside*
+a mark, and direct text-node writes all leave undo working. The rule that
+falls out of that is **re-render the marks only when the set of tokens
+changes**, never per keystroke. Most keystrokes change no token — typing
+the middle of a word neither creates nor destroys a mark — so the DOM is
+untouched for the great majority of edits and undo behaves natively.
+
+**"Changed" means the marked words, not their offsets.** The first cut
+compared each token's `start` and `end`, which looks equivalent and is
+not: typing anywhere *before* a token shifts every later token along, so a
+keystroke in the middle of the summary counted as a change and redrew. The
+rare case had become the common one, and the guarantee was worth nothing.
+Comparing the marked text instead is what makes the early return fire —
+verified in the browser by tagging the mark elements and typing: the same
+nodes survive. *(fixed 2026-08-19, found in use.)*
+
+**The exception is honest rather than hidden**: the one keystroke that
+completes or breaks a token (the `m` that turns `3p` into `3pm`) does
+re-render, and loses its own undo entry. `⌘Z` from there undoes the
+keystroke before it. This is a real if narrow regression against the old
+`<input>`, it is the residue of a trade made deliberately, and it is
+written down here so the next person to find it knows it was chosen and
+not missed.
+
+**Enter still submits and `Shift+Enter` still belongs to notes.** A
+contenteditable inserts a line break on Enter by default, so both are
+intercepted. The field wrapping does not make it a multi-line *input*: a
+todo summary is one line of text that happens to be drawn on several, and
+there is no key that puts a newline in it.
+
+Writing the test for that found a bug older than this change: the Enter
+branch did not check `shiftKey`, so **Shift+Enter from the summary
+submitted the todo**. The `<input>` hid it — the field cleared as the
+modal closed, so it read as a shortcut that did nothing rather than as an
+accidental submit — and the wrapping field, which keeps its text visible
+through the close, is what made it obvious. *(fixed 2026-08-19.)*
+
+**Paste is forced to plain text.** A contenteditable pastes HTML by
+default, with the source's fonts, colours and markup intact — paste a
+sentence from a web page into an unguarded one and you get its stylesheet.
+The handler takes `text/plain` and inserts that.
+
+**The caret is addressed by text offset**, the same unit `replaceToken`
+already works in, translated to and from a DOM `Range` at the edges. The
+`<input>`'s `setSelectionRange` has no equivalent here. Verified that an
+offset survives a mark re-render unchanged (20 → 20).
+
+**The placeholder is drawn by CSS** on the empty state, since
+`::placeholder` applies to form controls only.
+
+**Focus on open is explicit.** `autoFocus` is a form-control attribute and
+does nothing here, so without an effect the modal opened with focus still
+on the button that opened it and the first thing typed went nowhere.
+Likewise a caret a pill asks for is placed *and* focused: the menu that
+requested it is still closing and holds focus for a frame after the modal
+calls `focus()`, so gating on "is the field focused right now" dropped the
+caret to the start of the line. *(both found in the browser 2026-08-19.)*
+
 ### Notes
 
 The grammar deliberately does not cover notes: prose does not belong on a
@@ -262,10 +392,12 @@ It is collapsed until asked for, so the common case is still one field.
 deliberate act, and Tab means "move to the next control", not "create one".
 Activating it, by pointer or by Enter/Space, focuses the field.
 
-The field is styled as the summary input's smaller sibling — no border, no
+The field is styled as the summary field's smaller sibling — no border, no
 focus ring, transparent — because two framed fields stacked would be the
 form this modal exists to replace. It **grows and shrinks with its
-content** and has no resize handle.
+content** and has no resize handle. It stays an ordinary `<textarea>`:
+notes are prose with nothing to mark in them, so none of the reasons the
+summary field gave up being a form control apply here.
 
 ### The footer
 
@@ -432,9 +564,21 @@ preset.)*
 - `todos/quick-add-preview/` — the interpretation line, which arranges
   those pills and says what each does when chosen.
 - `todos/lib/quick-add-labels.ts` — the date and time label formatters.
+- `todos/quick-add-field/` — the editable itself: the contenteditable, the
+  mark rendering, and the key and paste handling that a form control would
+  otherwise have given for free. It takes a string and calls back with a
+  string, and knows nothing about the grammar, the pills or the modal.
+- `todos/lib/editable-caret.ts` — the two pure functions that convert
+  between a caret offset in the plain text and a DOM `Range`, plus the
+  predicate that decides whether a token set has changed enough to warrant
+  a re-render. Pure and DOM-only, so they are unit-testable without React.
 
 *(split 2026-08-15: `quick-add-modal.tsx` had reached 1257 lines, four
-times the ~300-line soft ceiling in CLAUDE.md.)*
+times the ~300-line soft ceiling in CLAUDE.md. Split again 2026-08-19: the
+field came out as its own component rather than growing the modal back
+past the ceiling it had just been brought under, and because an editing
+surface with its own keyboard, paste and caret rules is a second concern
+by any reading.)*
 - `todos/add-todo-trigger/` — the in-list ghost row, which opens the same
   modal with `defaultListId` set.
 
@@ -456,6 +600,14 @@ depends on the day it runs ([testing](./testing.md)):
 - `isCertain('hour')` maps to the right due kind, all-day vs timed;
 - an empty summary after stripping is refused.
 
+The caret and re-render helpers are unit tested too, against a real DOM
+rather than a mock, since what is being asserted *is* DOM behaviour: an
+offset survives a round trip through a `Range` and back, an offset inside
+a mark resolves into that mark's text node rather than beside it, and the
+re-render predicate says no for a keystroke that leaves the token set
+alone and yes for one that changes it. That predicate is what keeps undo
+native, so it is the piece worth pinning down.
+
 E2E owns the wiring, not the grammar — `e2e/tests/quick-add.spec.ts`, one
 spec rather than a re-enumeration of the parser cases:
 
@@ -467,7 +619,13 @@ spec rather than a re-enumeration of the parser cases:
 - notes are deliberate — they do not open by tabbing;
 - the preview pills use the annotation face, not the reader's serif;
 - the pill menus and the help popover are styled and paint above the
-  modal.
+  modal;
+- **a long line wraps instead of scrolling away**: the field is taller
+  than one line, the first word typed is still on screen, and the buttons
+  are still clickable. This is the regression the whole change exists to
+  prevent, and it is asserted on geometry rather than on a class name;
+- Enter submits from a wrapped line rather than adding a fifth line to it,
+  and pasted text arrives as plain text.
 
 That last one is regression coverage, not a design assertion. Eight
 classes were once deleted from the stylesheet by a bad edit and nothing

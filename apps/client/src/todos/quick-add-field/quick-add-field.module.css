@@ -1,0 +1,86 @@
+/* docs/specs/quick-add.md — the field wraps, and grows.
+   See quick-add-field.tsx. */
+
+/* The line you type a todo into.
+ *
+ * One element, not two. It was an `<input>` under a shadow layer holding
+ * the same text at the same metrics, which is what made the marks
+ * unpaddable: padding a token in the shadow moved that layer's text and
+ * nothing else. A contenteditable has no second layer to fall out of
+ * register with, so the marks below can be drawn as marks rather than as
+ * a box-shadow trick.
+ *
+ * It wraps and grows without bound — no `max-height`, no scrolling. A cap
+ * here would put the text back behind a scroll edge, which is the thing
+ * this change exists to remove; the *modal* carries the cap instead
+ * (quick-add-modal.module.css — `.popup`), so the pills and the buttons
+ * stay reachable while every line of the todo stays visible. */
+.field {
+  font: inherit;
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  padding: var(--space-2);
+  border: 0;
+  /* No focus ring, matching the notes field below it and the `<input>` this
+     replaced.
+   *
+     The global `:focus-visible` rule (styles/global.css) draws a 2px accent
+     outline on anything focusable, and exempts `input`, `select` and
+     `textarea` — the elements that carry a border to change instead. A
+     contenteditable `div` is in none of those lists, so it picked up a ring
+     the old field never had, around the one element in this modal that is
+     always focused the moment it opens. Two framed fields stacked is the
+     form this modal exists to replace.
+     *(added 2026-08-19, reported from use.)* */
+  outline: none;
+  color: var(--ink);
+  caret-color: var(--ink);
+  /* `pre-wrap` keeps the runs of spaces someone types between tokens, and
+     wraps at the edge. `break-word` is the guard against a single
+     unbroken 200-character string — a pasted URL — widening the modal
+     past the viewport instead of breaking. */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  /* An empty field is still a line tall, so the modal does not jolt when
+     the first character lands. */
+  min-height: calc(1.5 * var(--text-lg));
+}
+
+.field:focus-visible {
+  outline: none;
+}
+
+/* The placeholder, drawn rather than declared: `::placeholder` applies to
+   form controls, and this is not one. `:empty` is exactly right here —
+   the element holds one text node while it has any text at all, and none
+   when it does not. */
+.field:empty::before {
+  content: attr(data-placeholder);
+  color: var(--faint);
+  /* Without this the caret sits *after* the placeholder rather than at
+     the start of the line. */
+  pointer-events: none;
+}
+
+/* A recognised token: *marked* text, not a chip.
+ *
+ * Padded and softly rounded, which the shadow-layer arrangement could not
+ * do at any price — see the spec. `--radius-sm` rather than
+ * `--radius-full`: a pill-shaped run of words sitting in a line of prose
+ * reads as an object you could pick up and move, and this is your own
+ * text that the parser has understood, not a chip.
+ *
+ * Tinted `--accent` at the same 12% the preview pills use: the mark and
+ * the pill below it are two views of one token, so they share a hue. */
+.token {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  /* A mark that wraps across two lines is drawn complete on both. Without
+     this the padding and the rounded corners are applied to the whole
+     inline box once, so the fragment on the second line loses its left
+     edge and the first loses its right. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
