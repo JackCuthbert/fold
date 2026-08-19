@@ -460,4 +460,15 @@ describe('regressions', () => {
     expect(result.listId).toBe('s')
     expect(result.summary).toBe('Buy milk')
   })
+
+  it('takes a day from one phrase and a time from another', () => {
+    // Reported from use 2026-08-19: "next week when 3pm" set the week and
+    // silently dropped the time, leaving "3pm" sitting in the summary
+    // describing a due the todo did not have. Only the first chrono match
+    // per segment was read, so the second was thrown away before the day
+    // and time could be taken from different phrases.
+    const result = parseQuickAdd('Call them next week when 3pm', [], NOW)
+    expect(result.due).toEqual({ date: '2026-08-21', time: '15:00' })
+    expect(result.summary).toBe('Call them when')
+  })
 })

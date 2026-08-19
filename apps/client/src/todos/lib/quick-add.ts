@@ -281,58 +281,69 @@ export function parseQuickAdd(
   // is reported and no date text is stripped from the summary
   // (see `QuickAddOptions.noDates`).
   for (const segment of options.noDates ? [] : gapsBetween(text, tokens)) {
-    const [parsed] = chrono.parse(segment.text, now, { forwardDate: true })
-    if (!parsed) continue
-    const start = parsed.start
-    // **"Now" is not a due date.** A todo scheduled for this instant is
-    // overdue as soon as it exists, which nobody means, so a match that
-    // resolves to the reference instant is discarded rather than written.
-    //
-    // This also removes a whole family of false positives rather than
-    // listing them. chrono's casual parser reads a determiner followed by
-    // a unit letter — "the s", "a s", "the m" — as *now*, so typing "sort
-    // out the shed" invented a due date of today at the current minute the
-    // moment "the s" was on screen, then took those words out of the
-    // summary. Every one of those resolves to the reference instant, so
-    // one rule about meaning catches them all; matching the phrases would
-    // have been a list that the next casual pattern escapes.
-    // *(added 2026-08-14, found in review.)*
-    if (isNow(start, now)) continue
-    // The same family, for the few that land a minute out rather than on
-    // the instant — see `isPhantomDate`.
-    if (isPhantomDate(parsed.text)) continue
-    // `isCertain('hour')` is the all-day/timed distinction
-    // (docs/specs/todos.md — due times): a date chrono inferred rather
-    // than read is not a time the user asked for.
-    const namesTime = start.isCertain('hour')
-    if (namesTime) clock ??= start.date()
-    // A bare time ("3pm") also resolves to a day — today's — which must
-    // not outrank an explicit one stated elsewhere in the line. Only a
-    // match that actually names a day sets it.
-    const namesDay =
-      start.isCertain('day') ||
-      start.isCertain('weekday') ||
-      start.isCertain('month')
-    if (namesDay) day ??= start.date()
-    // **A match that sets nothing is not a match.** chrono recognises
-    // spans that name no date component at all — "this week" and "this
-    // year" both come back with an empty `knownValues` — so neither of
-    // the two branches above fires. Highlighting it anyway marked the
-    // words and then took them out of the summary, leaving a todo that
-    // had lost "this week" and gained no due date.
-    //
-    // "This week" is ambiguous in any case: chrono resolves it to
-    // tomorrow, which is nobody's reading of it. Leaving the words in the
-    // title is the honest outcome.
-    // *(added 2026-08-17, reported from use.)*
-    if (!namesDay && !namesTime) continue
-    // Offset back into the original string, since chrono indexed the
-    // segment rather than the whole line.
-    tokens.push({
-      kind: 'date',
-      start: segment.offset + parsed.index,
-      end: segment.offset + parsed.index + parsed.text.length,
-    })
+    // **Every match in the segment, not just the first.** `day` and
+    // `clock` are separate for exactly this case — a line can name a day
+    // in one phrase and a time in another — but taking only
+    // `chrono.parse(...)[0]` threw the second away before either could see
+    // it. "next week when 3pm" set the week and dropped the time, leaving
+    // "3pm" in the summary reporting a due the todo did not have. The
+    // `??=` below still means the first day and the first time win, which
+    // is the rule that was always intended.
+    // *(fixed 2026-08-19, reported from use.)*
+    for (const parsed of chrono.parse(segment.text, now, {
+      forwardDate: true,
+    })) {
+      const start = parsed.start
+      // **"Now" is not a due date.** A todo scheduled for this instant is
+      // overdue as soon as it exists, which nobody means, so a match that
+      // resolves to the reference instant is discarded rather than written.
+      //
+      // This also removes a whole family of false positives rather than
+      // listing them. chrono's casual parser reads a determiner followed by
+      // a unit letter — "the s", "a s", "the m" — as *now*, so typing "sort
+      // out the shed" invented a due date of today at the current minute the
+      // moment "the s" was on screen, then took those words out of the
+      // summary. Every one of those resolves to the reference instant, so
+      // one rule about meaning catches them all; matching the phrases would
+      // have been a list that the next casual pattern escapes.
+      // *(added 2026-08-14, found in review.)*
+      if (isNow(start, now)) continue
+      // The same family, for the few that land a minute out rather than on
+      // the instant — see `isPhantomDate`.
+      if (isPhantomDate(parsed.text)) continue
+      // `isCertain('hour')` is the all-day/timed distinction
+      // (docs/specs/todos.md — due times): a date chrono inferred rather
+      // than read is not a time the user asked for.
+      const namesTime = start.isCertain('hour')
+      if (namesTime) clock ??= start.date()
+      // A bare time ("3pm") also resolves to a day — today's — which must
+      // not outrank an explicit one stated elsewhere in the line. Only a
+      // match that actually names a day sets it.
+      const namesDay =
+        start.isCertain('day') ||
+        start.isCertain('weekday') ||
+        start.isCertain('month')
+      if (namesDay) day ??= start.date()
+      // **A match that sets nothing is not a match.** chrono recognises
+      // spans that name no date component at all — "this week" and "this
+      // year" both come back with an empty `knownValues` — so neither of
+      // the two branches above fires. Highlighting it anyway marked the
+      // words and then took them out of the summary, leaving a todo that
+      // had lost "this week" and gained no due date.
+      //
+      // "This week" is ambiguous in any case: chrono resolves it to
+      // tomorrow, which is nobody's reading of it. Leaving the words in the
+      // title is the honest outcome.
+      // *(added 2026-08-17, reported from use.)*
+      if (!namesDay && !namesTime) continue
+      // Offset back into the original string, since chrono indexed the
+      // segment rather than the whole line.
+      tokens.push({
+        kind: 'date',
+        start: segment.offset + parsed.index,
+        end: segment.offset + parsed.index + parsed.text.length,
+      })
+    }
   }
 
   // A time with no day means today — chrono's own reading, and the one a

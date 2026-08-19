@@ -381,6 +381,14 @@ became a todo called "Do the thing", due never.
 have set. Leaving the words in the title is the honest outcome: the todo
 says what you typed. *(fixed 2026-08-17, reported from use.)*
 
+**A day and a time can come from different phrases.** "Call them next
+week when 3pm" sets both, because the day and the time are tracked
+separately and the first of each wins. Only the first chrono match in a
+segment used to be read, so the second was discarded before either could
+be taken from it — the line above set the week, dropped the time, and left
+"3pm" in the summary describing a due the todo did not have.
+*(fixed 2026-08-19, reported from use.)*
+
 **Offline** changes nothing. The parse is entirely client-side, and the
 created todo queues through the outbox like any other
 ([sync-and-offline](./sync-and-offline.md)).
