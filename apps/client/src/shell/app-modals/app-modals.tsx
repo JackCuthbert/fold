@@ -1,3 +1,4 @@
+import { CommandPalette } from '../../commands/command-palette/command-palette'
 import { ConfirmDialog } from '../../ui'
 import { HelpModal } from '../../help/help-modal/help-modal'
 import { ListFormModal } from '../../lists/list-form-modal/list-form-modal'
@@ -47,6 +48,15 @@ export function AppModals() {
         onOpenChange={overlays.setSettingsOpen}
       />
       <HelpModal open={overlays.helpOpen} onOpenChange={overlays.setHelpOpen} />
+      {/* The palette runs commands through the shell's own shortcut
+          dispatcher rather than performing them itself — one place
+          decides what "new todo" means, whether a chord or a row asked
+          for it (docs/specs/command-palette.md). */}
+      <CommandPalette
+        open={overlays.paletteOpen}
+        onOpenChange={overlays.setPaletteOpen}
+        onRun={overlays.runCommand}
+      />
       {/* docs/specs/list-filter.md — asking before every hidden list
           reappears. A sibling of the drawer for the same reason Settings
           is: it is opened from inside the nav, which is a Dialog on

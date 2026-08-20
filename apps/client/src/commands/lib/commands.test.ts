@@ -12,7 +12,9 @@ describe('COMMANDS', () => {
   it('gives every command a name and a group', () => {
     for (const command of COMMANDS) {
       expect(command.name.length, command.id).toBeGreaterThan(0)
-      expect(['create', 'go', 'app'], command.id).toContain(command.group)
+      expect(['create', 'view', 'list', 'app'], command.id).toContain(
+        command.group,
+      )
     }
   })
 

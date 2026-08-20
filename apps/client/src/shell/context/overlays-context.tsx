@@ -1,4 +1,5 @@
 import { createContext, use, type ReactNode, type RefObject } from 'react'
+import type { CommandId } from '../../commands/lib/commands'
 import type { ListFormState } from '../../lists/hooks/use-list-form'
 import type { useGlobalAddTodo } from '../../todos/hooks/use-global-add-todo'
 
@@ -10,6 +11,14 @@ export interface Overlays {
   setSettingsOpen: (open: boolean) => void
   helpOpen: boolean
   setHelpOpen: (open: boolean) => void
+  /** The command palette (docs/specs/command-palette.md, issue #26). */
+  paletteOpen: boolean
+  setPaletteOpen: (open: boolean) => void
+  /**
+   * Perform a command — the same dispatcher the shortcut map runs on, so a
+   * chord and a palette row cannot come to mean different things.
+   */
+  runCommand: (command: CommandId) => void
   /** The "show every hidden list?" confirmation. */
   revealing: boolean
   setRevealing: (revealing: boolean) => void

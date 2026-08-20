@@ -1,0 +1,264 @@
+/* docs/specs/command-palette.md — what it looks like.
+   See command-palette.tsx.
+
+   Deliberately the same geometry as quick add (todos/quick-add-modal): the
+   same width, the same launcher height, the same rise-into-place. They are
+   the app's two `Ctrl`-summoned surfaces and should feel like one family —
+   a palette that landed somewhere else, at another size, would read as a
+   different kind of thing rather than the sibling it is. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--scrim);
+  /* Stacked, like quick add's: the palette opens from inside the nav
+     drawer on mobile, and a base-level scrim would dim the wrong layer. */
+  z-index: var(--z-overlay-stacked-scrim);
+  transition: opacity var(--duration-base) var(--ease);
+}
+
+.backdrop[data-starting-style],
+.backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.popup {
+  position: fixed;
+  top: 18vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-overlay-stacked);
+  width: min(34rem, calc(100vw - 2 * var(--space-4)));
+  /* Capped rather than unbounded, unlike quick add's field: this is a
+     *list*, and a list of thirty lists has to stop somewhere. The scroll
+     is on `.list` below rather than here, so the field and the hint line
+     stay put while the rows move under them. */
+  max-height: min(28rem, 64vh);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.18));
+  overflow: hidden;
+  transition:
+    opacity var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-0.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .popup {
+    transition: none;
+  }
+
+  .popup[data-starting-style],
+  .popup[data-ending-style] {
+    transform: translateX(-50%);
+  }
+}
+
+/* The field: borderless and transparent, exactly like quick add's
+   (todos/quick-add-field). A framed input inside a framed popup is two
+   boxes saying the same thing, and the popup is already the frame.
+ *
+   The rule between the field and the list is drawn by `.list` below, not
+   here. It looks the same either way, but it belongs to the list: a border
+   on the *input* is a border on a control, which is what a focus ring then
+   has something to change — and the field is focused the whole time this
+   is open. *(changed 2026-08-20, on review.)* */
+.field {
+  flex: none;
+  font: inherit;
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  padding: var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+}
+
+/* The global `:focus-visible` rule (styles/global.css) turns an input's
+   *border* accent on focus. This field has no border to turn, and gaining
+   one the moment it is focused — which is always, since it autofocuses on
+   open — would put back the frame the rule above removes. */
+.field:focus,
+.field:focus-visible {
+  border: 0;
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--faint);
+}
+
+/* The divider between the field and the rows, matching the one above the
+   hint line at the foot — the two frame the scrolling middle of the popup
+   and should be the same weight. Drawn here rather than under the field so
+   that no control carries a border of its own (see `.field`). */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--line);
+}
+
+/* A quiet heading, carrying the verb so the rows beneath it do not have
+   to: "Today" under "Go to" rather than "Go to Today" thirty times. */
+.heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-family: var(--meta);
+  font-size: var(--text-xs, 11px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--hit-area);
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* One highlight, driven by the keyboard *and* the pointer — hovering sets
+   the active index (command-palette.tsx), so there is never a hover state
+   and a selected state disagreeing about which row Enter would run. */
+.rowActive {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* The list colour dot, composed from the one place its *shape* is defined
+   (lists/list-dot.module.css) — the nav's dot and this one are the same
+   mark, not two similar circles.
+ *
+   The shared rule sets the size and the radius but paints nothing: every
+   caller supplies its own ground, because the nav draws an 8px dot inside
+   a 16px footprint (via `::after`) while this one and the pane title are
+   the dot itself. `--marker` is the property `colourVar` writes, so the
+   colour arrives the same way it does everywhere else.
+ *
+   Sized to sit in the icons' column, so a list row and a view row start
+   at the same left edge. */
+.dot {
+  composes: dot from '../../lists/list-dot.module.css';
+  --dot-size: 0.65rem;
+  margin-inline: 0.175rem;
+  background: var(--marker);
+}
+
+.dotEmpty {
+  composes: dotEmpty from '../../lists/list-dot.module.css';
+}
+
+.icon {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted);
+}
+
+.rowActive .icon {
+  color: var(--accent);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chord {
+  flex: none;
+  /* Dimmer than the name it sits beside: it is a note about a faster route,
+     not part of the row's own label. */
+  opacity: 0.65;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-4) var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.hints {
+  flex: none;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--line);
+  font-family: var(--meta);
+  font-size: var(--text-xs, 11px);
+  color: var(--faint);
+}
+
+.hints kbd {
+  display: inline-block;
+  margin-inline-end: 2px;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+}
+
+/* The keys are spelled out as words ("Up", "Enter") rather than drawn as
+   ↑ or ↵, so the caps size themselves to their text. `ShortcutKeys` sets
+   that precedent — it prints "Shift" as a word and reserves glyphs for the
+   two modifier keys that ship as icons — and nothing else in the app draws
+   an arrow or a return symbol as a keycap.
+   *(changed 2026-08-20, on review.)* */
+
+/* **Nothing about keys on a touch device.** There is no keyboard to press
+   `Ctrl+Shift+1` on, so both the hint line and the per-row chords document
+   controls that do not exist — the same call quick add makes, where the
+   Keyboard trigger is gone entirely on touch rather than merely quieter
+   (docs/specs/quick-add.md — the footer).
+ *
+   The chords are the more misleading of the two: a keycap beside a row
+   reads as *how you run this*, and on a phone the answer is to tap it.
+   *(added 2026-08-20, on review — the hint line was hidden and these were
+   not.)* */
+@media (pointer: coarse) {
+  .hints,
+  .chord {
+    display: none;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

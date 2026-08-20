@@ -32,11 +32,21 @@ Nine kinds of action. The list is deliberately closed — see
 |---|---|---|
 | Create | New todo | `N` |
 | Create | New list | `Ctrl+Shift+N` |
-| Go to | Today, Tomorrow, Next 7 days, Summary, Search | `Ctrl+Shift+1`–`5` |
-| Go to | *each list, by name* | no |
+| Go to view | Today, Tomorrow, Next 7 days, Summary, Search | `Ctrl+Shift+1`–`5` |
+| Go to list | *each list, by name* | no |
 | App | Settings | no |
 | App | Help | `Ctrl+/` |
-| App | Sign out | no |
+
+**Views and lists are separate groups**, not one "Go to". They are
+different kinds of destination: the views are fixed, chorded and identical
+in every install, while the lists are the user's own data — renamed,
+reordered and deleted at will. Under one heading a nav's worth of list
+names read as more views. *(split 2026-08-20, on review.)*
+
+**A list wears its own colour dot**, the same mark the nav gives it
+([lists](./lists.md) — colours), rather than a generic icon. The palette is
+a second route to the same place, so a list should not look like a
+different kind of thing in it. *(added 2026-08-20, on review.)*
 
 **Lists are generated at runtime**, from the lists themselves rather than
 from a hand-written entry per list. Creating a list adds it to the palette
@@ -125,7 +135,15 @@ With a dozen lists the flat form is a wall of rows all beginning the same
 way, which is the noise the headings remove. A group whose rows are all
 filtered out hides its heading with them.
 
-**Each row shows its chord, where it has one.** The palette is the slower
+**Each row shows its chord, where it has one — on a pointer device.** On
+touch both the chords and the hint line at the foot are gone entirely,
+because there is no keyboard to press them on: a keycap beside a row reads
+as *how you run this*, and on a phone the answer is to tap it. The same
+call quick add makes with its Keyboard trigger. Keyed on `pointer: coarse`
+rather than a width, since what is being asked is whether a keyboard
+exists, not how wide the window is. *(added 2026-08-20, on review.)*
+
+ The palette is the slower
 path by definition — anyone who knows the chord uses the chord — so showing
 the chord beside the action teaches the faster path while you use the
 slower one. Rows for lists show nothing there, which is honest: they have
@@ -184,7 +202,21 @@ that cannot arise. *(settled 2026-08-20.)*
 
 ## On touch
 
-**Two floating buttons, bottom-right: New todo, and Commands.** There is no
+**Two floating buttons, bottom-right: Todo, and Commands.** Labelled
+rather than icon-only — two floating circles are a guessing game, and a
+terminal prompt says nothing on its own. Set in the sans, like every other
+control.
+
+Not `LuCommand`, which is the ⌘ glyph: the app binds `Ctrl` on every
+platform and refuses `metaKey` outright ([ui.md](./ui.md) — keyboard
+shortcuts), so an icon naming the one modifier it does not use would be
+wrong on a Mac and meaningless elsewhere. *(changed 2026-08-20, on
+review.)*
+
+Hidden above 768px, which is a question about **width** rather than about
+the pointer: below that the sidebar collapses into a drawer, so the two
+things done most often sit behind a gesture. A touch laptop at full width
+keeps its sidebar and needs no floating shortcut to it. There is no
 keyboard to press `Ctrl+K` on, so the palette needs a surface of its own,
 and the same gesture problem applies to quick add — the nav drawer holds
 both today, which means opening a drawer to reach the two things you do
