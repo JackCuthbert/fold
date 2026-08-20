@@ -325,7 +325,7 @@ export const uniqueName = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
 
 export async function createList(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await page.getByPlaceholder('List name').fill(name)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
 }

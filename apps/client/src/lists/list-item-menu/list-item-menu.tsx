@@ -1,5 +1,11 @@
 import { Menu } from '@base-ui/react/menu'
-import { LuArrowDown, LuArrowUp, LuPencil, LuTrash2 } from 'react-icons/lu'
+import {
+  LuArrowDown,
+  LuArrowUp,
+  LuEllipsisVertical,
+  LuPencil,
+  LuTrash2,
+} from 'react-icons/lu'
 import { cx } from '../../styles/cx'
 import styles from './list-item-menu.module.css'
 
@@ -25,7 +31,14 @@ export function ListItemMenu(props: ListItemMenuProps) {
         className={cx(styles['trigger'])}
         aria-label={`Actions for ${props.displayName}`}
       >
-        <span aria-hidden="true">⋮</span>
+        {/* An icon, not the `⋮` character it used to be. As text it drew
+            at the body font's weight — 7×16 of thin ink — beside a 14px
+            sparkle stroked at 2 in the same row, and no size would have
+            reconciled them because one was type and the other a mark.
+            `react-icons/lu` like every other icon in the app (CLAUDE.md),
+            so the two now share a set, a size and a stroke.
+            *(changed 2026-08-20, measured.)* */}
+        <LuEllipsisVertical aria-hidden="true" size={16} />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner

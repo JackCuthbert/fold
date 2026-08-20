@@ -1,8 +1,8 @@
 import { Checkbox } from '@base-ui/react/checkbox'
 import { Popover } from '@base-ui/react/popover'
 import type { TodoList } from '@fold/schemas'
-import { LuCheck, LuListFilter } from 'react-icons/lu'
-import { ConfirmDialog } from '../../ui'
+import { LuCheck, LuEyeOff, LuListFilter } from 'react-icons/lu'
+import { ConfirmDialog, Tooltip } from '../../ui'
 import { cx } from '../../styles/cx'
 import { colourVar } from '../lib/list-color'
 import { isNarrowed, type ListFilter, visibleLists } from '../lib/list-filter'
@@ -36,6 +36,13 @@ export function HiddenListsRow(props: HiddenListsRowProps) {
   if (hidden === 0) return null
   return (
     <button type="button" className={styles['hidden']} onClick={props.onReveal}>
+      {/* An icon so the text starts on the same edge as every row above
+          it: without one this row's words began where their names do,
+          against icons and colour dots, and the column had a notch in it.
+          `LuEyeOff` for what the row reports — lists hidden from view —
+          and clicking it is what takes the eye-off away.
+          *(added 2026-08-20.)* */}
+      <LuEyeOff aria-hidden="true" size={16} />
       {hidden} {hidden === 1 ? 'list' : 'lists'} hidden
     </button>
   )
@@ -113,6 +120,16 @@ export function RevealListsDialog(props: RevealListsDialogProps) {
  * (or nothing) is noise.
  */
 interface ListFilterMenuProps {
+  /**
+   * Hide the "a filter is on" badge, leaving the accent-coloured icon to
+   * say it alone.
+   *
+   * For the nav's Lists heading, where the button is 24px on a pointer
+   * rather than the 34–44px the badge was sized against — at that size an
+   * 8px dot and its halo cover most of the glyph they are meant to
+   * qualify. *(added 2026-08-20.)*
+   */
+  hideBadge?: boolean
   lists: readonly TodoList[]
   filter: ListFilter
   onToggle: (listId: string) => void
@@ -130,25 +147,35 @@ export function ListFilterMenu(props: ListFilterMenuProps) {
 
   return (
     <Popover.Root>
-      <Popover.Trigger
-        className={cx(styles['trigger'], narrowed && styles['triggerOn'])}
-        // An icon button, so the name carries everything — including the
-        // count, which a screen reader would otherwise never get. The
-        // "N lists hidden" row below the lists is what states it visually.
-        aria-label={
-          narrowed
-            ? `Filter lists — showing ${shown} of ${props.lists.length}`
-            : 'Filter lists'
-        }
-      >
-        <LuListFilter aria-hidden="true" size={16} />
-        {/* A filter is on. The "N lists hidden" row says the same thing
-            in words, but it is at the *other end* of the nav — below the
-            lists, where the missing rows were — so from up here the dot
-            is the only thing carrying it. *(re-added 2026-08-05, once the
-            trigger moved to the title row and the two were far apart.)* */}
-        {narrowed && <span className={styles['dotOn']} aria-hidden="true" />}
-      </Popover.Trigger>
+      {/* The tooltip wraps the *trigger*, and Base UI composes the two
+          onto one button via `render` — so the popover's own trigger
+          behaviour is untouched and no extra element enters the heading
+          row, which measures its buttons for the kebab column.
+          *(added 2026-08-20.)* */}
+      <Tooltip label="Filter lists">
+        <Popover.Trigger
+          className={cx(styles['trigger'], narrowed && styles['triggerOn'])}
+          // An icon button, so the name carries everything — including
+          // the count, which a screen reader would otherwise never get.
+          // The "N lists hidden" row below is what states it visually.
+          aria-label={
+            narrowed
+              ? `Filter lists — showing ${shown} of ${props.lists.length}`
+              : 'Filter lists'
+          }
+        >
+          <LuListFilter aria-hidden="true" size={16} />
+          {/* A filter is on. The "N lists hidden" row says the same thing
+              in words, but it is at the *other end* of the nav — below the
+              lists, where the missing rows were — so from up here the dot
+              is the only thing carrying it. *(re-added 2026-08-05, once
+              the trigger moved to the title row and they were far
+              apart.)* */}
+          {narrowed && !props.hideBadge && (
+            <span className={styles['dotOn']} aria-hidden="true" />
+          )}
+        </Popover.Trigger>
+      </Tooltip>
       <Popover.Portal>
         {/* Anchored by its trailing edge, not centred: the trigger sits
             at the nav's right edge, so a centred popup hung out over the

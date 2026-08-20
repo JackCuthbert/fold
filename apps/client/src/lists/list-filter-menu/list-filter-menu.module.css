@@ -51,8 +51,14 @@
    `data-popup-open` on the trigger for exactly this. */
 .trigger:hover,
 .trigger[data-popup-open] {
-  background: var(--line);
-  border-color: var(--line);
+  /* The same wash every other ghost control in the nav uses, rather than
+     a solid `--line` fill. It sat beside a second heading button for a
+     day and the two hovered to visibly different grounds — one solid, one
+     a 28% mix — which is the kind of difference nobody can name but
+     everybody sees. The mix is the nav's, so the filter joins it.
+     *(changed 2026-08-20.)* */
+  background: color-mix(in srgb, var(--line) 28%, transparent);
+  border-color: transparent;
   color: var(--ink);
 }
 
@@ -109,22 +115,50 @@
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: var(--nav-row);
-  padding-inline: var(--nav-inset);
-  margin-block-start: var(--space-1);
+  /* The same box a list row occupies, so this sits in their rhythm rather
+     than as a differently-shaped note beneath them: same height, same
+     inset, same radius. It was `--radius-md`, `--text-sm` and italic —
+     three ways of being a different kind of thing, from when the rows
+     around it had borders and it had none. Now every row in the nav is
+     plain, the difference has to be smaller: `--faint` ink alone.
+     *(changed 2026-08-20.)* */
+  height: var(--nav-row);
+  /* The same gap the list rows put between a colour dot and a name, so
+     this row's icon and text land on both of their edges. */
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--nav-inset);
   background: none;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--faint);
-  font-size: var(--text-sm);
-  font-style: italic;
+  font-size: var(--text-base);
   cursor: pointer;
   text-align: start;
+  font-style: italic;
 }
 
+/* The icon is upright — only the words lean. An italic glyph is a skewed
+   glyph, which on a 16px line reads as a rendering fault. */
+.hidden > svg {
+  flex: none;
+  font-style: normal;
+}
+
+/* The rows come down on a pointer, and this comes with them (see the note
+   on `.link` in list-nav). */
+@media (hover: hover) and (pointer: fine) {
+  .hidden {
+    height: var(--hit-area);
+  }
+}
+
+/* Ink, and only ink — the same response "New list" gives above it
+   (lists/list-nav — `.newListRow:hover`). The two ghost rows at the foot
+   of the group are a pair, so they answer the pointer the same way: no
+   ground, since a wash would draw the box a list row draws and these are
+   the rows that are not lists. *(changed 2026-08-21.)* */
 .hidden:hover {
-  color: var(--muted);
-  background: color-mix(in srgb, var(--line) 28%, transparent);
+  color: var(--ink);
 }
 
 .hidden:focus-visible {
