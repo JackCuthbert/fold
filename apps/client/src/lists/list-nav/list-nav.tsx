@@ -7,6 +7,7 @@ import {
   LuListPlus,
   LuPlus,
   LuSearch,
+  LuTerminal,
   LuSparkles,
   LuSun,
   LuSunrise,
@@ -21,7 +22,12 @@ import {
   TODAY_VIEW,
   TOMORROW_VIEW,
 } from '../../todos/lib/today'
-import { SHORTCUTS, ShortcutKeys, useModifierHeld } from '../../shortcuts'
+import {
+  SHORTCUTS,
+  ShortcutKeys,
+  shortcutLetter,
+  useModifierHeld,
+} from '../../shortcuts'
 import { useTheme } from '../../hooks/use-theme'
 import { ListItemMenu } from '../list-item-menu/list-item-menu'
 import { colourVar, markerColor } from '../lib/list-color'
@@ -59,6 +65,7 @@ const NEW_TODO_SHORTCUT = SHORTCUTS.find(
 const NEW_LIST_SHORTCUT = SHORTCUTS.find(
   (entry) => entry.command === 'new-list',
 )
+const PALETTE_SHORTCUT = SHORTCUTS.find((entry) => entry.command === 'palette')
 /**
  * How each derived view is drawn in the nav.
  *
@@ -102,6 +109,8 @@ interface ListNavProps {
   form: ListFormState
   /** Open the global add-todo modal (issue #15). */
   onNewTodo: () => void
+  /** Open the command palette (docs/specs/command-palette.md). */
+  onOpenPalette: () => void
   /** So the modal can restore focus here on close (main-screen.tsx). */
   newTodoRef?: RefObject<HTMLButtonElement | null>
   /**
@@ -131,6 +140,12 @@ export function ListNav(props: ListNavProps) {
   // *(added 2026-08-04.)*
   const modifierHeld = useModifierHeld()
 
+  // The chord an icon button cannot print on its face, said in the one
+  // place a pointer will look for it.
+  const paletteTitle = PALETTE_SHORTCUT
+    ? `Commands (Ctrl+${shortcutLetter(PALETTE_SHORTCUT)})`
+    : 'Commands'
+
   // docs/specs/lists.md — reordering writes only the lists that moved:
   // swapping two adjacent lists swaps two numbers, rather than renumbering
   // the whole nav. `reorder` reads the *current* cache rather than the
@@ -157,64 +172,73 @@ export function ListNav(props: ListNavProps) {
 
   return (
     <nav className={styles['nav']} aria-label="Lists">
-      {/* The two "create something" actions, at the very top and set apart
-          from the views below. New todo is issue #15 — creating one from
-          anywhere, including the derived views, which have no "Add a todo"
-          row of their own.
+      {/* The two things reached for constantly, at the very top and set
+          apart from the views below: create a todo (issue #15 — from
+          anywhere, including the derived views, which have no "Add a
+          todo" row of their own), and the palette that reaches everything
+          else.
 
-          They belong together: both open a create modal, and both are
-          things you *do* rather than places you *look*. New list used to
-          sit below the whole list of lists, which made two buttons of the
-          same kind look unrelated. *(grouped 2026-08-04.)*
+          **New list is deliberately not here.** It sat beside New todo
+          from 2026-08-04, grouped on the reasoning that both open a
+          create modal and both are things you *do* rather than places you
+          *look*. True, and not the property that matters: a list is made
+          once and then lived in, so the rarest action in the app held the
+          most prominent place in the nav, and three stacked buttons made
+          the group tall enough to push the views down. It now sits under
+          the lists it makes one of. *(moved back 2026-08-20.)*
 
           Each prints its chord on its own face rather than hiding it in a
           tooltip: a shortcut nobody knows about may as well not exist
           (docs/specs/ui.md — keyboard shortcuts), and the button is where
-          someone reaching for the mouse is already looking. */}
+          someone reaching for the mouse is already looking. The palette's
+          square has no room for one, so its chord is in the `title`. */}
       <div className={styles['create']}>
-        <button
-          ref={props.newTodoRef}
-          type="button"
-          className={styles['newTodo']}
-          onClick={props.onNewTodo}
-        >
-          <LuPlus aria-hidden="true" size={16} />
-          New todo
-          {NEW_TODO_SHORTCUT && (
-            <span
-              className={styles['navKey']}
-              data-revealed={modifierHeld || undefined}
-            >
-              <ShortcutKeys shortcut={NEW_TODO_SHORTCUT} onFilled />
-            </span>
-          )}
-        </button>
-        {/* docs/specs/ui.md — one left edge, including controls: a literal
-            "+ " prefix is text, so it sat at the label's inset rather than
-            on the icon column every other nav row aligns to. A real icon
-            lines up with Settings' gear. The accessible name keeps the
-            "+ New list" wording the e2e suite matches on. */}
-        <button
-          type="button"
-          className={styles['add']}
-          aria-label="+ New list"
-          onClick={props.form.openCreate}
-        >
-          {/* `LuListPlus`, matching the command palette's own row for this
-              action (commands/lib/commands.ts): the two surfaces offer the
-              same thing, so they should not draw it two ways.
+        {/* New todo and the command palette share a line, the second
+            reduced to its icon. Stacked full-width they made this group
+            taller than the views beneath it, which inverted the emphasis:
+            this is a place to start something, not the nav's subject.
+            *(changed 2026-08-20.)* */}
+        <div className={styles['createRow']}>
+          <button
+            ref={props.newTodoRef}
+            type="button"
+            className={styles['newTodo']}
+            onClick={props.onNewTodo}
+          >
+            <LuPlus aria-hidden="true" size={16} />
+            New todo
+            {NEW_TODO_SHORTCUT && (
+              <span
+                className={styles['navKey']}
+                data-revealed={modifierHeld || undefined}
+              >
+                <ShortcutKeys shortcut={NEW_TODO_SHORTCUT} onFilled />
+              </span>
+            )}
+          </button>
+          {/* The command palette, as the square beside New todo.
+           *
+              It sits here rather than New list because of how often each
+              is reached for: the palette is a route to everything, used
+              many times a day, while a list is made once and then lived
+              in. New list moved to the foot of the lists it creates —
+              which is where you look when you want another one.
               *(changed 2026-08-20.)* */}
-          <LuListPlus aria-hidden="true" size={16} />
-          New list
-          {NEW_LIST_SHORTCUT && (
-            <span
-              className={styles['navKey']}
-              data-revealed={modifierHeld || undefined}
-            >
-              <ShortcutKeys shortcut={NEW_LIST_SHORTCUT} />
-            </span>
-          )}
-        </button>
+          <button
+            type="button"
+            className={cx(styles['add'], styles['addIconOnly'])}
+            aria-label="Commands"
+            title={paletteTitle}
+            onClick={props.onOpenPalette}
+          >
+            <LuTerminal aria-hidden="true" size={16} />
+          </button>
+        </div>
+
+        {/* The same short rule that divides the views from the lists, used
+          again above them: the create pair is a third kind of thing, and
+          the space alone was not saying so. *(added 2026-08-20.)* */}
+        <hr className={styles['separator']} />
       </div>
 
       {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
@@ -357,6 +381,31 @@ export function ListNav(props: ListNavProps) {
           </li>
         ))}
       </ul>
+
+      {/* **New list, under the lists it makes one of.**
+       *
+          It used to head the nav beside New todo, which put the rarest
+          action in the app in its most prominent place — and made the
+          create group tall enough to push the views down. Here it reads
+          as the end of the list of lists, which is where you look when
+          you want another one. *(moved 2026-08-20.)* */}
+      <button
+        type="button"
+        className={styles['add']}
+        aria-label="+ New list"
+        onClick={props.form.openCreate}
+      >
+        <LuListPlus aria-hidden="true" size={16} />
+        New list
+        {NEW_LIST_SHORTCUT && (
+          <span
+            className={styles['navKey']}
+            data-revealed={modifierHeld || undefined}
+          >
+            <ShortcutKeys shortcut={NEW_LIST_SHORTCUT} />
+          </span>
+        )}
+      </button>
 
       {/* docs/specs/list-filter.md — what the filter is hiding, right
           where the hidden rows would have been. *(added 2026-08-05.)* */}

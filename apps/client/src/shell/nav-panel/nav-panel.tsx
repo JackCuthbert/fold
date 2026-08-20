@@ -63,6 +63,7 @@ export function NavPanel() {
           filter={filter.filter}
           onRevealLists={() => overlays.setRevealing(true)}
           onNewTodo={() => overlays.globalAdd.setOpen(true)}
+          onOpenPalette={() => overlays.setPaletteOpen(true)}
           onSelect={(listId) =>
             overlays.openOverDrawer(() => selection.select(listId))
           }
