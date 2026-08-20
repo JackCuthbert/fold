@@ -467,7 +467,45 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  /* No bottom margin: the separator below owns that space now, exactly as
+     it does between the views and the lists. Keeping both doubled the gap.
+     *(changed 2026-08-20.)* */
+}
+
+/* New todo and New list, side by side. The pair carries its own hierarchy
+   already (the accent fill against the neutral), and putting them on one
+   line keeps the create group from standing taller than the views it sits
+   above. *(added 2026-08-20.)* */
+.createRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.createRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* No label, so the button is a square: its own height, 1:1, with the icon
+   centred. `aspect-ratio` rather than a fixed width, so it tracks whatever
+   height the row's padding gives the button beside it — the two stay the
+   same height without either being told what that is.
+   *(changed 2026-08-20: a `--hit-area` width plus the keycap made this the
+   wide one of the pair and squashed New todo to a sliver.)* */
+/* `.createRow` in the selector to raise specificity, not for scoping.
+ *
+   `.add` composes `navAction`, whose `width: 100%` serves the full-width
+   nav buttons this one is no longer among. That rule is injected after
+   this file's, so at equal specificity it wins on order and the button
+   stayed 273px wide against New todo's 30px — measured. One extra class
+   settles it without touching the shared button styles, which the footer
+   and Settings still rely on. *(fixed 2026-08-20.)* */
+.createRow .addIconOnly {
+  flex: none;
+  justify-content: center;
+  width: auto;
+  aspect-ratio: 1;
+  padding-inline: 0;
 }
 
 /* "New todo" — the global add path (issue #15). Given the accent fill
