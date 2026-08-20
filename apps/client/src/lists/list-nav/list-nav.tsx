@@ -4,6 +4,7 @@ import type { IconType } from 'react-icons'
 import {
   LuCalendarRange,
   LuHistory,
+  LuListPlus,
   LuPlus,
   LuSearch,
   LuSparkles,
@@ -199,7 +200,11 @@ export function ListNav(props: ListNavProps) {
           aria-label="+ New list"
           onClick={props.form.openCreate}
         >
-          <LuPlus aria-hidden="true" size={16} />
+          {/* `LuListPlus`, matching the command palette's own row for this
+              action (commands/lib/commands.ts): the two surfaces offer the
+              same thing, so they should not draw it two ways.
+              *(changed 2026-08-20.)* */}
+          <LuListPlus aria-hidden="true" size={16} />
           New list
           {NEW_LIST_SHORTCUT && (
             <span

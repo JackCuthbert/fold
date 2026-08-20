@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ModalHeader } from '../../ui'
-import { commandById } from '../../commands/lib/commands'
+import {
+  commandById,
+  commandPhrase,
+  type CommandId,
+} from '../../commands/lib/commands'
 import { SHORTCUTS, ShortcutKeys } from '../../shortcuts'
 import { cx } from '../../styles/cx'
 import { useVersion } from '../use-version'
@@ -160,6 +164,12 @@ function VersionSection(props: VersionSectionProps) {
   )
 }
 
+/** What this chord does, as the whole phrase a shortcut list wants. */
+function phraseFor(command: CommandId): string {
+  const found = commandById(command)
+  return found ? commandPhrase(found) : command
+}
+
 export function HelpModal(props: HelpModalProps) {
   // This is the only modal in the app whose body genuinely scrolls, and Base
   // UI's default initial focus is the first tabbable element — which was
@@ -208,7 +218,7 @@ export function HelpModal(props: HelpModalProps) {
                         disagree about what an action is called.
                         *(changed 2026-08-20, issue #26.)* */}
                     <dd className={styles['shortcutName']}>
-                      {commandById(shortcut.command)?.name ?? shortcut.command}
+                      {phraseFor(shortcut.command)}
                     </dd>
                   </div>
                 ))}

@@ -123,6 +123,20 @@ const BASE_SHORTCUTS: readonly Shortcut[] = [
     shift: true,
   },
   {
+    // **K, the near-universal quick-action chord** (Linear, Slack, Notion,
+    // GitHub). Reserved for this since 2026-08-14, when quick add moved to
+    // a bare `N` specifically to release it — the palette was the reason
+    // given at the time (issue #26).
+    //
+    // `Ctrl`, not `Cmd`, like every other chord here: `metaKey` is not
+    // accepted anywhere in this map, so `Cmd+K` cannot shadow whatever the
+    // browser does with it (see `hasPrimaryModifier`).
+    command: 'palette',
+    code: 'KeyK',
+    primary: true,
+    shift: false,
+  },
+  {
     command: 'help',
     code: 'Slash',
     primary: true,

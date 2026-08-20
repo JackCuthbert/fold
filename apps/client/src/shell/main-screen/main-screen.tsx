@@ -36,7 +36,8 @@ import { TodayDetail } from '../../todos/today-pane/today-pane'
 import { useAddTodo } from '../../todos/hooks/use-add-todo'
 import { useGlobalAddTodo } from '../../todos/hooks/use-global-add-todo'
 import { useListActiveTodos } from '../../todos/hooks/use-list-active-todos'
-import { useShortcuts, viewIndexOf } from '../../shortcuts'
+import { listIdOf } from '../../commands/lib/commands'
+import { useShortcuts, viewIndexOf, type ShortcutAction } from '../../shortcuts'
 import {
   useTodoActions,
   useTodoActionsFor,
@@ -177,6 +178,10 @@ export function MainScreen() {
   // inside the drawer's Dialog on mobile and lose its backdrop too.
   // *(added 2026-08-03.)*
   const [helpOpen, setHelpOpen] = useState(false)
+  // The command palette, here for the same reason as the two above: it is
+  // reachable from inside the drawer, so it must be a sibling of it rather
+  // than a child (shell/app-modals). *(added 2026-08-20, issue #26.)*
+  const [paletteOpen, setPaletteOpen] = useState(false)
   // docs/specs/list-filter.md — one filter, shared by every derived view.
   //
   // Here rather than in a pane for the reason everything else here is: the
@@ -326,6 +331,44 @@ export function MainScreen() {
   // Cmd+N should do. The drawer is deliberately *not* in this list: a
   // collapsed or closed nav is exactly when reaching for the keyboard
   // beats hunting for the button.
+  /**
+   * Perform a command, however it was asked for.
+   *
+   * One dispatcher for the shortcut map and the command palette both: a
+   * chord and a palette row asking for "new todo" must mean the same
+   * thing, and two switches would be two places for that to stop being
+   * true (docs/specs/command-palette.md).
+   */
+  const runCommand = (action: ShortcutAction): void => {
+    if (action === 'new-todo') return globalAdd.setOpen(true)
+    if (action === 'new-list') return listForm.openCreate()
+    if (action === 'help') return setHelpOpen(true)
+    if (action === 'palette') return setPaletteOpen(true)
+    if (action === 'settings') return setSettingsOpen(true)
+
+    // `go-list:<id>` — a list by name, the one thing the palette can
+    // reach that no chord can (docs/specs/command-palette.md).
+    const listId = listIdOf(action)
+    if (listId !== null) {
+      selectList(listId)
+      setDrawerOpen(false)
+      return
+    }
+
+    // `go-view:<n>` — the nth derived view, in nav order
+    // (todos/today.ts — DERIVED_VIEWS). Resolved here rather than
+    // carried on the action so the map stays a list of chords rather
+    // than a list of view ids.
+    const index = viewIndexOf(action)
+    const target = index === null ? undefined : DERIVED_VIEWS[index - 1]
+    if (target === undefined) return
+    selectList(target)
+    // Jumping to a view also closes the drawer: on mobile the nav is an
+    // overlay, and landing on a view still behind it would hide the
+    // thing you just navigated to. Same reason `onSelect` closes it.
+    setDrawerOpen(false)
+  }
+
   useShortcuts(
     {
       // Only true *modals* stand a shortcut down — a second dialog on top
@@ -347,6 +390,7 @@ export function MainScreen() {
         globalAdd.open ||
         settingsOpen ||
         helpOpen ||
+        paletteOpen ||
         listForm.creating ||
         listForm.editing !== null ||
         listForm.deleting !== null,
@@ -358,24 +402,7 @@ export function MainScreen() {
       // did nothing on a derived view.)*
       canAddTodo: (lists.data?.length ?? 0) > 0,
     },
-    (action) => {
-      if (action === 'new-todo') return globalAdd.setOpen(true)
-      if (action === 'new-list') return listForm.openCreate()
-      if (action === 'help') return setHelpOpen(true)
-
-      // `go-view:<n>` — the nth derived view, in nav order
-      // (todos/today.ts — DERIVED_VIEWS). Resolved here rather than
-      // carried on the action so the map stays a list of chords rather
-      // than a list of view ids.
-      const index = viewIndexOf(action)
-      const target = index === null ? undefined : DERIVED_VIEWS[index - 1]
-      if (target === undefined) return
-      selectList(target)
-      // Jumping to a view also closes the drawer: on mobile the nav is an
-      // overlay, and landing on a view still behind it would hide the
-      // thing you just navigated to. Same reason `onSelect` closes it.
-      setDrawerOpen(false)
-    },
+    runCommand,
   )
 
   const selectList = (listId: string): void => {
@@ -487,6 +514,9 @@ export function MainScreen() {
     setSettingsOpen,
     helpOpen,
     setHelpOpen,
+    paletteOpen,
+    setPaletteOpen,
+    runCommand,
     revealing,
     setRevealing,
     listForm,
