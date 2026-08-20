@@ -1,11 +1,5 @@
-import {
-  DERIVED_VIEWS,
-  NEXT_7_DAYS_VIEW,
-  SEARCH_VIEW,
-  SUMMARY_VIEW,
-  TODAY_VIEW,
-  TOMORROW_VIEW,
-} from '../../todos/lib/today'
+import type { CommandId } from '../../commands/lib/commands'
+import { DERIVED_VIEWS } from '../../todos/lib/today'
 
 /**
  * Keyboard shortcuts (docs/specs/ui.md — keyboard shortcuts, issue #5).
@@ -17,43 +11,19 @@ import {
  */
 
 /**
- * What each derived view is called in the help modal.
- *
- * Here rather than in today.ts because it is presentation: that module
- * defines what the views *are*, this one how a shortcut describes them.
- * Falls back to the view id, so a view added without a name here still
- * gets a working chord rather than a crash.
- */
-const VIEW_NAMES: Record<string, string> = {
-  [TODAY_VIEW]: 'Today',
-  [TOMORROW_VIEW]: 'Tomorrow',
-  [NEXT_7_DAYS_VIEW]: 'Next 7 days',
-  [SUMMARY_VIEW]: 'Summary',
-  [SEARCH_VIEW]: 'Search',
-}
-
-/**
  * The actions a shortcut can request.
  *
- * `go-view:<n>` is the nth derived view, numbered from 1 in the order the
- * nav shows them (todos/today.ts — DERIVED_VIEWS). A template literal
- * rather than one member per view, so adding a view needs no change here.
+ * An alias of `CommandId` rather than a narrower union of its own: a
+ * shortcut runs a command, and every command is a legitimate thing to bind
+ * a key to. Keeping a second list here would mean two places to add a
+ * member, which is the drift this refactor removes.
+ * *(changed 2026-08-20, issue #26: was its own four-member union.)*
  */
-export type ShortcutAction =
-  | 'new-todo'
-  | 'new-list'
-  | 'help'
-  | `go-view:${number}`
+export type ShortcutAction = CommandId
 
-/** The 1-based index a `go-view:` action refers to, or null. */
-export function viewIndexOf(action: ShortcutAction): number | null {
-  if (!action.startsWith('go-view:')) return null
-  const index = Number(action.slice('go-view:'.length))
-  return Number.isInteger(index) ? index : null
-}
+export { viewIndexOf } from '../../commands/lib/commands'
 
 export interface Shortcut {
-  action: ShortcutAction
   /**
    * `event.code` — the *physical* key, e.g. `KeyK`, `Digit1`, `Slash`.
    *
@@ -69,7 +39,16 @@ export interface Shortcut {
   /** Ctrl on every platform — see `hasPrimaryModifier`. */
   primary: boolean
   shift: boolean
-  description: string
+  /**
+   * The command this key runs (commands/lib/commands.ts).
+   *
+   * A reference rather than a name of its own. It used to carry a
+   * `description`, which meant the name of an action lived here *and*
+   * wherever else it was shown — so the palette and the help modal could
+   * drift apart. Naming the command instead leaves one source for it.
+   * *(changed 2026-08-20, issue #26.)*
+   */
+  command: CommandId
 }
 
 /**
@@ -109,7 +88,7 @@ const PRINTED_KEY: Record<string, string> = {
  */
 const BASE_SHORTCUTS: readonly Shortcut[] = [
   {
-    action: 'new-todo',
+    command: 'new-todo',
     // **N, with no modifier.** The first modifier-less binding in the map.
     //
     // It was `Ctrl+K`, held in reserve for the command palette (issue #26)
@@ -136,17 +115,15 @@ const BASE_SHORTCUTS: readonly Shortcut[] = [
     code: 'KeyN',
     primary: false,
     shift: false,
-    description: 'New todo',
   },
   {
-    action: 'new-list',
+    command: 'new-list',
     code: 'KeyN',
     primary: true,
     shift: true,
-    description: 'New list',
   },
   {
-    action: 'help',
+    command: 'help',
     code: 'Slash',
     primary: true,
     shift: false,
@@ -154,7 +131,6 @@ const BASE_SHORTCUTS: readonly Shortcut[] = [
     // the modal it opens, where "Keyboard shortcuts" read as a pointer to
     // the section it was already sitting in.
     // *(changed 2026-08-04.)*
-    description: 'Open Help',
   },
   // The derived views are appended below, one chord each.
 ]
@@ -181,12 +157,11 @@ const BASE_SHORTCUTS: readonly Shortcut[] = [
  * *(added 2026-08-04.)*
  */
 const VIEW_SHORTCUTS: readonly Shortcut[] = DERIVED_VIEWS.slice(0, 9).map(
-  (view, index) => ({
-    action: `go-view:${index + 1}` as const,
+  (_view, index) => ({
+    command: `go-view:${index + 1}` as const,
     code: `Digit${index + 1}`,
     primary: true,
     shift: true,
-    description: `Go to ${VIEW_NAMES[view] ?? view}`,
   }),
 )
 
@@ -307,7 +282,7 @@ export function matchShortcut(
     if (shortcut.code !== event.code) continue
     if (shortcut.primary !== hasPrimaryModifier(event)) continue
     if (shortcut.shift !== event.shiftKey) continue
-    return shortcut.action
+    return shortcut.command
   }
   return null
 }
