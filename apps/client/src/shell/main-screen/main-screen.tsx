@@ -37,6 +37,7 @@ import { useAddTodo } from '../../todos/hooks/use-add-todo'
 import { useGlobalAddTodo } from '../../todos/hooks/use-global-add-todo'
 import { useListActiveTodos } from '../../todos/hooks/use-list-active-todos'
 import { listIdOf } from '../../commands/lib/commands'
+import { FloatingActions } from '../floating-actions/floating-actions'
 import { useShortcuts, viewIndexOf, type ShortcutAction } from '../../shortcuts'
 import {
   useTodoActions,
@@ -638,6 +639,14 @@ export function MainScreen() {
                         searchQuery={searchQuery}
                         onSearchQueryChange={setSearchQuery}
                       />
+                      {/* Inside the scrolling column rather than fixed to
+                          the viewport, so the pair stays centred on the
+                          *list* — including mid-animation, while the nav
+                          is opening and the column's width is still
+                          changing. A viewport-centred bar slides across
+                          the content it belongs to for the length of that
+                          transition. *(moved 2026-08-20.)* */}
+                      <FloatingActions navOpen={desktopNavOpen} />
                     </div>
                   </div>
                 </main>
