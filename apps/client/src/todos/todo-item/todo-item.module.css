@@ -225,6 +225,20 @@
   flex: none;
   margin-inline-start: auto;
   color: var(--list-red);
+  /* The containing block for the visually-hidden label below.
+   *
+     Without it that label — `position: absolute` with nothing positioned
+     between it and `<body>` — resolves against the page instead of against
+     this row. Inside a scrolling pane it therefore lands at the row's
+     position *within the scrolled content*, hundreds of rows down, and
+     stretches the document to reach it: the whole window grew a second
+     scrollbar with nothing under it, worst on Summary because that view is
+     the one that stacks a month of finished work into a single tall list.
+     Every other visually-hidden label in the app happens to sit inside a
+     positioned ancestor already, which is why this was the only one that
+     showed.
+     *(fixed 2026-08-19, reported from use.)* */
+  position: relative;
 }
 
 /* Visually hidden but present for assistive tech — the heart's meaning must
