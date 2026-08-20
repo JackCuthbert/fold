@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/JackCuthbert/fold/compare/v1.2.0...v1.3.0) (2026-08-20)
+
+
+### Features
+
+* **client:** wrap long todos in quick add instead of hiding them ([1e10a90](https://github.com/JackCuthbert/fold/commit/1e10a9019f6e19021b427ea44e6d9bb18f6ba5f5))
+
+
+### Bug Fixes
+
+* **client:** read a due time that follows a due date in the same todo ([0c4df81](https://github.com/JackCuthbert/fold/commit/0c4df81a4f796f563e67c0ff06c2856bc66bdbc0))
+* **client:** stop Summary growing a second scrollbar down the page ([3e05587](https://github.com/JackCuthbert/fold/commit/3e05587cbafc94bc84189825681f27372c2ce0a2))
+
+
+### Documentation
+
+* refresh the README screenshots for the new quick add ([6b8a2bf](https://github.com/JackCuthbert/fold/commit/6b8a2bf6ccc865917c5ff0050fb0e9cdf92ed8bf))
+
 ## [1.2.0](https://github.com/JackCuthbert/fold/compare/v1.1.0...v1.2.0) (2026-08-18)
 
 
