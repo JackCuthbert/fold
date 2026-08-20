@@ -476,7 +476,28 @@
   max-width: var(--measure);
   margin: 0 auto;
   padding: 0 var(--space-4) var(--space-4);
+  /* At least as tall as the scroll port, so the floating buttons — which
+     stick to the bottom of this column (shell/floating-actions) — land at
+     the foot of the *screen* on a short list rather than just under the
+     last row. `min-height` rather than `height`, so a long list still
+     grows past it and scrolls.
+   *
+     `100%` resolves against `.mainScroll`'s own height, which is a real
+     one: the whole chain from `.layout` down is fixed-height by design
+     (see the note at the top of this file). *(added 2026-08-20.)* */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Room for the floating buttons is reserved by the bar's own top margin
+   (floating-actions.module.css), not by padding here.
+ *
+   Padding on this container would sit *below* the bar, which is its last
+   child — so the buttons still landed over the last row and over "Clear
+   completed" at the end of a list, with 80px of empty paper beneath them.
+   The space has to be between the content and the bar, which is a margin
+   on the bar. *(fixed 2026-08-20, reported from use.)* */
 
 .empty {
   color: var(--muted);

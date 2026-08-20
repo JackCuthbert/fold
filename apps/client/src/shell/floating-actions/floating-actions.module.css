@@ -1,0 +1,126 @@
+/* docs/specs/command-palette.md — on touch.
+   See floating-actions.tsx.
+
+   The two things done most often, put within a thumb's reach: creating a
+   todo, and finding anything else. Both live in the nav drawer today,
+   which means opening a drawer to reach them. */
+
+/* **Sticky inside the scrolling column, not fixed to the viewport.**
+   The bar is the last child of `.mainScrollInner` (shell/main-screen), so
+   it is centred on the *list* rather than on the window — which is what
+   keeps it over the content it belongs to while the sidebar animates open
+   and the column's width is still changing. A viewport-centred bar slides
+   across the list for the length of that transition.
+ *
+   It is a real row in the flow rather than a zero-height overlay: that is
+   what reserves the space beneath the last todo, so the buttons never
+   cover it. `margin-block-start: auto` then pushes the row to the foot of
+   a column too short to fill the screen — the column is a flex box at
+   least as tall as the scroll port (main-screen.module.css), so on a short
+   list there is slack to take and on a long one there is none.
+ *
+   Sticky rather than static so it stays at the bottom of the *port* while
+   a long list scrolls behind it. */
+.bar {
+  position: sticky;
+  /* Clear of the safe-area inset rather than the viewport edge: `#root`
+     owns those (styles/global.css), and a button flush to the bottom of
+     the screen sits under the home indicator on an iPhone. */
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  z-index: var(--z-overlay-base);
+  display: flex;
+  gap: var(--space-2);
+  /* **Centred under the list, on every device.** The trailing edge was the
+     first cut on touch, on the thumb-reach argument, and it stopped making
+     sense once the same pair appeared on desktop: one component landing in
+     two places reads as two different controls. Centred is also where the
+     eye already is — the column it belongs to. */
+  justify-content: center;
+  margin-block-start: auto;
+  /* Clear space between the last row and the buttons.
+   *
+     Mostly belt and braces: pinned to the foot of the port, the bar is
+     usually over empty paper anyway. It matters at the end of a list long
+     enough to scroll, where the last row *does* come up under it — and it
+     is cheap to be right in the case that is easy to miss. */
+  padding-block-start: var(--space-6);
+  /* Only the buttons take clicks; the strip between and around them lets
+     the list through. */
+  pointer-events: none;
+}
+
+.bar > * {
+  pointer-events: auto;
+}
+
+/* Hidden while the sidebar is showing, which holds all three of these
+   already. The class is set from the nav's own state
+   (floating-actions.tsx) rather than guessed from a breakpoint: the
+   sidebar can be collapsed at any width, and a media query cannot see
+   that. */
+.bar:not(.barStandalone) {
+  display: none;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /* A pill rather than a circle: the buttons carry their names, because
+     two floating circles are a guessing game — a plus is nearly readable,
+     a terminal prompt is not.
+   *
+     Comfortably past the 44px minimum in height: these float over content,
+     so the cost of a mis-tap is higher than for a row in a list. */
+  min-height: 3rem;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  font: inherit;
+  /* The sans, named directly rather than through `--meta`: these are
+     controls, and a control's label is chrome. `--meta` happens to alias
+     the sans today, but it means "annotation type" — a different reason
+     to arrive at the same font. */
+  font-family: var(--sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--paper);
+  /* Lifted off the page it covers, so it reads as floating above the list
+     rather than as part of it. */
+  box-shadow: var(--shadow-lg, 0 6px 20px rgb(0 0 0 / 0.18));
+  cursor: pointer;
+}
+
+/* The secondary of the pair: same size and shape, quieter ground. New
+   todo is what you came for; the palette is how you find everything
+   else. */
+/* No label, so the pill becomes a circle: the padding that made room for
+   text would otherwise leave the icon adrift in a wide box. */
+.buttonIconOnly {
+  width: 3rem;
+  padding-inline: 0;
+}
+
+.buttonSecondary {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.button:active {
+  /* No transform — the app removes press-transforms globally
+     (styles/global.css). A ground change is the whole press feedback. */
+  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
+}
+
+.buttonSecondary:active {
+  background: var(--paper);
+}
+
+.icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
