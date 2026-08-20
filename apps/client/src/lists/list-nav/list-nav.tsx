@@ -52,8 +52,12 @@ export function useLists() {
  * follows (docs/specs/ui.md — keyboard shortcuts). `undefined` if the
  * action is ever unbound, which renders nothing rather than a lie.
  */
-const NEW_TODO_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-todo')
-const NEW_LIST_SHORTCUT = SHORTCUTS.find((entry) => entry.action === 'new-list')
+const NEW_TODO_SHORTCUT = SHORTCUTS.find(
+  (entry) => entry.command === 'new-todo',
+)
+const NEW_LIST_SHORTCUT = SHORTCUTS.find(
+  (entry) => entry.command === 'new-list',
+)
 /**
  * How each derived view is drawn in the nav.
  *
@@ -231,7 +235,7 @@ export function ListNav(props: ListNavProps) {
           // (shortcuts.ts — VIEW_SHORTCUTS). Looked up rather than
           // assumed, so a view beyond the ninth simply shows no hint.
           const shortcut = SHORTCUTS.find(
-            (entry) => entry.action === `go-view:${index + 1}`,
+            (entry) => entry.command === `go-view:${index + 1}`,
           )
           return (
             <button

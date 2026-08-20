@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import { ModalHeader } from '../../ui'
+import { commandById } from '../../commands/lib/commands'
 import { SHORTCUTS, ShortcutKeys } from '../../shortcuts'
 import { cx } from '../../styles/cx'
 import { useVersion } from '../use-version'
@@ -197,12 +198,17 @@ export function HelpModal(props: HelpModalProps) {
               <h3 className={styles['heading']}>Keyboard shortcuts</h3>
               <dl className={styles['shortcuts']}>
                 {SHORTCUTS.map((shortcut) => (
-                  <div key={shortcut.action} className={styles['shortcutRow']}>
+                  <div key={shortcut.command} className={styles['shortcutRow']}>
                     <dt className={styles['shortcutKeys']}>
                       <ShortcutKeys shortcut={shortcut} />
                     </dt>
+                    {/* The name comes from the command the chord runs
+                        (commands/lib/commands.ts), not from the binding —
+                        so this list and the command palette cannot
+                        disagree about what an action is called.
+                        *(changed 2026-08-20, issue #26.)* */}
                     <dd className={styles['shortcutName']}>
-                      {shortcut.description}
+                      {commandById(shortcut.command)?.name ?? shortcut.command}
                     </dd>
                   </div>
                 ))}

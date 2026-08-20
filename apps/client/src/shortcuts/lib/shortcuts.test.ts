@@ -90,7 +90,7 @@ describe('matchShortcut', () => {
 describe('shortcutLetter', () => {
   it('prints the key on the cap', () => {
     const printed = Object.fromEntries(
-      SHORTCUTS.map((s) => [s.action, shortcutLetter(s)]),
+      SHORTCUTS.map((s) => [s.command, shortcutLetter(s)]),
     )
     expect(printed['new-todo']).toBe('N')
     expect(printed['new-list']).toBe('N')
@@ -103,11 +103,11 @@ describe('shortcutLetter', () => {
   // cap prints n, whichever views exist. *(changed 2026-08-05: was a
   // literal map of two views.)*
   it('prints the view number on each view’s cap', () => {
-    const views = SHORTCUTS.filter((s) => s.action.startsWith('go-view:'))
+    const views = SHORTCUTS.filter((s) => s.command.startsWith('go-view:'))
     expect(views.length).toBe(Math.min(DERIVED_VIEWS.length, 9))
     for (const [index, shortcut] of views.entries()) {
       expect(shortcutLetter(shortcut)).toBe(String(index + 1))
-      expect(shortcut.action).toBe(`go-view:${index + 1}`)
+      expect(shortcut.command).toBe(`go-view:${index + 1}`)
     }
   })
 })
@@ -117,14 +117,14 @@ describe('isActionAvailable', () => {
   // already open rather than stacking a second one on top.
   it('stands down while a dialog is open', () => {
     const context = { ...OPEN, dialogOpen: true }
-    for (const { action } of SHORTCUTS) {
-      expect(isActionAvailable(action, context), action).toBe(false)
+    for (const { command } of SHORTCUTS) {
+      expect(isActionAvailable(command, context), command).toBe(false)
     }
   })
 
   it('allows everything when nothing is open', () => {
-    for (const { action } of SHORTCUTS) {
-      expect(isActionAvailable(action, OPEN), action).toBe(true)
+    for (const { command } of SHORTCUTS) {
+      expect(isActionAvailable(command, OPEN), command).toBe(true)
     }
   })
 
@@ -164,7 +164,7 @@ describe('isTextEntry', () => {
 // chord would change meaning whenever a list is created or deleted.
 describe('derived-view chords', () => {
   it('binds one chord per view, numbered in nav order', () => {
-    const viewChords = SHORTCUTS.filter((s) => viewIndexOf(s.action) !== null)
+    const viewChords = SHORTCUTS.filter((s) => viewIndexOf(s.command) !== null)
     expect(viewChords).toHaveLength(DERIVED_VIEWS.length)
     expect(viewChords.map((s) => s.code)).toEqual(
       DERIVED_VIEWS.map((_, i) => `Digit${i + 1}`),
@@ -182,10 +182,10 @@ describe('derived-view chords', () => {
   // the OS and the browser, so it would never arrive.
   it('always carries both modifiers', () => {
     for (const chord of SHORTCUTS.filter(
-      (s) => viewIndexOf(s.action) !== null,
+      (s) => viewIndexOf(s.command) !== null,
     )) {
-      expect(chord.primary, chord.action).toBe(true)
-      expect(chord.shift, chord.action).toBe(true)
+      expect(chord.primary, chord.command).toBe(true)
+      expect(chord.shift, chord.command).toBe(true)
     }
   })
 })
