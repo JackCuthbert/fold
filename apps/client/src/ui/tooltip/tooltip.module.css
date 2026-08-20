@@ -1,0 +1,40 @@
+/* docs/specs/ui.md — an icon-only control names itself on hover.
+   See tooltip.tsx. */
+
+/* Darker than the menus and dialogs, not lighter. A tooltip is a label
+   floating over the page for a second, not a surface you act on: giving
+   it the same `--surface` and hairline as a popup made it read as a menu
+   that had failed to draw its items. Inverted ink is the convention
+   everywhere this pattern appears, and it needs no border to separate
+   itself from what is behind it. */
+.popup {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  /* The sans: this is chrome, like the floating buttons' labels, not the
+     serif the app sets its content in. */
+  font-family: var(--sans);
+  font-size: var(--text-xs, 11px);
+  line-height: 1.4;
+  /* A tooltip never wraps to a paragraph — if it needs to, the label is
+     too long to be a tooltip. */
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  /* Above the overlays it may be triggered from. */
+  z-index: var(--z-overlay-stacked);
+  outline: none;
+}
+
+/* Fades rather than moves: the trigger is a small target and a tooltip
+   that slides can end up under the pointer that summoned it. */
+@media (prefers-reduced-motion: no-preference) {
+  .popup {
+    transition: opacity var(--duration-fast) var(--ease);
+  }
+
+  .popup[data-starting-style],
+  .popup[data-ending-style] {
+    opacity: 0;
+  }
+}

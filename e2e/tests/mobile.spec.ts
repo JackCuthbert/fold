@@ -6,7 +6,7 @@ test('mobile: drawer navigation and core flow', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Lists' }).click()
   const listName = uniqueName('mobile')
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await page.getByPlaceholder('List name').fill(listName)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
 
@@ -42,10 +42,12 @@ test('mobile: the New list modal has its own scrim over the drawer', async ({
     )
 
   await page.getByRole('button', { name: 'Lists' }).click()
-  await expect(page.getByRole('button', { name: '+ New list' })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'New list', exact: true }),
+  ).toBeVisible()
   const withDrawerOnly = await dimmers()
 
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await expect(page.getByPlaceholder('List name')).toBeVisible()
 
   // The modal brought a backdrop of its own rather than borrowing the
@@ -122,7 +124,7 @@ test('a half-typed new list survives crossing the breakpoint', async ({
   await login(page)
 
   const listName = uniqueName('resized')
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await page.getByPlaceholder('List name').fill(listName)
 
   // Cross into mobile, then back out.
@@ -152,7 +154,7 @@ test('a todo row is not selectable on touch', async ({ page }) => {
 
   const listName = uniqueName('press')
   await page.getByRole('button', { name: 'Lists' }).click()
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await page.getByPlaceholder('List name').fill(listName)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
   await addTodo(page, 'Long press me')

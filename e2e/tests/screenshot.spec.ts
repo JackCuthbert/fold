@@ -15,7 +15,7 @@ async function createColouredList(
   name: string,
   colour: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: '+ New list' }).click()
+  await page.getByRole('button', { name: 'New list', exact: true }).click()
   await page.getByPlaceholder('List name').fill(name)
   // Swatches are labelled by the palette's colour names
   // (lists/color-picker.tsx).

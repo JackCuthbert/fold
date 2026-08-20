@@ -13,7 +13,9 @@ test('reload after the session cookie is gone shows the login form, not a stale 
   context,
 }) => {
   await login(page)
-  await expect(page.getByRole('button', { name: '+ New list' })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'New list', exact: true }),
+  ).toBeVisible()
 
   // The session cookie is httpOnly, so page JS can't clear it — this is
   // the same "cookie is gone" state a server restart or expiry produces.
@@ -22,6 +24,6 @@ test('reload after the session cookie is gone shows the login form, not a stale 
 
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
   await expect(
-    page.getByRole('button', { name: '+ New list' }),
+    page.getByRole('button', { name: 'New list', exact: true }),
   ).not.toBeVisible()
 })

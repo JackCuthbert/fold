@@ -45,10 +45,14 @@
   --nav-row: max(38px, var(--hit-area));
 }
 
+/* No gap between rows, matching the derived views above them. The 4px
+   existed to keep bordered boxes from touching; with the borders gone
+   (see `.item`) it only spread the group out and made the lists read as
+   further apart than the views they sit beneath.
+   *(changed 2026-08-20.)* */
 .nav ul {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
 }
 
 /* The derived views as one group above the collections. Separated from
@@ -68,28 +72,133 @@
    to say so. The list rows below sit --space-1 apart for the same reason
    and read fine.
    *(changed 2026-08-14: was --space-2, with five views in the group.)* */
+/* A quiet heading over each group, the same treatment the command palette
+   gives its own (commands/command-palette) — small, uppercase, `--faint`,
+   in the annotation face. Two surfaces that both group a list of things
+   to pick from should label them the same way.
+ *
+   This replaced a short centred rule between the groups. The rule was
+   doing two jobs at once — saying "a boundary is here" and leaving the
+   reader to work out what changed across it — and a word does the second
+   job outright. It also earns its ink in a way a divider does not: "Views"
+   and "Lists" are the distinction the nav is actually built on.
+   *(added 2026-08-20.)* */
+/* The heading and the actions that belong to the group it names, on one
+   line. The label takes the row's leading edge; the buttons sit at the
+   trailing one, where the row was empty.
+ *
+   **The row owns the spacing, not the label.** The label's own asymmetric
+   padding (16px above, 4px below) is what set the group apart from the one
+   before it — and it also pushed the text 6px below the buttons' centre
+   line, because they centred on its box while the ink sat near the top of
+   it. Moving that padding up here leaves the label as plain ink, so
+   `align-items: center` lines the three up on one line.
+   *(fixed 2026-08-20, measured.)* */
+.groupHeadingRow {
+  display: flex;
+  align-items: center;
+  /* One button, so nothing to space: the label takes the room and the
+     control sits at the trailing edge, in the kebabs' column.
+     *(simplified 2026-08-20 — see the one-button rule in list-nav.tsx.)* */
+  gap: 0;
+  padding-block: var(--space-4) var(--space-1);
+  /* No trailing inset: the rows below have none either, so the last
+     control here shares the kebabs' column. With one it stopped 17px
+     short and the right edge of the panel had two different edges.
+     *(fixed 2026-08-20, measured.)* */
+}
+
+/* The truncating part. The button around it is a flex row, and
+   `text-overflow` needs a block whose own inline content overflows — on
+   the flex container it did nothing and a long name ran on past the row.
+   *(added 2026-08-20, measured.)* */
+.linkName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupHeadingRow .groupHeading {
+  flex: 1;
+  min-width: 0;
+  /* Plain ink: the row above supplies every edge. */
+  padding: 0 0 0 var(--nav-inset);
+}
+
+/* Smaller where a mouse is doing the pointing, scoped exactly as the row
+   heights are (see `.today`'s own query): `--hit-area` is a *touch* floor,
+   and against an 11px uppercase label a 34px button read as a control that
+   had wandered in from somewhere else. The heading is 20px of ink; the
+   buttons beside it should not be nearly twice that.
+ *
+   `.groupHeadingRow button` rather than a class of our own: the filter is
+   the only button here (see the one-button rule in list-nav.tsx) and it
+   brings its own `--hit-area` from list-filter-menu, so the query has to
+   reach it by position. Touch keeps all 34px. *(added 2026-08-20.)* */
+@media (hover: hover) and (pointer: fine) {
+  .groupHeadingRow button {
+    width: var(--space-6);
+    height: var(--space-6);
+  }
+}
+
+/* The filter arrives with margins written for the panel title it used to
+   sit in: `margin-inline-start: auto` to push it to that row's trailing
+   edge, and a negative end margin to pull its glyph onto the rows' inset
+   (lists/list-filter-menu). Neither applies here — the label already takes
+   the leading space — so both are cleared. The trailing side is set again
+   under the pointer query below, which is where the optical alignment
+   with the kebabs' column lives; clearing it here and setting it there
+   keeps one rule per reason. *(reset 2026-08-20, measured.)* */
+.groupHeadingRow > button:first-of-type {
+  margin-inline-start: 0;
+  /* **Centred on the kebabs' column, not flush with their right edge.**
+     The buttons are different widths — 24px here against the rows' 34px
+     on a fine pointer — so matching right edges put their glyphs 5px
+     apart, and it is the glyph the eye follows down a column, not the box
+     around it. Half the difference, pushed outward, puts the centres on
+     one line; at touch sizes both are `--hit-area` and it computes to 0.
+     Set here rather than in the pointer query below because this rule is
+     the later of the two at equal specificity, so it is the one that
+     lands. *(fixed 2026-08-20, measured: 292 vs 287.)* */
+  margin-inline-end: calc((var(--hit-area) - var(--space-6)) / 2);
+}
+
+/* Touch keeps both at `--hit-area`, so there is no difference to correct
+   and the glyphs already share the column. */
+@media not all and (hover: hover) and (pointer: fine) {
+  .groupHeadingRow > button:first-of-type {
+    margin-inline-end: 0;
+  }
+}
+
+.groupHeading {
+  /* More room above than below, so the heading belongs to the group it
+     labels rather than floating between two. */
+  padding: var(--space-4) var(--nav-inset) var(--space-1);
+  font-family: var(--meta);
+  font-size: var(--text-xs, 11px);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
 .views {
   display: flex;
   flex-direction: column;
   gap: 0;
-  /* No bottom margin: the separator below owns the space between the
-     derived views and the real lists. *(changed 2026-08-04.)* */
-}
-
-/* The break between "views of your todos" and "the lists they live in" —
-   the one real division in the nav, so it gets a mark rather than only
-   space. Deliberately short and centred rather than a full-width rule: a
-   rule edge to edge reads as a hard section break in a column that is
-   otherwise one continuous list, and this is a pause, not a wall.
-   *(added 2026-08-04.)* */
-.separator {
-  /* Space either side, more than the gap between rows in a group, so the
-     division is legible from the rhythm alone. */
-  margin: var(--space-4) auto;
-  width: 40px;
-  height: var(--border-width);
-  background: var(--line);
-  border: none;
+  /* No bottom margin: the next group's heading brings its own space above
+     it, and stacking the two put 24px between groups whose distinction is
+     already stated in words.
+   *
+     A short centred rule divided these from 2026-08-04, and was removed
+     with the borders: it had been carrying the distinction on its own
+     while the groups looked unalike, and once every row took the same
+     shape it marked a boundary without saying what changed across it. A
+     heading says that outright. *(changed 2026-08-20.)* */
 }
 
 /* docs/specs/today-view.md, docs/specs/summary-view.md — a derived view
@@ -182,53 +291,62 @@
   box-shadow: inset 0 0 0 var(--border-width) var(--accent);
 }
 
-/* Selected state matches a selected list row exactly (see `.linkActive`):
-   accent ink, medium weight, and the same leading marker — so "which view
-   am I in" reads identically whether it's Today or a list. */
+/* **The selected row is a wash, not a leading marker.**
+ *(changed 2026-08-20.)*
+ *
+   A 4px accent bar drawn over the row's left edge was the marker while
+   every row had a border to hang it on. With the borders gone it had
+   nothing to align to and sat a hairline adrift, and it was the last
+   piece of geometry in a nav that no longer has any. A tinted ground says
+   the same thing with no edges to line up, and it is the treatment
+   already used for the highlighted row of the command palette and of
+   quick add's autocomplete — one idea of "this is the one" across the
+   app. */
 .todayActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
 }
 
-/* The same marker a selected list carries (`.itemActive::before`), drawn
-   over the row's left edge rather than reserved in the layout — so
-   selecting a view never shifts its icon. *(changed 2026-08-04.)* */
-.todayActive::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: calc(var(--border-width) * -1);
-  width: var(--space-1);
-  background: var(--accent);
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-/* docs/specs/ui.md — the nav: the row is a segmented button — the name
-   and the kebab read as one control split into two segments, a shared
-   outer shape with a hairline divider between them, not an icon floating
-   over a row. `.item` supplies that shared shape (border, radius,
-   background); `.link` and the kebab trigger (list-item-menu.module.css)
-   sit inside it with square abutting inner corners and no border/radius
-   of their own, so only the outer corners round. `overflow: hidden` clips
-   both segments' backgrounds to the outer radius. */
-/* docs/specs/ui.md — buttons carry a very slight shadow. It goes on the
-   segmented shell rather than on `.link`/the kebab inside it: those are two
-   halves of one control, so a shadow on each would draw a seam down the
-   middle. */
+/* **The row is no longer a segmented button.** *(changed 2026-08-20.)*
+ *
+   It was a shared outer shell — border, radius, shadow — with the name
+   and the kebab as two halves divided by a hairline. That made the lists
+   the heaviest thing in the nav, and left the derived views above them as
+   the only group with no resting shape at all: a pale band between two
+   bordered groups, which read as unfinished rather than as quiet.
+ *
+   Now the lists carry exactly what the views carry, and the *only* chrome
+   in the nav belongs to the create pair at the top — the one group that
+   acts rather than navigates. What tells a list from a view is its colour
+   dot, which it already had.
+ *
+   The kebab keeps its own shape instead of borrowing the shell's: a
+   square button beside the name with a gap between, on the same rhythm as
+   New todo and the palette square above. */
 .item {
   display: flex;
   align-items: stretch;
-  /* A uniform hairline the whole way round, active or not. The marker is
-     drawn *over* the left edge by `.itemActive::before` rather than being
-     a wider border on this element: reserving 4px unconditionally made an
-     inactive row visibly lopsided, and colouring that same 4px when
-     active read as a fat edge rather than the clean marker the derived
-     views carry. A pseudo-element needs no reserved space, so nothing
-     reflows and nothing looks wrong at rest.
-     *(changed 2026-08-04: was `border-left-width: var(--space-1)`.)* */
-  border: var(--border-width) solid var(--line);
+  /* No border at all: the shell is gone (see the note above), so the name
+     and the kebab are two controls side by side rather than two halves of
+     one. A transparent hairline was kept at first to hold the row's
+     geometry, and it made every list 2px taller than the views above —
+     the one thing a shared `--nav-row` is supposed to prevent. The rows
+     below now measure the same as the views exactly.
+     *(changed 2026-08-20, measured.)* */
+  /* Rounded, so the selected wash and the hover both land on the same
+     soft rectangle every other control in the nav has. Square corners on
+     a tinted ground were the one thing still reading as a table row.
+     *(added 2026-08-20.)* */
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-button);
+  /* No gap. The row's ground — hover and the active wash — is drawn on
+     this box and runs behind both children, so a gap between them was
+     tinted, looked clickable, and did nothing when clicked. The name
+     button and the kebab now meet, and every pixel of the wash belongs to
+     one of them. The breathing room the gap was providing is inside the
+     kebab's own square, which is padding rather than a hole.
+     *(changed 2026-08-20.)* */
+  gap: 0;
   /* The marker is positioned against this box. */
   position: relative;
   /* Reserves the marker's width so the dot and name sit on the same left
@@ -251,41 +369,6 @@
   clip-path: inset(0 round var(--radius-sm));
 }
 
-/* docs/specs/ui.md — the nav: selecting a list looks like selection, not
-   hover. The marker sits inside the row's border box and runs its full
-   height, matching the derived views' own left edge exactly.
-
-   The colour arrives as `--marker`, set inline on `.itemActive` by
-   `markerColor` (lists/list-color.ts) — which hands back --accent when a
-   list's own colour would vanish against the paper. A custom property
-   rather than `background: inherit`, which would pick up the row's own
-   background instead; the fallback keeps the marker visible if the
-   property is ever missing. */
-.itemActive::before {
-  content: '';
-  position: absolute;
-  /* Negative insets pull the marker out over the border. An absolutely
-     positioned box is placed against the *padding* box, so at `0` it sat
-     inside the 1px hairline — a sliver of --line down its left, and the
-     marker stopping short of the corners. That is the same inset this
-     change set out to remove. Offsetting by the border width puts it on
-     the border box instead, so it owns the row's left edge outright.
-     *(fixed 2026-08-04.)* */
-  inset-block: calc(var(--border-width) * -1);
-  inset-inline-start: calc(var(--border-width) * -1);
-  /* Exactly --space-1, the same 4px the derived views' own left border
-     draws (`.today`), so a selected list and a selected view carry an
-     identical marker. It starts 1px outside the padding box (see the
-     insets above), which puts it over the row's border rather than inside
-     it — the row's reserved padding is 1px narrower to match, so the
-     content still lands on the shared left edge.
-     *(fixed 2026-08-04: was 5px, border width plus the reserved space.)* */
-  width: var(--space-1);
-  background: var(--marker, var(--accent));
-  /* Above the row's own background, below its content. */
-  z-index: 1;
-}
-
 /* docs/specs/ui.md — the nav: list rows are full width — the name takes
    the row and is never squeezed by inline controls. Only the kebab menu
    trigger (list-item-menu.module.css) sits at the row's right edge, kept
@@ -306,11 +389,17 @@
 
      Leading: --nav-inset, the shared left edge every nav row uses. This
      row's shell contributes 1px of it. *(changed 2026-08-04.)* */
-  padding: calc(var(--space-2) - var(--border-width)) var(--space-2)
-    calc(var(--space-2) - var(--border-width))
-    calc(var(--nav-inset) - var(--border-width));
+  /* No `- var(--border-width)` anywhere here any more: those subtractions
+     compensated for the shell's hairline, and with it gone they made the
+     row short by exactly that much. */
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--nav-inset);
   font-size: var(--text-base);
-  height: calc(var(--nav-row) - var(--border-width) * 2);
+  height: var(--nav-row);
+  /* The pointer reduction is applied again below rather than shared with
+     `.today`'s media query above: that block sits *before* this rule, so
+     at equal specificity this `--nav-row` won and the lists stayed 4px
+     taller than the views. Order, not specificity — the same trap the
+     nav's icon button hit. *(fixed 2026-08-20, measured.)* */
   display: flex;
   align-items: center;
   /* Space between the colour dot and the name (see `.dot`). */
@@ -321,6 +410,19 @@
   /* No marker here any more — it is `.item`'s own left border, so it can
      reach the row's rounded corners instead of sitting inside the grey
      shell. *(moved 2026-08-04.)* */
+}
+
+/* The list rows take the same reduction as the derived views, scoped
+   identically — `hover: hover` *and* `pointer: fine` together, so touch
+   keeps its full 44px target (see the note on `.today`'s own query).
+   They were 4px taller from the day that reduction was written, which was
+   invisible while the lists carried a border and the views did not; now
+   that the two groups look alike, the difference reads as a mistake.
+   *(added 2026-08-20, measured.)* */
+@media (hover: hover) and (pointer: fine) {
+  .link {
+    height: var(--hit-area);
+  }
 }
 
 /* docs/specs/ui.md — the nav: selecting a list looks like selection, not
@@ -335,16 +437,32 @@
 /* docs/specs/ui.md — hover is a whisper: a barely-there wash, not a fill
    that reads as the row changing state. *(softened 2026-08-01: was 55% of
    --line, which competed with the active row's own treatment.)* */
-.link:hover {
+/* Hover belongs to the *row*, not to the name inside it.
+ *
+   While the row was a segmented button each half washed itself, which is
+   what kept the two looking like one control. Now that the shell is gone
+   a wash on the name alone stopped short of the kebab — and stacked a
+   second tint over the selected row's, which is what made the highlight
+   look patchy rather than solid. One ground on `.item` lights the whole
+   row at once. *(changed 2026-08-20.)* */
+.item:hover {
   background: color-mix(in srgb, var(--line) 28%, transparent);
   transition: background-color var(--duration-fast) var(--ease);
 }
 
-/* The selected row's ink and weight. The marker itself is `.itemActive`
-   on the shell above. */
+/* The selected row's ink and weight; the ground is on `.itemActive`. */
+/* The same wash the derived views take, so "which view am I in" reads
+   identically whether it is Today or a list. On the row rather than on
+   the name inside it, so the ground covers the kebab beside it too and
+   the whole row lights up as one thing. *(changed 2026-08-20.)* */
 .linkActive {
   color: var(--accent);
   font-weight: var(--weight-medium);
+}
+
+.itemActive {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 /* docs/specs/lists.md — colours: an 8px dot before the name, in every
@@ -467,9 +585,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  /* No bottom margin: the separator below owns that space now, exactly as
-     it does between the views and the lists. Keeping both doubled the gap.
-     *(changed 2026-08-20.)* */
+  /* No bottom margin: "Views" below brings its own space. The create pair
+     is also the only group with any chrome, so it sets itself apart by
+     being filled rather than by a gap. *(changed 2026-08-20.)* */
 }
 
 /* New todo and New list, side by side. The pair carries its own hierarchy
@@ -492,6 +610,68 @@
    same height without either being told what that is.
    *(changed 2026-08-20: a `--hit-area` width plus the keycap made this the
    wide one of the pair and squashed New todo to a sliver.)* */
+/* New list, at the foot of the lists it adds to — and shaped like one of
+   them rather than like a button parked underneath. Same box as `.link`
+   (height, inset, radius, size) and the same ghost treatment the hidden
+   row uses: `--faint` ink on nothing, coming up to `--ink` on hover.
+ *
+   It is the *next row down* from the last list, so it takes no top
+   margin: a gap would set it apart from the group, which is the opposite
+   of the point. The chrome-and-fill version read as a standalone control
+   that happened to sit below the lists.
+   *(restyled 2026-08-20.)* */
+.newListRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: var(--nav-row);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--nav-inset);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  /* **Faint until you point at it**, where the list rows are the reverse:
+     ink already, taking a wash on hover. That inversion is what sets the
+     two apart, and it does the job a hairline above the row was doing —
+     tried on 2026-08-20 and removed, because a rule across the group made
+     the nav look sectioned where the whole point of the redesign was to
+     make it read as one column.
+   *
+     No ground on hover either (see `:hover` below): a wash here would
+     draw the same box a list row draws, which is the thing this row is
+     not. Ink alone is the whole response. *(changed 2026-08-21.)* */
+  color: var(--faint);
+  font: inherit;
+  font-size: var(--text-base);
+  /* Italic, because this is an *action about* the group rather than a
+     list in it — the one signal that sets it apart, which is why it does
+     not also give up colour. *(added 2026-08-20.)* */
+  font-style: italic;
+  text-align: start;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+/* The rows come down on a pointer; this comes with them (see `.link`). */
+@media (hover: hover) and (pointer: fine) {
+  .newListRow {
+    height: var(--hit-area);
+  }
+}
+
+/* Ink, and only ink. The row comes forward to full strength rather than
+   sitting on a ground — the acknowledgement a ghost control owes the
+   pointer without pretending to be a list row.
+   (docs/specs/ui.md — hover is a whisper.) */
+.newListRow:hover {
+  color: var(--ink);
+}
+
+.newListRow:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width) var(--accent);
+}
+
 /* `.createRow` in the selector to raise specificity, not for scoping.
  *
    `.add` composes `navAction`, whose `width: 100%` serves the full-width

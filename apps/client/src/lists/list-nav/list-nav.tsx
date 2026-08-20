@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import type { IconType } from 'react-icons'
 import {
   LuCalendarRange,
@@ -14,6 +14,7 @@ import {
 } from 'react-icons/lu'
 import { api, useSyncEngine } from '../../providers'
 import { cx } from '../../styles/cx'
+import { Tooltip } from '../../ui'
 import {
   DERIVED_VIEWS,
   NEXT_7_DAYS_VIEW,
@@ -111,6 +112,16 @@ interface ListNavProps {
   onNewTodo: () => void
   /** Open the command palette (docs/specs/command-palette.md). */
   onOpenPalette: () => void
+  /**
+   * The list filter's trigger, rendered into the Lists heading.
+   *
+   * Passed in rather than built here because it owns a `ConfirmDialog`:
+   * on mobile this component renders *inside* the drawer's Dialog, where
+   * a nested dialog gets no backdrop of its own — the same trap Settings
+   * and the list forms are hoisted out of. The owner keeps it; this only
+   * says where it goes. *(moved into the heading 2026-08-20.)*
+   */
+  filterMenu?: ReactNode
   /** So the modal can restore focus here on close (main-screen.tsx). */
   newTodoRef?: RefObject<HTMLButtonElement | null>
   /**
@@ -145,6 +156,9 @@ export function ListNav(props: ListNavProps) {
   const paletteTitle = PALETTE_SHORTCUT
     ? `Commands (Ctrl+${shortcutLetter(PALETTE_SHORTCUT)})`
     : 'Commands'
+  const newListTitle = NEW_LIST_SHORTCUT
+    ? `New list (Ctrl+Shift+${shortcutLetter(NEW_LIST_SHORTCUT)})`
+    : 'New list'
 
   // docs/specs/lists.md — reordering writes only the lists that moved:
   // swapping two adjacent lists swaps two numbers, rather than renumbering
@@ -224,21 +238,25 @@ export function ListNav(props: ListNavProps) {
               in. New list moved to the foot of the lists it creates —
               which is where you look when you want another one.
               *(changed 2026-08-20.)* */}
-          <button
-            type="button"
-            className={cx(styles['add'], styles['addIconOnly'])}
-            aria-label="Commands"
-            title={paletteTitle}
-            onClick={props.onOpenPalette}
-          >
-            <LuTerminal aria-hidden="true" size={16} />
-          </button>
+          {/* A tooltip rather than `title`: this is an icon-only button,
+              and the native one never appears for a keyboard user and
+              cannot show the chord in the app's own type. *(changed
+              2026-08-20.)* */}
+          <Tooltip label={paletteTitle}>
+            <button
+              type="button"
+              className={cx(styles['add'], styles['addIconOnly'])}
+              aria-label="Commands"
+              onClick={props.onOpenPalette}
+            >
+              <LuTerminal aria-hidden="true" size={16} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* The same short rule that divides the views from the lists, used
           again above them: the create pair is a third kind of thing, and
           the space alone was not saying so. *(added 2026-08-20.)* */}
-        <hr className={styles['separator']} />
       </div>
 
       {/* docs/specs/today-view.md, docs/specs/summary-view.md — derived
@@ -255,6 +273,12 @@ export function ListNav(props: ListNavProps) {
           the view's own title in the content header (main-screen.tsx),
           where you are already looking when you wonder what the view is.
           *(moved 2026-08-04.)* */}
+      {/* Wrapped in the same row as the Lists heading even though it has
+          no actions: the row owns the spacing, so a bare `<p>` here sat at
+          a different height from the heading below it. *(2026-08-20.)* */}
+      <div className={styles['groupHeadingRow']}>
+        <p className={styles['groupHeading']}>Views</p>
+      </div>
       <div className={styles['views']}>
         {DERIVED_VIEWS.map((view, index) => {
           const meta = VIEW_META[view]
@@ -295,8 +319,25 @@ export function ListNav(props: ListNavProps) {
           lists they live in below. A short centred rule rather than space
           alone, since the gap between groups was doing the same job as
           the gap between rows. *(added 2026-08-04.)* */}
-      <hr className={styles['separator']} />
 
+      {/* **A group heading carries at most one button.** Two sat here
+          briefly — the filter and New list — and the pair read as a small
+          toolbar that had drifted into a label: with an 11px heading to
+          align against, two 24px squares are wider than the word they
+          follow, and no arrangement of them looked deliberate. The rule
+          is worth more than either button's position: one control per
+          heading, and if a group ever needs more than one, that control
+          becomes a menu rather than growing a second neighbour.
+       *
+          The filter is the one that stays, because it acts *on this
+          group* — it changes which rows appear beneath the label. New
+          list creates a row, so it belongs where the row would appear:
+          at the foot of the lists (see `.newListRow` below).
+          *(changed 2026-08-20.)* */}
+      <div className={styles['groupHeadingRow']}>
+        <p className={styles['groupHeading']}>Lists</p>
+        {props.filterMenu}
+      </div>
       <ul>
         {shownLists.map((list) => (
           <li
@@ -346,7 +387,12 @@ export function ListNav(props: ListNavProps) {
                 }
                 aria-hidden="true"
               />
-              {list.displayName}
+              {/* The name in its own span so it can ellipsise: the button
+                  is a flex container, and `text-overflow` applies to a
+                  block's inline content rather than to a flex item's text
+                  — with it on the button the name simply ran on.
+                  *(fixed 2026-08-20, measured.)* */}
+              <span className={styles['linkName']}>{list.displayName}</span>
               {/* docs/specs/list-kinds.md — the sparkle, as a bare glyph
                   with no popover. Every nav row is one button and nothing
                   else, which is why the derived views' info badges moved
@@ -382,29 +428,23 @@ export function ListNav(props: ListNavProps) {
         ))}
       </ul>
 
-      {/* **New list, under the lists it makes one of.**
-       *
-          It used to head the nav beside New todo, which put the rarest
-          action in the app in its most prominent place — and made the
-          create group tall enough to push the views down. Here it reads
-          as the end of the list of lists, which is where you look when
-          you want another one. *(moved 2026-08-20.)* */}
+      {/* New list, at the foot of the lists it adds to — the next row
+          down from the last one, which is where the list it makes will
+          appear. *(moved back 2026-08-20: it spent a day in the heading
+          beside the filter, which broke the one-button rule noted
+          there.)* */}
       <button
         type="button"
-        className={styles['add']}
-        aria-label="+ New list"
+        className={styles['newListRow']}
+        title={newListTitle}
         onClick={props.form.openCreate}
       >
+        {/* `LuListPlus`, matching the command palette's entry for this
+            (commands.ts): a bare plus beside "New todo" above already
+            means "add a todo", and reusing it here made two different
+            actions carry one glyph. *(changed 2026-08-20.)* */}
         <LuListPlus aria-hidden="true" size={16} />
         New list
-        {NEW_LIST_SHORTCUT && (
-          <span
-            className={styles['navKey']}
-            data-revealed={modifierHeld || undefined}
-          >
-            <ShortcutKeys shortcut={NEW_LIST_SHORTCUT} />
-          </span>
-        )}
       </button>
 
       {/* docs/specs/list-filter.md — what the filter is hiding, right

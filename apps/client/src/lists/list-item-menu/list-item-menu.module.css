@@ -23,23 +23,39 @@
  * by a further 0.6 would have taken it near-invisible on both papers,
  * which is why the opacity goes rather than the colour staying.)*
  */
+/* A square button of its own, not half of a segmented shell.
+ *
+   The row used to be one control split in two, divided by a hairline
+   (lists/list-nav — `.item`). With the shell gone the divider has nothing
+   to divide, so the kebab takes its own shape: square, on the same rhythm
+   as New todo and the palette square at the top of the nav.
+   *(changed 2026-08-20.)* */
 .trigger {
   color: var(--faint);
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Square, and the same size as the palette square at the top of the nav
+     (`--hit-area` is what that button resolves to as well), so the two
+     right-hand columns line up down the whole panel. `aspect-ratio` alone
+     collapsed it to its glyph — 19px wide — once the shell that had been
+     giving it a width was gone. */
   width: var(--hit-area);
+  height: var(--hit-area);
   flex: none;
-  border-left: var(--border-width) solid var(--line);
-  font-size: var(--text-md);
-  line-height: 1;
+  border-radius: var(--radius-sm);
 }
 
-/* The kebab is the other half of the same segmented control as the list
-   title, so its hover must be the identical wash — a solid --line fill
-   here made one half of one button look markedly heavier than the other
-   (docs/specs/ui.md — hover is a whisper). */
-.trigger:hover,
+/* Only the *ink* changes on hover: the row beneath already washes as a
+   whole (lists/list-nav — `.item:hover`), and a second ground here would
+   stack a darker patch under the kebab. The open state keeps a ground of
+   its own, since that one has to read while the pointer is away in the
+   menu. (docs/specs/ui.md — hover is a whisper.) */
+.trigger:hover {
+  color: var(--ink);
+  transition: color var(--duration-fast) var(--ease);
+}
+
 .trigger[data-popup-open] {
   color: var(--ink);
   background: color-mix(in srgb, var(--line) 28%, transparent);

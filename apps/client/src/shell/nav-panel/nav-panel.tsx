@@ -37,23 +37,6 @@ export function NavPanel() {
       <h2 className={styles['navTitle']}>
         <LuOrigami aria-hidden="true" size={18} />
         Fold
-        {/* docs/specs/list-filter.md — the list filter, as a ghost icon
-            button at the trailing edge of the title row. It costs no
-            vertical space, and the row was empty to the right of the
-            mark; every full-width shape tried before gave a
-            twice-a-day control the presence of a primary action.
-
-            Here rather than inside ListNav because it owns a
-            ConfirmDialog: on mobile ListNav renders inside the drawer's
-            Dialog, where a nested dialog gets no backdrop of its own —
-            the same trap Settings and the list forms are hoisted out of.
-            *(moved 2026-08-05.)* */}
-        <ListFilterMenu
-          lists={filter.allLists}
-          filter={filter.filter}
-          onToggle={filter.toggle}
-          onClear={filter.clear}
-        />
       </h2>
       <div className={styles['navScroll']}>
         <ListNav
@@ -64,6 +47,19 @@ export function NavPanel() {
           onRevealLists={() => overlays.setRevealing(true)}
           onNewTodo={() => overlays.globalAdd.setOpen(true)}
           onOpenPalette={() => overlays.setPaletteOpen(true)}
+          // docs/specs/list-filter.md — the filter acts on the lists, so it
+          // sits in their heading rather than in the panel's title. Owned
+          // here because it carries a ConfirmDialog (see the note on
+          // ListNav's `filterMenu`). *(moved 2026-08-20.)*
+          filterMenu={
+            <ListFilterMenu
+              lists={filter.allLists}
+              filter={filter.filter}
+              onToggle={filter.toggle}
+              onClear={filter.clear}
+              hideBadge
+            />
+          }
           onSelect={(listId) =>
             overlays.openOverDrawer(() => selection.select(listId))
           }
