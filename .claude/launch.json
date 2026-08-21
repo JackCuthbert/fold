@@ -2,6 +2,21 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "client",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "--filter",
+        "@fold/client",
+        "dev",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173,
+      "autoPort": false
+    },
+    {
       "name": "docs",
       "runtimeExecutable": "bun",
       "runtimeArgs": [
