@@ -3,6 +3,9 @@
 A short list, covering the two things worth reaching for: making something,
 and getting somewhere.
 
+If you'd rather not memorise them, the
+[command palette](./command-palette.md) reaches the same places by name.
+
 | Chord | Does |
 |---|---|
 | `N` | New todo, from anywhere |
@@ -12,6 +15,7 @@ and getting somewhere.
 | `Ctrl+Shift+3` | Go to Next 7 days |
 | `Ctrl+Shift+4` | Go to Summary |
 | `Ctrl+Shift+5` | Go to [Search](./search.md) |
+| `Ctrl+K` | Open the [command palette](./command-palette.md) |
 | `Ctrl+/` | Open **Help**, which lists these |
 
 **Use `Ctrl` on every platform, including a Mac.** These chords don't use

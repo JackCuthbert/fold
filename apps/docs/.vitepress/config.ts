@@ -102,6 +102,7 @@ export default defineConfig({
         text: 'Getting around',
         items: [
           { text: 'Finding a todo', link: '/search' },
+          { text: 'The command palette', link: '/command-palette' },
           { text: 'Keyboard shortcuts', link: '/keyboard-shortcuts' },
         ],
       },
