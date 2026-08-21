@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.0](https://github.com/JackCuthbert/fold/compare/v1.3.0...v1.4.0) (2026-08-21)
+
+
+### Features
+
+* **client:** find any action by typing, with Ctrl+K ([32d411b](https://github.com/JackCuthbert/fold/commit/32d411b622b7bab05771ff4e895d51451e15931b))
+* **client:** open the command palette from the sidebar ([de45a5d](https://github.com/JackCuthbert/fold/commit/de45a5df54a9bdff47e291325e7ef600409a4c89))
+* **client:** reach new todo and commands without opening the nav ([842d7fe](https://github.com/JackCuthbert/fold/commit/842d7fed63a546432055c684df9d1a3d9d380985))
+* **client:** rebalance the sidebar so every row reads alike ([4915414](https://github.com/JackCuthbert/fold/commit/4915414e0d241ce8c022e36b5f52242211a93bf2))
+
+
+### Documentation
+
+* explain the command palette in the user guide ([8b6cf5a](https://github.com/JackCuthbert/fold/commit/8b6cf5a82475c84cf340181bc6a6442350ce8776))
+* specify the command palette ([31b0eb7](https://github.com/JackCuthbert/fold/commit/31b0eb7ed2096371dfe7c7d6b3f90620af103acb))
+
 ## [1.3.0](https://github.com/JackCuthbert/fold/compare/v1.2.0...v1.3.0) (2026-08-20)
 
 
