@@ -28,15 +28,15 @@
     "fonts:convert": "bun scripts/convert-fonts.mjs"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.4",
+    "@tsconfig/node24": "^24.0.5",
     "@tsconfig/strictest": "^2.0.8",
-    "@types/node": "^26.1.2",
-    "knip": "^6.32.0",
-    "oxfmt": "^0.62.0",
-    "oxlint": "^1.77.0",
+    "@types/node": "^26.2.0",
+    "knip": "^6.32.2",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.10",
+    "vitest": "^4.1.11",
     "wawoff2": "^2.0.1"
   }
 }
