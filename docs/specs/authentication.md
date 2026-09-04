@@ -109,6 +109,13 @@ An **installed PWA on iOS has its own cookie jar**, separate from Safari —
 signing in one place does not sign you in the other
 ([pwa](../architecture/pwa.md)).
 
+The curl-based agent skill also has its own cookie jar. It receives the same
+sealed cookie from `POST /api/session`, holds it in a private temporary file
+for one task, then logs out and removes the file. Credentials come from the
+agent's secret facility and are piped to curl rather than written literally
+into a command. No separate API token or server-side session is introduced.
+*(added 2026-09-04: [agentic todo management](./agentic-todo-management.md).)*
+
 ## Logout & expiry
 
 - `DELETE /api/session` clears the cookie.

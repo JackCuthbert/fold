@@ -4,6 +4,10 @@ The Bun BFF exposes a JSON API under `/api`. It is the only thing the client
 talks to; all CalDAV happens server-side
 ([caldav-compliance](./caldav-compliance.md)).
 
+The API is also the supported boundary for the curl-based agent skill
+([agentic todo management](./agentic-todo-management.md)). Browser and agent
+clients use the same routes, schemas, concurrency rules, and error mapping.
+
 ## Surface
 
 | Method & path | Purpose | CalDAV mechanism |
