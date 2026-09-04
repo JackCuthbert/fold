@@ -29,9 +29,16 @@ absent** — with it set, the first `feat:` would produce 0.1.0 rather than
 repo was private.)*
 
 The root `package.json` holds the version; `release-please` syncs it into
-every other manifest — `apps/client`, `apps/server`, `apps/docs`,
+every other manifest — `apps/client`, `apps/server`, `apps/docs`, `apps/cli`,
 `packages/vtodo`, `packages/outbox` and `packages/schemas` — so nothing
 drifts.
+
+`@jackcuthbert/fold-cli` is published to npm from the same release. It is one
+Node-compatible JavaScript bundle with no native dependencies, so npm serves
+the same artifact to macOS and Linux on every architecture Node supports.
+The package is public and carries npm provenance. Publishing requires the
+repository's `NPM_TOKEN` secret and ownership of the `@jackcuthbert` npm
+scope. *(added 2026-09-04: agentic todo management, issue #91.)*
 
 ## Commit subjects are the changelog
 

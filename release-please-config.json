@@ -32,6 +32,11 @@
         },
         {
           "type": "json",
+          "path": "apps/cli/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/outbox/package.json",
           "jsonpath": "$.version"
         },

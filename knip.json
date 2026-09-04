@@ -10,6 +10,10 @@
     "apps/server": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
+    "apps/cli": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
     "packages/*": {
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },

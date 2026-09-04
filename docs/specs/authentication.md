@@ -109,6 +109,14 @@ An **installed PWA on iOS has its own cookie jar**, separate from Safari —
 signing in one place does not sign you in the other
 ([pwa](../architecture/pwa.md)).
 
+The Fold CLI also has its own cookie jar. It receives the same sealed cookie
+from `POST /api/session` and persists it in a user-only file. Every successful
+request saves any renewed cookie, giving terminal and agent use the same
+sliding session lifetime as a browser. The CalDAV password is used for login
+and is never stored. No separate API token or server-side session is
+introduced.
+*(added 2026-09-04: [agentic todo management](./agentic-todo-management.md).)*
+
 ## Logout & expiry
 
 - `DELETE /api/session` clears the cookie.
