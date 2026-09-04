@@ -142,6 +142,7 @@ and everything it recorded had been written into the spec it pointed at.
 | [themes](./themes.md) | Palettes, light/dark, and the self-hosted body face — browser-local |
 | [sync-and-offline](./sync-and-offline.md) | Outbox, sync loop, conflicts, offline UX |
 | [api](./api.md) | JSON API surface, handler convention, error mapping |
+| [agentic-todo-management](./agentic-todo-management.md) | Managing todos through the published CLI and agent skill |
 | [caldav-compliance](./caldav-compliance.md) | Round-trip preservation, CalDAV mechanisms |
 | [ui](./ui.md) | Views, visual design, micro-interactions, sound |
 | [testing](./testing.md) | Test layers, tools, and rules |

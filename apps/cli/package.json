@@ -1,0 +1,39 @@
+{
+  "name": "@jackcuthbert/fold-cli",
+  "version": "1.4.0",
+  "description": "Command-line client for Fold",
+  "license": "MIT",
+  "bin": {
+    "fold": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CITTY_LICENSE",
+    "CITTY_THIRD_PARTY_LICENSES.md",
+    "ZOD_LICENSE"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun build src/index.ts --target=node --outfile=dist/index.js",
+    "prepack": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "citty": "^0.2.2"
+  },
+  "devDependencies": {
+    "@fold/schemas": "workspace:*",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

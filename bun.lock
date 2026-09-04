@@ -17,9 +17,26 @@
         "wawoff2": "^2.0.1",
       },
     },
+    "apps/cli": {
+      "name": "@jackcuthbert/fold-cli",
+      "version": "1.4.0",
+      "bin": {
+        "fold": "dist/index.js",
+      },
+      "dependencies": {
+        "citty": "^0.2.2",
+      },
+      "devDependencies": {
+        "@fold/schemas": "workspace:*",
+        "@types/node": "^26.1.2",
+        "typescript": "^7.0.2",
+        "vitest": "^4.1.10",
+        "zod": "^4.4.3",
+      },
+    },
     "apps/client": {
       "name": "@fold/client",
-      "version": "0.5.0",
+      "version": "1.4.0",
       "dependencies": {
         "@base-ui/react": "^1.7.0",
         "@fold/outbox": "workspace:*",
@@ -49,7 +66,7 @@
     },
     "apps/docs": {
       "name": "@fold/docs",
-      "version": "0.5.0",
+      "version": "1.4.0",
       "devDependencies": {
         "typescript": "^7.0.2",
         "vitepress": "^1.6.4",
@@ -57,7 +74,7 @@
     },
     "apps/server": {
       "name": "@fold/server",
-      "version": "0.5.0",
+      "version": "1.4.0",
       "dependencies": {
         "@fold/schemas": "workspace:*",
         "@fold/vtodo": "workspace:*",
@@ -81,7 +98,7 @@
     },
     "packages/outbox": {
       "name": "@fold/outbox",
-      "version": "0.1.0",
+      "version": "1.4.0",
       "devDependencies": {
         "@types/node": "^26.1.2",
         "typescript": "^7.0.2",
@@ -90,7 +107,7 @@
     },
     "packages/schemas": {
       "name": "@fold/schemas",
-      "version": "0.1.0",
+      "version": "1.4.0",
       "dependencies": {
         "zod": "^4.4.3",
       },
@@ -100,7 +117,7 @@
     },
     "packages/vtodo": {
       "name": "@fold/vtodo",
-      "version": "0.5.0",
+      "version": "1.4.0",
       "dependencies": {
         "@fold/schemas": "workspace:*",
         "ical.js": "^2.2.1",
@@ -254,6 +271,8 @@
     "@iconify-json/simple-icons": ["@iconify-json/simple-icons@1.2.93", "", { "dependencies": { "@iconify/types": "*" } }, "sha512-/XhANjfGYOuqvSR3TmUnkQkINvQ4GVjVuukvymRbxtVFBvIq/yiXJqCDycKcQPT401OYT9H2vIY6ihAlz1QIAw=="],
 
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
+
+    "@jackcuthbert/fold-cli": ["@jackcuthbert/fold-cli@workspace:apps/cli"],
 
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
@@ -690,6 +709,8 @@
     "character-entities-legacy": ["character-entities-legacy@3.0.0", "", {}, "sha512-RpPp0asT/6ufRm//AJVwpViZbGM/MkjQFxJccQRHmISF/22NBtsHqAWmL+/pmkPWoIUJdWyeVleTl1wydHATVQ=="],
 
     "chrono-node": ["chrono-node@2.10.1", "", {}, "sha512-tPOsBzYVAK5zth+CiHCgp5NGeqRc4mMD8FPthQ5IxkgjPWWxIFdM5odnmfw//IRAzl6C++Xy8olQW7wn5qBR1g=="],
+
+    "citty": ["citty@0.2.2", "", {}, "sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w=="],
 
     "comma-separated-tokens": ["comma-separated-tokens@2.0.3", "", {}, "sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg=="],
 
