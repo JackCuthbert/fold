@@ -104,6 +104,10 @@ export default defineConfig({
           { text: 'Finding a todo', link: '/search' },
           { text: 'The command palette', link: '/command-palette' },
           { text: 'Keyboard shortcuts', link: '/keyboard-shortcuts' },
+          {
+            text: 'Use Fold with an AI agent',
+            link: '/agentic-todo-management',
+          },
         ],
       },
       {

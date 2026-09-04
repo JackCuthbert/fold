@@ -1,6 +1,6 @@
 # Releases, and the image self-hosters run (docs/specs/releases.md).
 #
-# Two jobs, in order:
+# Three jobs, in order:
 #
 # 1. **release-please** keeps a rolling "chore: release X.Y.Z" PR open,
 #    accumulating the changelog from Conventional Commit messages as they
@@ -10,6 +10,8 @@
 # 2. **publish** then builds the image and pushes it to ghcr.io — but only
 #    on the run where a release was actually created, hence the `if` on
 #    `needs.release.outputs.released`.
+# 3. **publish-cli** builds the Node CLI and publishes it to npm from that
+#    same release version.
 name: release
 
 on:
@@ -144,3 +146,25 @@ jobs:
       #     subject-name: ${{ steps.image.outputs.name }}
       #     subject-digest: ${{ steps.push.outputs.digest }}
       #     push-to-registry: true
+
+  publish-cli:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter @jackcuthbert/fold-cli build
+      - run: npm publish --workspace apps/cli --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
