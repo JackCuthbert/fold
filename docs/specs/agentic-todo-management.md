@@ -84,3 +84,6 @@ The root release version is synced into the CLI manifest. When release-please
 creates a release, CI builds and publishes the public scoped package with npm
 provenance. Publishing requires the `@jackcuthbert` npm scope and repository
 trusted-publisher configuration to exist before the first release.
+
+Contributor instructions for exercising the publishable bundle without an npm
+release live in [testing the CLI locally](../development/testing-cli.md).
