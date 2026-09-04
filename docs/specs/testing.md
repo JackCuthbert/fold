@@ -16,6 +16,11 @@ never assert that a defined schema equals its definition.
   401 → login flow.
 - **Server handlers:** request → CalDAV-call mapping with a mocked tsdav
   layer ([api](./api.md)).
+- **CLI:** command behavior, output and error contracts with injected HTTP,
+  prompt and session-store boundaries. The packaged executable's critical
+  journey belongs in integration coverage rather than being repeated here
+  ([agentic-todo-management](./agentic-todo-management.md)).
+  *(changed 2026-09-04: added the CLI unit-test boundary for issue #91.)*
 
 ## Integration (vitest, CI)
 

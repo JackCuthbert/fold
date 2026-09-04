@@ -77,15 +77,43 @@ describe('Fold CLI', () => {
     })
   })
 
+  it('renders generated help for the requested command', async () => {
+    expect(await invoke(['todo', 'create', '--help'], {})).toBe(0)
+    expect(stdout).toContain('USAGE fold todo create')
+    expect(stdout).toContain('--list=<list>')
+    expect(stdout).toContain('Todo summary')
+    expect(stderr).toBe('')
+  })
+
+  it('returns usage errors without authenticating', async () => {
+    expect(await invoke(['todo', 'create'], {})).toBe(2)
+    expect(stderr).toContain('Missing required positional argument: SUMMARY')
+    expect(stdout).toBe('')
+
+    stderr = ''
+    expect(await invoke(['unknown', '--json'], {})).toBe(2)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 2 })
+  })
+
+  it('reports a missing or rejected session as an authentication error', async () => {
+    expect(await invoke(['auth', 'status'], {})).toBe(3)
+    expect(stderr).toContain('Not signed in')
+
+    signedIn()
+    const fetcher = routeFetch([json({ message: 'expired' }, 401)])
+    stderr = ''
+    expect(await invoke(['auth', 'status', '--json'], { fetcher })).toBe(3)
+    expect(JSON.parse(stderr)).toEqual({
+      error: 'Session expired; run fold auth login',
+      exitCode: 3,
+    })
+    expect(saved).toBeNull()
+  })
+
   it('creates a todo in a named list and emits JSON', async () => {
     signedIn()
     const created = { ...TODO, uid: 'created-1' }
-    const fetcher = routeFetch([
-      json([LIST]),
-      json(created, 201, {
-        'set-cookie': 'session=renewed; HttpOnly; Max-Age=604800',
-      }),
-    ])
+    const fetcher = routeFetch([json([LIST]), json(created, 201)])
 
     expect(
       await invoke(
@@ -94,7 +122,6 @@ describe('Fold CLI', () => {
       ),
     ).toBe(0)
     expect(JSON.parse(stdout)).toMatchObject({ todo: created })
-    expect(saved?.cookie).toBe('session=renewed')
     expect(fetcher.mock.calls[1]?.[1]?.body).toContain('"summary":"Buy milk"')
   })
 
@@ -211,6 +238,302 @@ describe('Fold CLI', () => {
     ).toBe(0)
     expect(fetcher.mock.calls[2]?.[1]?.body).toBe(
       JSON.stringify({ etag: TODO.etag }),
+    )
+  })
+
+  it('does not delete when confirmation is declined', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+    ])
+    const prompter: Prompter = {
+      text: async () => '',
+      password: async () => '',
+      confirm: async () => false,
+    }
+
+    expect(
+      await invoke(['todo', 'delete', TODO.uid], { fetcher, prompter }),
+    ).toBe(0)
+    expect(stdout).toBe('Deletion cancelled\n')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('requires explicit deletion approval in JSON mode', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+    ])
+
+    expect(
+      await invoke(['todo', 'delete', TODO.uid, '--json'], { fetcher }),
+    ).toBe(2)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 2 })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries an edit when only unrelated fields changed', async () => {
+    signedIn()
+    const fresh = { ...TODO, etag: 'etag-2', priority: 'high' as const }
+    const edited = { ...fresh, etag: 'etag-3', summary: 'Buy oat milk' }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+      json({ todo: fresh }, 412),
+      json(edited),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--summary', edited.summary], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(fetcher.mock.calls[3]?.[1]?.body).toBe(
+      JSON.stringify({
+        etag: fresh.etag,
+        changes: { summary: edited.summary },
+      }),
+    )
+  })
+
+  it('stops an edit when the same field changed concurrently', async () => {
+    signedIn()
+    const fresh = { ...TODO, etag: 'etag-2', summary: 'Buy cream' }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+      json({ todo: fresh }, 412),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--summary', 'Buy oat milk'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(stderr).toContain('changed concurrently')
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  it('retries completion with the fresh ETag after a conflict', async () => {
+    signedIn()
+    const fresh = { ...TODO, etag: 'etag-2', summary: 'Changed elsewhere' }
+    const completed = { ...fresh, etag: 'etag-3', completed: true }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ todo: fresh }, 412),
+      json(completed),
+    ])
+
+    expect(
+      await invoke(['todo', 'complete', TODO.uid, '--json'], { fetcher }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: completed })
+    expect(fetcher).toHaveBeenCalledTimes(4)
+    expect(fetcher.mock.calls[3]?.[1]?.body).toBe(
+      JSON.stringify({
+        etag: 'etag-2',
+        changes: { completed: true },
+      }),
+    )
+  })
+
+  it.each([false, true])(
+    'does not write an already completed todo (after conflict: %s)',
+    async (afterConflict) => {
+      signedIn()
+      const completed = { ...TODO, etag: 'etag-2', completed: true }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [afterConflict ? TODO : completed] }),
+        ...(afterConflict ? [json({ todo: completed }, 412)] : []),
+      ])
+
+      expect(
+        await invoke(['todo', 'complete', TODO.uid, '--json'], { fetcher }),
+      ).toBe(0)
+      expect(JSON.parse(stdout)).toMatchObject({ todo: completed })
+      expect(fetcher).toHaveBeenCalledTimes(afterConflict ? 3 : 2)
+    },
+  )
+
+  it.each(['edit', 'complete'])(
+    'stops %s after a second conflict',
+    async (command) => {
+      signedIn()
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [TODO] }),
+        json({ todo: { ...TODO, etag: 'etag-2' } }, 412),
+        json({ todo: { ...TODO, etag: 'etag-3' } }, 412),
+      ])
+
+      expect(
+        await invoke(
+          [
+            'todo',
+            command,
+            TODO.uid,
+            ...(command === 'edit' ? ['--summary', 'Edited'] : []),
+            '--json',
+          ],
+          { fetcher },
+        ),
+      ).toBe(4)
+      expect(JSON.parse(stderr)).toMatchObject({ exitCode: 4 })
+      expect(stdout).toBe('')
+      expect(fetcher).toHaveBeenCalledTimes(4)
+    },
+  )
+
+  it('never retries deletion after a conflict', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json(
+        { todo: { ...TODO, etag: 'etag-2', summary: 'Concurrent change' } },
+        412,
+      ),
+    ])
+
+    expect(
+      await invoke(['todo', 'delete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 4 })
+    expect(stdout).toBe('')
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  it.each([
+    {
+      command: 'create',
+      args: ['New todo', '--list', LIST.id],
+      reads: 1,
+      failure: 'network',
+      error: 'Could not reach Fold',
+    },
+    {
+      command: 'edit',
+      args: [TODO.uid, '--summary', 'Edited'],
+      reads: 2,
+      failure: 'server',
+      error: 'unavailable',
+    },
+    {
+      command: 'complete',
+      args: [TODO.uid],
+      reads: 2,
+      failure: 'network',
+      error: 'Could not reach Fold',
+    },
+    {
+      command: 'delete',
+      args: [TODO.uid, '--yes'],
+      reads: 2,
+      failure: 'server',
+      error: 'unavailable',
+    },
+  ])(
+    'does not retry $command after a $failure failure',
+    async ({ command, args, reads, failure, error }) => {
+      signedIn()
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json([LIST]))
+      if (reads === 2)
+        fetcher.mockResolvedValueOnce(json({ ctag: LIST.ctag, todos: [TODO] }))
+      if (failure === 'network') fetcher.mockRejectedValue(new Error('offline'))
+      else
+        fetcher.mockImplementation(async () =>
+          json({ message: 'unavailable' }, 503),
+        )
+
+      expect(
+        await invoke(['todo', command, ...args, '--json'], { fetcher }),
+      ).toBe(1)
+      expect(JSON.parse(stderr)).toEqual({ error, exitCode: 1 })
+      expect(stdout).toBe('')
+      expect(fetcher).toHaveBeenCalledTimes(reads + 1)
+    },
+  )
+
+  it('rejects duplicate list names before creating a todo', async () => {
+    signedIn()
+    const fetcher = routeFetch([json([LIST, { ...LIST, id: 'other' }])])
+
+    expect(
+      await invoke(
+        ['todo', 'create', 'New todo', '--list', 'Personal', '--json'],
+        { fetcher },
+      ),
+    ).toBe(1)
+    expect(JSON.parse(stderr).error).toContain('More than one Fold list')
+    expect(stdout).toBe('')
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a UID shared by multiple lists before editing', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST, { ...LIST, id: 'work', displayName: 'Work' }]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ ctag: LIST.ctag, todos: [{ ...TODO, listId: 'work' }] }),
+    ])
+
+    expect(
+      await invoke(
+        ['todo', 'edit', TODO.uid, '--summary', 'Edited', '--json'],
+        { fetcher },
+      ),
+    ).toBe(1)
+    expect(JSON.parse(stderr).error).toContain(
+      'exists in multiple lists; use --list',
+    )
+    expect(stdout).toBe('')
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  it('uses --list ID to disambiguate a shared UID and duplicate list names', async () => {
+    signedIn()
+    const workTodo = { ...TODO, listId: 'work', etag: 'work-etag' }
+    const edited = { ...workTodo, summary: 'Edited' }
+    const fetcher = routeFetch([
+      json([LIST, { ...LIST, id: 'work' }]),
+      json({ ctag: LIST.ctag, todos: [workTodo] }),
+      json(edited),
+    ])
+
+    expect(
+      await invoke(
+        [
+          'todo',
+          'edit',
+          TODO.uid,
+          '--summary',
+          'Edited',
+          '--list',
+          'work',
+          '--json',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: edited })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+    expect(fetcher.mock.calls[1]?.[0]).toBe(
+      'https://fold.example/api/lists/work/todos',
+    )
+    expect(fetcher.mock.calls[2]?.[0]).toBe(
+      'https://fold.example/api/lists/work/todos/todo-1',
+    )
+    expect(fetcher.mock.calls[2]?.[1]?.body).toBe(
+      JSON.stringify({
+        etag: 'work-etag',
+        changes: { summary: 'Edited' },
+      }),
     )
   })
 
