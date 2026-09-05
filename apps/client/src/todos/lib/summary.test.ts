@@ -29,9 +29,13 @@ const open = (uid: string): Todo => ({
 
 // docs/specs/summary-view.md
 describe('summariseCompleted', () => {
+  const cutoff = retentionCutoff(new Date(2026, 7, 4, 12, 0))
+  const summarise = (todos: readonly Todo[]) =>
+    summariseCompleted(todos, cutoff)
+
   it('groups by the local day of completion, most recent first', () => {
     // Local wall-clock times, so the test reads the same in any zone.
-    const result = summariseCompleted([
+    const result = summarise([
       done('mon-am', new Date(2026, 7, 3, 9, 0).toISOString()),
       done('tue', new Date(2026, 7, 4, 9, 0).toISOString()),
       done('mon-pm', new Date(2026, 7, 3, 17, 0).toISOString()),
@@ -49,12 +53,12 @@ describe('summariseCompleted', () => {
     // grouping on toISOString() would file this under tomorrow. Build the
     // instant from local components and assert it lands on its local day.
     const lateEvening = new Date(2026, 7, 3, 21, 30)
-    const result = summariseCompleted([done('late', lateEvening.toISOString())])
+    const result = summarise([done('late', lateEvening.toISOString())])
     expect(result.days.map((d) => d.day)).toEqual(['2026-08-03'])
   })
 
   it('ignores todos that are not completed', () => {
-    const result = summariseCompleted([
+    const result = summarise([
       open('still-going'),
       done('finished', new Date(2026, 7, 3, 9, 0).toISOString()),
     ])
@@ -66,7 +70,7 @@ describe('summariseCompleted', () => {
     // Another client may set STATUS:COMPLETED without COMPLETED — RFC 5545
     // does not require it. Those can't be placed, and must not be silently
     // dropped either.
-    const result = summariseCompleted([
+    const result = summarise([
       done('no-stamp'),
       done('stamped', new Date(2026, 7, 3, 9, 0).toISOString()),
     ])
@@ -75,11 +79,11 @@ describe('summariseCompleted', () => {
   })
 
   it('treats a malformed timestamp as unplaceable', () => {
-    expect(summariseCompleted([done('bad', 'not-a-date')]).undated).toBe(1)
+    expect(summarise([done('bad', 'not-a-date')]).undated).toBe(1)
   })
 
   it('is empty when nothing is completed', () => {
-    expect(summariseCompleted([open('a')])).toEqual({
+    expect(summarise([open('a')])).toEqual({
       days: [],
       undated: 0,
       beyondWindow: 0,
