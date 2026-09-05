@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/JackCuthbert/fold/compare/v1.4.0...v1.4.1) (2026-09-05)
+
+
+### Documentation
+
+* **repo:** streamline agent guidance ([ff81d94](https://github.com/JackCuthbert/fold/commit/ff81d945a23ac04b70bf14278dd967b440d75bdd))
+
 ## [1.4.0](https://github.com/JackCuthbert/fold/compare/v1.3.0...v1.4.0) (2026-08-21)
 
 
