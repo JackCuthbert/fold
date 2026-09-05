@@ -13,26 +13,26 @@
     "@base-ui/react": "^1.7.0",
     "@fold/outbox": "workspace:*",
     "@fold/schemas": "workspace:*",
-    "@hookform/resolvers": "^5.7.1",
-    "@tanstack/query-async-storage-persister": "^5.101.4",
-    "@tanstack/react-query": "^5.101.4",
-    "@tanstack/react-query-persist-client": "^5.101.4",
+    "@hookform/resolvers": "^5.9.1",
+    "@tanstack/query-async-storage-persister": "^5.102.8",
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-query-persist-client": "^5.102.8",
     "chrono-node": "^2.10.1",
     "fuse.js": "^7.5.0",
     "idb-keyval": "^6.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-hook-form": "^7.84.0",
+    "react-hook-form": "^7.87.0",
     "react-icons": "^5.7.0",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tsconfig/vite-react": "^8.1.1",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1",
-    "vitest": "^4.1.10"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }
