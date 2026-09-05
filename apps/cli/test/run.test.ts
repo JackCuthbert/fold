@@ -77,6 +77,39 @@ describe('Fold CLI', () => {
     })
   })
 
+  it('renders generated help for the requested command', async () => {
+    expect(await invoke(['todo', 'create', '--help'], {})).toBe(0)
+    expect(stdout).toContain('USAGE fold todo create')
+    expect(stdout).toContain('--list=<list>')
+    expect(stdout).toContain('Todo summary')
+    expect(stderr).toBe('')
+  })
+
+  it('returns usage errors without authenticating', async () => {
+    expect(await invoke(['todo', 'create'], {})).toBe(2)
+    expect(stderr).toContain('Missing required positional argument: SUMMARY')
+    expect(stdout).toBe('')
+
+    stderr = ''
+    expect(await invoke(['unknown', '--json'], {})).toBe(2)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 2 })
+  })
+
+  it('reports a missing or rejected session as an authentication error', async () => {
+    expect(await invoke(['auth', 'status'], {})).toBe(3)
+    expect(stderr).toContain('Not signed in')
+
+    signedIn()
+    const fetcher = routeFetch([json({ message: 'expired' }, 401)])
+    stderr = ''
+    expect(await invoke(['auth', 'status', '--json'], { fetcher })).toBe(3)
+    expect(JSON.parse(stderr)).toEqual({
+      error: 'Session expired; run fold auth login',
+      exitCode: 3,
+    })
+    expect(saved).toBeNull()
+  })
+
   it('creates a todo in a named list and emits JSON', async () => {
     signedIn()
     const created = { ...TODO, uid: 'created-1' }
@@ -212,6 +245,81 @@ describe('Fold CLI', () => {
     expect(fetcher.mock.calls[2]?.[1]?.body).toBe(
       JSON.stringify({ etag: TODO.etag }),
     )
+  })
+
+  it('does not delete when confirmation is declined', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+    ])
+    const prompter: Prompter = {
+      text: async () => '',
+      password: async () => '',
+      confirm: async () => false,
+    }
+
+    expect(
+      await invoke(['todo', 'delete', TODO.uid], { fetcher, prompter }),
+    ).toBe(0)
+    expect(stdout).toBe('Deletion cancelled\n')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('requires explicit deletion approval in JSON mode', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+    ])
+
+    expect(
+      await invoke(['todo', 'delete', TODO.uid, '--json'], { fetcher }),
+    ).toBe(2)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 2 })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries an edit when only unrelated fields changed', async () => {
+    signedIn()
+    const fresh = { ...TODO, etag: 'etag-2', priority: 'high' as const }
+    const edited = { ...fresh, etag: 'etag-3', summary: 'Buy oat milk' }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+      json({ todo: fresh }, 412),
+      json(edited),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--summary', edited.summary], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(fetcher.mock.calls[3]?.[1]?.body).toBe(
+      JSON.stringify({
+        etag: fresh.etag,
+        changes: { summary: edited.summary },
+      }),
+    )
+  })
+
+  it('stops an edit when the same field changed concurrently', async () => {
+    signedIn()
+    const fresh = { ...TODO, etag: 'etag-2', summary: 'Buy cream' }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: 'ctag-1', todos: [TODO] }),
+      json({ todo: fresh }, 412),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--summary', 'Buy oat milk'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(stderr).toContain('changed concurrently')
+    expect(fetcher).toHaveBeenCalledTimes(3)
   })
 
   const signedIn = (): void => {
