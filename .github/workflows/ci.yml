@@ -48,7 +48,7 @@ jobs:
       # e2e/helpers/radicale-container.ts. `global-setup.ts` skips starting
       # it entirely when no project needs it.
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+      - run: bun run e2e:install
       - run: bun run test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()

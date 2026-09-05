@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:integration": "bun run --filter @fold/server test:integration",
     "test:e2e": "bun run --filter @fold/e2e test",
+    "e2e:install": "bun run --filter @fold/e2e install:browsers",
     "screenshot": "bun run --filter @fold/e2e screenshot",
     "favicons": "bun run --filter @fold/e2e favicons",
     "seed:history": "bun run --filter @fold/e2e seed:history",
