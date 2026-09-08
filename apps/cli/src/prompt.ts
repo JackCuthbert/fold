@@ -39,7 +39,7 @@ const question = async (label: string, hidden: boolean): Promise<string> => {
     output.muted = hidden
     const answer = await pending
     if (hidden) process.stdout.write('\n')
-    return answer.trim()
+    return hidden ? answer : answer.trim()
   } finally {
     output.muted = false
     prompt.close()
