@@ -112,7 +112,10 @@ const createCommands = (runtime: Runtime) => {
       help: helpArg,
     },
     run: async ({ args }) => {
-      const previous = await runtime.store.load()
+      const previous = await runtime.store.load().catch((error: unknown) => {
+        if (error instanceof CliError && error.exitCode === 3) return null
+        throw error
+      })
       const foldUrl = normalizeFoldUrl(
         args['fold-url'] ??
           runtime.env['FOLD_URL'] ??
