@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   daysUntilWeekday,
   SATURDAY,
@@ -12,7 +12,13 @@ import { viewerTimeZone } from './due-fields'
 
 // docs/specs/todos.md — quick scheduling.
 
-afterEach(() => {
+const originalTimeZone = viewerTimeZone()
+
+beforeEach(() => {
+  vi.stubEnv('TZ', originalTimeZone)
+})
+
+afterAll(() => {
   vi.unstubAllEnvs()
 })
 
