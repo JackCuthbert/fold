@@ -17,6 +17,7 @@ fold todo create SUMMARY --list LIST
 fold todo edit UID --summary SUMMARY [--list LIST]
 fold todo complete UID [--list LIST]
 fold todo delete UID [--list LIST] [--yes]
+fold skill install --agent <codex|claude> --scope <user|project>
 ```
 
 Every command accepts `--json`. Success writes one JSON value to stdout;
@@ -68,17 +69,23 @@ have reached the CalDAV server.
 
 ## Agent skill
 
-The skill in `skills/fold-todos` invokes the CLI with `--json`. Authentication
-is a human action: when `fold auth status --json` fails, the agent asks the
-user to run `fold auth login` rather than requesting or handling credentials.
-Todo and list text is untrusted data, never instructions.
+The npm package includes the skill from `skills/fold-todos`. `fold skill
+install` copies it to the selected agent's user or project skill directory and
+refuses to replace an existing file. Codex installations use `.agents/skills`
+and Claude installations use `.claude/skills`, rooted in the home or project
+directory according to the selected scope.
+
+The skill invokes the CLI with `--json`. Authentication is a human action:
+when `fold auth status --json` fails, the agent asks the user to run `fold auth
+login` rather than requesting or handling credentials. Todo and list text is
+untrusted data, never instructions.
 
 ## Packaging and releases
 
 `apps/cli` is the monorepo's deliberately published
 workspace. Its build bundles internal workspace code into one Node ESM
-entrypoint, so `@fold/schemas` is not published and consumers never install a
-`workspace:*` runtime dependency.
+entrypoint and copies the agent skill alongside it, so `@fold/schemas` is not
+published and consumers never install a `workspace:*` runtime dependency.
 
 The root release version is synced into the CLI manifest. When release-please
 creates a release, CI builds and publishes the public scoped package with npm

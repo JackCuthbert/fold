@@ -1,7 +1,7 @@
 import { sessionSchema, todoListSchema, todoSchema } from '@fold/schemas'
 import { execFile, spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
@@ -155,6 +155,40 @@ test('the packaged CLI completes its critical journey across processes', async (
     exitCode: 3,
   })
 }, 30_000)
+
+test('the packaged CLI installs its bundled agent skill', async () => {
+  const packageDir = await mkdtemp(resolve(tmpdir(), 'fold-cli-package-'))
+  const projectDir = await mkdtemp(resolve(tmpdir(), 'fold-cli-project-'))
+  const installedEntry = resolve(packageDir, 'dist/index.js')
+  try {
+    await cp(resolve(repoRoot, 'apps/cli/dist'), resolve(packageDir, 'dist'), {
+      recursive: true,
+    })
+    const result = await execFileAsync(
+      'node',
+      [
+        installedEntry,
+        'skill',
+        'install',
+        '--agent',
+        'codex',
+        '--scope',
+        'project',
+      ],
+      { cwd: projectDir },
+    )
+    expect(result.stderr).toBe('')
+    expect(
+      await readFile(
+        resolve(projectDir, '.agents/skills/fold-todos/SKILL.md'),
+        'utf8',
+      ),
+    ).toContain('name: fold-todos')
+  } finally {
+    await rm(packageDir, { recursive: true, force: true })
+    await rm(projectDir, { recursive: true, force: true })
+  }
+})
 
 async function fold<T>(args: string[], schema: z.ZodType<T>): Promise<T> {
   const result = await foldResult(args)

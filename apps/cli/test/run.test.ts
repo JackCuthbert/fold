@@ -1,4 +1,7 @@
 import type { Todo } from '@fold/schemas'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Prompter } from '../src/prompt'
 import { run } from '../src/run'
@@ -83,6 +86,100 @@ describe('Fold CLI', () => {
     expect(stdout).toContain('--list=<list>')
     expect(stdout).toContain('Todo summary')
     expect(stderr).toBe('')
+  })
+
+  it('installs the Fold skill for a Codex project', async () => {
+    const cwd = await mkdtemp(resolve(tmpdir(), 'fold-skill-test-'))
+    try {
+      expect(
+        await invoke(
+          ['skill', 'install', '--agent', 'codex', '--scope', 'project'],
+          {
+            cwd,
+          },
+        ),
+      ).toBe(0)
+      const installed = await readFile(
+        resolve(cwd, '.agents/skills/fold-todos/SKILL.md'),
+        'utf8',
+      )
+      expect(installed).toContain('name: fold-todos')
+      expect(installed).toContain('fold auth status --json')
+      expect(stderr).toBe('')
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it('installs the Fold skill for a Claude user', async () => {
+    const homeDir = await mkdtemp(resolve(tmpdir(), 'fold-skill-test-'))
+    try {
+      expect(
+        await invoke(
+          ['skill', 'install', '--agent', 'claude', '--scope', 'user'],
+          { homeDir },
+        ),
+      ).toBe(0)
+      expect(
+        await readFile(
+          resolve(homeDir, '.claude/skills/fold-todos/SKILL.md'),
+          'utf8',
+        ),
+      ).toContain('name: fold-todos')
+      expect(stderr).toBe('')
+    } finally {
+      await rm(homeDir, { recursive: true, force: true })
+    }
+  })
+
+  it('installs the Fold skill for a Codex user', async () => {
+    const homeDir = await mkdtemp(resolve(tmpdir(), 'fold-skill-test-'))
+    try {
+      expect(
+        await invoke(
+          ['skill', 'install', '--agent', 'codex', '--scope', 'user'],
+          { homeDir },
+        ),
+      ).toBe(0)
+      expect(
+        await readFile(
+          resolve(homeDir, '.agents/skills/fold-todos/SKILL.md'),
+          'utf8',
+        ),
+      ).toContain('name: fold-todos')
+    } finally {
+      await rm(homeDir, { recursive: true, force: true })
+    }
+  })
+
+  it.each([
+    [
+      '--agent',
+      'other',
+      '--scope',
+      'project',
+      '--agent must be codex or claude',
+    ],
+    ['--agent', 'codex', '--scope', 'other', '--scope must be user or project'],
+  ])('rejects unsupported skill installation options', async (...args) => {
+    const expected = args.pop()
+    expect(await invoke(['skill', 'install', ...args], {})).toBe(2)
+    expect(stderr).toContain(expected)
+    expect(stdout).toBe('')
+  })
+
+  it('does not overwrite an installed skill', async () => {
+    const cwd = await mkdtemp(resolve(tmpdir(), 'fold-skill-test-'))
+    const args = ['skill', 'install', '--agent', 'codex', '--scope', 'project']
+    try {
+      expect(await invoke(args, { cwd })).toBe(0)
+      stdout = ''
+      expect(await invoke(args, { cwd })).toBe(1)
+      expect(stderr).toContain('Skill already exists at')
+      expect(stdout).toBe('')
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
   })
 
   it('returns usage errors without authenticating', async () => {
@@ -551,6 +648,8 @@ describe('Fold CLI', () => {
       fetcher?: typeof fetch
       prompter?: Prompter
       env?: NodeJS.ProcessEnv
+      cwd?: string
+      homeDir?: string
     },
   ) =>
     run(args, {
