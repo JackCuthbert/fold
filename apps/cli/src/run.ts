@@ -5,6 +5,7 @@ import { FoldApi } from './api'
 import { CliError } from './errors'
 import { createPrompter, type Prompter } from './prompt'
 import { createSessionStore, type SessionStore } from './session-store'
+import { installSkill, parseSkillInstallOptions } from './skill'
 import {
   completeTodo,
   createTodo,
@@ -22,6 +23,8 @@ export interface RunDependencies {
   stdout?: Pick<NodeJS.WriteStream, 'write'>
   stderr?: Pick<NodeJS.WriteStream, 'write'>
   env?: NodeJS.ProcessEnv
+  cwd?: string
+  homeDir?: string
 }
 
 interface Runtime {
@@ -30,6 +33,8 @@ interface Runtime {
   prompter: Prompter
   stdout: Pick<NodeJS.WriteStream, 'write'>
   env: NodeJS.ProcessEnv
+  cwd: string
+  homeDir: string | undefined
   json: boolean
 }
 
@@ -62,6 +67,8 @@ export const run = async (
     prompter: dependencies.prompter ?? createPrompter(),
     stdout,
     env: dependencies.env ?? process.env,
+    cwd: dependencies.cwd ?? process.cwd(),
+    homeDir: dependencies.homeDir,
     json: argv.includes('--json'),
   }
   const commands = createCommands(runtime)
@@ -339,6 +346,41 @@ const createCommands = (runtime: Runtime) => {
     subCommands: { list, view, create, edit, complete, delete: remove },
   })
 
+  const install = defineCommand({
+    meta: {
+      name: 'fold skill install',
+      description: 'Install the Fold agent skill',
+    },
+    args: {
+      agent: {
+        type: 'string',
+        description: 'Agent to install for: codex or claude',
+        required: true,
+      },
+      scope: {
+        type: 'string',
+        description: 'Installation scope: user or project',
+        required: true,
+      },
+      json: jsonArg,
+      help: helpArg,
+    },
+    run: async ({ args }) => {
+      const options = parseSkillInstallOptions(args)
+      const path = await installSkill(options, runtime.cwd, runtime.homeDir)
+      emit(runtime, {
+        message: `Installed Fold skill at ${terminalText(path)}`,
+        path,
+      })
+    },
+  })
+
+  const skill = defineCommand({
+    meta: { name: 'fold skill', description: 'Manage agent skills' },
+    args: { json: jsonArg, help: helpArg },
+    subCommands: { install },
+  })
+
   const root = defineCommand({
     meta: {
       name: 'fold',
@@ -354,7 +396,7 @@ const createCommands = (runtime: Runtime) => {
         description: 'Show version',
       },
     },
-    subCommands: { auth, todo },
+    subCommands: { auth, todo, skill },
   })
   const leafHelp: Readonly<Record<string, () => Promise<string>>> = {
     'auth login': () => renderUsage(login),
@@ -366,6 +408,7 @@ const createCommands = (runtime: Runtime) => {
     'todo edit': () => renderUsage(edit),
     'todo complete': () => renderUsage(complete),
     'todo delete': () => renderUsage(remove),
+    'skill install': () => renderUsage(install),
   }
 
   return {
@@ -375,6 +418,7 @@ const createCommands = (runtime: Runtime) => {
       groups: {
         auth: () => renderUsage(auth),
         todo: () => renderUsage(todo),
+        skill: () => renderUsage(skill),
       },
       leaves: leafHelp,
     },
@@ -384,7 +428,9 @@ const createCommands = (runtime: Runtime) => {
 type Commands = ReturnType<typeof createCommands>
 
 const helpFor = async (commands: Commands, argv: string[]): Promise<string> => {
-  const groupName = argv.find((arg) => arg === 'auth' || arg === 'todo')
+  const groupName = argv.find(
+    (arg) => arg === 'auth' || arg === 'todo' || arg === 'skill',
+  )
   if (!groupName) return commands.help.root()
   const groupIndex = argv.indexOf(groupName)
   const action = argv[groupIndex + 1]

@@ -74,10 +74,19 @@ delete conflict stops so you can inspect what changed.
 
 ## Connect an AI agent
 
-Download or copy
-[`skills/fold-todos`](https://github.com/JackCuthbert/fold/tree/main/skills/fold-todos)
-into the skills directory supported by your agent. Sign in yourself with
-`fold auth login`; the skill never asks for or handles your password.
+Install the bundled skill for the agent and scope you use:
+
+```sh
+# Available to Codex in every project
+fold skill install --agent codex --scope user
+
+# Available to Claude Code in the current project
+fold skill install --agent claude --scope project
+```
+
+Run a separate command for each agent or scope where you want the skill. The
+installer does not replace an existing skill. Sign in yourself with `fold auth
+login`; the skill never asks for or handles your password.
 
 The agent uses `--json`, treats the content of todos as data rather than
 instructions, and asks before an ambiguous or unauthorized destructive
