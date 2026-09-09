@@ -34,6 +34,7 @@ permissions: {}
 
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write # tag, and commit the changelog
@@ -54,8 +55,11 @@ jobs:
     # Always on a dispatch; on push only when a release was actually cut.
     if: >-
       ${{
-        github.event_name == 'workflow_dispatch'
-        || needs.release.outputs.released == 'true'
+        always()
+        && (
+          github.event_name == 'workflow_dispatch'
+          || needs.release.outputs.released == 'true'
+        )
       }}
     runs-on: ubuntu-latest
     permissions:
