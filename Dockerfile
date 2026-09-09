@@ -18,6 +18,7 @@ WORKDIR /app
 # changes — editing source doesn't re-resolve the tree. Every workspace
 # manifest must be present or `bun install` can't link the workspace.
 COPY package.json bun.lock ./
+COPY apps/cli/package.json ./apps/cli/
 COPY apps/server/package.json ./apps/server/
 COPY apps/client/package.json ./apps/client/
 COPY apps/docs/package.json ./apps/docs/
@@ -53,6 +54,7 @@ ENV NODE_ENV=production
 # present, even ones the image never runs: `bun install` resolves the whole
 # workspace graph and fails outright on a missing member.
 COPY package.json bun.lock ./
+COPY apps/cli/package.json ./apps/cli/
 COPY apps/server/package.json ./apps/server/
 COPY apps/client/package.json ./apps/client/
 COPY apps/docs/package.json ./apps/docs/
