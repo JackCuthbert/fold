@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.5.0](https://github.com/JackCuthbert/fold/compare/v1.4.0...v1.5.0) (2026-09-09)
+
+
+### Features
+
+* **cli:** install bundled agent skills ([dedb9cc](https://github.com/JackCuthbert/fold/commit/dedb9cc7b239b4327067d224edcc33415b852868))
+* **cli:** manage Fold todos from the command line ([3793f25](https://github.com/JackCuthbert/fold/commit/3793f250014cd40d5c1efa59e013488037150ffc))
+
+
+### Bug Fixes
+
+* **cli:** identify the npm package source ([fdab6b6](https://github.com/JackCuthbert/fold/commit/fdab6b6c1f4326797aa05e127e4bf3375d8724ca))
+* **cli:** preserve whitespace in interactive passwords ([6ac3245](https://github.com/JackCuthbert/fold/commit/6ac32452d7b4e57a7d18c00311605ace6f08633f))
+* **cli:** publish releases without an npm token ([804d0d6](https://github.com/JackCuthbert/fold/commit/804d0d68012f7cd3794665667080d4ed3bc4aa85))
+* **cli:** recover login from corrupt saved sessions ([a6014c6](https://github.com/JackCuthbert/fold/commit/a6014c6818698b60471d304dd8eb83800ba08e56))
+
+
+### Documentation
+
+* **cli:** explain how to test the CLI before publishing ([14cbe65](https://github.com/JackCuthbert/fold/commit/14cbe6516bfe3e684ad6e8758b6ba24f0dbebbd7))
+* **repo:** streamline agent guidance ([ff81d94](https://github.com/JackCuthbert/fold/commit/ff81d945a23ac04b70bf14278dd967b440d75bdd))
+
 ## [1.4.0](https://github.com/JackCuthbert/fold/compare/v1.3.0...v1.4.0) (2026-08-21)
 
 
