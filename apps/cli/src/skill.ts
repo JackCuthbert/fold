@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { CliError } from './errors'
 
+const skillName = 'fold-todos'
+
 export const skillInstallOptionsSchema = z.object({
-  agent: z.enum(['codex', 'claude']),
+  agent: z.enum(['codex', 'claude', 'all']).default('all'),
   scope: z.enum(['user', 'project']),
 })
 
@@ -17,7 +19,7 @@ export function parseSkillInstallOptions(input: unknown): SkillInstallOptions {
   if (parsed.success) return parsed.data
   const field = parsed.error.issues[0]?.path[0]
   if (field === 'agent') {
-    throw new CliError('--agent must be codex or claude', 2)
+    throw new CliError('--agent must be codex, claude, or all', 2)
   }
   throw new CliError('--scope must be user or project', 2)
 }
@@ -46,20 +48,25 @@ const skillPath = (
   home: string,
 ): string => {
   const root = scope === 'project' ? cwd : home
-  const directory = agent === 'codex' ? '.agents/skills' : '.claude/skills'
-  return resolve(root, directory, 'fold-todos', 'SKILL.md')
+  const directory =
+    agent === 'codex'
+      ? '.codex/skills'
+      : agent === 'claude'
+        ? '.claude/skills'
+        : '.agents/skills'
+  return resolve(root, directory, skillName, 'SKILL.md')
 }
 
 const readSkill = async (): Promise<string> => {
   const moduleDirectory = dirname(fileURLToPath(import.meta.url))
-  const bundled = resolve(moduleDirectory, 'fold-todos-SKILL.md')
+  const bundled = resolve(moduleDirectory, `${skillName}-SKILL.md`)
   try {
     return await readFile(bundled, 'utf8')
   } catch (error) {
     if (!hasCode(error, 'ENOENT')) throw error
   }
   return readFile(
-    resolve(moduleDirectory, '../../../skills/fold-todos/SKILL.md'),
+    resolve(moduleDirectory, '../../../skills', skillName, 'SKILL.md'),
     'utf8',
   )
 }

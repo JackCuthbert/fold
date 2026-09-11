@@ -100,7 +100,7 @@ describe('Fold CLI', () => {
         ),
       ).toBe(0)
       const installed = await readFile(
-        resolve(cwd, '.agents/skills/fold-todos/SKILL.md'),
+        resolve(cwd, '.codex/skills/fold-todos/SKILL.md'),
         'utf8',
       )
       expect(installed).toContain('name: fold-todos')
@@ -143,7 +143,7 @@ describe('Fold CLI', () => {
       ).toBe(0)
       expect(
         await readFile(
-          resolve(homeDir, '.agents/skills/fold-todos/SKILL.md'),
+          resolve(homeDir, '.codex/skills/fold-todos/SKILL.md'),
           'utf8',
         ),
       ).toContain('name: fold-todos')
@@ -153,12 +153,35 @@ describe('Fold CLI', () => {
   })
 
   it.each([
+    { args: [], name: 'without an agent option' },
+    { args: ['--agent', 'all'], name: 'for all agents' },
+  ])('installs the shared skill $name', async ({ args }) => {
+    const cwd = await mkdtemp(resolve(tmpdir(), 'fold-skill-test-'))
+    try {
+      expect(
+        await invoke(['skill', 'install', ...args, '--scope', 'project'], {
+          cwd,
+        }),
+      ).toBe(0)
+      expect(
+        await readFile(
+          resolve(cwd, '.agents/skills/fold-todos/SKILL.md'),
+          'utf8',
+        ),
+      ).toContain('name: fold-todos')
+      expect(stderr).toBe('')
+    } finally {
+      await rm(cwd, { recursive: true, force: true })
+    }
+  })
+
+  it.each([
     [
       '--agent',
       'other',
       '--scope',
       'project',
-      '--agent must be codex or claude',
+      '--agent must be codex, claude, or all',
     ],
     ['--agent', 'codex', '--scope', 'other', '--scope must be user or project'],
   ])('rejects unsupported skill installation options', async (...args) => {

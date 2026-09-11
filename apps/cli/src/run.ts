@@ -354,8 +354,7 @@ const createCommands = (runtime: Runtime) => {
     args: {
       agent: {
         type: 'string',
-        description: 'Agent to install for: codex or claude',
-        required: true,
+        description: 'Agent to install for: codex, claude, or all',
       },
       scope: {
         type: 'string',
