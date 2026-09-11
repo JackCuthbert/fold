@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/JackCuthbert/fold/compare/v1.5.0...v1.5.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **cli:** install skills in agent-native directories ([aca0baa](https://github.com/JackCuthbert/fold/commit/aca0baab4d59ee40952f6d628d0bec7c7e3ab44d))
+
 ## [1.5.0](https://github.com/JackCuthbert/fold/compare/v1.4.0...v1.5.0) (2026-09-09)
 
 
