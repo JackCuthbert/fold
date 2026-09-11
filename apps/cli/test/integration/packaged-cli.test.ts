@@ -180,7 +180,7 @@ test('the packaged CLI installs its bundled agent skill', async () => {
     expect(result.stderr).toBe('')
     expect(
       await readFile(
-        resolve(projectDir, '.agents/skills/fold-todos/SKILL.md'),
+        resolve(projectDir, '.codex/skills/fold-todos/SKILL.md'),
         'utf8',
       ),
     ).toContain('name: fold-todos')

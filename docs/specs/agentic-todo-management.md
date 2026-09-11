@@ -17,7 +17,7 @@ fold todo create SUMMARY --list LIST
 fold todo edit UID --summary SUMMARY [--list LIST]
 fold todo complete UID [--list LIST]
 fold todo delete UID [--list LIST] [--yes]
-fold skill install --agent <codex|claude> --scope <user|project>
+fold skill install [--agent <codex|claude|all>] --scope <user|project>
 ```
 
 Every command accepts `--json`. Success writes one JSON value to stdout;
@@ -71,9 +71,10 @@ have reached the CalDAV server.
 
 The npm package includes the skill from `skills/fold-todos`. `fold skill
 install` copies it to the selected agent's user or project skill directory and
-refuses to replace an existing file. Codex installations use `.agents/skills`
-and Claude installations use `.claude/skills`, rooted in the home or project
-directory according to the selected scope.
+refuses to replace an existing file. Codex installations use `.codex/skills`,
+Claude installations use `.claude/skills`, and `--agent all` or an omitted
+agent uses the shared `.agents/skills` directory. Each is rooted in the home or
+project directory according to the selected scope.
 
 The skill invokes the CLI with `--json`. Authentication is a human action:
 when `fold auth status --json` fails, the agent asks the user to run `fold auth
