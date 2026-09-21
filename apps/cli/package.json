@@ -31,13 +31,13 @@
   },
   "dependencies": {
     "citty": "^0.2.2",
-    "zod": "^4.5.4"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@fold/schemas": "workspace:*",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   },
   "engines": {
     "node": ">=20"
