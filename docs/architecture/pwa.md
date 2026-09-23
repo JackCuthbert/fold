@@ -103,27 +103,12 @@ viewport reproduces this. `e2e/tests/safe-area.spec.ts` injects real
 iPhone inset values and asserts the page still cannot scroll while the
 list still can — it fails without the fix.
 
-### Rounded corners are a separate problem
+### Safe areas follow the display
 
-*(added 2026-08-08.)*
-
-`safe-area-inset-left` / `-right` describe hardware that **intrudes** — the
-notch, in landscape — and on a portrait iPhone they are both **0**. They
-say nothing about the display's rounded corners, so the bottom row of a
-view sat inside the curve, where it is widest.
-
-The fix is **extra bottom padding only**: `--corner-inset-block-end`, added
-to `env(safe-area-inset-bottom)` rather than `max()`-ed with it, since the
-home indicator and the curve are different obstacles that happen to share
-an edge. It is 0 by default and raised under `pointer: coarse`
-(`styles/tokens.css`) — a browser window has square corners.
-
-**Insetting the sides was tried and rejected.** A corner intrudes furthest
-horizontally at the very bottom, so padding the left and right edges looks
-like the obvious fix; it costs width on *every* row for a curve that only
-bites at the last one, and reads as a margin rather than as clearance.
-Lifting the bottom row into the straight part of the edge solves it without
-touching the layout above.
+Use the browser's `env(safe-area-inset-*)` values wherever content can
+approach the display edge. Pointer type describes input accuracy; it does
+not identify rounded corners or other display geometry. Devices without a
+reported inset keep their normal component spacing.
 
 ### The overlays need it too
 
@@ -131,8 +116,8 @@ touching the layout above.
 the mobile detail sheet and the nav drawer are both Base UI dialogs
 portalled to `<body>`, so they resolve against the viewport, not their DOM
 ancestor. Their bottom rows (the created/completed meta, the sync status
-line) sat in the corner no matter how large `#root`'s padding grew, which
-is why raising it appeared to do nothing at all.
+line) need their own safe-area padding because `#root` cannot inset a
+portalled overlay.
 
 **The clearance goes on the scrolling element, or on the element actually
 pinned to the edge — never on the container that bounds them.** Padding the

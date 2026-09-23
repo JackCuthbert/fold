@@ -44,7 +44,7 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], baseURL: FAKE_BASE_URL },
-      testIgnore: [/mobile/, /screenshot/, /real-caldav/],
+      testIgnore: [/[/\\]mobile\.spec\.ts$/, /screenshot/, /real-caldav/],
     },
     // The one spec that keeps a real Radicale behind the BFF. Its own
     // project because it needs the other app server, on the other port.
@@ -72,7 +72,7 @@ export default defineConfig({
       name: 'mobile',
       // Pixel 7 keeps us chromium-only in CI.
       use: { ...devices['Pixel 7'], baseURL: FAKE_BASE_URL },
-      testMatch: /mobile/,
+      testMatch: /[/\\]mobile\.spec\.ts$/,
     },
   ],
   webServer: [

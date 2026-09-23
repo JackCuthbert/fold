@@ -1,110 +1,104 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { addTodo, createList, login, uniqueName, waitForSync } from './helpers'
 
-// docs/specs/ui.md — scrolling: only the list scrolls, never the whole
-// page. Installed to the Home Screen the app paints under the notch and the
-// home indicator (`viewport-fit=cover`), and `#root` re-inserts that space
-// with `env(safe-area-inset-*)`.
-//
-// The layout inside it must *absorb* those insets rather than add to them.
-// It measured `100dvh` while sitting inside a padded parent, so the chain
-// came to `100dvh + top + bottom` and the whole page scrolled by exactly
-// the insets — on a real iPhone, ~93px of scroll in a view with nothing to
-// scroll. Chromium reports every inset as 0, so the insets are injected
-// here; without them this can never fail.
-// Only the *OS* insets are injected — the corner clearance must still come
-// from the real `calc()` in styles/global.css, or this would be asserting
-// the test's own arithmetic.
-const IPHONE_INSETS =
-  '#root{padding-top:59px !important;' +
-  'padding-bottom:calc(34px + var(--corner-inset-block-end)) !important}'
-
-// `hasTouch` makes Chromium report `pointer: coarse`, so the corner-inset
-// tokens resolve to their real values (styles/tokens.css) rather than
-// being injected — the test then fails if those tokens are wrong, not just
-// if `#root` stops consuming them.
 test.use({ hasTouch: true })
 
-// A floor, not the exact value. `--corner-inset-block-end` is a design
-// judgement retuned by eye against a real device; pinning the measurement
-// would make every such tweak a test edit. What must not regress is that
-// content stays clear of the curve — the safe-area padding being dropped,
-// or landing on a container that clips instead of a scroller, is the
-// failure this catches.
-//
-// Set below the current measurement (24px at the drawer, 30px in the
-// sheet) so a further tier of tuning does not fail the suite, but above
-// the ~20px that a bare `env(safe-area-inset-bottom)` leaves — which is
-// where a ~55px corner radius still cuts into the row.
-const MIN_BOTTOM_GAP = 22
+// Chromium reports zero for safe-area env() values. Rewrite the loaded rules
+// so the app's real padding calculations run with zero and iPhone insets.
+function rewriteSafeAreaRules() {
+  const pending = [...document.styleSheets].flatMap((sheet) => [
+    ...sheet.cssRules,
+  ])
+  while (pending.length > 0) {
+    const rule = pending.pop()
+    if (rule instanceof CSSStyleRule) {
+      for (const property of rule.style) {
+        const value = rule.style.getPropertyValue(property)
+        if (!value.includes('env(safe-area-inset-')) continue
+        rule.style.setProperty(
+          property,
+          value
+            .replaceAll(
+              'env(safe-area-inset-bottom)',
+              'var(--test-bottom-inset)',
+            )
+            .replaceAll('env(safe-area-inset-top)', 'var(--test-top-inset)'),
+          rule.style.getPropertyPriority(property),
+        )
+      }
+    } else if (rule instanceof CSSGroupingRule) {
+      pending.push(...rule.cssRules)
+    }
+  }
+}
 
-test('safe-area insets never make the page itself scroll', async ({ page }) => {
+async function simulateInsets(page: Page) {
+  await page.evaluate(rewriteSafeAreaRules)
+}
+
+async function setInsets(page: Page, bottom: number) {
+  await page.evaluate((value) => {
+    document.documentElement.style.setProperty(
+      '--test-top-inset',
+      `${value ? 59 : 0}px`,
+    )
+    document.documentElement.style.setProperty(
+      '--test-bottom-inset',
+      `${value}px`,
+    )
+  }, bottom)
+}
+
+test('safe-area insets keep the page fixed and floating actions at their normal gap', async ({
+  page,
+}) => {
   await login(page)
   await createList(page, uniqueName('safe-area'))
-  // Enough rows that the *list* genuinely overflows — otherwise a page that
-  // cannot scroll proves nothing.
   for (let i = 0; i < 30; i += 1) await addTodo(page, `Item number ${i}`)
   await waitForSync(page)
 
-  // Both sides of the breakpoint: the mobile sheet layout and the desktop
-  // column layout are different flex chains and can fail independently.
-  for (const [width, height] of [
-    [390, 844],
-    [1280, 800],
-  ] as const) {
-    await page.setViewportSize({ width, height })
-    await page.addStyleTag({ content: IPHONE_INSETS })
-    await page.waitForTimeout(300)
-
-    const measured = await page.evaluate(() => {
-      const scroller = document.querySelector(
-        '[class*=mainScroll]:not([class*=Inner])',
-      )
-      if (!(scroller instanceof HTMLElement)) {
-        throw new Error('main scroller not found')
-      }
-      const rect = scroller.getBoundingClientRect()
-      return {
-        pageScrollHeight: document.documentElement.scrollHeight,
-        pageClientHeight: document.documentElement.clientHeight,
-        // The corner inset must not push anything sideways either — a
-        // horizontal scrollbar would be the same bug on the other axis.
-        pageScrollWidth: document.documentElement.scrollWidth,
-        pageClientWidth: document.documentElement.clientWidth,
-        listOverflows: scroller.scrollHeight > scroller.clientHeight,
-        scrollerLeft: Math.round(rect.left),
-        scrollerRight: Math.round(rect.right),
-        gapBelowScroller: Math.round(window.innerHeight - rect.bottom),
-      }
-    })
-
-    expect(measured.pageScrollHeight).toBe(measured.pageClientHeight)
-    expect(measured.pageScrollWidth).toBe(measured.pageClientWidth)
-    expect(measured.listOverflows).toBe(true)
-    // Content clears the display's rounded corners by being lifted off the
-    // bottom edge — *not* by insetting the sides, which costs width on
-    // every row for a curve that only bites at the last one
-    // (styles/tokens.css). Checked on mobile only: on desktop the scroller
-    // legitimately starts right of the nav column.
-    if (width < 768) {
-      expect(measured.scrollerLeft).toBe(0)
-      expect(measured.scrollerRight).toBe(width)
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    if (width >= 768) {
+      await page.getByRole('button', { name: 'Lists' }).click()
     }
-    expect(measured.gapBelowScroller).toBeGreaterThanOrEqual(MIN_BOTTOM_GAP)
+    await expect(page.locator('[class*=barStandalone]')).toBeVisible()
+    await simulateInsets(page)
+    for (const inset of [0, 34]) {
+      await setInsets(page, inset)
+      const measured = await page.evaluate(() => {
+        const root = document.querySelector('#root')
+        const scroller = document.querySelector(
+          '[class*=mainScroll]:not([class*=Inner])',
+        )
+        const bar = document.querySelector('[class*=barStandalone]')
+        if (
+          !(root instanceof HTMLElement) ||
+          !(scroller instanceof HTMLElement) ||
+          !(bar instanceof HTMLElement)
+        ) {
+          throw new Error('safe-area layout elements not found')
+        }
+        return {
+          rootBottomPadding: parseFloat(getComputedStyle(root).paddingBottom),
+          pageHeight: document.documentElement.scrollHeight,
+          pageWidth: document.documentElement.scrollWidth,
+          listOverflows: scroller.scrollHeight > scroller.clientHeight,
+          scrollBottom: scroller.getBoundingClientRect().bottom,
+          barBottom: bar.getBoundingClientRect().bottom,
+        }
+      })
+      expect(measured.rootBottomPadding).toBe(inset)
+      expect(measured.pageHeight).toBe(844)
+      expect(measured.pageWidth).toBe(width)
+      expect(measured.listOverflows).toBe(true)
+      expect(Math.round(844 - measured.scrollBottom)).toBe(inset)
+      expect(Math.round(measured.scrollBottom - measured.barBottom)).toBe(16)
+    }
   }
 })
 
-// The check above only measures the main scroller, which lives *inside*
-// `#root` — so it passed happily while every portalled overlay ignored the
-// safe area entirely. A fixed, portalled element resolves against the
-// viewport, not its DOM ancestor, so `#root`'s padding never reaches it.
-//
-// Asserts the *outcome* — content rests clear of the bottom edge — rather
-// than which element carries the padding. That distinction matters: the
-// clearance has to sit on the scrolling element, so content flows through
-// it, and pinning the test to a specific element would have to change
-// every time that moves.
-test('portalled overlays keep content clear of the bottom edge', async ({
+test('portalled drawer and detail sheet include the bottom inset in scrolling content', async ({
   page,
 }) => {
   await login(page)
@@ -112,39 +106,51 @@ test('portalled overlays keep content clear of the bottom edge', async ({
   await addTodo(page, 'One item')
   await waitForSync(page)
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.waitForTimeout(300)
+  await simulateInsets(page)
 
-  // Scroll the container to its end, then measure the lowest visible text.
-  const lowestTextGap = async (container: string) =>
-    page.evaluate((sel) => {
-      const root = document.querySelector(sel)
-      if (!(root instanceof HTMLElement)) return -1
-      const scroller =
-        [...root.querySelectorAll('*')].find(
-          (n) => n instanceof HTMLElement && n.scrollHeight > n.clientHeight,
-        ) ?? root
-      if (scroller instanceof HTMLElement)
-        scroller.scrollTop = scroller.scrollHeight
-      const bottoms = [...root.querySelectorAll('*')]
-        .filter((n) => n.children.length === 0 && n.textContent?.trim())
-        .map((n) => n.getBoundingClientRect().bottom)
-      if (bottoms.length === 0) return -1
-      return Math.round(window.innerHeight - Math.max(...bottoms))
-    }, container)
+  for (const inset of [0, 34]) {
+    await setInsets(page, inset)
+    await page.getByText('One item').click()
+    const sheet = page.locator('[class*=popup][role=dialog]')
+    await expect(sheet).toBeVisible()
+    await page.waitForTimeout(400)
+    const form = page.locator('[class*=popup] form')
+    expect(
+      await form.evaluate((node) =>
+        parseFloat(getComputedStyle(node).paddingBottom),
+      ),
+    ).toBe(12 + inset)
+    await form.evaluate((node) => {
+      node.scrollTop = node.scrollHeight
+    })
+    const sheetBottom = await sheet.evaluate((node) => ({
+      viewport: window.innerHeight,
+      panel: Math.round(node.getBoundingClientRect().bottom),
+      scroller: Math.round(
+        node.querySelector('form')?.getBoundingClientRect().bottom ?? -1,
+      ),
+    }))
+    expect(sheetBottom.panel).toBe(sheetBottom.viewport)
+    expect(sheetBottom.scroller).toBe(sheetBottom.panel)
+    await page.keyboard.press('Escape')
+    await expect(sheet).toBeHidden()
 
-  // The mobile detail sheet — its last row is the created/completed meta.
-  await page.getByText('One item').click()
-  await page.waitForTimeout(400)
-  expect(
-    await lowestTextGap('[class*=popup][role=dialog]'),
-  ).toBeGreaterThanOrEqual(MIN_BOTTOM_GAP)
-  await page.keyboard.press('Escape')
-  await page.waitForTimeout(400)
-
-  // The nav drawer, whose footer carries the sync status line.
-  await page.getByRole('button', { name: 'Lists' }).click()
-  await page.waitForTimeout(400)
-  expect(await lowestTextGap('[class*=navOpen]')).toBeGreaterThanOrEqual(
-    MIN_BOTTOM_GAP,
-  )
+    await page.getByRole('button', { name: 'Lists' }).click()
+    const drawer = page.locator('[class*=navOpen]')
+    await expect(drawer).toBeVisible()
+    await page.waitForTimeout(400)
+    const footer = page.locator('[class*=navOpen] [class*=footer]')
+    expect(
+      await footer.evaluate((node) =>
+        parseFloat(getComputedStyle(node).paddingBottom),
+      ),
+    ).toBe(8 + inset)
+    expect(
+      await footer.evaluate((node) =>
+        Math.round(node.getBoundingClientRect().bottom),
+      ),
+    ).toBe(await page.evaluate(() => window.innerHeight))
+    await page.keyboard.press('Escape')
+    await expect(drawer).toBeHidden()
+  }
 })
