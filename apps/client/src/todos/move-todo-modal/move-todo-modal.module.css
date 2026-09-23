@@ -53,12 +53,10 @@
   flex: 1 1 auto;
   min-height: 0;
   padding: var(--space-3);
-  /* Clears the display's rounded corner when installed to the Home Screen
-     (docs/architecture/pwa.md — safe areas). On the scroller, not the
-     popup, so content scrolls through it rather than being clipped. */
-  padding-bottom: calc(
-    var(--space-3) + env(safe-area-inset-bottom) + var(--corner-inset-block-end)
-  );
+  /* Clears the home indicator when installed to the Home Screen
+     (docs/architecture/pwa.md — safe areas). On the scroller, so content
+     scrolls through it rather than being clipped. */
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
 }
 
 .targets {

@@ -23,10 +23,8 @@
    a long list scrolls behind it. */
 .bar {
   position: sticky;
-  /* Clear of the safe-area inset rather than the viewport edge: `#root`
-     owns those (styles/global.css), and a button flush to the bottom of
-     the screen sits under the home indicator on an iPhone. */
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  /* The scrolling pane already sits inside #root's safe-area padding. */
+  bottom: var(--space-4);
   z-index: var(--z-overlay-base);
   display: flex;
   gap: var(--space-2);
