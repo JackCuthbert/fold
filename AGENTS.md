@@ -91,7 +91,12 @@ pages contain no change annotations or checkout-only contributor instructions.
 
 - Keep one commit per cohesive feature or fix; squash/amend iteration before
   pushing.
-- Use scoped Conventional Commits (`client`, `server`, `cli`, `docs`, package
-  name, or `repo`) with a user-facing release-note subject.
+- Use Conventional Commits, scoping changes to the app or package they affect
+  (`client`, `server`, `cli`, `docs`, or a package name such as `@fold/vtodo`).
+  Omit the scope for general files or repository-wide changes. The subject is
+  the release note: keep it short and describe the user-visible change, for
+  example `fix(client): keep the due date when moving a todo between lists`.
+  Choose the type carefully because `feat:` and `fix:` determine release
+  versions; internal types such as `chore:` are omitted from release notes.
 - Do not add co-author or tool-attribution trailers.
 - Do not hard-wrap GitHub issue or PR prose, and use GitHub-resolvable links.
