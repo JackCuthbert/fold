@@ -28,8 +28,8 @@ for login and does not save it.
 
 The saved file contains Fold's encrypted session cookie. It is readable only
 by your user account and is renewed as you use the CLI, just like the cookie
-in a browser. After seven days without use—or after the Fold operator changes
-`SESSION_SECRET`—sign in again.
+in a browser. Sign in again after seven days without use or when the Fold operator changes
+`SESSION_SECRET`.
 
 Check or end the session with:
 
