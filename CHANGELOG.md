@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/JackCuthbert/fold/compare/v1.5.2...v1.6.0) (2026-09-27)
+
+
+### Features
+
+* attest published container images ([7dc1fdd](https://github.com/JackCuthbert/fold/commit/7dc1fddfeb4cf468bec6347d8ded310ec83a1393))
+
+
+### Documentation
+
+* clarify conventional commit guidance ([10cbc31](https://github.com/JackCuthbert/fold/commit/10cbc318c77bba8c037e32ab04a59f1a43fb3e5b))
+* simplify user guide sentences ([14da1ea](https://github.com/JackCuthbert/fold/commit/14da1ea2d19eb13dd1401e50b7a4318ee7674ed1))
+
 ## [1.5.2](https://github.com/JackCuthbert/fold/compare/v1.5.1...v1.5.2) (2026-09-24)
 
 
