@@ -65,9 +65,8 @@ jobs:
     permissions:
       contents: read
       packages: write # push to ghcr.io
-      # attestations + id-token are only needed by the provenance step at
-      # the foot of this job, which is commented out — see the note there.
-      # Left out rather than granted for something that does not run.
+      attestations: write
+      id-token: write
     steps:
       # On a dispatch, build the named tag rather than the default branch.
       # `ref: ''` falls back to the default checkout on a push.
@@ -133,23 +132,11 @@ jobs:
 
       # Signed provenance, so someone pulling the image can verify it was
       # built by this workflow from this repo rather than pushed by hand.
-      #
-      # DISABLED until the repository is public. Attestations are not
-      # available for user-owned *private* repositories, and the step fails
-      # with "Feature not available for user-owned private repositories" —
-      # after the image has already been pushed, so it fails the run
-      # without failing the publish. Nothing here is wrong; the feature
-      # simply is not offered yet.
-      #
-      # To re-enable: uncomment this step, and restore `attestations: write`
-      # and `id-token: write` to this job's permissions above.
-      # *(commented out 2026-08-10, on the first release.)*
-      #
-      # - uses: actions/attest-build-provenance@v4
-      #   with:
-      #     subject-name: ${{ steps.image.outputs.name }}
-      #     subject-digest: ${{ steps.push.outputs.digest }}
-      #     push-to-registry: true
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
   publish-cli:
     needs: release
