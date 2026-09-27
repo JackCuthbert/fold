@@ -1,7 +1,7 @@
 # Hiding lists
 
-Sometimes you don't want every list on screen — you're sharing your screen
-at work, and your personal lists are nobody else's business.
+Sometimes you don't want every list on screen. You might be sharing your
+screen at work, and your personal lists are nobody else's business.
 
 The **filter icon** at the top right of the sidebar, next to the Fold mark,
 opens a checkbox for each of your lists. Untick one and it disappears:
@@ -28,7 +28,7 @@ Two things tell you:
 - **"N lists hidden"** appears under your lists, where the hidden ones
   would have been.
 
-Click that row to bring them all back. It asks first — a stray click during
+Click that row to bring them all back. It asks first because a stray click during
 a call is exactly what you don't want.
 
 ## Things worth knowing
@@ -38,7 +38,7 @@ restart. That's deliberate: a filter that quietly reset itself would be
 worse than none, because you'd have to check it every time.
 
 **A new list is always visible.** If you make a list while others are
-hidden, it shows up straight away — the filter only remembers the lists you
+hidden, it shows up straight away. The filter only remembers the lists you
 actually unticked, so it can never swallow something you made later.
 
 **You can't hide everything.** Unticking your last visible list turns the
@@ -47,7 +47,7 @@ filter off instead of leaving you with an empty screen.
 **Opening a list directly still works.** The filter only affects the
 sidebar and the Today / Tomorrow / Next 7 days / Summary / Search views. If
 you hide the
-list you're currently reading, Fold moves you to Today — otherwise its
+list you're currently reading, Fold moves you to Today. Otherwise its
 todos would stay on screen with no sign of where they came from.
 
 **Searching won't find a hidden list either.** That's the one place this

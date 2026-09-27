@@ -7,8 +7,9 @@ The app keeps working without a connection:
 - A banner at the bottom of the screen shows **Offline · N queued** while
   disconnected. If your network is fine but your CalDAV server isn't
   answering, that banner stays quiet and instead the status dot at the
-  bottom of the sidebar, next to **Settings**, turns red and pulses gently
-  — no separate banner for a condition that's often just a brief blip.
+  bottom of the sidebar, next to **Settings**, turns red and pulses gently.
+  There is no separate banner for a condition that's often just a
+  brief blip.
 - When the connection returns, queued changes upload in order,
   automatically.
 

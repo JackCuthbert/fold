@@ -12,7 +12,7 @@ Everything you have, from every list: titles *and* the notes underneath
 them. So if you wrote "ring the bank" and put the account number in the
 notes, searching for the number finds it.
 
-**Finished todos are included.** That's on purpose — the thing you can't
+**Finished todos are included.** That's on purpose. The thing you can't
 find is very often something you already ticked off and half-forgot about.
 They show up struck through, exactly as they do everywhere else.
 
@@ -39,9 +39,8 @@ Unhide the list and its todos are findable again straight away.
 
 There are no extra filter buttons for due dates or priority.
 [Today](./todos.md), Tomorrow and Next 7 days already answer "what's due",
-and the list
-filter already handles "which lists" — better than a search-only control
-would, since it tidies the sidebar too.
+and the list filter already handles "which lists". That works better than a
+search-only control would, since it tidies the sidebar too.
 
 Your query isn't remembered. Come back tomorrow and the field is empty,
 because a search is a question you're asking now rather than a setting.

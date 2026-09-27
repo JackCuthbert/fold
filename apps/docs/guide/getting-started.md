@@ -1,6 +1,6 @@
 # Getting started
 
-Fold is a todo client, not a todo service — it stores nothing itself and
+Fold is a todo client, not a todo service. It stores nothing itself and
 keeps your todos on a CalDAV server you control. You need that server and
 its URL before you can sign in.
 
@@ -23,7 +23,7 @@ Your lists appear in the sidebar on the left. On a phone, select ☰ to open
 them.
 
 If sign-in fails, the most common cause is the URL. Check that it includes
-your username and ends with a slash — `https://dav.example.com/alice/`,
+your username and ends with a slash, such as `https://dav.example.com/alice/`,
 not `https://dav.example.com`.
 
 ## Where your password goes
@@ -34,8 +34,8 @@ Signing out clears them, as does clearing your browser's cookies.
 
 ## Next
 
-[Adding a todo](./adding-todos.md) covers the one thing you'll do most —
-typing a todo, its date, its list and its priority on a single line. After
+[Adding a todo](./adding-todos.md) covers the one thing you'll do most. You
+can type a todo, its date, its list and its priority on a single line. After
 that, [lists](./lists.md) and [todos](./todos.md) cover organising what you
 have, and [keyboard shortcuts](./keyboard-shortcuts.md) is worth a look
 once you're settled in.

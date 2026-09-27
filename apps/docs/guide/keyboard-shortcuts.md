@@ -37,7 +37,7 @@ top of the first. Close what you're in, and they work again.
 **While you're typing.** Anything typed into a text box belongs to that box.
 
 **When you have no lists at all.** New todo asks which list to put it in,
-and with none there's nothing to choose. Make a list first — `Ctrl+Shift+N`.
+and with none there's nothing to choose. Make a list first with `Ctrl+Shift+N`.
 
 A closed or collapsed sidebar is no obstacle, though. That's exactly when
 reaching for the keyboard is quicker than going to find the button.
@@ -48,8 +48,8 @@ reaching for the keyboard is quicker than going to find the button.
 you are. See [adding a todo](./adding-todos.md) for what you can type into
 it.
 
-Press it from Today, Tomorrow, Next 7 days, Summary or Search — none of
-which are lists — and Fold asks which list the todo belongs to. Press it
+Press it from Today, Tomorrow, Next 7 days, Summary or Search. None of
+those are lists, so Fold asks which list the todo belongs to. Press it
 inside a list and that list is filled in for you.
 
 It's unmodified because every shortcut stands down while you're typing, so

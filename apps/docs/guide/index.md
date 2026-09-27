@@ -3,8 +3,8 @@ layout: home
 
 hero:
   # `name` is the big gradient word and `text` renders at the same 56px/700
-  # beside it, so the description goes in `tagline` — the smaller muted
-  # line — leaving Fold as the only thing at title size.
+  # beside it, so the description goes in `tagline`, the smaller muted
+  # line, leaving Fold as the only thing at title size.
   name: Fold
   tagline: A calm todo client for your own CalDAV server
   # The SVG, not icon-192.png: the PNG is the PWA icon and carries an
@@ -29,7 +29,7 @@ features:
   - title: Natural language scheduling
     # Single-quoted: unquoted, YAML reads ` #chores p1"…` as a trailing
     # comment and silently truncates the string at "3pm".
-    details: 'Type "Clean the gutters tomorrow at 3pm #chores p1" — date, list and priority all read as you type.'
+    details: 'Type "Clean the gutters tomorrow at 3pm #chores p1". Date, list and priority all read as you type.'
     link: /adding-todos
     linkText: How it reads your line
   - title: Recognised lists
