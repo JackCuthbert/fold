@@ -32,11 +32,11 @@
   "devDependencies": {
     "@tsconfig/node24": "^24.0.5",
     "@tsconfig/strictest": "^2.0.8",
-    "@types/node": "^26.6.1",
-    "knip": "^6.36.0",
-    "oxfmt": "^0.68.0",
-    "oxlint": "^1.83.0",
-    "oxlint-tsgolint": "^7.0.2002",
+    "@types/node": "^26.6.2",
+    "knip": "^6.38.0",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2003",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1",
     "wawoff2": "^2.0.1"

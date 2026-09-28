@@ -13,7 +13,7 @@
   "dependencies": {
     "@fold/schemas": "workspace:*",
     "@fold/vtodo": "workspace:*",
-    "tsdav": "^2.3.3",
+    "tsdav": "^2.3.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {
