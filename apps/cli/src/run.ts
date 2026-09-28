@@ -100,7 +100,7 @@ export const run = async (
 const createCommands = (runtime: Runtime) => {
   const login = defineCommand({
     meta: {
-      name: 'fold auth login',
+      name: 'fold-cli auth login',
       description: 'Sign in and save the session',
     },
     args: {
@@ -159,7 +159,7 @@ const createCommands = (runtime: Runtime) => {
 
   const status = defineCommand({
     meta: {
-      name: 'fold auth status',
+      name: 'fold-cli auth status',
       description: 'Show the saved session status',
     },
     args: { json: jsonArg, help: helpArg },
@@ -174,7 +174,7 @@ const createCommands = (runtime: Runtime) => {
 
   const logout = defineCommand({
     meta: {
-      name: 'fold auth logout',
+      name: 'fold-cli auth logout',
       description: 'Sign out and remove the session',
     },
     args: { json: jsonArg, help: helpArg },
@@ -185,13 +185,13 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const auth = defineCommand({
-    meta: { name: 'fold auth', description: 'Manage authentication' },
+    meta: { name: 'fold-cli auth', description: 'Manage authentication' },
     args: { json: jsonArg, help: helpArg },
     subCommands: { login, status, logout },
   })
 
   const list = defineCommand({
-    meta: { name: 'fold todo list', description: 'List todos' },
+    meta: { name: 'fold-cli todo list', description: 'List todos' },
     args: {
       list: listArg,
       'include-completed': {
@@ -216,7 +216,7 @@ const createCommands = (runtime: Runtime) => {
 
   const view = defineCommand({
     meta: {
-      name: 'fold todo view',
+      name: 'fold-cli todo view',
       description: 'Show every field of one todo',
     },
     args: {
@@ -236,7 +236,7 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const create = defineCommand({
-    meta: { name: 'fold todo create', description: 'Create a todo' },
+    meta: { name: 'fold-cli todo create', description: 'Create a todo' },
     args: {
       summary: {
         type: 'positional',
@@ -261,7 +261,10 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const edit = defineCommand({
-    meta: { name: 'fold todo edit', description: 'Change a todo summary' },
+    meta: {
+      name: 'fold-cli todo edit',
+      description: 'Change a todo summary',
+    },
     args: {
       uid: { type: 'positional', description: 'Todo UID', required: true },
       summary: {
@@ -288,7 +291,7 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const complete = defineCommand({
-    meta: { name: 'fold todo complete', description: 'Complete a todo' },
+    meta: { name: 'fold-cli todo complete', description: 'Complete a todo' },
     args: {
       uid: { type: 'positional', description: 'Todo UID', required: true },
       list: listArg,
@@ -309,7 +312,7 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const remove = defineCommand({
-    meta: { name: 'fold todo delete', description: 'Delete a todo' },
+    meta: { name: 'fold-cli todo delete', description: 'Delete a todo' },
     args: {
       uid: { type: 'positional', description: 'Todo UID', required: true },
       list: listArg,
@@ -341,14 +344,14 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const todo = defineCommand({
-    meta: { name: 'fold todo', description: 'Manage todos' },
+    meta: { name: 'fold-cli todo', description: 'Manage todos' },
     args: { json: jsonArg, help: helpArg },
     subCommands: { list, view, create, edit, complete, delete: remove },
   })
 
   const install = defineCommand({
     meta: {
-      name: 'fold skill install',
+      name: 'fold-cli skill install',
       description: 'Install the Fold agent skill',
     },
     args: {
@@ -375,14 +378,14 @@ const createCommands = (runtime: Runtime) => {
   })
 
   const skill = defineCommand({
-    meta: { name: 'fold skill', description: 'Manage agent skills' },
+    meta: { name: 'fold-cli skill', description: 'Manage agent skills' },
     args: { json: jsonArg, help: helpArg },
     subCommands: { install },
   })
 
   const root = defineCommand({
     meta: {
-      name: 'fold',
+      name: 'fold-cli',
       version: packageJson.version,
       description: packageJson.description,
     },
