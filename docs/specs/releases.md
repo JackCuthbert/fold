@@ -28,17 +28,36 @@ absent** — with it set, the first `feat:` would produce 0.1.0 rather than
 1.0.0. *(changed 2026-08-17: was "Fold stays on 0.x", written while the
 repo was private.)*
 
-The root `package.json` holds the version; `release-please` syncs it into
-every other manifest — `apps/client`, `apps/server`, `apps/docs`, `apps/cli`,
-`packages/vtodo`, `packages/outbox` and `packages/schemas` — so nothing
-drifts.
+The root `package.json` holds Fold's app and Docker image version.
+`release-please` syncs it into `apps/client`, `apps/server`, `apps/docs`,
+`packages/vtodo`, `packages/outbox` and `packages/schemas`.
 
-`@jackcuthbert/fold-cli` is published to npm from the same release. It is one
-Node-compatible JavaScript bundle with no native dependencies, so npm serves
-the same artifact to macOS and Linux on every architecture Node supports.
-The package is public and carries npm provenance. Publishing requires the
-repository's `NPM_TOKEN` secret and ownership of the `@jackcuthbert` npm
-scope. *(added 2026-09-04: agentic todo management, issue #91.)*
+The CLI has an independent version in `apps/cli/package.json`, a changelog at
+`apps/cli/CHANGELOG.md`, and tags such as `fold-cli-v2.0.0`. Its release-please
+component excludes CLI and bundled skill commits from the root release, and
+the root version sync never writes the CLI manifest. The release manifest
+bootstraps the CLI from its last shared version, `1.6.0`, with the existing
+`v1.6.0` commit as the history boundary. The executable rename therefore
+releases CLI `2.0.0` while Fold remains on `1.6.0`.
+
+Release Please routes whole commits by changed paths, not Conventional Commit
+scopes. Keep breaking CLI commits confined to `apps/cli` and
+`skills/fold-todos`; put shared documentation, lockfile, and release setup
+changes in a separate nonbreaking commit. Rebase merge preserves those
+boundaries; squashing them together would apply the breaking change to Fold
+as well. The repository enables rebase merges and disables squash merges.
+Mixed app and CLI breaking commits intentionally affect both components.
+Changes confined to the skill source or shared schemas do not trigger a CLI
+release: include a corresponding change under `apps/cli` when its bundled
+artifact needs to be republished.
+
+`@jackcuthbert/fold-cli` is published to npm only when a CLI release is cut;
+Fold releases publish Docker without republishing the CLI. The CLI job checks
+out its component tag rather than the app tag. It is one Node-compatible
+JavaScript bundle with no native dependencies, so npm serves the same
+artifact to macOS and Linux on every architecture Node supports. The package
+is public and carries npm provenance through the repository's npm trusted
+publisher configuration and ownership of the `@jackcuthbert` npm scope.
 
 ## Commit subjects are the changelog
 
@@ -58,14 +77,14 @@ freely — they are never read by a user. *(added 2026-08-17.)*
 
 ## The release PR is the gate
 
-`release-please` keeps one PR open — *"chore: release X.Y.Z"* — and
-updates it as commits land on `main`. It accumulates the changelog and the
-version bump, and **nothing is published until it is merged**.
+`release-please` maintains separate PRs for Fold and the CLI, updating each
+as relevant commits land on `main`. Each accumulates its own changelog and
+version bump, and **nothing is published until its release PR is merged**.
 
 That matters more than automation would: merging is a deliberate act, so a
 release happens when it is meant to rather than every time a `fix:` lands.
-Merging tags the commit, writes `CHANGELOG.md`, cuts a GitHub Release, and
-triggers the image build.
+Merging tags the commit, writes the component's changelog, cuts a GitHub
+Release, and triggers its publication job: Docker for Fold, npm for the CLI.
 
 Commit types map to changelog sections in `release-please-config.json`.
 `refactor`, `test`, `ci` and `chore` are hidden — real changes to the
@@ -73,7 +92,8 @@ project, but not ones a person deciding whether to upgrade needs to read.
 
 ### `CHANGELOG.md` is not formatted by oxfmt
 
-It is listed in `.oxfmtrc.json`'s `ignorePatterns`, alongside `docs`.
+Both `CHANGELOG.md` and `apps/cli/CHANGELOG.md` are listed in
+`.oxfmtrc.json`'s `ignorePatterns`, alongside `docs`.
 
 release-please writes it, and writes it in its own house style: `*` list
 bullets and a blank line after each heading. oxfmt wants `-` and no blank

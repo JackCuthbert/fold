@@ -2,16 +2,12 @@
 #
 # Three jobs, in order:
 #
-# 1. **release-please** keeps a rolling "chore: release X.Y.Z" PR open,
-#    accumulating the changelog from Conventional Commit messages as they
-#    land on main. Nothing is released until that PR is merged, which is
-#    the deliberate gate: merging it tags the version and cuts a GitHub
-#    Release.
+# 1. **release-please** maintains separate release PRs for Fold and the CLI.
+#    Merging a release PR tags its version and cuts a GitHub Release.
 # 2. **publish** then builds the image and pushes it to ghcr.io — but only
 #    on the run where a release was actually created, hence the `if` on
 #    `needs.release.outputs.released`.
-# 3. **publish-cli** builds the Node CLI and publishes it to npm from that
-#    same release version.
+# 3. **publish-cli** builds and publishes npm only when a CLI release is cut.
 name: release
 
 on:
@@ -43,6 +39,8 @@ jobs:
       released: ${{ steps.release.outputs.release_created }}
       tag: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
+      cli-released: ${{ steps.release.outputs['apps/cli--release_created'] }}
+      cli-tag: ${{ steps.release.outputs['apps/cli--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -140,7 +138,7 @@ jobs:
 
   publish-cli:
     needs: release
-    if: needs.release.outputs.released == 'true'
+    if: needs.release.outputs.cli-released == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,7 +146,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: ${{ needs.release.outputs.cli-tag }}
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v7
         with:

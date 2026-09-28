@@ -12,14 +12,14 @@ Install Node.js 20 or newer, then:
 npm install --global @jackcuthbert/fold-cli
 ```
 
-This installs the `fold` command. The package contains ordinary JavaScript and
+This installs the `fold-cli` command. The package contains ordinary JavaScript and
 has no platform-specific native dependencies, so the same installation works
 on macOS and Linux, on Intel and ARM machines.
 
 ## Sign in once
 
 ```sh
-fold auth login
+fold-cli auth login
 ```
 
 Enter the Fold URL and the CalDAV details you normally enter on Fold's login
@@ -34,20 +34,20 @@ in a browser. Sign in again after seven days without use or when the Fold operat
 Check or end the session with:
 
 ```sh
-fold auth status
-fold auth logout
+fold-cli auth status
+fold-cli auth logout
 ```
 
 ## Manage todos
 
 ```sh
-fold todo list
-fold todo list --include-completed
-fold todo view TODO_UID
-fold todo create "Book dentist" --list Personal
-fold todo edit TODO_UID --summary "Book dentist appointment"
-fold todo complete TODO_UID
-fold todo delete TODO_UID
+fold-cli todo list
+fold-cli todo list --include-completed
+fold-cli todo view TODO_UID
+fold-cli todo create "Book dentist" --list Personal
+fold-cli todo edit TODO_UID --summary "Book dentist appointment"
+fold-cli todo complete TODO_UID
+fold-cli todo delete TODO_UID
 ```
 
 List hides completed items unless `--include-completed` is present. View shows
@@ -62,10 +62,10 @@ Add `--json` to receive machine-readable output. Non-interactive deletion also
 requires `--yes`:
 
 ```sh
-fold todo list --json
-fold todo create "Book dentist" --list Personal --json
-fold todo complete TODO_UID --json
-fold todo delete TODO_UID --yes --json
+fold-cli todo list --json
+fold-cli todo create "Book dentist" --list Personal --json
+fold-cli todo complete TODO_UID --json
+fold-cli todo delete TODO_UID --yes --json
 ```
 
 The CLI uses ETags to avoid silently replacing changes from another client.
@@ -78,16 +78,43 @@ Install the bundled skill for the agent and scope you use:
 
 ```sh
 # Available to Codex in every project
-fold skill install --agent codex --scope user
+fold-cli skill install --agent codex --scope user
 
 # Available to Claude Code in the current project
-fold skill install --agent claude --scope project
+fold-cli skill install --agent claude --scope project
 ```
 
 Run a separate command for each agent or scope where you want the skill. The
-installer does not replace an existing skill. Sign in yourself with `fold auth
+installer does not replace an existing skill. Sign in yourself with `fold-cli auth
 login`; the skill never asks for or handles your password.
 
 The agent uses `--json`, treats the content of todos as data rather than
 instructions, and asks before an ambiguous or unauthorized destructive
 operation.
+
+## Migrating from the `fold` command
+
+The executable is now `fold-cli` to avoid conflicting with the system's
+`fold` text-wrapping command. After the release is published, replace the old
+installation so its `fold` executable is removed:
+
+```sh
+npm uninstall --global @jackcuthbert/fold-cli
+npm install --global @jackcuthbert/fold-cli@latest
+fold-cli auth status
+```
+
+Use the package manager and installation scope used for your original install.
+Replace `fold` with `fold-cli` in scripts, shell aliases, and agent instructions;
+remove aliases or symlinks that make `fold` invoke the Fold CLI. Subcommands,
+flags, environment variables, and saved session locations are unchanged, so
+an unexpired session still works without signing in again.
+
+Previously installed agent skills still invoke `fold`. Update their commands
+or move the existing `SKILL.md` outside its skill directory as a backup, then reinstall
+with `fold-cli skill install` using the same `--agent` and `--scope`. The
+installer refuses to overwrite an existing file. Skill directories are
+`.codex/skills/fold-todos`, `.claude/skills/fold-todos`, or
+`.agents/skills/fold-todos`, under your home directory for user scope or the
+project for project scope. Repeat for every installed agent and scope, and
+restart the agent session to load the updated instructions.

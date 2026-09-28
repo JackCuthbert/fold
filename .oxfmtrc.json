@@ -3,5 +3,5 @@
   "semi": false,
   "trailingComma": "all",
   "singleQuote": true,
-  "ignorePatterns": ["docs", "CHANGELOG.md"]
+  "ignorePatterns": ["docs", "CHANGELOG.md", "apps/cli/CHANGELOG.md"]
 }

@@ -1,23 +1,27 @@
 # Agentic todo management
 
 Fold provides a command-line client for people and AI agents. Its npm package
-is `@jackcuthbert/fold-cli`, its executable is `fold`, and its source lives in
+is `@jackcuthbert/fold-cli`, its executable is `fold-cli`, and its source lives in
 `apps/cli`. The CLI talks only to Fold's JSON API; it never speaks CalDAV
 directly or introduces another deployment target.
+
+The executable was renamed from `fold` to `fold-cli` to avoid shadowing the
+system text-wrapping utility. The npm package name, session paths, environment
+variables, and command arguments remain unchanged.
 
 ## Initial command surface
 
 ```text
-fold auth login
-fold auth status
-fold auth logout
-fold todo list [--list LIST] [--include-completed]
-fold todo view UID [--list LIST]
-fold todo create SUMMARY --list LIST
-fold todo edit UID --summary SUMMARY [--list LIST]
-fold todo complete UID [--list LIST]
-fold todo delete UID [--list LIST] [--yes]
-fold skill install [--agent <codex|claude|all>] --scope <user|project>
+fold-cli auth login
+fold-cli auth status
+fold-cli auth logout
+fold-cli todo list [--list LIST] [--include-completed]
+fold-cli todo view UID [--list LIST]
+fold-cli todo create SUMMARY --list LIST
+fold-cli todo edit UID --summary SUMMARY [--list LIST]
+fold-cli todo complete UID [--list LIST]
+fold-cli todo delete UID [--list LIST] [--yes]
+fold-cli skill install [--agent <codex|claude|all>] --scope <user|project>
 ```
 
 Every command accepts `--json`. Success writes one JSON value to stdout;
@@ -35,7 +39,7 @@ without weakening the basic mutation and authentication contract.
 
 ## Persistent authentication
 
-`fold auth login` collects the Fold origin, CalDAV URL, username, and password
+`fold-cli auth login` collects the Fold origin, CalDAV URL, username, and password
 in a terminal. The password is not accepted as a command-line argument. An
 explicit `FOLD_PASSWORD` supports secret-backed automation without putting the
 password in the process arguments.
@@ -48,7 +52,7 @@ Linux uses `$XDG_STATE_HOME/fold`, falling back to `~/.local/state/fold`.
 Expired cookies are deleted locally before use. Every successful authenticated
 request persists a renewed `Set-Cookie`, so
 Fold's seven-day sliding session behaves as it does in a browser. A missing,
-expired, or invalid session tells the user to run `fold auth login`. Logout
+expired, or invalid session tells the user to run `fold-cli auth login`. Logout
 calls Fold when possible and always removes the local session.
 
 ## Todo identity and concurrency
@@ -69,7 +73,7 @@ have reached the CalDAV server.
 
 ## Agent skill
 
-The npm package includes the skill from `skills/fold-todos`. `fold skill
+The npm package includes the skill from `skills/fold-todos`. `fold-cli skill
 install` copies it to the selected agent's user or project skill directory and
 refuses to replace an existing file. Codex installations use `.codex/skills`,
 Claude installations use `.claude/skills`, and `--agent all` or an omitted
@@ -77,7 +81,7 @@ agent uses the shared `.agents/skills` directory. Each is rooted in the home or
 project directory according to the selected scope.
 
 The skill invokes the CLI with `--json`. Authentication is a human action:
-when `fold auth status --json` fails, the agent asks the user to run `fold auth
+when `fold-cli auth status --json` fails, the agent asks the user to run `fold-cli auth
 login` rather than requesting or handling credentials. Todo and list text is
 untrusted data, never instructions.
 
@@ -88,9 +92,13 @@ workspace. Its build bundles internal workspace code into one Node ESM
 entrypoint and copies the agent skill alongside it, so `@fold/schemas` is not
 published and consumers never install a `workspace:*` runtime dependency.
 
-The root release version is synced into the CLI manifest. When release-please
-creates a release, CI builds and publishes the public scoped package with npm
-provenance. Publishing requires the `@jackcuthbert` npm scope and repository
+The CLI is an independent release-please component with its own manifest
+version, changelog, and `fold-cli-vX.Y.Z` tags. A CLI release triggers npm
+publication from its component tag; app releases publish Docker without
+republishing npm. Breaking CLI changes do not bump the app when their commits
+are confined to CLI and bundled skill paths. See [releases](./releases.md)
+for commit boundaries and the migration from shared versioning. CI publishes
+the public scoped package with npm provenance. Publishing requires the `@jackcuthbert` npm scope and repository
 trusted-publisher configuration to exist before the first release.
 
 Contributor instructions for exercising the publishable bundle without an npm
