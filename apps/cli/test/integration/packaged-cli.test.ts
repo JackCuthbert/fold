@@ -1,7 +1,7 @@
 import { sessionSchema, todoListSchema, todoSchema } from '@fold/schemas'
 import { execFile, spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
@@ -151,30 +151,47 @@ test('the packaged CLI completes its critical journey across processes', async (
   const signedOut = await foldResult(['auth', 'status', '--json'])
   expect(signedOut.exitCode).toBe(3)
   expect(JSON.parse(signedOut.stderr)).toMatchObject({
-    error: 'Not signed in; run fold auth login',
+    error: 'Not signed in; run fold-cli auth login',
     exitCode: 3,
   })
 }, 30_000)
 
-test('the packaged CLI installs its bundled agent skill', async () => {
+test('the installed fold-cli command leaves fold available and installs its bundled skill', async () => {
   const packageDir = await mkdtemp(resolve(tmpdir(), 'fold-cli-package-'))
   const projectDir = await mkdtemp(resolve(tmpdir(), 'fold-cli-project-'))
-  const installedEntry = resolve(packageDir, 'dist/index.js')
+  const installedEntry = resolve(projectDir, 'node_modules/.bin/fold-cli')
   try {
-    await cp(resolve(repoRoot, 'apps/cli/dist'), resolve(packageDir, 'dist'), {
-      recursive: true,
-    })
-    const result = await execFileAsync(
-      'node',
+    const packed = await execFileAsync(
+      'npm',
+      ['pack', '--ignore-scripts', '--json', '--pack-destination', packageDir],
+      { cwd: resolve(repoRoot, 'apps/cli') },
+    )
+    const [archive] = z
+      .tuple([z.object({ filename: z.string() })])
+      .parse(JSON.parse(packed.stdout))
+    await execFileAsync(
+      'npm',
       [
-        installedEntry,
-        'skill',
         'install',
-        '--agent',
-        'codex',
-        '--scope',
-        'project',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        resolve(packageDir, archive.filename),
       ],
+      { cwd: projectDir },
+    )
+    const installedCommands = await readdir(
+      resolve(projectDir, 'node_modules/.bin'),
+    )
+    expect(installedCommands).toContain('fold-cli')
+    expect(installedCommands).not.toContain('fold')
+    const help = await execFileAsync(installedEntry, ['--help'], {
+      cwd: projectDir,
+    })
+    expect(help.stdout).toContain('USAGE fold-cli')
+    const result = await execFileAsync(
+      installedEntry,
+      ['skill', 'install', '--agent', 'codex', '--scope', 'project'],
       { cwd: projectDir },
     )
     expect(result.stderr).toBe('')
@@ -188,7 +205,7 @@ test('the packaged CLI installs its bundled agent skill', async () => {
     await rm(packageDir, { recursive: true, force: true })
     await rm(projectDir, { recursive: true, force: true })
   }
-})
+}, 60_000)
 
 async function fold<T>(args: string[], schema: z.ZodType<T>): Promise<T> {
   const result = await foldResult(args)

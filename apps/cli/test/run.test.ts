@@ -82,7 +82,7 @@ describe('Fold CLI', () => {
 
   it('renders generated help for the requested command', async () => {
     expect(await invoke(['todo', 'create', '--help'], {})).toBe(0)
-    expect(stdout).toContain('USAGE fold todo create')
+    expect(stdout).toContain('USAGE fold-cli todo create')
     expect(stdout).toContain('--list=<list>')
     expect(stdout).toContain('Todo summary')
     expect(stderr).toBe('')
@@ -104,7 +104,7 @@ describe('Fold CLI', () => {
         'utf8',
       )
       expect(installed).toContain('name: fold-todos')
-      expect(installed).toContain('fold auth status --json')
+      expect(installed).toContain('fold-cli auth status --json')
       expect(stderr).toBe('')
     } finally {
       await rm(cwd, { recursive: true, force: true })
@@ -224,7 +224,7 @@ describe('Fold CLI', () => {
     stderr = ''
     expect(await invoke(['auth', 'status', '--json'], { fetcher })).toBe(3)
     expect(JSON.parse(stderr)).toEqual({
-      error: 'Session expired; run fold auth login',
+      error: 'Session expired; run fold-cli auth login',
       exitCode: 3,
     })
     expect(saved).toBeNull()

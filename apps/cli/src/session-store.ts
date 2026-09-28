@@ -90,6 +90,6 @@ const isMissing = (error: unknown): boolean =>
 
 const invalidSession = (path: string): CliError =>
   new CliError(
-    `The saved Fold session at ${path} is invalid; run fold auth login`,
+    `The saved Fold session at ${path} is invalid; run fold-cli auth login`,
     3,
   )

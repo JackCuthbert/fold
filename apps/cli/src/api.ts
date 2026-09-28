@@ -29,7 +29,7 @@ export class FoldApi {
   ): Promise<FoldApi> {
     const session = await store.load()
     if (!session) {
-      throw new CliError('Not signed in; run fold auth login', 3)
+      throw new CliError('Not signed in; run fold-cli auth login', 3)
     }
     return new FoldApi(session, store, fetcher)
   }
@@ -132,7 +132,7 @@ export class FoldApi {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await this.store.clear()
-        throw new CliError('Session expired; run fold auth login', 3, {
+        throw new CliError('Session expired; run fold-cli auth login', 3, {
           cause: error,
         })
       }
