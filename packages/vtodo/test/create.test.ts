@@ -73,7 +73,7 @@ describe('createTodoIcs', () => {
   // can go wrong without anything else noticing: naming a project that no
   // longer exists, and reporting a version that stopped tracking releases.
   describe('PRODID', () => {
-    const prodid = (): string =>
+    const prodid =
       createTodoIcs({ uid: 'p', summary: 's' }, NOW)
         .split('\r\n')
         .find((line) => line.startsWith('PRODID:')) ?? ''
@@ -81,8 +81,8 @@ describe('createTodoIcs', () => {
     it('names the project as it is actually published', () => {
       // `caldav-todo-client` was the pre-rename name, and the repository at
       // that name 404s — a reader of the .ics could find nothing.
-      expect(prodid()).toContain('Fold')
-      expect(prodid()).not.toContain('caldav-todo-client')
+      expect(prodid).toContain('Fold')
+      expect(prodid).not.toContain('caldav-todo-client')
     })
 
     it('carries the released version, not this package.json being stale', () => {
@@ -91,7 +91,7 @@ describe('createTodoIcs', () => {
       // bumped by release-please (release-please-config.json extra-files);
       // if it is ever dropped from that list this pins at 0.1.0 and the
       // label silently lies forever.
-      expect(prodid()).toMatch(
+      expect(prodid).toMatch(
         /^PRODID:-\/\/JackCuthbert\/\/Fold \d+\.\d+\.\d+\/\/EN$/,
       )
     })
