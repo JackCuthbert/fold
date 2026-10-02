@@ -47,6 +47,11 @@ const notify = (): void => {
   for (const listener of listeners) listener()
 }
 
+const writeTheme = (next: Theme): void => {
+  localStorage.setItem(THEME_KEY, storeTheme(next))
+  notify()
+}
+
 /**
  * Put the stored theme on the document, and keep it there.
  *
@@ -90,17 +95,12 @@ export function useTheme(): ThemeControls {
 
   const prefersDark = media()?.matches ?? false
 
-  const write = (next: Theme): void => {
-    localStorage.setItem(THEME_KEY, storeTheme(next))
-    notify()
-  }
-
   return {
     theme,
     resolved:
       theme.mode === 'system' ? (prefersDark ? 'dark' : 'light') : theme.mode,
-    setPalette: (palette) => write({ ...theme, palette }),
-    setMode: (mode) => write({ ...theme, mode }),
-    setTypeface: (typeface) => write({ ...theme, typeface }),
+    setPalette: (palette) => writeTheme({ ...theme, palette }),
+    setMode: (mode) => writeTheme({ ...theme, mode }),
+    setTypeface: (typeface) => writeTheme({ ...theme, typeface }),
   }
 }

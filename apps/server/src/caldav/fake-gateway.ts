@@ -265,6 +265,11 @@ const slugify = (name: string, index: number): string => {
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms))
 
+/** Bump the collection's ctag — every write to it must invalidate it. */
+const touch = (list: FakeList): void => {
+  list.ctag = fakeStore.nextEtag()
+}
+
 /**
  * A gateway backed by `fakeStore`.
  *
@@ -307,11 +312,6 @@ export const makeFakeGateway: GatewayFactory = (
     const todo = requireList(listId).todos.get(uid)
     if (!todo) throw new CaldavError(404, `no such todo: ${uid}`)
     return todo
-  }
-
-  /** Bump the collection's ctag — every write to it must invalidate it. */
-  const touch = (list: FakeList): void => {
-    list.ctag = fakeStore.nextEtag()
   }
 
   const toTodoList = (list: FakeList): TodoList => ({

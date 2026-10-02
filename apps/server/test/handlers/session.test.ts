@@ -259,27 +259,22 @@ describe('GET /api/session', () => {
 // docs/specs/authentication.md — session lifetime. The 7-day expiry has to
 // measure inactivity, not time since sign-in, or a session in daily use
 // would still end abruptly a week in.
+const authed = async (path: string) =>
+  new Request(`http://x${path}`, {
+    headers: {
+      cookie:
+        (await sessionCookie(CREDS, TEST_SECRET, false)).split(';')[0] ?? '',
+    },
+  })
+
 describe('sliding session renewal', () => {
-  const cookieHeader = async () =>
-    (await sessionCookie(CREDS, TEST_SECRET, false)).split(';')[0] ?? ''
-
-  const authed = async (path: string) =>
-    new Request(`http://x${path}`, {
-      headers: { cookie: await cookieHeader() },
-    })
-
-  // Old enough to be worth re-issuing — see RENEW_AFTER_SECONDS.
-  const agedCookie = async () => {
-    const issuedAt = Date.now() - (RENEW_AFTER_SECONDS + 60) * 1000
-    const cookie = await sessionCookie(CREDS, TEST_SECRET, false, issuedAt)
-    return cookie.split(';')[0] ?? ''
-  }
-
   it('re-issues the cookie once it is old enough', async () => {
     const handle = createRouter(routes, testApp())
+    const issuedAt = Date.now() - (RENEW_AFTER_SECONDS + 60) * 1000
+    const cookie = await sessionCookie(CREDS, TEST_SECRET, false, issuedAt)
     const res = await handle(
       new Request('http://x/api/session', {
-        headers: { cookie: await agedCookie() },
+        headers: { cookie: cookie.split(';')[0] ?? '' },
       }),
     )
 

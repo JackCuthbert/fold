@@ -230,15 +230,15 @@ describe('parseQuickAdd', () => {
 // different list from the `#chores` pill rewrites the token, and the parse
 // follows from the text as if it had been typed. That is what keeps one
 // source of truth while still allowing a pointer to drive it.
-describe('replaceToken', () => {
-  const listToken = (text: string) => {
-    const found = parseQuickAdd(text, LISTS, NOW).tokens.find(
-      (t) => t.kind === 'list',
-    )
-    if (!found) throw new Error('expected a list token')
-    return found
-  }
+const listToken = (text: string) => {
+  const found = parseQuickAdd(text, LISTS, NOW).tokens.find(
+    (t) => t.kind === 'list',
+  )
+  if (!found) throw new Error('expected a list token')
+  return found
+}
 
+describe('replaceToken', () => {
   it('swaps a token for another, leaving the rest alone', () => {
     const text = 'Sweep the floor #chores tomorrow'
     expect(replaceToken(text, listToken(text), '#Work')).toBe(

@@ -15,6 +15,18 @@ const isMsg = (raw: unknown): raw is Msg =>
 
 const parse = (raw: unknown): Msg | null => (isMsg(raw) ? raw : null)
 
+interface TaggedMsg extends Msg {
+  op: 'update' | 'delete'
+}
+const isTaggedMsg = (raw: unknown): raw is TaggedMsg =>
+  isMsg(raw) && 'op' in raw && (raw.op === 'update' || raw.op === 'delete')
+
+interface FieldMsg extends Msg {
+  value: string
+}
+const isFieldMsg = (raw: unknown): raw is FieldMsg =>
+  isMsg(raw) && 'value' in raw && typeof raw.value === 'string'
+
 const flush = async (): Promise<void> => {
   await vi.advanceTimersByTimeAsync(0)
 }
@@ -284,11 +296,6 @@ describe('SyncLoop', () => {
   // left there, because ack() used to remove "whatever is at index 0 now"
   // rather than the exact mutation that was actually processed.
   it('does not drop a mutation coalesced in while the head is being processed', async () => {
-    interface TaggedMsg extends Msg {
-      op: 'update' | 'delete'
-    }
-    const isTaggedMsg = (raw: unknown): raw is TaggedMsg =>
-      isMsg(raw) && 'op' in raw && (raw.op === 'update' || raw.op === 'delete')
     const outbox = await Outbox.open<TaggedMsg>({
       storage: memoryStorage(),
       parse: (raw) => (isTaggedMsg(raw) ? raw : null),
@@ -349,11 +356,6 @@ describe('SyncLoop', () => {
   // doesn't need to, since in both cases the right outcome is the same:
   // don't touch whatever coalescing left behind.
   it('does not drop a mutation merged in place while the head is being processed', async () => {
-    interface FieldMsg extends Msg {
-      value: string
-    }
-    const isFieldMsg = (raw: unknown): raw is FieldMsg =>
-      isMsg(raw) && 'value' in raw && typeof raw.value === 'string'
     const outbox = await Outbox.open<FieldMsg>({
       storage: memoryStorage(),
       parse: (raw) => (isFieldMsg(raw) ? raw : null),
