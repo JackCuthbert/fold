@@ -2,7 +2,8 @@
 #
 # Three jobs, in order:
 #
-# 1. **release-please** maintains separate release PRs for Fold and the CLI.
+# 1. **release-please** maintains separate release PRs for Fold and the CLI,
+#    using the file allowlist in scripts/release-paths.ts.
 #    Merging a release PR tags its version and cuts a GitHub Release.
 # 2. **publish** then builds the image and pushes it to ghcr.io — but only
 #    on the run where a release was actually created, hence the `if` on
@@ -24,7 +25,7 @@ on:
         description: 'Release tag to build and publish, e.g. v1.0.0'
         required: true
 
-# The default GITHUB_TOKEN is enough for both jobs, so there is no PAT to
+# The default GITHUB_TOKEN is enough for all jobs, so there is no PAT to
 # rotate. Each job narrows to what it needs.
 permissions: {}
 
@@ -32,21 +33,25 @@ jobs:
   release:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-please-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: write # tag, and commit the changelog
       pull-requests: write # open and update the release PR
     outputs:
-      released: ${{ steps.release.outputs.release_created }}
-      tag: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
-      cli-released: ${{ steps.release.outputs['apps/cli--release_created'] }}
-      cli-tag: ${{ steps.release.outputs['apps/cli--tag_name'] }}
+      released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
+      cli-released: ${{ steps.release.outputs.cli-released }}
+      cli-tag: ${{ steps.release.outputs.cli-tag }}
     steps:
-      - uses: googleapis/release-please-action@v5
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run release
         id: release
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish:
     needs: release
@@ -67,10 +72,10 @@ jobs:
       id-token: write
     steps:
       # On a dispatch, build the named tag rather than the default branch.
-      # `ref: ''` falls back to the default checkout on a push.
+      # On a push, build the exact app release rather than the triggering commit.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.tag || '' }}
+          ref: ${{ github.event.inputs.tag || needs.release.outputs.tag }}
 
       # arm64 matters here: a lot of self-hosters run this on a Raspberry
       # Pi or an ARM NAS, and an amd64-only image simply will not start
