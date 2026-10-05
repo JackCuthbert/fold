@@ -45,7 +45,9 @@ fold-cli todo list
 fold-cli todo list --include-completed
 fold-cli todo view TODO_UID
 fold-cli todo create "Book dentist" --list Personal
-fold-cli todo edit TODO_UID --summary "Book dentist appointment"
+fold-cli todo create "Submit report" --list Work --due 2026-10-05
+fold-cli todo edit TODO_UID --summary "Book dentist appointment" --due 2026-10-05T09:30
+fold-cli todo edit TODO_UID --clear-due
 fold-cli todo complete TODO_UID
 fold-cli todo delete TODO_UID
 ```
@@ -68,9 +70,12 @@ fold-cli todo complete TODO_UID --json
 fold-cli todo delete TODO_UID --yes --json
 ```
 
-The CLI uses ETags to avoid silently replacing changes from another client.
-It can safely merge a non-conflicting summary edit or completion once. A
-delete conflict stops so you can inspect what changed.
+Due dates accept all-day `YYYY-MM-DD` or local `YYYY-MM-DDTHH:mm[:ss]`
+datetimes. Local times use the machine's IANA timezone; offsets and `Z` are
+rejected. Invalid values, conflicting due flags, and no-op edits are rejected
+before authentication. The CLI uses ETags: an edit retries once only if every
+edited field is unchanged on the fresh todo (due values compare by kind, value,
+and timezone ID); completion can retry once. Delete conflicts stop for review.
 
 ## Connect an AI agent
 

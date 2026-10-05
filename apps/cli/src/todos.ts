@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Todo, TodoList } from '@fold/schemas'
+import type { Todo, TodoChanges, TodoDue, TodoList } from '@fold/schemas'
 import { FoldApi } from './api'
 import { ApiError, CliError } from './errors'
 
@@ -26,11 +26,13 @@ export const createTodo = async (
   api: FoldApi,
   listName: string,
   summary: string,
+  due?: TodoDue,
 ): Promise<Todo> => {
   const list = await resolveList(api, listName)
   return api.createTodo(list.id, {
     uid: randomUUID(),
     summary,
+    ...(due === undefined ? {} : { due }),
     created: new Date().toISOString(),
   })
 }
@@ -38,20 +40,36 @@ export const createTodo = async (
 export const editTodo = async (
   api: FoldApi,
   uid: string,
-  summary: string,
+  changes: TodoChanges,
   listName?: string,
 ): Promise<Todo> => {
   const located = await resolveTodo(api, uid, listName)
   try {
-    return await api.updateTodo(located.list.id, uid, located.todo.etag, {
-      summary,
-    })
+    return await api.updateTodo(
+      located.list.id,
+      uid,
+      located.todo.etag,
+      changes,
+    )
   } catch (error) {
     const fresh = api.conflict(error)
-    if (!fresh || fresh.summary !== located.todo.summary) throw conflict(error)
-    return api.updateTodo(located.list.id, uid, fresh.etag, { summary })
+    if (
+      !fresh ||
+      (changes.summary !== undefined &&
+        located.todo.summary !== fresh.summary) ||
+      ('due' in changes && !sameDue(located.todo.due, fresh.due))
+    )
+      throw conflict(error)
+    return api.updateTodo(located.list.id, uid, fresh.etag, changes)
   }
 }
+
+const sameDue = (a: Todo['due'], b: Todo['due']): boolean =>
+  a === undefined || b === undefined
+    ? a === b
+    : a.kind === b.kind &&
+      a.value === b.value &&
+      (a.kind !== 'zoned' || (b.kind === 'zoned' && a.tzid === b.tzid))
 
 export const completeTodo = async (
   api: FoldApi,

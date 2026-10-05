@@ -245,6 +245,346 @@ describe('Fold CLI', () => {
     expect(fetcher.mock.calls[1]?.[1]?.body).toContain('"summary":"Buy milk"')
   })
 
+  it('creates and edits all-day due dates and allows clearing them', async () => {
+    signedIn()
+    const created = {
+      ...TODO,
+      due: { kind: 'date' as const, value: '2026-10-05' },
+    }
+    const edited = { ...created, etag: 'etag-2', summary: 'Buy oat milk' }
+    const cleared = { ...edited, etag: 'etag-3', due: undefined }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json(created, 201),
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [created] }),
+      json(edited),
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [edited] }),
+      json(cleared),
+    ])
+    expect(
+      await invoke(
+        [
+          'todo',
+          'create',
+          'Buy milk',
+          '--list',
+          LIST.id,
+          '--due',
+          '2026-10-05',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(fetcher.mock.calls[1]?.[1]?.body).toContain(
+      '"due":{"kind":"date","value":"2026-10-05"}',
+    )
+    expect(
+      await invoke(
+        [
+          'todo',
+          'edit',
+          TODO.uid,
+          '--summary',
+          edited.summary,
+          '--due',
+          '2026-10-05',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(fetcher.mock.calls[4]?.[1]?.body).toContain(
+      '"changes":{"summary":"Buy oat milk","due":{"kind":"date","value":"2026-10-05"}}',
+    )
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--clear-due'], { fetcher }),
+    ).toBe(0)
+    expect(fetcher.mock.calls[7]?.[1]?.body).toContain('"changes":{"due":null}')
+  })
+
+  it.each(['2026-02-30', '2026-10-05T12:30Z', '2026-10-05T25:00'])(
+    'rejects invalid due date %s before authentication',
+    async (due) => {
+      expect(
+        await invoke(
+          ['todo', 'create', 'Buy milk', '--list', LIST.id, '--due', due],
+          {},
+        ),
+      ).toBe(2)
+      expect(stderr).toContain('Invalid due date')
+    },
+  )
+
+  it('normalizes local due datetimes and rejects no-op edits before authentication', async () => {
+    signedIn()
+    const due = {
+      kind: 'zoned' as const,
+      value: '2026-10-05T12:30:00',
+      tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }
+    const fetcher = routeFetch([json([LIST]), json({ ...TODO, due }, 201)])
+    expect(
+      await invoke(
+        [
+          'todo',
+          'create',
+          'Buy milk',
+          '--list',
+          LIST.id,
+          '--due',
+          '2026-10-05T12:30',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    const createBody = fetcher.mock.calls[1]?.[1]?.body
+    if (typeof createBody !== 'string')
+      throw new Error('request had no JSON body')
+    expect(JSON.parse(createBody)).toMatchObject({ due })
+    expect(await invoke(['todo', 'edit', TODO.uid], {})).toBe(2)
+    expect(stderr).toContain('at least one change')
+  })
+
+  it.each([
+    ['2026-10-05', { kind: 'date', value: '2026-10-05' }],
+    [
+      '2026-10-05T12:30',
+      {
+        kind: 'zoned',
+        value: '2026-10-05T12:30:00',
+        tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    ],
+    [
+      '2026-10-05T12:30:45',
+      {
+        kind: 'zoned',
+        value: '2026-10-05T12:30:45',
+        tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    ],
+  ])(
+    'edits only due %s without sending a summary',
+    async (input, expectedDue) => {
+      signedIn()
+      const original = { ...TODO }
+      const freshened = {
+        ...TODO,
+        etag: 'etag-2',
+        due: expectedDue,
+      }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [original] }),
+        json(freshened),
+      ])
+      expect(
+        await invoke(['todo', 'edit', TODO.uid, '--due', input], { fetcher }),
+      ).toBe(0)
+      expect(await requestBodyAt(fetcher, 2)).toEqual({
+        etag: TODO.etag,
+        changes: { due: expectedDue },
+      })
+    },
+  )
+
+  it('retries unchanged zoned due after unrelated summary change despite key order', async () => {
+    signedIn()
+    const due = {
+      kind: 'zoned' as const,
+      value: '2026-10-05T12:30:00',
+      tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }
+    const original = { ...TODO, due }
+    const fresh = {
+      ...TODO,
+      etag: 'etag-2',
+      summary: 'Elsewhere',
+      due: { tzid: due.tzid, value: due.value, kind: due.kind },
+    }
+    const savedTodo = { ...fresh, etag: 'etag-3', due }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json({ todo: fresh }, 412),
+      json(savedTodo),
+    ])
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--due', '2026-10-05T12:30:00'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 3)).toMatchObject({
+      etag: fresh.etag,
+      changes: { due },
+    })
+  })
+
+  it.each([
+    ['kind', { kind: 'date', value: '2026-10-05' }],
+    ['value', { kind: 'zoned', value: '2026-10-06T12:30:00', tzid: 'Etc/UTC' }],
+    [
+      'tzid',
+      { kind: 'zoned', value: '2026-10-05T12:30:00', tzid: 'Europe/London' },
+    ],
+  ])(
+    'does not retry when due %s changed concurrently',
+    async (_change, freshDue) => {
+      signedIn()
+      const due = {
+        kind: 'zoned' as const,
+        value: '2026-10-05T12:30:00',
+        tzid: 'Asia/Tokyo',
+      }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [{ ...TODO, due }] }),
+        json({ todo: { ...TODO, etag: 'etag-2', due: freshDue } }, 412),
+      ])
+      expect(
+        await invoke(['todo', 'edit', TODO.uid, '--due', '2026-10-07T12:30'], {
+          fetcher,
+        }),
+      ).toBe(4)
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it.each([
+    [
+      'new due appeared',
+      TODO,
+      { ...TODO, due: { kind: 'date', value: '2026-10-05' } },
+      ['--due', '2026-10-06'],
+    ],
+    [
+      'due was cleared',
+      { ...TODO, due: { kind: 'date', value: '2026-10-05' } },
+      TODO,
+      ['--clear-due'],
+    ],
+  ])(
+    'does not retry when %s during an edit',
+    async (_case, original, fresh, editArgs) => {
+      signedIn()
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [original] }),
+        json({ todo: { ...fresh, etag: 'etag-2' } }, 412),
+      ])
+      expect(
+        await invoke(['todo', 'edit', TODO.uid, ...editArgs], { fetcher }),
+      ).toBe(4)
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it.each([
+    ['summary', { summary: 'Concurrent' }],
+    ['due', { due: { kind: 'date', value: '2026-10-06' } }],
+  ])(
+    'stops combined summary+due edit when %s changes concurrently',
+    async (_field, changes) => {
+      signedIn()
+      const original = {
+        ...TODO,
+        due: { kind: 'date' as const, value: '2026-10-05' },
+      }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [original] }),
+        json({ todo: { ...original, etag: 'etag-2', ...changes } }, 412),
+      ])
+      expect(
+        await invoke(
+          ['todo', 'edit', TODO.uid, '--summary', 'New', '--due', '2026-10-07'],
+          { fetcher },
+        ),
+      ).toBe(4)
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it('retries combined edit after an unrelated concurrent field change, but stops after a second conflict', async () => {
+    signedIn()
+    const original = {
+      ...TODO,
+      due: { kind: 'date' as const, value: '2026-10-05' },
+    }
+    const unrelated = { ...original, etag: 'etag-2', priority: 'high' as const }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json({ todo: unrelated }, 412),
+      json({ todo: unrelated }, 412),
+    ])
+    expect(
+      await invoke(
+        ['todo', 'edit', TODO.uid, '--summary', 'New', '--due', '2026-10-07'],
+        { fetcher },
+      ),
+    ).toBe(4)
+    expect(fetcher).toHaveBeenCalledTimes(4)
+    expect(await requestBodyAt(fetcher, 3)).toMatchObject({
+      etag: unrelated.etag,
+      changes: { summary: 'New', due: { kind: 'date', value: '2026-10-07' } },
+    })
+  })
+
+  it('stops a due-only edit after its retry conflicts again', async () => {
+    signedIn()
+    const original = { ...TODO }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json({ todo: { ...original, etag: 'etag-2' } }, 412),
+      json({ todo: { ...original, etag: 'etag-3' } }, 412),
+    ])
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--due', '2026-10-05'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(fetcher).toHaveBeenCalledTimes(4)
+  })
+
+  it.each([
+    ['--due', '2026-10-05', '--clear-due'],
+    ['--due', '2026-10-05T12:30+02:00'],
+    ['--due', '2026-02-30'],
+  ])('rejects invalid edit input before fetching (%s)', async (...args) => {
+    const fetcher = vi.fn<typeof fetch>()
+    expect(await invoke(['todo', 'edit', TODO.uid, ...args], { fetcher })).toBe(
+      2,
+    )
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('does not retry a due edit after a concurrent due change', async () => {
+    signedIn()
+    const original = {
+      ...TODO,
+      due: { kind: 'date' as const, value: '2026-10-05' },
+    }
+    const changed = {
+      ...original,
+      etag: 'etag-2',
+      due: { kind: 'date' as const, value: '2026-10-06' },
+    }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json({ todo: changed }, 412),
+    ])
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--due', '2026-10-07'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
   it('lists todos with their list and stable identity', async () => {
     signedIn()
     const completed = { ...TODO, uid: 'done-1', completed: true }
@@ -698,6 +1038,15 @@ const json = (
 
 const requestBody = async (fetcher: ReturnType<typeof vi.fn<typeof fetch>>) => {
   const body = fetcher.mock.calls[0]?.[1]?.body
+  if (typeof body !== 'string') throw new Error('request had no JSON body')
+  return JSON.parse(body) as unknown
+}
+
+const requestBodyAt = async (
+  fetcher: ReturnType<typeof vi.fn<typeof fetch>>,
+  index: number,
+) => {
+  const body = fetcher.mock.calls[index]?.[1]?.body
   if (typeof body !== 'string') throw new Error('request had no JSON body')
   return JSON.parse(body) as unknown
 }

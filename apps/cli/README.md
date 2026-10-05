@@ -9,10 +9,18 @@ fold-cli auth login
 fold-cli skill install --agent codex --scope user
 fold-cli todo list
 fold-cli todo create "Book dentist" --list Personal
+fold-cli todo create "Book dentist" --list Personal --due 2026-10-05
+fold-cli todo edit TODO_UID --due 2026-10-05T09:30
+fold-cli todo edit TODO_UID --clear-due
 ```
 
 Run `fold-cli --help` for the complete command list. Add `--json` to any data
 command for machine-readable output.
+
+Due dates accept `YYYY-MM-DD` all-day values or local `YYYY-MM-DDTHH:mm[:ss]`
+datetimes. Local times use the machine's IANA timezone; offsets and `Z` are
+rejected. Edits may combine `--summary` and `--due`; a `412` conflict retries
+once only when every field being edited is unchanged on the fresh todo.
 
 Install the bundled `fold-todos` agent skill with `--agent codex`, `--agent
 claude`, or `--agent all` and `--scope user` or `--scope project`. Omitting

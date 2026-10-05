@@ -17,8 +17,8 @@ fold-cli auth status
 fold-cli auth logout
 fold-cli todo list [--list LIST] [--include-completed]
 fold-cli todo view UID [--list LIST]
-fold-cli todo create SUMMARY --list LIST
-fold-cli todo edit UID --summary SUMMARY [--list LIST]
+fold-cli todo create SUMMARY --list LIST [--due DATE]
+fold-cli todo edit UID [--summary SUMMARY] [--due DATE | --clear-due] [--list LIST]
 fold-cli todo complete UID [--list LIST]
 fold-cli todo delete UID [--list LIST] [--yes]
 fold-cli skill install [--agent <codex|claude|all>] --scope <user|project>
@@ -33,9 +33,10 @@ List output contains open todos unless `--include-completed` is present. View
 resolves one UID and renders every field for terminal use; JSON returns the
 resolved todo and its list.
 
-The initial edit surface changes the summary only. Due dates, descriptions,
-priorities, reopening, moving, and list management can extend the CLI later
-without weakening the basic mutation and authentication contract.
+Due dates accept all-day `YYYY-MM-DD` and local `YYYY-MM-DDTHH:mm[:ss]` values.
+Local datetimes use the machine's IANA timezone and normalize to seconds;
+offsets and `Z` are rejected. Invalid date/time values, conflicting due flags,
+and no-op edits are usage errors before authentication.
 
 ## Persistent authentication
 
@@ -62,8 +63,9 @@ creation timestamp locally, and sends the existing create schema. Edit,
 complete, and delete resolve the UID across the user's lists; `--list` narrows
 an otherwise ambiguous UID.
 
-All mutations use the todo's current ETag. Summary edits retry once only when
-a `412` response proves the summary itself did not change. Completion retries
+All mutations use the todo's current ETag. Edits retry once only when a `412`
+response proves every edited field remained unchanged (due compares by kind,
+value, and timezone ID). Completion retries
 once when the todo remains incomplete, and treats an already-completed fresh
 copy as success. Delete never retries a conflict because doing so could erase
 a concurrent change.
