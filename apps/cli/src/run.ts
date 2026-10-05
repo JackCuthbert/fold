@@ -1,4 +1,9 @@
-import { credentialsSchema } from '@fold/schemas'
+import {
+  credentialsSchema,
+  todoDueSchema,
+  type TodoDue,
+  type TodoChanges,
+} from '@fold/schemas'
 import { defineCommand, renderUsage, runCommand } from 'citty'
 import packageJson from '../package.json' with { type: 'json' }
 import { FoldApi } from './api'
@@ -244,14 +249,17 @@ const createCommands = (runtime: Runtime) => {
         required: true,
       },
       list: { ...listArg, required: true },
+      due: { type: 'string', description: 'Due date or local datetime' },
       json: jsonArg,
       help: helpArg,
     },
     run: async ({ args }) => {
+      const due = args.due === undefined ? undefined : parseDue(args.due)
       const todo = await createTodo(
         await authenticated(runtime),
         args.list,
         args.summary,
+        due,
       )
       emit(runtime, {
         message: `Created ${terminalText(todo.summary)}`,
@@ -263,24 +271,35 @@ const createCommands = (runtime: Runtime) => {
   const edit = defineCommand({
     meta: {
       name: 'fold-cli todo edit',
-      description: 'Change a todo summary',
+      description: 'Change a todo summary or due date',
     },
     args: {
       uid: { type: 'positional', description: 'Todo UID', required: true },
-      summary: {
-        type: 'string',
-        description: 'New summary',
-        required: true,
-      },
+      summary: { type: 'string', description: 'New summary' },
+      due: { type: 'string', description: 'Due date or local datetime' },
+      'clear-due': { type: 'boolean', description: 'Clear the due date' },
       list: listArg,
       json: jsonArg,
       help: helpArg,
     },
     run: async ({ args }) => {
+      if (args.due !== undefined && args['clear-due'])
+        throw new CliError('--due and --clear-due cannot be used together', 2)
+      if (
+        args.summary === undefined &&
+        args.due === undefined &&
+        !args['clear-due']
+      )
+        throw new CliError('todo edit requires at least one change', 2)
+      const changes: TodoChanges = {
+        ...(args.summary === undefined ? {} : { summary: args.summary }),
+        ...(args.due === undefined ? {} : { due: parseDue(args.due) }),
+        ...(args['clear-due'] ? { due: null } : {}),
+      }
       const todo = await editTodo(
         await authenticated(runtime),
         args.uid,
-        args.summary,
+        changes,
         args.list,
       )
       emit(runtime, {
@@ -466,6 +485,31 @@ const normalizeError = (error: unknown): CliError => {
 
 const terminalText = (value: string): string =>
   JSON.stringify(value).slice(1, -1)
+
+const parseDue = (input: string): TodoDue => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const parsed = todoDueSchema.safeParse({ kind: 'date', value: input })
+    if (parsed.success) return parsed.data
+  } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(input)) {
+    const normalized = input.length === 16 ? `${input}:00` : input
+    const date = new Date(`${normalized}Z`)
+    if (
+      !Number.isNaN(date.valueOf()) &&
+      date.toISOString().slice(0, 19) === normalized
+    ) {
+      const zoned = todoDueSchema.safeParse({
+        kind: 'zoned',
+        value: normalized,
+        tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      })
+      if (zoned.success) return zoned.data
+    }
+  }
+  throw new CliError(
+    'Invalid due date; use YYYY-MM-DD or local YYYY-MM-DDTHH:mm[:ss] without an offset',
+    2,
+  )
+}
 
 const normalizeFoldUrl = (input: string): string => {
   let url: URL
