@@ -13,7 +13,7 @@
     "lint": "oxlint --type-aware --no-error-on-unmatched-pattern",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "typecheck": "bun run --filter '*' typecheck",
+    "typecheck": "tsc --noEmit && bun run --filter '*' typecheck",
     "knip": "knip",
     "test": "vitest run",
     "test:integration": "bun run --filter '*' test:integration",
@@ -27,7 +27,8 @@
     "docs": "bun run --filter @fold/docs dev",
     "docs:build": "bun run --filter @fold/docs build",
     "docs:preview": "bun run --filter @fold/docs preview",
-    "fonts:convert": "bun scripts/convert-fonts.mjs"
+    "fonts:convert": "bun scripts/convert-fonts.mjs",
+    "release": "bun scripts/release.ts"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.5",
@@ -37,8 +38,10 @@
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "oxlint-tsgolint": "^7.0.2003",
+    "release-please": "^17.11.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1",
-    "wawoff2": "^2.0.1"
+    "wawoff2": "^2.0.1",
+    "zod": "^4.6.5"
   }
 }

@@ -2,6 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "bootstrap-sha": "f5e281f77e8263bf946b3dca17db666aab12862a",
   "separate-pull-requests": true,
+  "always-update": true,
+  "plugins": ["fold-paths"],
   "changelog-sections": [
     {
       "type": "feat",
@@ -88,8 +90,7 @@
           "path": "packages/schemas/package.json",
           "jsonpath": "$.version"
         }
-      ],
-      "exclude-paths": ["apps/cli", "skills/fold-todos"]
+      ]
     },
     "apps/cli": {
       "release-type": "node",

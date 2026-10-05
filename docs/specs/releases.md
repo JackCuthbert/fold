@@ -33,23 +33,35 @@ The root `package.json` holds Fold's app and Docker image version.
 `packages/vtodo`, `packages/outbox` and `packages/schemas`.
 
 The CLI has an independent version in `apps/cli/package.json`, a changelog at
-`apps/cli/CHANGELOG.md`, and tags such as `fold-cli-v2.0.0`. Its release-please
-component excludes CLI and bundled skill commits from the root release, and
-the root version sync never writes the CLI manifest. The release manifest
+`apps/cli/CHANGELOG.md`, and tags such as `fold-cli-v2.0.0`. The root version
+sync never writes the CLI manifest. The release manifest
 bootstraps the CLI from its last shared version, `1.6.0`, with the existing
 `v1.6.0` commit as the history boundary. The executable rename therefore
 releases CLI `2.0.0` while Fold remains on `1.6.0`.
 
 Release Please routes whole commits by changed paths, not Conventional Commit
-scopes. Keep breaking CLI commits confined to `apps/cli` and
-`skills/fold-todos`; put shared documentation, lockfile, and release setup
-changes in a separate nonbreaking commit. Rebase merge preserves those
-boundaries; squashing them together would apply the breaking change to Fold
-as well. The repository enables rebase merges and disables squash merges.
+scopes. `bun run release` uses the official Release Please API and a local
+`fold-paths` plugin to allow only commits affecting each published artifact:
+
+- **Fold:** files under `apps/client`, `apps/server`, or `packages`, plus the
+  root `Dockerfile`, `package.json`, and `bun.lock`.
+- **CLI:** files under `apps/cli`.
+
+Shared documentation (`docs`, `apps/docs`, and the root README), bundled
+skills, and repository tooling alone trigger neither release. A CLI feature
+commit can update shared documentation without also releasing Fold. An app
+commit can do the same without releasing the CLI. Empty commits do not trigger
+either release. Conventional Commit types still determine whether an eligible
+commit produces a release and which version bump it receives.
+
 Mixed app and CLI breaking commits intentionally affect both components.
-Changes confined to the skill source or shared schemas do not trigger a CLI
-release: include a corresponding change under `apps/cli` when its bundled
-artifact needs to be republished.
+Keep CLI breaking commits separate from app and root dependency changes when
+only the CLI breaks compatibility. Rebase merge preserves those boundaries;
+the repository enables rebase merges and disables squash merges. Changes
+confined to skill source or shared schemas do not trigger a CLI release:
+include a corresponding change under `apps/cli` when its bundled artifact
+needs to be republished. *(changed 2026-10-05: use artifact file allowlists
+instead of root-path exclusions, which included CLI commits with shared docs.)*
 
 `@jackcuthbert/fold-cli` is published to npm only when a CLI release is cut;
 Fold releases publish Docker without republishing the CLI. The CLI job checks
@@ -80,6 +92,14 @@ freely — they are never read by a user. *(added 2026-08-17.)*
 `release-please` maintains separate PRs for Fold and the CLI, updating each
 as relevant commits land on `main`. Each accumulates its own changelog and
 version bump, and **nothing is published until its release PR is merged**.
+
+`always-update: true` refreshes pending release PRs against the current base
+even when their release notes are unchanged. Both PRs update the shared version
+manifest, so merging one must refresh the other to preserve the newly released
+version and avoid conflicts. The release-management job serializes runs without
+cancelling an in-progress release. Merge release PRs one at a time and wait for
+the release workflow to finish before merging the next. *(changed 2026-10-05:
+unchanged release notes previously left the sibling PR's manifest stale.)*
 
 That matters more than automation would: merging is a deliberate act, so a
 release happens when it is meant to rather than every time a `fix:` lands.
