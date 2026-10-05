@@ -11,7 +11,7 @@ const releasedArtifact = z.object({
     .regex(/^[^\r\n]+$/),
 })
 
-export function releaseOutputs(releases: (CreatedRelease | undefined)[]) {
+function releaseOutputs(releases: (CreatedRelease | undefined)[]) {
   const outputs: Record<string, string> = {
     released: 'false',
     'cli-released': 'false',
@@ -61,4 +61,4 @@ async function main() {
   await (await Manifest.fromManifest(github, 'main')).createPullRequests()
 }
 
-if (import.meta.main) await main()
+await main()
