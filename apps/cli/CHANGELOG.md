@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/JackCuthbert/fold/compare/fold-cli-v2.0.0...fold-cli-v2.1.0) (2026-10-05)
+
+
+### Features
+
+* **cli:** set and clear todo due dates ([f058611](https://github.com/JackCuthbert/fold/commit/f058611b8ee3ad5ea4392bb72deea8b8f0d3703c))
+
 ## [2.0.0](https://github.com/JackCuthbert/fold/compare/fold-cli-v1.6.0...fold-cli-v2.0.0) (2026-09-28)
 
 
