@@ -40,19 +40,25 @@ bootstraps the CLI from its last shared version, `1.6.0`, with the existing
 releases CLI `2.0.0` while Fold remains on `1.6.0`.
 
 Release Please routes whole commits by changed paths, not Conventional Commit
-scopes. `bun run release` uses the official Release Please API and a local
-`fold-paths` plugin to allow only commits affecting each published artifact:
+scopes. The stock Release Please action maintains two release components:
 
-- **Fold:** files under `apps/client`, `apps/server`, or `packages`, plus the
-  root `Dockerfile`, `package.json`, and `bun.lock`.
-- **CLI:** files under `apps/cli`.
+- **Fold:** the root component includes app and shared package changes, plus
+  root files such as `Dockerfile`, `package.json`, and `bun.lock`. Its native
+  `exclude-paths` skips commits confined to the CLI, shared documentation,
+  skills, scripts, e2e tests, GitHub workflows, agent configuration, and local
+  CalDAV infrastructure directories.
+- **CLI:** the `apps/cli` component includes commits changing files there.
 
-Shared documentation (`docs`, `apps/docs`, and the root README), bundled
-skills, and repository tooling alone trigger neither release. A CLI feature
-commit can update shared documentation without also releasing Fold. An app
-commit can do the same without releasing the CLI. Empty commits do not trigger
-either release. Conventional Commit types still determine whether an eligible
-commit produces a release and which version bump it receives.
+A CLI feature commit can update documentation under `docs` or `apps/docs`
+and bundled skills without also releasing Fold. Root files cannot be excluded
+individually with native `exclude-paths`: keep root README and tooling changes
+in separate, nonbreaking `docs:` or `chore:` commits. Those types are hidden
+from the changelog and do not trigger a release on their own. A CLI feature
+commit that also changes a root file still affects Fold. Empty commits apply
+to both components, so do not use release-triggering empty commits to request
+a component-only release. *(changed 2026-10-05: broaden native exclusions to
+avoid releasing Fold for CLI commits with shared docs, without custom scripts
+or dependencies.)*
 
 Mixed app and CLI breaking commits intentionally affect both components.
 Keep CLI breaking commits separate from app and root dependency changes when
@@ -60,8 +66,7 @@ only the CLI breaks compatibility. Rebase merge preserves those boundaries;
 the repository enables rebase merges and disables squash merges. Changes
 confined to skill source or shared schemas do not trigger a CLI release:
 include a corresponding change under `apps/cli` when its bundled artifact
-needs to be republished. *(changed 2026-10-05: use artifact file allowlists
-instead of root-path exclusions, which included CLI commits with shared docs.)*
+needs to be republished.
 
 `@jackcuthbert/fold-cli` is published to npm only when a CLI release is cut;
 Fold releases publish Docker without republishing the CLI. The CLI job checks
@@ -83,9 +88,13 @@ line"*, not *"add QuickAddModal with chrono-node parsing"*. Implementation
 detail, rejected alternatives and measurements belong in the PR body or in
 the relevant spec; see CLAUDE.md for the full rule.
 
-The `changelog-sections` config hides `refactor`, `test`, `ci` and `chore`
+The `changelog-sections` config hides `docs`, `refactor`, `test`, `ci` and `chore`
 from the published changelog, so those types can describe internal work
 freely — they are never read by a user. *(added 2026-08-17.)*
+
+`docs` is hidden so documentation-only changes, including root README edits,
+do not create an app release. *(changed 2026-10-05: root files cannot be
+excluded individually by Release Please.)*
 
 ## The release PR is the gate
 
@@ -107,7 +116,7 @@ Merging tags the commit, writes the component's changelog, cuts a GitHub
 Release, and triggers its publication job: Docker for Fold, npm for the CLI.
 
 Commit types map to changelog sections in `release-please-config.json`.
-`refactor`, `test`, `ci` and `chore` are hidden — real changes to the
+`docs`, `refactor`, `test`, `ci` and `chore` are hidden — real changes to the
 project, but not ones a person deciding whether to upgrade needs to read.
 
 ### `CHANGELOG.md` is not formatted by oxfmt

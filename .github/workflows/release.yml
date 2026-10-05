@@ -2,8 +2,7 @@
 #
 # Three jobs, in order:
 #
-# 1. **release-please** maintains separate release PRs for Fold and the CLI,
-#    using the file allowlist in scripts/release-paths.ts.
+# 1. **release-please** maintains separate release PRs for Fold and the CLI.
 #    Merging a release PR tags its version and cuts a GitHub Release.
 # 2. **publish** then builds the image and pushes it to ghcr.io — but only
 #    on the run where a release was actually created, hence the `if` on
@@ -40,18 +39,16 @@ jobs:
       contents: write # tag, and commit the changelog
       pull-requests: write # open and update the release PR
     outputs:
-      released: ${{ steps.release.outputs.released }}
-      tag: ${{ steps.release.outputs.tag }}
-      cli-released: ${{ steps.release.outputs.cli-released }}
-      cli-tag: ${{ steps.release.outputs.cli-tag }}
+      released: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      cli-released: ${{ steps.release.outputs['apps/cli--release_created'] }}
+      cli-tag: ${{ steps.release.outputs['apps/cli--tag_name'] }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bun run release
+      - uses: googleapis/release-please-action@v5
         id: release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   publish:
     needs: release
