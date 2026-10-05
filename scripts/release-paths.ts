@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 const changedFiles = z.array(z.string())
 
-export function filterReleaseCommits(commits: Record<string, Commit[]>) {
+function filterReleaseCommits(commits: Record<string, Commit[]>) {
   for (const [path, candidates] of Object.entries(commits)) {
     commits[path] = candidates.filter((commit) =>
       changedFiles
