@@ -50,7 +50,9 @@ fold-cli todo create "Renew passport" --list Personal --notes "Bring photo" --pr
 fold-cli todo edit TODO_UID --summary "Book dentist appointment" --due 2026-10-05T09:30
 fold-cli todo edit TODO_UID --notes "Ask for Dr. Lee" --priority medium
 fold-cli todo edit TODO_UID --clear-due --clear-notes --clear-priority
+fold-cli todo edit TODO_UID --list Work
 fold-cli todo complete TODO_UID
+fold-cli todo uncomplete TODO_UID --yes
 fold-cli todo delete TODO_UID
 ```
 
@@ -58,17 +60,21 @@ List hides completed items unless `--include-completed` is present. View shows
 the selected todo's summary, description, status, scheduling fields, stable
 identity, and sync metadata.
 
-Create prints the new todo's UID in JSON mode. Edit, complete, and delete can
-search every list for that UID; add `--list Personal` if Fold reports an
-ambiguity. Delete asks for confirmation before it changes anything.
+Create prints the new todo's UID in JSON mode. Edit, complete, uncomplete, and
+delete can search every list for that UID; add `--list Personal` if Fold reports
+an ambiguity. On `edit`, `--list Work` instead moves the todo: the CLI copies it
+into the target list and deletes the source, and rejects a completed todo or a
+target that is the todo's own list. Uncomplete reopens a completed todo. Delete
+and uncomplete ask for confirmation before they change anything.
 
-Add `--json` to receive machine-readable output. Non-interactive deletion also
-requires `--yes`:
+Add `--json` to receive machine-readable output. Non-interactive deletion or
+uncomplete also requires `--yes`:
 
 ```sh
 fold-cli todo list --json
 fold-cli todo create "Book dentist" --list Personal --json
 fold-cli todo complete TODO_UID --json
+fold-cli todo uncomplete TODO_UID --yes --json
 fold-cli todo delete TODO_UID --yes --json
 ```
 
@@ -84,7 +90,10 @@ fields remain unchanged. Invalid values, contradictory flags, and no-op edits
 are rejected before authentication. The CLI uses ETags: an edit retries once
 only if every edited field is unchanged on the fresh todo (due compares by kind,
 value, and timezone ID; notes and priority compare by value and presence);
-completion can retry once. Delete conflicts stop for review.
+completion can retry once. Uncomplete retries once while the fresh todo is
+still completed and treats an already-open todo as success. Moving a todo
+copies it into the target list before deleting the source; delete and move
+conflicts stop for review.
 
 ## Connect an AI agent
 

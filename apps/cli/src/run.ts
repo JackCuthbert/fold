@@ -18,7 +18,9 @@ import {
   deleteTodo,
   editTodo,
   listTodos,
+  moveTodo,
   resolveTodo,
+  uncompleteTodo,
   type LocatedTodo,
 } from './todos'
 
@@ -282,7 +284,7 @@ const createCommands = (runtime: Runtime) => {
   const edit = defineCommand({
     meta: {
       name: 'fold-cli todo edit',
-      description: 'Change a todo summary or due date',
+      description: 'Change a todo or move it to another list',
     },
     args: {
       uid: { type: 'positional', description: 'Todo UID', required: true },
@@ -296,7 +298,7 @@ const createCommands = (runtime: Runtime) => {
       },
       'clear-priority': { type: 'boolean', description: 'Clear the priority' },
       'clear-due': { type: 'boolean', description: 'Clear the due date' },
-      list: listArg,
+      list: { ...listArg, description: 'Destination list ID or display name' },
       json: jsonArg,
       help: helpArg,
     },
@@ -315,6 +317,7 @@ const createCommands = (runtime: Runtime) => {
         )
       const priority = parsePriority(args.priority)
       if (
+        args.list === undefined &&
         args.summary === undefined &&
         args.due === undefined &&
         !args['clear-due'] &&
@@ -333,15 +336,19 @@ const createCommands = (runtime: Runtime) => {
         ...(priority === undefined ? {} : { priority }),
         ...(args['clear-priority'] ? { priority: null } : {}),
       }
-      const todo = await editTodo(
-        await authenticated(runtime),
-        args.uid,
-        changes,
-        args.list,
-      )
+      const api = await authenticated(runtime)
+      if (args.list === undefined) {
+        const todo = await editTodo(api, args.uid, changes)
+        emit(runtime, {
+          message: `Updated ${terminalText(todo.summary)}`,
+          todo,
+        })
+        return
+      }
+      const moved = await moveTodo(api, args.uid, args.list, changes)
       emit(runtime, {
-        message: `Updated ${terminalText(todo.summary)}`,
-        todo,
+        message: `Moved ${terminalText(moved.todo.summary)} to ${terminalText(moved.list.displayName)}`,
+        todo: moved.todo,
       })
     },
   })
@@ -362,6 +369,48 @@ const createCommands = (runtime: Runtime) => {
       )
       emit(runtime, {
         message: `Completed ${terminalText(todo.summary)}`,
+        todo,
+      })
+    },
+  })
+
+  const uncomplete = defineCommand({
+    meta: {
+      name: 'fold-cli todo uncomplete',
+      description: 'Reopen a completed todo',
+    },
+    args: {
+      uid: { type: 'positional', description: 'Todo UID', required: true },
+      list: listArg,
+      yes: {
+        type: 'boolean',
+        alias: 'y',
+        description: 'Skip confirmation',
+      },
+      json: jsonArg,
+      help: helpArg,
+    },
+    run: async ({ args }) => {
+      const api = await authenticated(runtime)
+      if (!args.yes && runtime.json) {
+        throw new CliError(
+          'todo uncomplete requires --yes when using --json',
+          2,
+        )
+      }
+      const located = await resolveTodo(api, args.uid, args.list)
+      if (!args.yes) {
+        const confirmed = await runtime.prompter.confirm(
+          `Reopen ${JSON.stringify(located.todo.summary)}?`,
+        )
+        if (!confirmed) {
+          emit(runtime, { message: 'Reopen cancelled' })
+          return
+        }
+      }
+      const todo = await uncompleteTodo(api, located)
+      emit(runtime, {
+        message: `Reopened ${terminalText(todo.summary)}`,
         todo,
       })
     },
@@ -402,7 +451,15 @@ const createCommands = (runtime: Runtime) => {
   const todo = defineCommand({
     meta: { name: 'fold-cli todo', description: 'Manage todos' },
     args: { json: jsonArg, help: helpArg },
-    subCommands: { list, view, create, edit, complete, delete: remove },
+    subCommands: {
+      list,
+      view,
+      create,
+      edit,
+      complete,
+      uncomplete,
+      delete: remove,
+    },
   })
 
   const install = defineCommand({
@@ -465,6 +522,7 @@ const createCommands = (runtime: Runtime) => {
     'todo create': () => renderUsage(create),
     'todo edit': () => renderUsage(edit),
     'todo complete': () => renderUsage(complete),
+    'todo uncomplete': () => renderUsage(uncomplete),
     'todo delete': () => renderUsage(remove),
     'skill install': () => renderUsage(install),
   }

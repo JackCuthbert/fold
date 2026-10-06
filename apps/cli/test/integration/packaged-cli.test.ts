@@ -73,6 +73,7 @@ beforeAll(async () => {
           displayName: 'Personal',
           todos: [{ uid: 'seeded-todo', summary: 'Existing todo' }],
         },
+        { id: 'work', displayName: 'Work' },
       ],
     }),
   })
@@ -139,6 +140,39 @@ test('the packaged CLI completes its critical journey across processes', async (
     priority: 'high',
   })
 
+  const moved = await fold(
+    ['todo', 'edit', uid, '--list', 'Work', '--json'],
+    todoOutputSchema,
+  )
+  expect(moved.todo).toMatchObject({
+    listId: 'work',
+    summary: 'Packaged journey',
+    description: 'Created note',
+    priority: 'high',
+  })
+  const afterMove = await fold(['todo', 'list', '--json'], listOutputSchema)
+  expect(afterMove.todos).toHaveLength(2)
+  expect(afterMove.todos).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        list: expect.objectContaining({ displayName: 'Personal' }),
+        todo: expect.objectContaining({ uid: 'seeded-todo' }),
+      }),
+      expect.objectContaining({
+        list: expect.objectContaining({ displayName: 'Work' }),
+        todo: expect.objectContaining({ uid }),
+      }),
+    ]),
+  )
+  expect(
+    (
+      await fold(
+        ['todo', 'view', uid, '--list', 'Work', '--json'],
+        todoOutputSchema,
+      )
+    ).todo.listId,
+  ).toBe('work')
+
   const edited = await fold(
     [
       'todo',
@@ -169,6 +203,18 @@ test('the packaged CLI completes its critical journey across processes', async (
     (await fold(['todo', 'complete', uid, '--json'], todoOutputSchema)).todo
       .completed,
   ).toBe(true)
+  expect(
+    (
+      await fold(
+        ['todo', 'uncomplete', uid, '--yes', '--json'],
+        todoOutputSchema,
+      )
+    ).todo.completed,
+  ).toBe(false)
+  expect(
+    (await fold(['todo', 'view', uid, '--json'], todoOutputSchema)).todo
+      .completed,
+  ).toBe(false)
   expect(
     (await fold(['todo', 'delete', uid, '--yes', '--json'], todoOutputSchema))
       .todo.uid,

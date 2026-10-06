@@ -18,8 +18,9 @@ fold-cli auth logout
 fold-cli todo list [--list LIST] [--include-completed]
 fold-cli todo view UID [--list LIST]
 fold-cli todo create SUMMARY --list LIST [--due DATE] [--notes TEXT] [--priority high|medium|low]
-fold-cli todo edit UID [--summary SUMMARY] [--due DATE | --clear-due] [--notes TEXT | --clear-notes] [--priority high|medium|low | --clear-priority] [--list LIST]
+fold-cli todo edit UID [--summary SUMMARY] [--due DATE | --clear-due] [--notes TEXT | --clear-notes] [--priority high|medium|low | --clear-priority] [--list TARGET]
 fold-cli todo complete UID [--list LIST]
+fold-cli todo uncomplete UID [--list LIST] [--yes]
 fold-cli todo delete UID [--list LIST] [--yes]
 fold-cli skill install [--agent <codex|claude|all>] --scope <user|project>
 ```
@@ -27,7 +28,9 @@ fold-cli skill install [--agent <codex|claude|all>] --scope <user|project>
 Every command accepts `--json`. Success writes one JSON value to stdout;
 failure writes one JSON error to stderr and exits non-zero. Interactive delete
 asks for confirmation. Machine-readable deletion requires `--yes`, making the
-authorization visible in the invocation.
+authorization visible in the invocation. Uncomplete confirms the same way: the
+interactive prompt writes nothing when declined and `--json` requires `--yes`.
+An already-open todo is reported as success without changes.
 
 List output contains open todos unless `--include-completed` is present. View
 resolves one UID and renders every field for terminal use; JSON returns the
@@ -68,15 +71,26 @@ calls Fold when possible and always removes the local session.
 
 Create resolves an exact list ID or unique display name, generates a UUID and
 creation timestamp locally, and sends the existing create schema. Edit,
-complete, and delete resolve the UID across the user's lists; `--list` narrows
-an otherwise ambiguous UID.
+complete, uncomplete, and delete resolve the UID across the user's lists;
+`--list` narrows an otherwise ambiguous UID. On `edit`, `--list` is instead the
+move destination, resolved like `create`.
+
+`todo edit --list TARGET` moves a todo. The CLI copies the todo (summary, due,
+notes, priority, created time, and any combined edits) into TARGET, then
+deletes the source with its ETag, mirroring the app's move. A create `412`
+reuses the copy already in TARGET; a delete `404` means the move is complete; a
+delete `412` stops with exit 4 so a concurrent source change is not
+overwritten. A completed todo and a TARGET equal to the todo's own list are
+usage errors before any request.
 
 All mutations use the todo's current ETag. Edits retry once only when a `412`
 response proves every edited field remained unchanged (due compares by kind,
 value, and timezone ID; notes and priority compare by value, including
 presence). Completion retries
 once when the todo remains incomplete, and treats an already-completed fresh
-copy as success. Delete never retries a conflict because doing so could erase
+copy as success. Uncomplete sends `{ completed: false }`, treats an already-open
+fresh copy as success, and retries once while the fresh copy is still
+completed. Delete never retries a conflict because doing so could erase
 a concurrent change.
 
 Network and `5xx` failures are never blindly retried: a mutation may already

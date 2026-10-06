@@ -1,6 +1,6 @@
 ---
 name: fold-todos
-description: Manage todos in a self-hosted Fold account with the fold-cli CLI. Use when asked to create, edit, complete, or delete Fold todos; do not use for direct CalDAV operations.
+description: Manage todos in a self-hosted Fold account with the fold-cli CLI. Use when asked to create, edit, move, complete, reopen, or delete Fold todos; do not use for direct CalDAV operations.
 ---
 
 # Fold todos
@@ -41,12 +41,26 @@ directly. Add `--json` to every command so results are machine-readable.
    value, and timezone ID; notes and priority compare by value, including
    absence).
    Use `fold-cli todo edit UID --summary SUMMARY --json` to rename it, or
-   `fold-cli todo complete UID --json` to finish it. Add `--list LIST` if Fold
-   reports that the UID is ambiguous.
-4. Use `fold-cli todo delete UID --yes --json` only when the user explicitly
+   `fold-cli todo complete UID --json` to finish it. Add `--list LIST` to
+   `complete` or `view` when Fold reports that the UID is ambiguous; on
+   `edit`, `--list` is the move destination (step 4), not a disambiguator.
+4. Use `fold-cli todo edit UID --list TARGET --json` to move a todo to another
+   list. TARGET is the destination, resolved exactly like `create` (exact list
+   ID or unique display name); the source is resolved by UID. The CLI copies
+   the todo into TARGET and then deletes the source, so the copy keeps its
+   summary, due date, notes, priority, and created time. `--list` may be
+   combined with the field edits, which are applied to the copy. A completed
+   todo is rejected: reopen it with `todo uncomplete` first. A TARGET that is
+   the todo's own list is also rejected.
+5. Use `fold-cli todo uncomplete UID --yes --json` to reopen a completed todo.
+   Without `--yes` the CLI prompts and writes nothing when declined; under
+   `--json`, `--yes` is required. An already-open todo is left unchanged and
+   reported as success. Add `--list LIST` when Fold reports that the UID is
+   ambiguous.
+6. Use `fold-cli todo delete UID --yes --json` only when the user explicitly
    requested deletion of that todo. Otherwise confirm immediately before
    running it.
-5. If the CLI reports a concurrent change, do not retry automatically. Tell
+7. If the CLI reports a concurrent change, do not retry automatically. Tell
    the user that the todo must be inspected before trying again.
 
 Do not sign the user out when the task finishes. The CLI keeps the sealed Fold
