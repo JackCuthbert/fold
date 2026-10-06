@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { Todo, TodoChanges, TodoDue, TodoList } from '@fold/schemas'
+import type { NewTodo, Todo, TodoChanges, TodoList } from '@fold/schemas'
 import { FoldApi } from './api'
 import { ApiError, CliError } from './errors'
 
@@ -26,13 +26,13 @@ export const createTodo = async (
   api: FoldApi,
   listName: string,
   summary: string,
-  due?: TodoDue,
+  options: Pick<NewTodo, 'due' | 'description' | 'priority'> = {},
 ): Promise<Todo> => {
   const list = await resolveList(api, listName)
   return api.createTodo(list.id, {
     uid: randomUUID(),
     summary,
-    ...(due === undefined ? {} : { due }),
+    ...options,
     created: new Date().toISOString(),
   })
 }
@@ -57,7 +57,10 @@ export const editTodo = async (
       !fresh ||
       (changes.summary !== undefined &&
         located.todo.summary !== fresh.summary) ||
-      ('due' in changes && !sameDue(located.todo.due, fresh.due))
+      ('due' in changes && !sameDue(located.todo.due, fresh.due)) ||
+      ('description' in changes &&
+        located.todo.description !== fresh.description) ||
+      ('priority' in changes && located.todo.priority !== fresh.priority)
     )
       throw conflict(error)
     return api.updateTodo(located.list.id, uid, fresh.etag, changes)

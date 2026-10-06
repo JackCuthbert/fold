@@ -1,6 +1,7 @@
 import {
   credentialsSchema,
   todoDueSchema,
+  todoPrioritySchema,
   type TodoDue,
   type TodoChanges,
 } from '@fold/schemas'
@@ -250,16 +251,26 @@ const createCommands = (runtime: Runtime) => {
       },
       list: { ...listArg, required: true },
       due: { type: 'string', description: 'Due date or local datetime' },
+      notes: { type: 'string', description: 'Todo notes' },
+      priority: {
+        type: 'string',
+        description: 'Priority: high, medium, or low',
+      },
       json: jsonArg,
       help: helpArg,
     },
     run: async ({ args }) => {
       const due = args.due === undefined ? undefined : parseDue(args.due)
+      const priority = parsePriority(args.priority)
       const todo = await createTodo(
         await authenticated(runtime),
         args.list,
         args.summary,
-        due,
+        {
+          ...(due === undefined ? {} : { due }),
+          ...(args.notes === undefined ? {} : { description: args.notes }),
+          ...(priority === undefined ? {} : { priority }),
+        },
       )
       emit(runtime, {
         message: `Created ${terminalText(todo.summary)}`,
@@ -277,6 +288,13 @@ const createCommands = (runtime: Runtime) => {
       uid: { type: 'positional', description: 'Todo UID', required: true },
       summary: { type: 'string', description: 'New summary' },
       due: { type: 'string', description: 'Due date or local datetime' },
+      notes: { type: 'string', description: 'New todo notes' },
+      'clear-notes': { type: 'boolean', description: 'Clear the notes' },
+      priority: {
+        type: 'string',
+        description: 'Priority: high, medium, or low',
+      },
+      'clear-priority': { type: 'boolean', description: 'Clear the priority' },
       'clear-due': { type: 'boolean', description: 'Clear the due date' },
       list: listArg,
       json: jsonArg,
@@ -285,16 +303,35 @@ const createCommands = (runtime: Runtime) => {
     run: async ({ args }) => {
       if (args.due !== undefined && args['clear-due'])
         throw new CliError('--due and --clear-due cannot be used together', 2)
+      if (args.notes !== undefined && args['clear-notes'])
+        throw new CliError(
+          '--notes and --clear-notes cannot be used together',
+          2,
+        )
+      if (args.priority !== undefined && args['clear-priority'])
+        throw new CliError(
+          '--priority and --clear-priority cannot be used together',
+          2,
+        )
+      const priority = parsePriority(args.priority)
       if (
         args.summary === undefined &&
         args.due === undefined &&
-        !args['clear-due']
+        !args['clear-due'] &&
+        args.notes === undefined &&
+        !args['clear-notes'] &&
+        priority === undefined &&
+        !args['clear-priority']
       )
         throw new CliError('todo edit requires at least one change', 2)
       const changes: TodoChanges = {
         ...(args.summary === undefined ? {} : { summary: args.summary }),
         ...(args.due === undefined ? {} : { due: parseDue(args.due) }),
         ...(args['clear-due'] ? { due: null } : {}),
+        ...(args.notes === undefined ? {} : { description: args.notes }),
+        ...(args['clear-notes'] ? { description: null } : {}),
+        ...(priority === undefined ? {} : { priority }),
+        ...(args['clear-priority'] ? { priority: null } : {}),
       }
       const todo = await editTodo(
         await authenticated(runtime),
@@ -511,6 +548,14 @@ const parseDue = (input: string): TodoDue => {
   )
 }
 
+const parsePriority = (input: string | undefined) => {
+  if (input === undefined) return undefined
+  const parsed = todoPrioritySchema.safeParse(input)
+  if (!parsed.success)
+    throw new CliError('Priority must be high, medium, or low', 2)
+  return parsed.data
+}
+
 const normalizeFoldUrl = (input: string): string => {
   let url: URL
   try {
@@ -533,7 +578,7 @@ const normalizeFoldUrl = (input: string): string => {
 const todoDetails = ({ list, todo }: LocatedTodo): string =>
   [
     ['Summary', todo.summary],
-    ['Description', todo.description ?? '(none)'],
+    ['Notes', todo.description ?? '(none)'],
     ['Status', todo.completed ? 'completed' : 'open'],
     ['Due', todo.due ? JSON.stringify(todo.due) : '(none)'],
     ['Priority', todo.priority ?? '(none)'],

@@ -118,20 +118,53 @@ test('the packaged CLI completes its critical journey across processes', async (
   ).toMatchObject({ summary: 'Existing todo', completed: false })
 
   const created = await fold(
-    ['todo', 'create', 'Packaged journey', '--list', 'Personal', '--json'],
+    [
+      'todo',
+      'create',
+      'Packaged journey',
+      '--list',
+      'Personal',
+      '--notes',
+      'Created note',
+      '--priority',
+      'high',
+      '--json',
+    ],
     todoOutputSchema,
   )
   const uid = created.todo.uid
   expect(created.todo.summary).toBe('Packaged journey')
+  expect(created.todo).toMatchObject({
+    description: 'Created note',
+    priority: 'high',
+  })
 
-  expect(
-    (
-      await fold(
-        ['todo', 'edit', uid, '--summary', 'Edited journey', '--json'],
-        todoOutputSchema,
-      )
-    ).todo.summary,
-  ).toBe('Edited journey')
+  const edited = await fold(
+    [
+      'todo',
+      'edit',
+      uid,
+      '--summary',
+      'Edited journey',
+      '--notes',
+      'Edited note',
+      '--priority',
+      'low',
+      '--json',
+    ],
+    todoOutputSchema,
+  )
+  expect(edited.todo).toMatchObject({
+    summary: 'Edited journey',
+    description: 'Edited note',
+    priority: 'low',
+  })
+  const cleared = await fold(
+    ['todo', 'edit', uid, '--clear-notes', '--clear-priority', '--json'],
+    todoOutputSchema,
+  )
+  expect(cleared.todo).not.toHaveProperty('description')
+  expect(cleared.todo).not.toHaveProperty('priority')
   expect(
     (await fold(['todo', 'complete', uid, '--json'], todoOutputSchema)).todo
       .completed,

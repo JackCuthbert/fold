@@ -23,15 +23,23 @@ directly. Add `--json` to every command so results are machine-readable.
    Ask rather than guess when multiple todos match. Use
    `fold-cli todo view UID --json` to inspect the resolved todo in full.
 2. Use `fold-cli todo create SUMMARY --list LIST --json` to create a todo.
+   Add `--notes TEXT` to preserve context separately from the summary and
+   `--priority high|medium|low` to set priority. Either or both may be combined
+   with `--due`.
    Add `--due YYYY-MM-DD` for an all-day due date or
    `--due YYYY-MM-DDTHH:mm[:ss]` for a local time in the machine's IANA
    timezone. Do not provide offsets or `Z`.
 3. Use the exact UID returned by Fold for later operations. Use
-   `fold-cli todo edit UID --summary SUMMARY [--due DATE] --json` to update
-   fields, or `--clear-due` to remove the due date. Dates and times are
-   validated; no-op edits are invalid. An edit may include summary and due
-   together. The CLI retries a conflict once only if every edited field is
-   unchanged on the fresh todo (due compares by kind, value, and timezone ID).
+   `fold-cli todo edit UID [--summary SUMMARY] [--due DATE] [--notes TEXT]
+[--priority high|medium|low] --json` to update fields. Use `--clear-due`,
+   `--clear-notes`, or `--clear-priority` to remove optional values; each
+   set/clear pair is mutually exclusive. Notes and priority may be edited alone
+   or combined with other fields. Notes are preserved verbatim, including
+   empty strings; use `--clear-notes` to remove notes. Dates and times are
+   validated; no-op edits are invalid. The CLI retries a conflict once only if
+   every edited field is unchanged on the fresh todo (due compares by kind,
+   value, and timezone ID; notes and priority compare by value, including
+   absence).
    Use `fold-cli todo edit UID --summary SUMMARY --json` to rename it, or
    `fold-cli todo complete UID --json` to finish it. Add `--list LIST` if Fold
    reports that the UID is ambiguous.

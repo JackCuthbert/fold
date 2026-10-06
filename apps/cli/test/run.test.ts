@@ -245,6 +245,202 @@ describe('Fold CLI', () => {
     expect(fetcher.mock.calls[1]?.[1]?.body).toContain('"summary":"Buy milk"')
   })
 
+  it('creates with verbatim notes and priority while omitting unset fields', async () => {
+    signedIn()
+    const notes = '  Call https://example.test\n\n'
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ...TODO, description: notes, priority: 'high' }, 201),
+    ])
+    expect(
+      await invoke(
+        [
+          'todo',
+          'create',
+          'Buy milk',
+          '--list',
+          LIST.id,
+          '--notes',
+          notes,
+          '--priority',
+          'high',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 1)).toMatchObject({
+      description: notes,
+      priority: 'high',
+    })
+    expect(await requestBodyAt(fetcher, 1)).not.toHaveProperty('due')
+  })
+
+  it.each(['high', 'medium', 'low'] as const)(
+    'accepts %s priority',
+    async (priority) => {
+      signedIn()
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ...TODO, priority }, 201),
+      ])
+      expect(
+        await invoke(
+          [
+            'todo',
+            'create',
+            'Buy milk',
+            '--list',
+            LIST.id,
+            '--priority',
+            priority,
+          ],
+          { fetcher },
+        ),
+      ).toBe(0)
+      expect(await requestBodyAt(fetcher, 1)).toMatchObject({ priority })
+    },
+  )
+
+  it('edits and clears notes and priority, preserving empty notes', async () => {
+    signedIn()
+    const original = { ...TODO, description: 'Old', priority: 'high' as const }
+    const edited = { ...original, description: '', priority: 'low' as const }
+    const cleared = { ...edited, description: undefined, priority: undefined }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json(edited),
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [edited] }),
+      json(cleared),
+    ])
+    expect(
+      await invoke(
+        ['todo', 'edit', TODO.uid, '--notes', '', '--priority', 'low'],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 2)).toEqual({
+      etag: original.etag,
+      changes: { description: '', priority: 'low' },
+    })
+    expect(
+      await invoke(
+        ['todo', 'edit', TODO.uid, '--clear-notes', '--clear-priority'],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 5)).toEqual({
+      etag: edited.etag,
+      changes: { description: null, priority: null },
+    })
+  })
+
+  it.each([
+    ['notes set', {}, { description: 'elsewhere' }, ['--notes', 'mine']],
+    ['notes clear', { description: 'there' }, {}, ['--clear-notes']],
+    ['priority set', {}, { priority: 'high' }, ['--priority', 'low']],
+    ['priority clear', { priority: 'high' }, {}, ['--clear-priority']],
+  ])(
+    'does not overwrite a concurrent %s change',
+    async (_name, before, after, flags) => {
+      signedIn()
+      const original = { ...TODO, ...before }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [original] }),
+        json({ todo: { ...TODO, ...after, etag: 'etag-2' } }, 412),
+      ])
+      expect(
+        await invoke(['todo', 'edit', TODO.uid, ...flags], { fetcher }),
+      ).toBe(4)
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it('retries a notes and priority edit after unrelated changes', async () => {
+    signedIn()
+    const original = {
+      ...TODO,
+      description: 'same',
+      priority: 'medium' as const,
+    }
+    const fresh = { ...original, summary: 'elsewhere', etag: 'etag-2' }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [original] }),
+      json({ todo: fresh }, 412),
+      json({ ...fresh, description: 'new', priority: 'high' }),
+    ])
+    expect(
+      await invoke(
+        ['todo', 'edit', TODO.uid, '--notes', 'new', '--priority', 'high'],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 3)).toMatchObject({
+      etag: fresh.etag,
+      changes: { description: 'new', priority: 'high' },
+    })
+  })
+
+  it.each([
+    ['notes', { description: 'concurrent' }],
+    ['priority', { priority: 'low' }],
+  ])(
+    'stops combined notes+priority edit when %s changes concurrently',
+    async (_field, changed) => {
+      signedIn()
+      const original = {
+        ...TODO,
+        description: 'original',
+        priority: 'medium' as const,
+      }
+      const fetcher = routeFetch([
+        json([LIST]),
+        json({ ctag: LIST.ctag, todos: [original] }),
+        json({ todo: { ...original, ...changed, etag: 'etag-2' } }, 412),
+      ])
+      expect(
+        await invoke(
+          ['todo', 'edit', TODO.uid, '--notes', 'ours', '--priority', 'high'],
+          { fetcher },
+        ),
+      ).toBe(4)
+      expect(fetcher).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it.each([
+    ['--notes', 'x', '--clear-notes'],
+    ['--notes', '', '--clear-notes'],
+    ['--priority', 'high', '--clear-priority'],
+    ['--priority', 'HIGH'],
+    ['--priority', ''],
+  ])(
+    'rejects conflicting or invalid edit options before requests',
+    async (...args) => {
+      const fetcher = vi.fn<typeof fetch>()
+      expect(
+        await invoke(['todo', 'edit', TODO.uid, ...args], { fetcher }),
+      ).toBe(2)
+      expect(fetcher).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    ['--priority', 'HIGH'],
+    ['--priority', ''],
+  ])('rejects invalid create priority before requests', async (...args) => {
+    const fetcher = vi.fn<typeof fetch>()
+    expect(
+      await invoke(['todo', 'create', 'Buy milk', '--list', LIST.id, ...args], {
+        fetcher,
+      }),
+    ).toBe(2)
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
   it('creates and edits all-day due dates and allows clearing them', async () => {
     signedIn()
     const created = {
@@ -631,7 +827,7 @@ describe('Fold CLI', () => {
 
     expect(await invoke(['todo', 'view', TODO.uid], { fetcher })).toBe(0)
     expect(stdout).toContain('Summary: Buy milk')
-    expect(stdout).toContain('Description: Call before arrival')
+    expect(stdout).toContain('Notes: Call before arrival')
     expect(stdout).toContain(
       'Due: {\\"kind\\":\\"date\\",\\"value\\":\\"2026-09-05\\"}',
     )

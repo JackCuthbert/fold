@@ -10,8 +10,10 @@ fold-cli skill install --agent codex --scope user
 fold-cli todo list
 fold-cli todo create "Book dentist" --list Personal
 fold-cli todo create "Book dentist" --list Personal --due 2026-10-05
+fold-cli todo create "Book dentist" --list Personal --notes "Call after 3pm" --priority high
 fold-cli todo edit TODO_UID --due 2026-10-05T09:30
-fold-cli todo edit TODO_UID --clear-due
+fold-cli todo edit TODO_UID --notes "Ask for Dr. Lee" --priority medium
+fold-cli todo edit TODO_UID --clear-due --clear-notes --clear-priority
 ```
 
 Run `fold-cli --help` for the complete command list. Add `--json` to any data
@@ -19,8 +21,13 @@ command for machine-readable output.
 
 Due dates accept `YYYY-MM-DD` all-day values or local `YYYY-MM-DDTHH:mm[:ss]`
 datetimes. Local times use the machine's IANA timezone; offsets and `Z` are
-rejected. Edits may combine `--summary` and `--due`; a `412` conflict retries
-once only when every field being edited is unchanged on the fresh todo.
+rejected. Create accepts `--notes TEXT` and `--priority high|medium|low`, which
+may be combined with each other and `--due`. Edit accepts `--notes TEXT`,
+`--priority high|medium|low`, `--clear-notes`, and `--clear-priority`; edits may
+combine these with summary and due changes. Set and clear flags for the same
+field cannot be combined. Notes are preserved verbatim, including empty text;
+use `--clear-notes` to remove them. A `412` conflict retries once only when
+every edited field is unchanged on the fresh todo.
 
 Install the bundled `fold-todos` agent skill with `--agent codex`, `--agent
 claude`, or `--agent all` and `--scope user` or `--scope project`. Omitting
