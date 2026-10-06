@@ -74,6 +74,86 @@ const sameDue = (a: Todo['due'], b: Todo['due']): boolean =>
       a.value === b.value &&
       (a.kind !== 'zoned' || (b.kind === 'zoned' && a.tzid === b.tzid))
 
+const pick = <T>(change: T | null | undefined, current: T | undefined) =>
+  change === null ? undefined : change !== undefined ? change : current
+
+const copyOf = (todo: Todo, changes: TodoChanges): NewTodo => {
+  const due = pick(changes.due, todo.due)
+  const description = pick(changes.description, todo.description)
+  const priority = pick(changes.priority, todo.priority)
+  const created = todo.created
+  return {
+    uid: todo.uid,
+    summary: changes.summary ?? todo.summary,
+    ...(due === undefined ? {} : { due }),
+    ...(description === undefined ? {} : { description }),
+    ...(priority === undefined ? {} : { priority }),
+    ...(created === undefined ? {} : { created }),
+  }
+}
+
+export const moveTodo = async (
+  api: FoldApi,
+  uid: string,
+  targetName: string,
+  changes: TodoChanges,
+): Promise<LocatedTodo> => {
+  const located = await resolveTodo(api, uid)
+  const target = await resolveList(api, targetName)
+  if (target.id === located.list.id)
+    throw new CliError(
+      'The todo is already in that list; --list names the destination',
+      2,
+    )
+  if (located.todo.completed)
+    throw new CliError(
+      'Cannot move a completed todo; run todo uncomplete first',
+      2,
+    )
+  const copy = copyOf(located.todo, changes)
+  let created: Todo
+  try {
+    created = await api.createTodo(target.id, copy)
+  } catch (error) {
+    const existing = api.conflict(error)
+    if (!existing) throw error
+    created = existing
+  }
+  try {
+    await api.deleteTodo(located.list.id, uid, located.todo.etag)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404)
+      return { list: target, todo: created }
+    if (api.conflict(error))
+      throw new CliError(
+        'The source changed after it was copied; inspect it and try again',
+        4,
+      )
+    throw error
+  }
+  return { list: target, todo: created }
+}
+
+export const uncompleteTodo = async (
+  api: FoldApi,
+  located: LocatedTodo,
+): Promise<Todo> => {
+  const { list, todo } = located
+  if (!todo.completed) return todo
+  try {
+    return await api.updateTodo(list.id, todo.uid, todo.etag, {
+      completed: false,
+    })
+  } catch (error) {
+    const fresh = api.conflict(error)
+    if (!fresh) throw conflict(error)
+    if (!fresh.completed) return fresh
+    return api.updateTodo(list.id, todo.uid, fresh.etag, {
+      completed: false,
+    })
+  }
+}
+
 export const completeTodo = async (
   api: FoldApi,
   uid: string,

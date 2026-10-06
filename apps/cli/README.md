@@ -14,6 +14,8 @@ fold-cli todo create "Book dentist" --list Personal --notes "Call after 3pm" --p
 fold-cli todo edit TODO_UID --due 2026-10-05T09:30
 fold-cli todo edit TODO_UID --notes "Ask for Dr. Lee" --priority medium
 fold-cli todo edit TODO_UID --clear-due --clear-notes --clear-priority
+fold-cli todo edit TODO_UID --list Work
+fold-cli todo uncomplete TODO_UID --yes
 ```
 
 Run `fold-cli --help` for the complete command list. Add `--json` to any data
@@ -28,6 +30,14 @@ combine these with summary and due changes. Set and clear flags for the same
 field cannot be combined. Notes are preserved verbatim, including empty text;
 use `--clear-notes` to remove them. A `412` conflict retries once only when
 every edited field is unchanged on the fresh todo.
+
+Edit with `--list TARGET` moves the todo to another list: the source is
+resolved by UID, TARGET is the destination resolved like `create`, and the CLI
+copies the todo into TARGET before deleting the source, so the copy keeps its
+fields. A completed todo and a TARGET equal to the todo's own list are
+rejected. Uncomplete reopens a completed todo and requires confirmation;
+`--yes`/`-y` skips the prompt and `--json` requires it. An already-open todo is
+reported as success unchanged.
 
 Install the bundled `fold-todos` agent skill with `--agent codex`, `--agent
 claude`, or `--agent all` and `--scope user` or `--scope project`. Omitting

@@ -14,6 +14,13 @@ const LIST = {
   ctag: 'ctag-1',
 }
 
+const WORK = {
+  id: 'work',
+  href: '/dav/work/',
+  displayName: 'Work',
+  ctag: 'ctag-work',
+}
+
 const TODO: Todo = {
   uid: 'todo-1',
   listId: LIST.id,
@@ -1155,29 +1162,19 @@ describe('Fold CLI', () => {
   it('uses --list ID to disambiguate a shared UID and duplicate list names', async () => {
     signedIn()
     const workTodo = { ...TODO, listId: 'work', etag: 'work-etag' }
-    const edited = { ...workTodo, summary: 'Edited' }
+    const completed = { ...workTodo, completed: true }
     const fetcher = routeFetch([
       json([LIST, { ...LIST, id: 'work' }]),
       json({ ctag: LIST.ctag, todos: [workTodo] }),
-      json(edited),
+      json(completed),
     ])
 
     expect(
-      await invoke(
-        [
-          'todo',
-          'edit',
-          TODO.uid,
-          '--summary',
-          'Edited',
-          '--list',
-          'work',
-          '--json',
-        ],
-        { fetcher },
-      ),
+      await invoke(['todo', 'complete', TODO.uid, '--list', 'work', '--json'], {
+        fetcher,
+      }),
     ).toBe(0)
-    expect(JSON.parse(stdout)).toMatchObject({ todo: edited })
+    expect(JSON.parse(stdout)).toMatchObject({ todo: completed })
     expect(fetcher).toHaveBeenCalledTimes(3)
     expect(fetcher.mock.calls[1]?.[0]).toBe(
       'https://fold.example/api/lists/work/todos',
@@ -1188,9 +1185,408 @@ describe('Fold CLI', () => {
     expect(fetcher.mock.calls[2]?.[1]?.body).toBe(
       JSON.stringify({
         etag: 'work-etag',
-        changes: { summary: 'Edited' },
+        changes: { completed: true },
       }),
     )
+  })
+
+  it('moves a todo by copying every field to the target and deleting the source', async () => {
+    signedIn()
+    const source = {
+      ...TODO,
+      due: { kind: 'date' as const, value: '2026-09-05' },
+      description: 'Call before arrival',
+      priority: 'high' as const,
+      created: '2026-09-04T00:00:00.000Z',
+    }
+    const copy = {
+      ...source,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [source] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json(copy, 201),
+      new Response(null, { status: 204 }),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toEqual({
+      message: 'Moved Buy milk to Work',
+      todo: copy,
+    })
+    expect(await requestBodyAt(fetcher, 4)).toEqual({
+      uid: TODO.uid,
+      summary: TODO.summary,
+      due: source.due,
+      description: 'Call before arrival',
+      priority: 'high',
+      created: '2026-09-04T00:00:00.000Z',
+    })
+    expect(fetcher.mock.calls[5]?.[0]).toBe(
+      'https://fold.example/api/lists/personal/todos/todo-1',
+    )
+    expect(await requestBodyAt(fetcher, 5)).toEqual({ etag: TODO.etag })
+  })
+
+  it('reports a move in human output', async () => {
+    signedIn()
+    const copy = {
+      ...TODO,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json(copy, 201),
+      new Response(null, { status: 204 }),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work'], { fetcher }),
+    ).toBe(0)
+    expect(stdout).toBe('Moved Buy milk to Work\n')
+  })
+
+  it('applies combined edits to the moved copy and clears fields', async () => {
+    signedIn()
+    const source = {
+      ...TODO,
+      description: 'Old note',
+      priority: 'high' as const,
+    }
+    const copy = {
+      ...source,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+      summary: 'Buy oat milk',
+      description: 'New note',
+      priority: 'low' as const,
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [source] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json(copy, 201),
+      new Response(null, { status: 204 }),
+    ])
+
+    expect(
+      await invoke(
+        [
+          'todo',
+          'edit',
+          TODO.uid,
+          '--list',
+          'Work',
+          '--summary',
+          'Buy oat milk',
+          '--notes',
+          'New note',
+          '--priority',
+          'low',
+          '--json',
+        ],
+        { fetcher },
+      ),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 4)).toEqual({
+      uid: TODO.uid,
+      summary: 'Buy oat milk',
+      description: 'New note',
+      priority: 'low',
+    })
+  })
+
+  it('rejects a move to the todo\u2019s own list before mutating', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json([LIST]),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Personal'], {
+        fetcher,
+      }),
+    ).toBe(2)
+    expect(stderr).toContain('already in that list')
+    expect(mutations(fetcher)).toHaveLength(0)
+  })
+
+  it('rejects moving a completed todo before mutating', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work'], { fetcher }),
+    ).toBe(2)
+    expect(stderr).toContain('uncomplete')
+    expect(mutations(fetcher)).toHaveLength(0)
+  })
+
+  it('treats a create 412 while moving as the copy and continues', async () => {
+    signedIn()
+    const copy = {
+      ...TODO,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json({ todo: copy }, 412),
+      new Response(null, { status: 204 }),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: copy })
+    expect(await requestBodyAt(fetcher, 5)).toEqual({ etag: TODO.etag })
+  })
+
+  it('completes a move when the source delete returns 404', async () => {
+    signedIn()
+    const copy = {
+      ...TODO,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json(copy, 201),
+      json({ message: 'gone' }, 404),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: copy })
+  })
+
+  it('stops a move at exit 4 when the source changed after the copy', async () => {
+    signedIn()
+    const copy = {
+      ...TODO,
+      listId: WORK.id,
+      href: '/dav/work/todo-1.ics',
+      etag: 'work-etag',
+    }
+    const fetcher = routeFetch([
+      json([LIST, WORK]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+      json({ ctag: WORK.ctag, todos: [] }),
+      json([LIST, WORK]),
+      json(copy, 201),
+      json({ todo: { ...TODO, etag: 'etag-2' } }, 412),
+    ])
+
+    expect(
+      await invoke(['todo', 'edit', TODO.uid, '--list', 'Work', '--json'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 4 })
+    expect(stdout).toBe('')
+  })
+
+  it('reopens a completed todo with the current ETag', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true, etag: 'etag-2' }
+    const reopened = { ...completed, etag: 'etag-3', completed: false }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json(reopened),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toEqual({
+      message: 'Reopened Buy milk',
+      todo: reopened,
+    })
+    expect(await requestBodyAt(fetcher, 2)).toEqual({
+      etag: 'etag-2',
+      changes: { completed: false },
+    })
+  })
+
+  it('reopens with -y without prompting', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const reopened = { ...completed, completed: false }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json(reopened),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '-y'], {
+        fetcher,
+        prompter: {
+          text: async () => '',
+          password: async () => '',
+          confirm: async () => {
+            throw new Error('should not prompt')
+          },
+        },
+      }),
+    ).toBe(0)
+    expect(stdout).toBe('Reopened Buy milk\n')
+  })
+
+  it('does not reopen when confirmation is declined', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid], {
+        fetcher,
+        prompter: {
+          text: async () => '',
+          password: async () => '',
+          confirm: async () => false,
+        },
+      }),
+    ).toBe(0)
+    expect(stdout).toBe('Reopen cancelled\n')
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(mutations(fetcher)).toHaveLength(0)
+  })
+
+  it('requires --yes for uncomplete in JSON mode', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--json'], { fetcher }),
+    ).toBe(2)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 2 })
+    expect(mutations(fetcher)).toHaveLength(0)
+  })
+
+  it('leaves an already open todo untouched', async () => {
+    signedIn()
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [TODO] }),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: TODO })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(mutations(fetcher)).toHaveLength(0)
+  })
+
+  it('retries reopening after a conflict', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fresh = { ...completed, etag: 'etag-2', summary: 'Changed elsewhere' }
+    const reopened = { ...fresh, etag: 'etag-3', completed: false }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json({ todo: fresh }, 412),
+      json(reopened),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(await requestBodyAt(fetcher, 3)).toEqual({
+      etag: 'etag-2',
+      changes: { completed: false },
+    })
+  })
+
+  it('treats a fresh already-open copy as a successful reopen', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fresh = { ...TODO, etag: 'etag-2', completed: false }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json({ todo: fresh }, 412),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(0)
+    expect(JSON.parse(stdout)).toMatchObject({ todo: fresh })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  it('stops reopening after a second conflict', async () => {
+    signedIn()
+    const completed = { ...TODO, completed: true }
+    const fetcher = routeFetch([
+      json([LIST]),
+      json({ ctag: LIST.ctag, todos: [completed] }),
+      json({ todo: { ...completed, etag: 'etag-2' } }, 412),
+      json({ todo: { ...completed, etag: 'etag-3' } }, 412),
+    ])
+
+    expect(
+      await invoke(['todo', 'uncomplete', TODO.uid, '--yes', '--json'], {
+        fetcher,
+      }),
+    ).toBe(4)
+    expect(JSON.parse(stderr)).toMatchObject({ exitCode: 4 })
+    expect(fetcher).toHaveBeenCalledTimes(4)
   })
 
   const signedIn = (): void => {
@@ -1225,6 +1621,11 @@ const routeFetch = (responses: Response[]) =>
     if (!response) throw new Error('unexpected request')
     return response
   })
+
+const mutations = (fetcher: ReturnType<typeof vi.fn<typeof fetch>>) =>
+  fetcher.mock.calls.filter(([, init]) =>
+    ['POST', 'PUT', 'DELETE'].includes(init?.method ?? ''),
+  )
 
 const json = (
   body: unknown,
