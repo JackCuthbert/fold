@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/JackCuthbert/fold/compare/fold-cli-v2.1.0...fold-cli-v2.2.0) (2026-10-06)
+
+
+### Features
+
+* **cli:** add notes and priority to todo commands ([4f6bab1](https://github.com/JackCuthbert/fold/commit/4f6bab1525ac18bcea2d0957716e6b2ce298e582))
+* **cli:** move todos between lists and reopen completed ones ([4273b5b](https://github.com/JackCuthbert/fold/commit/4273b5bd5523853e9a6f9f9c0fadf84a9b80cb11))
+
 ## [2.1.0](https://github.com/JackCuthbert/fold/compare/fold-cli-v2.0.0...fold-cli-v2.1.0) (2026-10-05)
 
 
