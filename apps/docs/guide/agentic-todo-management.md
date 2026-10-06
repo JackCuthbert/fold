@@ -46,8 +46,10 @@ fold-cli todo list --include-completed
 fold-cli todo view TODO_UID
 fold-cli todo create "Book dentist" --list Personal
 fold-cli todo create "Submit report" --list Work --due 2026-10-05
+fold-cli todo create "Renew passport" --list Personal --notes "Bring photo" --priority high
 fold-cli todo edit TODO_UID --summary "Book dentist appointment" --due 2026-10-05T09:30
-fold-cli todo edit TODO_UID --clear-due
+fold-cli todo edit TODO_UID --notes "Ask for Dr. Lee" --priority medium
+fold-cli todo edit TODO_UID --clear-due --clear-notes --clear-priority
 fold-cli todo complete TODO_UID
 fold-cli todo delete TODO_UID
 ```
@@ -72,10 +74,17 @@ fold-cli todo delete TODO_UID --yes --json
 
 Due dates accept all-day `YYYY-MM-DD` or local `YYYY-MM-DDTHH:mm[:ss]`
 datetimes. Local times use the machine's IANA timezone; offsets and `Z` are
-rejected. Invalid values, conflicting due flags, and no-op edits are rejected
-before authentication. The CLI uses ETags: an edit retries once only if every
-edited field is unchanged on the fresh todo (due values compare by kind, value,
-and timezone ID); completion can retry once. Delete conflicts stop for review.
+rejected. Create accepts `--notes TEXT` and `--priority high|medium|low`,
+independently or together with `--due`. Edit accepts the same set flags and
+`--clear-notes` / `--clear-priority` to remove those values. Set and clear flags
+for one field cannot be combined. Notes are preserved verbatim, including empty
+text; use `--clear-notes` to remove them. Edits may combine notes and priority
+with summary and due, and notes-only or priority-only edits are valid. Omitted
+fields remain unchanged. Invalid values, contradictory flags, and no-op edits
+are rejected before authentication. The CLI uses ETags: an edit retries once
+only if every edited field is unchanged on the fresh todo (due compares by kind,
+value, and timezone ID; notes and priority compare by value and presence);
+completion can retry once. Delete conflicts stop for review.
 
 ## Connect an AI agent
 

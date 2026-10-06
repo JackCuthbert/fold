@@ -17,8 +17,8 @@ fold-cli auth status
 fold-cli auth logout
 fold-cli todo list [--list LIST] [--include-completed]
 fold-cli todo view UID [--list LIST]
-fold-cli todo create SUMMARY --list LIST [--due DATE]
-fold-cli todo edit UID [--summary SUMMARY] [--due DATE | --clear-due] [--list LIST]
+fold-cli todo create SUMMARY --list LIST [--due DATE] [--notes TEXT] [--priority high|medium|low]
+fold-cli todo edit UID [--summary SUMMARY] [--due DATE | --clear-due] [--notes TEXT | --clear-notes] [--priority high|medium|low | --clear-priority] [--list LIST]
 fold-cli todo complete UID [--list LIST]
 fold-cli todo delete UID [--list LIST] [--yes]
 fold-cli skill install [--agent <codex|claude|all>] --scope <user|project>
@@ -37,6 +37,14 @@ Due dates accept all-day `YYYY-MM-DD` and local `YYYY-MM-DDTHH:mm[:ss]` values.
 Local datetimes use the machine's IANA timezone and normalize to seconds;
 offsets and `Z` are rejected. Invalid date/time values, conflicting due flags,
 and no-op edits are usage errors before authentication.
+
+Create and edit accept notes and priority. `--notes TEXT` maps to the API's
+`description` field and preserves text verbatim, including empty strings;
+`--clear-notes` explicitly removes it. Priority is `high`, `medium`, or `low`;
+edit clears it with `--clear-priority`. Set/clear flags for a field are
+mutually exclusive. Notes and priority may be combined with due and summary
+changes, or edited alone. Omitted fields are left unchanged. Invalid priorities,
+contradictory flags, and no-op edits are rejected before authentication.
 
 ## Persistent authentication
 
@@ -65,7 +73,8 @@ an otherwise ambiguous UID.
 
 All mutations use the todo's current ETag. Edits retry once only when a `412`
 response proves every edited field remained unchanged (due compares by kind,
-value, and timezone ID). Completion retries
+value, and timezone ID; notes and priority compare by value, including
+presence). Completion retries
 once when the todo remains incomplete, and treats an already-completed fresh
 copy as success. Delete never retries a conflict because doing so could erase
 a concurrent change.
