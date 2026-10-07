@@ -1,7 +1,7 @@
 import { memoryStorage, type FatalError } from '@fold/outbox'
 import type { Mutation } from '@fold/schemas'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
-import { QueryCache, QueryClient } from '@tanstack/react-query'
+import { focusManager, QueryCache, QueryClient } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { del, get, set } from 'idb-keyval'
 import {
@@ -29,6 +29,20 @@ import { classifyBlockReason, TaggedFatalError } from './sync/process'
 import { useToast } from './ui'
 
 export const api: Api = createApi()
+
+// TanStack Query's default listener only sees visibility changes. A focused
+// window can receive `focus` without a visibility transition (e.g. returning
+// from another app window), so include both signals.
+focusManager.setEventListener((onFocus) => {
+  if (typeof window === 'undefined') return undefined
+  const listener = () => onFocus()
+  window.addEventListener('focus', listener)
+  window.addEventListener('visibilitychange', listener)
+  return () => {
+    window.removeEventListener('focus', listener)
+    window.removeEventListener('visibilitychange', listener)
+  }
+})
 
 // Status must reflect current conditions, never latched history
 // (docs/specs/sync-and-offline.md). `blocked` would otherwise only ever be
@@ -84,7 +98,10 @@ export const queryClient = new QueryClient({
       // mutation on top of the response, so this can never clobber a
       // pending local change — it's exactly why the ctag/304 short-circuit
       // exists: an idle poll that finds nothing new costs a cheap 304.
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: (query) =>
+        query.queryKey[0] === 'todos' || query.queryKey[0] === 'lists'
+          ? 'always'
+          : true,
       refetchOnReconnect: true,
       refetchInterval: 45_000,
       // The interval above is focus-gated by default: query-core only

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryObserver } from '@tanstack/react-query'
 import { MOUNT_DEADLINE_MS } from './lib'
 import { persister, queryClient } from './providers'
 
@@ -11,12 +12,69 @@ import { persister, queryClient } from './providers'
 // triggered it. Without a live poll, a change made on another device
 // would never appear until a manual reload.
 describe('queryClient defaults', () => {
-  it('refetches on window focus, reconnect, and a recurring interval', () => {
+  it('always refetches todos and lists on focus, reconnect, and interval', () => {
     const defaults = queryClient.getDefaultOptions().queries
-    expect(defaults?.refetchOnWindowFocus).toBe(true)
+    expect(defaults?.refetchOnWindowFocus).toBeTypeOf('function')
     expect(defaults?.refetchOnReconnect).toBe(true)
     expect(defaults?.refetchInterval).toBeTypeOf('number')
     expect(defaults?.refetchInterval).toBeGreaterThan(0)
+  })
+})
+
+describe('fresh query focus refresh', () => {
+  let visibilityState: DocumentVisibilityState
+
+  beforeEach(() => {
+    visibilityState = 'visible'
+    vi.stubGlobal('window', new EventTarget())
+    vi.stubGlobal('document', {
+      get visibilityState() {
+        return visibilityState
+      },
+    })
+    queryClient.clear()
+    queryClient.mount()
+  })
+
+  afterEach(() => {
+    queryClient.unmount()
+    queryClient.clear()
+    vi.unstubAllGlobals()
+  })
+
+  it('refetches fresh todos on repeated window focus', async () => {
+    let calls = 0
+    const observer = new QueryObserver(queryClient, {
+      queryKey: ['todos', 'focus-test'],
+      queryFn: async () => ++calls,
+    })
+    const unsubscribe = observer.subscribe(() => {})
+    await vi.waitFor(() => expect(calls).toBe(1))
+
+    window.dispatchEvent(new Event('focus'))
+    await vi.waitFor(() => expect(calls).toBe(2))
+    window.dispatchEvent(new Event('focus'))
+    await vi.waitFor(() => expect(calls).toBe(3))
+    unsubscribe()
+  })
+
+  it('ignores hidden events and refetches on visibility restoration', async () => {
+    let calls = 0
+    const observer = new QueryObserver(queryClient, {
+      queryKey: ['lists'],
+      queryFn: async () => ++calls,
+    })
+    const unsubscribe = observer.subscribe(() => {})
+    await vi.waitFor(() => expect(calls).toBe(1))
+
+    visibilityState = 'hidden'
+    window.dispatchEvent(new Event('visibilitychange'))
+    expect(calls).toBe(1)
+
+    visibilityState = 'visible'
+    window.dispatchEvent(new Event('visibilitychange'))
+    await vi.waitFor(() => expect(calls).toBe(2))
+    unsubscribe()
   })
 })
 
