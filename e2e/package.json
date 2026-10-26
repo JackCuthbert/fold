@@ -13,8 +13,8 @@
     "seed:all": "bun seed-all.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@types/node": "^26.6.4",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
   }
 }
