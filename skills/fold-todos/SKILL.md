@@ -31,7 +31,7 @@ directly. Add `--json` to every command so results are machine-readable.
    timezone. Do not provide offsets or `Z`.
 3. Use the exact UID returned by Fold for later operations. Use
    `fold-cli todo edit UID [--summary SUMMARY] [--due DATE] [--notes TEXT]
-[--priority high|medium|low] --json` to update fields. Use `--clear-due`,
+   [--priority high|medium|low] --json` to update fields. Use `--clear-due`,
    `--clear-notes`, or `--clear-priority` to remove optional values; each
    set/clear pair is mutually exclusive. Notes and priority may be edited alone
    or combined with other fields. Notes are preserved verbatim, including
