@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.1](https://github.com/JackCuthbert/fold/compare/v1.6.0...v1.6.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **client:** refresh todos and lists when returning to the app ([ea8a2b8](https://github.com/JackCuthbert/fold/commit/ea8a2b8aae85604d42c6b2511eaeaae28ea1ccfb))
+* keep app and CLI releases independent ([24ffbeb](https://github.com/JackCuthbert/fold/commit/24ffbeb4ef265fc490205354a75de94328f68831))
+* keep lint clean with updated Oxlint ([be39095](https://github.com/JackCuthbert/fold/commit/be3909529c0f72d9dab8fd82921fe0adfbfdf335))
+
 ## [1.6.0](https://github.com/JackCuthbert/fold/compare/v1.5.2...v1.6.0) (2026-09-27)
 
 
