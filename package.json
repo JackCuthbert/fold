@@ -30,13 +30,13 @@
     "fonts:convert": "bun scripts/convert-fonts.mjs"
   },
   "devDependencies": {
-    "@tsconfig/node24": "^24.0.5",
-    "@tsconfig/strictest": "^2.0.8",
+    "@tsconfig/node24": "^24.0.6",
+    "@tsconfig/strictest": "^2.0.9",
     "@types/node": "^26.6.6",
-    "knip": "^6.45.0",
+    "knip": "^6.45.1",
     "oxfmt": "^0.78.0",
     "oxlint": "^1.93.0",
-    "oxlint-tsgolint": "^7.0.2006",
+    "oxlint-tsgolint": "^7.0.2007",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0",
     "wawoff2": "^2.0.1"
